@@ -8,6 +8,7 @@ import DefaultModel from './modules/DefaultModel';
 import DocProcessing from './modules/DocProcessing';
 import DataSecurity from './modules/DataSecurity';
 import EngineAI from './modules/EngineAI';
+import Dedup from './modules/Dedup';
 
 export function Component() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -64,6 +65,11 @@ export function Component() {
       component: EngineAI,
       key: 'engine_ai',
       label: t(`page.settings.engine_ai.title`),
+    })
+    items.push({
+      component: Dedup,
+      key: 'dedup',
+      label: t(`page.settings.dedup.title`),
     })
   }
 

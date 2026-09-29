@@ -47,6 +47,11 @@ func init() {
 	api.HandleUIMethod(api.GET, "/document/_search", handler.searchDocs, api.RequirePermission(searchPermission))
 	api.HandleUIMethod(api.DELETE, "/document/", handler.batchDeleteDoc, api.RequirePermission(deletePermission))
 
+	//content dedup: deterministic fingerprints, human review, no auto-delete
+	api.HandleUIMethod(api.GET, "/document/dedup/report", handler.dedupReportHandler, api.RequirePermission(readPermission))
+	api.HandleUIMethod(api.POST, "/document/dedup/dismiss", handler.dedupDismissHandler, api.RequirePermission(updatePermission))
+	api.HandleUIMethod(api.POST, "/document/dedup/action", handler.dedupActionHandler, api.RequirePermission(updatePermission))
+
 	querySearchPermission := security.GetSimplePermission(Category, Search, string(security.Search))
 	assistantSearchPermission := security.GetSimplePermission(Category, Assistant, QuickAISearchAction)
 	searchStudioPermission := security.GetSimplePermission(Category, Search, "studio")

@@ -1306,6 +1306,44 @@ const page: App.I18n.Schema['translation']['page'] = {
       },
       title: '默认模型'
     },
+    dedup: {
+      title: '内容查重',
+      desc: '确定性指纹(sha256 + simhash)跨全部数据源分组疑似重复。系统只做推荐——排除或删除全部由人决定,标记过"非重复"的对永不再报。',
+      scan: '重新扫描',
+      similarity: '相似度',
+      keep: '建议保留',
+      keepTag: '保留',
+      dismiss: '非重复',
+      dismissTip: '将该组内所有配对标为非重复——永不再报',
+      dismissed: '已标记为非重复',
+      exclude: '保留但排除检索',
+      excluded: '已排除',
+      delete: '删除',
+      deleteConfirm: '确定永久删除该文档?',
+      acted: '操作已执行',
+      clean: '未发现疑似重复。',
+      noDeletePermission: '需要文档删除权限',
+      noUpdatePermission: '需要文档更新权限',
+      stats: {
+        scanned: '已扫描',
+        fingerprinted: '已指纹',
+        groups: '疑似分组',
+        dismissed: '已忽略配对'
+      },
+      tiers: {
+        identical_content: '内容完全相同',
+        near_identical: '内容近似相同',
+        highly_similar: '内容高度相似',
+        suspected_versions: '疑似新旧版本'
+      },
+      columns: {
+        title: '标题',
+        source: '来源',
+        size: '大小',
+        updated: '更新时间',
+        actions: '操作'
+      }
+    },
     engine_ai: {
       title: '引擎 AI',
       labels: {

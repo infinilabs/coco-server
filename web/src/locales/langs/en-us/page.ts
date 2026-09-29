@@ -1352,6 +1352,44 @@ const page: App.I18n.Schema['translation']['page'] = {
       },
       title: 'Default Model'
     },
+    dedup: {
+      title: 'Content Dedup',
+      desc: 'Deterministic fingerprints (sha256 + simhash) group suspected duplicates across all data sources. The system only recommends — every exclusion or deletion is a human decision, and dismissed pairs are never reported again.',
+      scan: 'Rescan',
+      similarity: 'similarity',
+      keep: 'recommended keep',
+      keepTag: 'keep',
+      dismiss: 'Not duplicates',
+      dismissTip: 'Mark every pair in this group as not duplicates — never reported again',
+      dismissed: 'Marked as not duplicates',
+      exclude: 'Exclude from search',
+      excluded: 'excluded',
+      delete: 'Delete',
+      deleteConfirm: 'Delete this document permanently?',
+      acted: 'Action applied',
+      clean: 'No suspected duplicates found.',
+      noDeletePermission: 'Document delete permission required',
+      noUpdatePermission: 'Document update permission required',
+      stats: {
+        scanned: 'Scanned',
+        fingerprinted: 'Fingerprinted',
+        groups: 'Suspected groups',
+        dismissed: 'Dismissed pairs'
+      },
+      tiers: {
+        identical_content: 'Identical content',
+        near_identical: 'Near identical',
+        highly_similar: 'Highly similar',
+        suspected_versions: 'Suspected versions'
+      },
+      columns: {
+        title: 'Title',
+        source: 'Source',
+        size: 'Size',
+        updated: 'Updated',
+        actions: 'Actions'
+      }
+    },
     engine_ai: {
       title: 'Engine AI',
       labels: {
