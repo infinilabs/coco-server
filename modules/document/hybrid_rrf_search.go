@@ -5,6 +5,7 @@
 package document
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -49,10 +50,7 @@ func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrat
 	if size < 1 {
 		size = 10
 	}
-	window := from + size
-	if window > maxRRFWindow {
-		window = maxRRFWindow
-	}
+	window := rrfRecallWindow(from, size)
 
 	textResp, err := h.rrfRoute(req, "keyword", query, datasource, integrationID, category, subcategory, richCategory, fuzziness, window)
 	if err != nil {
@@ -113,6 +111,19 @@ func (h *APIHandler) rrfRoute(req *http.Request, searchType, query, datasource, 
 	// meaningful; page after fusion, not per route.
 	builder.From(0)
 	builder.Size(window)
+
+	// The semantic leg follows the capability plan: engine query when the
+	// engine has an embedding service, client-side cosine rerank when only
+	// Coco has one, skip when neither — one failing route still fuses.
+	if searchType == "semantic" {
+		switch plan := planSemantic(req.Context()); plan.Route {
+		case semanticRouteClient:
+			out, _, err := clientSemanticRecall(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, fuzziness)
+			return out, err
+		case semanticRouteNone:
+			return nil, fmt.Errorf("semantic route skipped: %s", plan.Reason)
+		}
+	}
 
 	resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, searchType, fuzziness, nil)
 	if err != nil {

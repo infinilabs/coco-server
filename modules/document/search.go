@@ -67,11 +67,59 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 			}
 			builder.EnableBodyBytes()
 
-			resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, searchType, fuzziness, nil)
-			if err != nil {
-				panic(err)
+			// note travels to the client in the Warning header: the semantic
+			// leg is transparent about which route actually ran.
+			note := ""
+			writeResult := func(resp *orm.SimpleResult) {
+				util.MustFromJSONBytes(resp.Raw, &result)
 			}
-			util.MustFromJSONBytes(resp.Raw, &result)
+
+			if searchType == "semantic" || searchType == "hybrid" {
+				from := h.GetIntOrDefault(req, "from", 0)
+				if from < 0 {
+					from = 0
+				}
+				size := h.GetIntOrDefault(req, "size", 10)
+				if size < 1 {
+					size = 10
+				}
+
+				switch plan := planSemantic(req.Context()); plan.Route {
+				case semanticRouteEngine:
+					resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, searchType, fuzziness, nil)
+					if err != nil {
+						panic(err)
+					}
+					writeResult(resp)
+				case semanticRouteClient:
+					builder.From(0)
+					builder.Size(rrfRecallWindow(from, size))
+					reranked, clientNote, err := clientSemanticRecall(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, fuzziness)
+					if err != nil {
+						panic(err)
+					}
+					paginateHits(reranked, from, size)
+					result = *reranked
+					note = clientNote
+				default:
+					note = plan.Reason
+					resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, "keyword", fuzziness, nil)
+					if err != nil {
+						panic(err)
+					}
+					writeResult(resp)
+				}
+			} else {
+				resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, searchType, fuzziness, nil)
+				if err != nil {
+					panic(err)
+				}
+				writeResult(resp)
+			}
+
+			if note != "" {
+				w.Header().Set("Warning", note)
+			}
 		}
 
 		docsSize := len(result.Hits.Hits)

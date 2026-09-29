@@ -56,6 +56,9 @@ func init() {
 	//live tuning surface for the dual-engine recall: runs both routes and
 	//returns the RRF fusion math behind the hybrid_rrf search mode
 	api.HandleUIMethod(api.POST, "/search/studio/test", handler.searchStudioTest, api.RequirePermission(searchStudioPermission))
+	//what the search stack can do right now: resolved semantic route, engine
+	//probe verdict, embedding model, vectorized document coverage
+	api.HandleUIMethod(api.GET, "/search/engine-capability", handler.engineCapabilityReport, api.RequirePermission(searchStudioPermission))
 
 	api.HandleUIMethod(api.OPTIONS, "/field_meta/:field_name", handler.getFieldMeta, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.GET, "/field_meta/:field_name", handler.getFieldMeta, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))

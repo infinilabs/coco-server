@@ -35,6 +35,22 @@ const (
 	maxRRFWindow = 200
 )
 
+// rrfRecallWindow returns how many candidates a fused route should fetch for
+// a page: the page span, capped by maxRRFWindow.
+func rrfRecallWindow(from, size int) int {
+	if from < 0 {
+		from = 0
+	}
+	if size < 1 {
+		size = 10
+	}
+	window := from + size
+	if window > maxRRFWindow {
+		window = maxRRFWindow
+	}
+	return window
+}
+
 func (c RRFConfig) normalized() RRFConfig {
 	if c.K < 1 {
 		c.K = defaultRRFK

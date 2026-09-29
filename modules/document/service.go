@@ -55,11 +55,23 @@ func QueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query strin
 
 	semanticEmbeddingField := documentEmbeddingField()
 
+	// Self-healing semantic leg: when the engine cannot run the semantic
+	// query (typically: no engine-side embedding service), degrade to
+	// keyword recall here so every caller keeps working. The HTTP handlers
+	// additionally run the client-side cosine rerank route on top of this
+	// recall (semantic_client.go); this guard is the safety net for callers
+	// that go straight to QueryDocuments.
+	effectiveSearchType := searchType
+	if (searchType == "semantic" || searchType == "hybrid") && !engineSemanticReady(ctx1) {
+		log.Warnf("search: engine semantic query unavailable (%s), %s search degrades to keyword", engineVectorCapability(ctx1).Reason, searchType)
+		effectiveSearchType = "keyword"
+	}
+
 	/*
 		Search type support:
 	*/
 	// Modify the query based on search_type
-	switch searchType {
+	switch effectiveSearchType {
 	case "semantic":
 		semanticClause := orm.SemanticQuery(semanticEmbeddingField, query, 0, "")
 		builder.Must(semanticClause)
@@ -154,7 +166,7 @@ func QueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query strin
 	//filter enabled doc
 	filters = append(filters, orm.BoolQuery(orm.Should, orm.TermQuery("disabled", false), orm.MustNotQuery(orm.ExistsQuery("disabled"))).Parameter("minimum_should_match", 1))
 
-	if searchType == "semantic" || searchType == "hybrid" {
+	if effectiveSearchType == "semantic" || effectiveSearchType == "hybrid" {
 		filters = append(filters, orm.ExistsQuery(semanticEmbeddingField))
 	}
 

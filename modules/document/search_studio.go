@@ -42,7 +42,12 @@ type studioRouteResult struct {
 	TookMS int64            `json:"took_ms"`
 	Total  int64            `json:"total"`
 	Hits   []studioRouteHit `json:"hits"`
-	Error  string           `json:"error,omitempty"`
+	// Route says which semantic route actually ran: "engine" (engine-side
+	// semantic query), "client" (BM25 recall + Coco-side cosine rerank) or
+	// "skipped" (neither head available, see Error).
+	Route string `json:"route,omitempty"`
+	Note  string `json:"note,omitempty"`
+	Error string `json:"error,omitempty"`
 }
 
 type studioFusedHit struct {
@@ -88,6 +93,44 @@ func (h *APIHandler) searchStudioTest(w http.ResponseWriter, req *http.Request, 
 		builder.Size(size)
 		result := &studioRouteResult{}
 		started := nowMilli()
+
+		if searchType == "semantic" {
+			// Show the truth about the semantic leg: which route ran, or why
+			// none could — the studio is where tuning decisions get made.
+			switch plan := planSemantic(req.Context()); plan.Route {
+			case semanticRouteEngine:
+				result.Route = "engine"
+			case semanticRouteClient:
+				result.Route = "client"
+				out, note, err := clientSemanticRecall(req.Context(), builder, query, body.Datasource, "", body.Category, body.Subcategory, body.RichCategory, fuzziness)
+				result.TookMS = nowMilli() - started
+				result.Note = note
+				if err != nil {
+					result.Error = err.Error()
+					result.Hits = []studioRouteHit{}
+					return nil, result
+				}
+				result.Total = out.GetTotal()
+				result.Hits = make([]studioRouteHit, 0, len(out.Hits.Hits))
+				for i, hit := range out.Hits.Hits {
+					result.Hits = append(result.Hits, studioRouteHit{
+						ID:         hit.ID,
+						Title:      hit.Source.Title,
+						Datasource: hit.Source.Source.Name,
+						Rank:       i + 1,
+						Score:      float64(hit.Score),
+					})
+				}
+				return out, result
+			default:
+				result.Route = "skipped"
+				result.Error = "skipped: " + plan.Reason
+				result.Hits = []studioRouteHit{}
+				result.TookMS = nowMilli() - started
+				return nil, result
+			}
+		}
+
 		resp, err := QueryDocuments(req.Context(), builder, query, body.Datasource, "", body.Category, body.Subcategory, body.RichCategory, searchType, fuzziness, nil)
 		result.TookMS = nowMilli() - started
 		if err != nil {
