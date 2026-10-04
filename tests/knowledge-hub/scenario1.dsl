@@ -331,8 +331,9 @@ GET /query/_search?query=%E5%B9%B4%E7%BB%88%E5%8F%8C%E8%96%AA&search_type=hybrid
 
 #//----------------------------------------------------------------------------
 #// golden-query evaluation set: two recall probes naming the two content
-#// documents + two forced-zero cases (unmatchable query + empty datasource
-#// scope) that must reflux knowledge-gap proposals
+#// documents + two pinyin-intent probes (full syllables + abbreviation,
+#// pinning the title.pinyin capability) + two forced-zero cases (unmatchable
+#// query + empty datasource scope) that must reflux knowledge-gap proposals
 #//----------------------------------------------------------------------------
 
 POST /search/studio/eval/_cases
@@ -364,6 +365,41 @@ POST /search/studio/eval/_cases
 # },
 #
 # assert: (200, {query: "支付服务挂了影响什么"}),
+
+#// pinyin-intent probes: full-syllable input and abbreviation input must
+#// keep resolving to the Chinese titles — the title.pinyin leg is a
+#// designed capability, and these cases pin it so any recall-looseness
+#// tightening (single-letter accidents vs abbreviation search) that
+#// breaks pinyin input fails here loudly
+POST /search/studio/eval/_cases
+{
+  "query": "zhifu",
+  "expected_ids": ["$[[manual_doc]]"],
+  "expected_titles": ["支付服务运维手册"],
+  "datasource": "$[[ds_id]]"
+}
+# request: {
+#   headers: [
+#     {Authorization: "Bearer $[[admin_token]]"},
+#   ],
+# },
+#
+# assert: (200, {query: "zhifu"}),
+
+POST /search/studio/eval/_cases
+{
+  "query": "zf",
+  "expected_ids": ["$[[manual_doc]]"],
+  "expected_titles": ["支付服务运维手册"],
+  "datasource": "$[[ds_id]]"
+}
+# request: {
+#   headers: [
+#     {Authorization: "Bearer $[[admin_token]]"},
+#   ],
+# },
+#
+# assert: (200, {query: "zf"}),
 
 POST /search/studio/eval/_cases
 {
@@ -403,10 +439,10 @@ POST /search/studio/eval/_run
 #
 # assert: {
 #   _ctx.response.status: 200,
-#   _ctx.response.body_json.run.total_cases: 4,
-#   _ctx.response.body_json.run.top4_hits: 2,
-#   _ctx.response.body_json.run.top4_rate: 0.5,
-#   _ctx.response.body_json.run.mrr: 0.5,
+#   _ctx.response.body_json.run.total_cases: 6,
+#   _ctx.response.body_json.run.top4_hits: 4,
+#   _ctx.response.body_json.run.top4_rate: 0.6666666666666666,
+#   _ctx.response.body_json.run.mrr: 0.6666666666666666,
 # },
 
 GET /wiki/governance/_search?filter=type%3Aknowledge_gap
@@ -432,8 +468,10 @@ POST /search/studio/eval/_run
 #
 # assert: {
 #   _ctx.response.status: 200,
-#   _ctx.response.body_json.run.total_cases: 4,
-#   _ctx.response.body_json.run.top4_rate: 0.5,
+#   _ctx.response.body_json.run.total_cases: 6,
+#   _ctx.response.body_json.run.top4_hits: 4,
+#   _ctx.response.body_json.run.top4_rate: 0.6666666666666666,
+#   _ctx.response.body_json.run.mrr: 0.6666666666666666,
 # },
 
 GET /wiki/governance/_search?filter=type%3Aknowledge_gap
