@@ -448,6 +448,14 @@ func registerGovernanceCRUD() {
 			crud.ActionSearch: "Search knowledge-governance proposals (stale/duplicate/conflict/low-quality/orphan) by status or type",
 			crud.ActionRead:   "Get one governance proposal by id",
 		},
+		// the queue is a tenant-wide review surface: what a reader may see
+		// is decided by the route's wiki_governance permission, not by
+		// object ownership — proposals are filed by the scanner and the
+		// knowledge-gap loop with no owner, so the default orm owner filter
+		// would hand every non-admin reviewer an empty queue
+		CtxDecorate: func(ctx *orm.Context, req *http.Request, action string) {
+			ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+		},
 		// the scanner is the only writer; humans resolve or dismiss via
 		// PUT /wiki/governance/:id/status (D1: queue is propose-only)
 		SkipActions: []string{crud.ActionCreate, crud.ActionUpdate, crud.ActionDelete},

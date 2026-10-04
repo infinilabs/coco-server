@@ -26,6 +26,7 @@ import (
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 )
 
@@ -571,10 +572,12 @@ func confidenceFor(citations, distinctDocs, scopedDocs int) string {
 
 /* ---------------- phase 6: deliver ---------------- */
 
-// deliverPage persists a drafted page as a draft article with its first
-// version snapshot, linked pages and KB counters (§5.1 phase 6).
-func deliverPage(kb *core.WikiKnowledgeBase, page *draftedPage) (*core.WikiArticle, error) {
-	return createDraftArticle(kb, page.candidate.Title, page.summary, page.content,
+// deliverPage hands one drafted page to the delivery path (§5.1 phase 6).
+// requesterID owns the resulting draft: it is the operator who ran the
+// generation, and the owner stamp is what keeps the draft visible to a
+// non-admin author (the orm owner filter hides ownerless objects).
+func deliverPage(kb *core.WikiKnowledgeBase, page *draftedPage, requesterID string) (*core.WikiArticle, error) {
+	return createDraftArticle(kb, requesterID, page.candidate.Title, page.summary, page.content,
 		page.candidate.PageType, page.candidate.Subtype, page.sources, page.confidence,
 		fmt.Sprintf("KM agent generated from %d source documents", len(page.sources)),
 		fmt.Sprintf("AI generated draft page %q for knowledge base %s", page.candidate.Title, kb.Name))
@@ -584,7 +587,7 @@ func deliverPage(kb *core.WikiKnowledgeBase, page *draftedPage) (*core.WikiArtic
 // draft status, first version snapshot, TOC entry, linked pages, KB counter
 // and owner notification (D1: every AI origin stops at draft — publish stays
 // on PUT /wiki/article/:id/status).
-func createDraftArticle(kb *core.WikiKnowledgeBase, title, summary, content, pageType, subtype string,
+func createDraftArticle(kb *core.WikiKnowledgeBase, requesterID, title, summary, content, pageType, subtype string,
 	sources []core.WikiSourceReference, confidence, versionNote, notificationMsg string) (*core.WikiArticle, error) {
 	article := &core.WikiArticle{
 		KbID:        kb.ID,
@@ -598,9 +601,14 @@ func createDraftArticle(kb *core.WikiKnowledgeBase, title, summary, content, pag
 		Confidence:  confidence,
 		Sources:     sources,
 	}
+	// the delivery context carries no session user (worker goroutines),
+	// so the owner is stamped explicitly: the draft belongs to whoever
+	// asked for it — an ownerless draft is invisible to its non-admin
+	// author under the orm owner filter
+	article.SetOwnerID(requesterID)
 
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true) // pipeline context has no session user
+	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true) // worker context has no session user
 	orm.WithModel(ctx, &core.WikiArticle{})
 	if err := orm.Create(ctx, article); err != nil {
 		return nil, err
@@ -620,6 +628,8 @@ func createDraftArticle(kb *core.WikiKnowledgeBase, title, summary, content, pag
 }
 
 // notifyOwner records a wiki event for a user (no-op without a target).
+// The owner stamp is the recipient: the notification list is owner-filtered
+// for non-admins, an ownerless record would never reach its reader.
 func notifyOwner(userID, targetType, targetID, action, message string) {
 	if userID == "" {
 		return
@@ -634,6 +644,7 @@ func notifyOwner(userID, targetType, targetID, action, message string) {
 		Action:     action,
 		Message:    message,
 	}
+	notification.SetOwnerID(userID)
 	if err := orm.Create(ctx, notification); err != nil {
 		log.Warnf("wiki: failed to record notification for user %s: %v", userID, err)
 	}
@@ -661,6 +672,13 @@ func (h *APIHandler) aiGenerate(w http.ResponseWriter, req *http.Request, ps htt
 	}
 	opts := generationOptions{MaxPages: body.MaxPages, Lang: body.Lang, Hint: body.Hint}
 	opts.applyDefaults()
+
+	// the drafts this stream delivers belong to the operator who asked
+	// for them (visibility for non-admin authors rides on the owner stamp)
+	requesterID := ""
+	if user, uerr := security.GetUserFromRequest(req); uerr == nil && user != nil {
+		requesterID = user.UserID
+	}
 
 	readCtx := orm.NewContextWithParent(req.Context())
 	readCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
@@ -807,7 +825,7 @@ func (h *APIHandler) aiGenerate(w http.ResponseWriter, req *http.Request, ps htt
 	}
 	generated := 0
 	for _, page := range pages {
-		article, err := deliverPage(&kb, page)
+		article, err := deliverPage(&kb, page, requesterID)
 		if err != nil {
 			failed = append(failed, page.candidate.Title)
 			log.Warnf("wiki: delivery of page %q failed: %v", page.candidate.Title, err)

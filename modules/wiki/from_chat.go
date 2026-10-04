@@ -13,6 +13,7 @@ import (
 
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/security"
 )
 
 /* ---------------- knowledge execution: POST /wiki/article/_from_chat ---------------- */
@@ -113,7 +114,14 @@ func (h *APIHandler) createArticleFromChat(w http.ResponseWriter, req *http.Requ
 		summary = string([]rune(summary)[:fromChatMaxSummaryRunes])
 	}
 
-	article, err := createDraftArticle(&kb, body.Title, summary, body.Content,
+	// the draft belongs to the user saving the answer — without the owner
+	// stamp a non-admin author cannot see their own draft (orm owner filter)
+	requesterID := ""
+	if user, uerr := security.GetUserFromRequest(req); uerr == nil && user != nil {
+		requesterID = user.UserID
+	}
+
+	article, err := createDraftArticle(&kb, requesterID, body.Title, summary, body.Content,
 		"concept", "", sources, "",
 		fmt.Sprintf("saved from chat answer (%d citations)", len(sources)),
 		fmt.Sprintf("Chat answer %q saved as draft to knowledge base %s", body.Title, kb.Name))
