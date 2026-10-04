@@ -80,6 +80,9 @@ func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrat
 	if size < 1 {
 		size = 10
 	}
+	if size > maxSearchPageSize {
+		size = maxSearchPageSize
+	}
 	window := rrfRecallWindow(from, size)
 
 	// resolve the rewrite first: its text feeds an extra keyword route, and
@@ -147,6 +150,12 @@ func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrat
 	out := &elastic.SearchResponseWithMeta[core.Document]{
 		Took:         took,
 		Aggregations: aggregations,
+	}
+	// the fused page is a union — it can carry more hits than any single
+	// route's total counts, so the reported total must never be smaller
+	// than the list beneath it (pagination keys off that number)
+	if int64(len(fused)) > total {
+		total = int64(len(fused))
 	}
 	// plain map: GetTotal's type switch does not recognize util.MapStr, a
 	// named type would read as -1 and break the zero-hit telemetry

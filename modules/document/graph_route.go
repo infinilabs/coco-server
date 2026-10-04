@@ -210,11 +210,20 @@ func (h *APIHandler) graphRoute(req *http.Request, query string, window int) (*e
 		return nil, "", err
 	}
 
+	// the vocabulary scan is bounded (graphRouteMaxEntities); a full page
+	// means the ontology may be larger and recognition may have missed
+	// entities beyond the cap — the note says so instead of the leg
+	// pretending it saw the whole vocabulary
+	scanNote := ""
+	if len(entities) >= graphRouteMaxEntities {
+		scanNote = fmt.Sprintf("; vocabulary scan hit the %d-entity cap, recognition may have missed entities beyond it", graphRouteMaxEntities)
+	}
+
 	seeds := recognizeGraphSeeds(query, entities)
 	if len(seeds) == 0 {
 		out := &elastic.SearchResponseWithMeta[core.Document]{}
 		out.Hits.Total = map[string]interface{}{"value": int64(0), "relation": "eq"}
-		return out, "no entity recognized in query", nil
+		return out, "no entity recognized in query" + scanNote, nil
 	}
 
 	neighbors := graphExpansion(seeds, entities)
@@ -269,7 +278,7 @@ func (h *APIHandler) graphRoute(req *http.Request, query string, window int) (*e
 	out := &elastic.SearchResponseWithMeta[core.Document]{}
 	if len(refs) == 0 {
 		out.Hits.Total = map[string]interface{}{"value": int64(0), "relation": "eq"}
-		return out, graphRouteNote(seeds), nil
+		return out, graphRouteNote(seeds) + scanNote, nil
 	}
 
 	articles, err := loadGraphArticles(octx, refs)
@@ -306,7 +315,7 @@ func (h *APIHandler) graphRoute(req *http.Request, query string, window int) (*e
 		rank++
 	}
 	out.Hits.Total = map[string]interface{}{"value": int64(len(out.Hits.Hits)), "relation": "eq"}
-	return out, graphRouteNote(seeds), nil
+	return out, graphRouteNote(seeds) + scanNote, nil
 }
 
 // decorateGraphHit stamps graph provenance onto a wrapped wiki hit: the

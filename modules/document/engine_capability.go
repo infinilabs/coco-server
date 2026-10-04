@@ -44,21 +44,31 @@ var (
 	probeEngineSemanticFn = probeEngineSemantic
 )
 
-// classifyEngineSemanticError maps an engine error text to a capability
-// verdict. Definitive verdicts (engine missing its embedding service, engine
-// not understanding the query) are safe to cache; anything else (timeouts,
-// connectivity) is transient and must be retried on the next search.
+// The three definitive probe reasons — classify returns them with
+// definitive=true and isDefinitiveCapability caches exactly these strings;
+// sharing the constants is what keeps the two switches from drifting apart
+// (a missing case there once left "pipeline is not defined" uncached and
+// re-probed on every search).
+const (
+	engineReasonNoEmbedding = "engine embedding service is not configured"
+	engineReasonRejected    = "engine rejected the semantic query"
+	engineReasonNoPipeline  = "engine search pipeline is not defined (sync the Engine AI settings)"
+)
+
+// classifyEngineSemanticError sorts engine errors into a capability verdict
+// plus whether the verdict is definitive (cacheable) — anything else
+// (connectivity) is transient and must be retried on the next search.
 func classifyEngineSemanticError(errText string) (EngineVectorCapability, bool) {
 	l := strings.ToLower(errText)
 	switch {
 	case l == "":
 		return EngineVectorCapability{Available: true}, true
 	case strings.Contains(l, "embeddingrequest"), strings.Contains(l, "null_pointer_exception"):
-		return EngineVectorCapability{Available: false, Reason: "engine embedding service is not configured"}, true
+		return EngineVectorCapability{Available: false, Reason: engineReasonNoEmbedding}, true
 	case strings.Contains(l, "[semantic]"), strings.Contains(l, "query does not support"), strings.Contains(l, "parsing_exception"), strings.Contains(l, "unknown token"):
-		return EngineVectorCapability{Available: false, Reason: "engine rejected the semantic query"}, true
+		return EngineVectorCapability{Available: false, Reason: engineReasonRejected}, true
 	case strings.Contains(l, "is not defined"):
-		return EngineVectorCapability{Available: false, Reason: "engine search pipeline is not defined (sync the Engine AI settings)"}, true
+		return EngineVectorCapability{Available: false, Reason: engineReasonNoPipeline}, true
 	default:
 		return EngineVectorCapability{Available: false, Reason: trimReason(errText)}, false
 	}
@@ -144,7 +154,7 @@ func isDefinitiveCapability(cap EngineVectorCapability) bool {
 		return true
 	}
 	switch cap.Reason {
-	case "engine embedding service is not configured", "engine rejected the semantic query":
+	case engineReasonNoEmbedding, engineReasonRejected, engineReasonNoPipeline:
 		return true
 	}
 	return false

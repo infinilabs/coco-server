@@ -25,6 +25,10 @@ import (
 	"infini.sh/framework/core/util"
 )
 
+// maxSearchPageSize bounds one interactive search page: search serves
+// humans and widgets; bulk export has dedicated APIs.
+const maxSearchPageSize = 100
+
 func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 	var (
@@ -72,18 +76,26 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		if searchType == "hybrid_rrf" {
 			fused, fusedNote, rwApplied, err := h.queryWithRRF(req, query, datasource, integrationID, category, subcategory, richCategory, fuzziness)
 			if err != nil {
-				panic(err)
+				// with hybrid_rrf as the configured default, an engine
+				// hiccup here would otherwise crash every plain search
+				h.WriteError(w, fmt.Sprintf("hybrid search failed: %v", err), http.StatusInternalServerError)
+				return
 			}
 			result = *fused
 			rerankNote = fusedNote
 			rewritten = rwApplied
 		} else {
 			builder, err := orm.NewQueryBuilderFromRequest(req)
-
 			if err != nil {
-				panic(err)
+				h.WriteError(w, fmt.Sprintf("invalid search filter: %v", err), http.StatusBadRequest)
+				return
 			}
 			builder.EnableBodyBytes()
+			// one interactive page can never drag unbounded rows out of
+			// the engine — bulk export has dedicated APIs
+			if reqSize := h.GetIntOrDefault(req, "size", 10); reqSize > maxSearchPageSize {
+				builder.Size(maxSearchPageSize)
+			}
 
 			writeResult := func(resp *orm.SimpleResult) {
 				util.MustFromJSONBytes(resp.Raw, &result)
@@ -98,12 +110,16 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 				if size < 1 {
 					size = 10
 				}
+				if size > maxSearchPageSize {
+					size = maxSearchPageSize
+				}
 
 				switch plan := planSemantic(req.Context()); plan.Route {
 				case semanticRouteEngine:
 					resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, searchType, fuzziness, nil)
 					if err != nil {
-						panic(err)
+						h.WriteError(w, fmt.Sprintf("search failed: %v", err), http.StatusInternalServerError)
+						return
 					}
 					writeResult(resp)
 				case semanticRouteClient:
@@ -111,7 +127,8 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 					builder.Size(rrfRecallWindow(from, size))
 					reranked, clientNote, err := clientSemanticRecall(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, fuzziness)
 					if err != nil {
-						panic(err)
+						h.WriteError(w, fmt.Sprintf("search failed: %v", err), http.StatusInternalServerError)
+						return
 					}
 					paginateHits(reranked, from, size)
 					result = *reranked
@@ -120,14 +137,16 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 					note = plan.Reason
 					resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, "keyword", fuzziness, nil)
 					if err != nil {
-						panic(err)
+						h.WriteError(w, fmt.Sprintf("search failed: %v", err), http.StatusInternalServerError)
+						return
 					}
 					writeResult(resp)
 				}
 			} else {
 				resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, searchType, fuzziness, nil)
 				if err != nil {
-					panic(err)
+					h.WriteError(w, fmt.Sprintf("search failed: %v", err), http.StatusInternalServerError)
+					return
 				}
 				writeResult(resp)
 			}
@@ -160,6 +179,9 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		}
 
 		size := h.GetIntOrDefault(req, "size", 10)
+		if size > maxSearchPageSize {
+			size = maxSearchPageSize
+		}
 		assistantSearchPermission := security.GetSimplePermission(Category, Assistant, string(QuickAISearchAction))
 		perID := security.GetOrInitPermissionKey(assistantSearchPermission)
 

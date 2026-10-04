@@ -6,6 +6,7 @@ package document
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -132,7 +133,12 @@ func rewriteSearchQuery(ctx context.Context, query string) rewriteResult {
 	rewritten, err := rewriteCallModelFn(callCtx, m, query)
 	res.TookMS = time.Since(started).Milliseconds()
 	if err != nil {
-		rewriteBreakerFail()
+		// a caller hangup (parent context canceled) is not the model's
+		// fault: counting it would let three abandoned searches open the
+		// breaker and silence the leg for every other user
+		if !errors.Is(err, context.Canceled) || ctx.Err() == nil {
+			rewriteBreakerFail()
+		}
 		res.Note = fmt.Sprintf("query rewrite failed: %v", err)
 		return res
 	}
