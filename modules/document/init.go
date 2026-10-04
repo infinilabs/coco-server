@@ -50,7 +50,10 @@ func init() {
 	api.HandleUIMethod(api.PUT, "/document/:doc_id", handler.updateDoc, api.RequirePermission(updatePermission))
 	api.HandleUIMethod(api.DELETE, "/document/:doc_id", handler.deleteDoc, api.RequirePermission(deletePermission))
 	api.HandleUIMethod(api.GET, "/document/_search", handler.searchDocs, api.RequirePermission(searchPermission),
-		api.MCPTool("search_documents", "Search documents (BM25). Pass query, optional filters and size; returns ids, titles, summaries — then get_document reads the full content."))
+		//distinct from the /query/_search "search_documents" tool: the MCP
+		//registry keys tools by name, a duplicate silently shadows one of
+		//the two and leaves it with the wrong permission metadata
+		api.MCPTool("search_documents_bm25", "Search documents (BM25). Pass query, optional filters and size; returns ids, titles, summaries — then get_document reads the full content."))
 	api.HandleUIMethod(api.DELETE, "/document/", handler.batchDeleteDoc, api.RequirePermission(deletePermission))
 
 	//content dedup: deterministic fingerprints, human review, no auto-delete

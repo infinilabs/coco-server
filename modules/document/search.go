@@ -41,7 +41,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	var fuzziness = 3 // default to 3
 	if fuzzinessStr != "" {
 		parsed, err := strconv.Atoi(fuzzinessStr)
-		if err != nil && parsed >= 0 && parsed <= 5 {
+		if err == nil && parsed >= 0 && parsed <= 5 {
 			fuzziness = parsed
 		}
 	}

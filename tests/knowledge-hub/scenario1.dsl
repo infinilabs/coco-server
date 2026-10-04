@@ -312,12 +312,15 @@ GET /wiki/company-map
 
 
 #//----------------------------------------------------------------------------
-#// hybrid retrieval through the production path: exercises the full RRF
-#// pipeline end-to-end and records one search log (so the search_logs store
-#// exists for the index-health assert below)
+#// hybrid retrieval through the production search endpoint: /query/_search
+#// is the app/widget search (search.go handler); with search_type=hybrid_rrf
+#// it runs the full RRF pipeline end-to-end and records one search log (so
+#// the search_logs store exists for the index-health assert below).
+#// /document/_search is the documents CRUD page's BM25 list search — it
+#// ignores search_type and records nothing, don't seed through it.
 #//----------------------------------------------------------------------------
 
-GET /document/_search?query=%E5%B9%B4%E7%BB%88%E5%8F%8C%E8%96%AA&search_type=hybrid_rrf
+GET /query/_search?query=%E5%B9%B4%E7%BB%88%E5%8F%8C%E8%96%AA&search_type=hybrid_rrf
 # request: {
 #   headers: [
 #     {Authorization: "Bearer $[[admin_token]]"},
