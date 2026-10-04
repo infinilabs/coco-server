@@ -46,6 +46,8 @@ func indexHealthModels() []struct {
 		{"wiki_versions", &core.WikiVersion{}},
 		{"governance_proposals", &core.WikiGovernanceProposal{}},
 		{"search_logs", &core.SearchLog{}},
+		{"eval_cases", &core.SearchEvalCase{}},
+		{"eval_runs", &core.SearchEvalRun{}},
 	}
 }
 

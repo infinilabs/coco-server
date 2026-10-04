@@ -30,6 +30,7 @@ type searchStudioBody struct {
 		SemanticWeight float64 `json:"semantic_weight"`
 		WikiWeight     float64 `json:"wiki_weight"`
 		GraphWeight    float64 `json:"graph_weight"`
+		RewriteWeight  float64 `json:"rewrite_weight"`
 	} `json:"rrf"`
 }
 
@@ -109,7 +110,28 @@ func (h *APIHandler) searchStudioTest(w http.ResponseWriter, req *http.Request, 
 		rrfRouteSemantic: body.RRF.SemanticWeight,
 		rrfRouteWiki:     body.RRF.WikiWeight,
 		rrfRouteGraph:    body.RRF.GraphWeight,
+		rrfRouteRewrite:  body.RRF.RewriteWeight,
 	}}.normalized()
+
+	// --- query rewrite (D8): resolve before the routes; when it produces a
+	// distinct text, that text runs as one more keyword route ---
+	rewriteInfo := util.MapStr{"applied": false}
+	rw := rewriteResult{Query: query}
+	if cfg.weight(rrfRouteRewrite) > 0 {
+		started := nowMilli()
+		rw = rewriteSearchQuery(req.Context(), query)
+		rewriteInfo = util.MapStr{
+			"applied": rw.Applied,
+			"query":   rw.Query,
+			"cached":  rw.Cached,
+			"took_ms": nowMilli() - started,
+		}
+		if rw.Note != "" {
+			rewriteInfo["note"] = rw.Note
+		}
+	} else {
+		rewriteInfo["note"] = "rewrite weight is 0, leg muted"
+	}
 
 	routes := []rrfRouteHits{}
 	routeResults := []*studioRouteResult{}
@@ -227,6 +249,27 @@ func (h *APIHandler) searchStudioTest(w http.ResponseWriter, req *http.Request, 
 		}
 	}
 
+	// --- rewrite route (the rewritten text as an extra keyword leg) ---
+	if rw.Applied {
+		builder := orm.NewQuery().From(0).Size(size)
+		result := &studioRouteResult{Name: rrfRouteRewrite, Hits: []studioRouteHit{}}
+		started := nowMilli()
+		resp, err := QueryDocuments(req.Context(), builder, rw.Query, body.Datasource, "", body.Category, body.Subcategory, body.RichCategory, "keyword", fuzziness, nil)
+		result.TookMS = nowMilli() - started
+		if err != nil {
+			result.Error = err.Error()
+			collect(rrfRouteRewrite, nil, result)
+		} else {
+			out := &elastic.SearchResponseWithMeta[core.Document]{}
+			if len(resp.Raw) > 0 {
+				util.MustFromJSONBytes(resp.Raw, out)
+			}
+			*result = *studioRouteResultFromHits(rrfRouteRewrite, out.Hits.Hits, out.GetTotal())
+			result.TookMS = nowMilli() - started
+			collect(rrfRouteRewrite, out.Hits.Hits, result)
+		}
+	}
+
 	// --- fuse ---
 	started := nowMilli()
 	fusedHitsList, breakdowns := rrfFuseMulti(routes, cfg)
@@ -274,6 +317,7 @@ func (h *APIHandler) searchStudioTest(w http.ResponseWriter, req *http.Request, 
 		"size":      size,
 		"fuzziness": fuzziness,
 		"rrf":       cfg,
+		"rewrite":   rewriteInfo,
 		"routes":    routeResults,
 		"rerank":    rerankInfo,
 		"fused": util.MapStr{

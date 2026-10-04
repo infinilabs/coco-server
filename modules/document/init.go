@@ -68,6 +68,15 @@ func init() {
 	//live tuning surface for the dual-engine recall: runs both routes and
 	//returns the RRF fusion math behind the hybrid_rrf search mode
 	api.HandleUIMethod(api.POST, "/search/studio/test", handler.searchStudioTest, api.RequirePermission(searchStudioPermission))
+	//golden-query evaluation set (D9): human-annotated query → expected-doc
+	//pairs, scored against the live pipeline — the before/after gate for any
+	//recall-stack change
+	api.HandleUIMethod(api.GET, "/search/studio/eval/_cases", handler.searchEvalCases, api.RequirePermission(searchStudioPermission))
+	api.HandleUIMethod(api.POST, "/search/studio/eval/_cases", handler.createSearchEvalCase, api.RequirePermission(searchStudioPermission))
+	api.HandleUIMethod(api.DELETE, "/search/studio/eval/_cases/:id", handler.deleteSearchEvalCase, api.RequirePermission(searchStudioPermission))
+	api.HandleUIMethod(api.POST, "/search/studio/eval/_run", handler.runSearchEval, api.RequirePermission(searchStudioPermission),
+		api.MCPTool("run_search_eval", "Run the golden-query evaluation set against the live search pipeline and return the top-4 hit rate, MRR and per-query outcomes — the before/after evidence for any recall-stack change."))
+	api.HandleUIMethod(api.GET, "/search/studio/eval/_runs", handler.listSearchEvalRuns, api.RequirePermission(searchStudioPermission))
 	//what the search stack can do right now: resolved semantic route, engine
 	//probe verdict, embedding model, vectorized document coverage
 	api.HandleUIMethod(api.GET, "/search/engine-capability", handler.engineCapabilityReport, api.RequirePermission(searchStudioPermission))

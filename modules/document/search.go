@@ -59,13 +59,16 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		// note travels to the client in the Warning header: the semantic
 		// leg is transparent about which route actually ran.
 		note := ""
+		// rewritten: the D8 query-rewrite leg fired for this search
+		rewritten := false
 		if searchType == "hybrid_rrf" {
-			fused, note, err := h.queryWithRRF(req, query, datasource, integrationID, category, subcategory, richCategory, fuzziness)
+			fused, fusedNote, rwApplied, err := h.queryWithRRF(req, query, datasource, integrationID, category, subcategory, richCategory, fuzziness)
 			if err != nil {
 				panic(err)
 			}
 			result = *fused
-			rerankNote = note
+			rerankNote = fusedNote
+			rewritten = rwApplied
 		} else {
 			builder, err := orm.NewQueryBuilderFromRequest(req)
 
@@ -193,7 +196,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		// WithoutCancel: the goroutine outlives the request, a canceled
 		// request context would kill the log write and the gap check
 		go recordSearchLog(context.WithoutCancel(req.Context()), query, searchType, reqUser.UserID,
-			result.GetTotal(), time.Since(searchStarted))
+			result.GetTotal(), time.Since(searchStarted), rewritten)
 
 		api.WriteJSON(w, result, 200)
 	} else {

@@ -30,12 +30,18 @@ func (h *APIHandler) parseRRFParams(req *http.Request) RRFConfig {
 			rrfRouteSemantic: defaultRRFWeight,
 			rrfRouteWiki:     defaultRRFWeight,
 			rrfRouteGraph:    defaultRRFWeight,
+			rrfRouteRewrite:  defaultRRFWeight,
 		},
 	}
 	if v := h.GetParameterOrDefault(req, "rrf_k", ""); v != "" {
 		if f, err := strconv.ParseFloat(strings.TrimSpace(v), 64); err == nil {
 			cfg.K = f
 		}
+	}
+	// rewrite=0/off mutes the rewrite leg without touching its weight —
+	// same effect as rewrite_weight=0, friendlier to toggle per request
+	if v := strings.ToLower(h.GetParameterOrDefault(req, "rewrite", "")); v == "0" || v == "off" || v == "false" {
+		cfg.Weights[rrfRouteRewrite] = 0
 	}
 	setWeight := func(route, param string) {
 		v := h.GetParameterOrDefault(req, param, "")
@@ -50,6 +56,7 @@ func (h *APIHandler) parseRRFParams(req *http.Request) RRFConfig {
 	setWeight(rrfRouteSemantic, "semantic_weight")
 	setWeight(rrfRouteWiki, "wiki_weight")
 	setWeight(rrfRouteGraph, "graph_weight")
+	setWeight(rrfRouteRewrite, "rewrite_weight")
 	return cfg.normalized()
 }
 
@@ -58,8 +65,11 @@ func (h *APIHandler) parseRRFParams(req *http.Request) RRFConfig {
 // client-side, so the fusion is transparent and its parameters tunable —
 // unlike the engine-side hybrid query where the merge is opaque. Routes:
 // BM25 over documents, the semantic leg (engine query or client rerank per
-// the capability plan), the curated wiki layer, and the ontology graph leg.
-func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrationID, category, subcategory, richCategory string, fuzziness int) (*elastic.SearchResponseWithMeta[core.Document], string, error) {
+// the capability plan), the curated wiki layer, the ontology graph leg, and
+// the model-rewritten query as an extra keyword route (D8). The returned
+// note carries the rewrite/rerank verdicts for the Warning header, and the
+// bool reports whether the rewrite leg fired (search-log telemetry).
+func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrationID, category, subcategory, richCategory string, fuzziness int) (*elastic.SearchResponseWithMeta[core.Document], string, bool, error) {
 	cfg := h.parseRRFParams(req)
 
 	from := h.GetIntOrDefault(req, "from", 0)
@@ -71,6 +81,13 @@ func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrat
 		size = 10
 	}
 	window := rrfRecallWindow(from, size)
+
+	// resolve the rewrite first: its text feeds an extra keyword route, and
+	// cache hits return before any route runs
+	rw := rewriteResult{Query: query}
+	if cfg.weight(rrfRouteRewrite) > 0 {
+		rw = rewriteSearchQuery(req.Context(), query)
+	}
 
 	routes := []rrfRouteHits{}
 	var lastErr error
@@ -105,15 +122,27 @@ func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrat
 	addRoute(rrfRouteWiki, resp, err)
 	graphResp, _, err := h.graphRoute(req, query, window)
 	addRoute(rrfRouteGraph, graphResp, err)
+	if rw.Applied {
+		resp, err = h.rrfRoute(req, "keyword", rw.Query, datasource, integrationID, category, subcategory, richCategory, fuzziness, window)
+		addRoute(rrfRouteRewrite, resp, err)
+	}
 
 	// One failing route (e.g. no embedding service for the query text)
 	// degrades to fewer-route fusion; only all failing is an error.
 	if len(routes) == 0 {
-		return nil, "", lastErr
+		return nil, "", false, lastErr
 	}
 
 	fused, _ := rrfFuseMulti(routes, cfg)
 	fused, rerankNote := applyRerank(req.Context(), query, fused)
+
+	notes := []string{}
+	if rw.Applied {
+		notes = append(notes, fmt.Sprintf("query rewritten: %s", rw.Query))
+	}
+	if rerankNote != "" {
+		notes = append(notes, rerankNote)
+	}
 
 	out := &elastic.SearchResponseWithMeta[core.Document]{
 		Took:         took,
@@ -134,7 +163,7 @@ func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrat
 	if len(out.Hits.Hits) > 0 {
 		out.Hits.MaxScore = out.Hits.Hits[0].Score
 	}
-	return out, rerankNote, nil
+	return out, strings.Join(notes, "; "), rw.Applied, nil
 }
 
 // rrfRoute runs one recall route. util.ReadBody restores the request body, so

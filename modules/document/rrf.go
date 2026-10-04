@@ -20,10 +20,13 @@ const (
 	rrfRouteSemantic = "semantic"
 	rrfRouteWiki     = "wiki"
 	rrfRouteGraph    = "graph"
+	// rrfRouteRewrite runs the model-rewritten query as one more keyword
+	// route (D8) — add-only, the original text route keeps running.
+	rrfRouteRewrite = "rewrite"
 )
 
 // rrfRouteNames is the canonical order routes are listed and rendered in.
-var rrfRouteNames = []string{rrfRouteText, rrfRouteSemantic, rrfRouteWiki, rrfRouteGraph}
+var rrfRouteNames = []string{rrfRouteText, rrfRouteSemantic, rrfRouteWiki, rrfRouteGraph, rrfRouteRewrite}
 
 // RRFConfig controls how the recall routes are fused with Reciprocal Rank
 // Fusion:

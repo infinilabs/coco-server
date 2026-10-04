@@ -52,6 +52,7 @@ export function Component() {
     { title: t('page.searchOps.strategy'), dataIndex: 'type', width: 140 },
     { title: t('page.searchOps.searches'), dataIndex: 'count', width: 100 },
     { title: t('page.searchOps.zeroHits'), dataIndex: 'zero_hits', width: 110 },
+    { title: t('page.searchOps.rewritten'), dataIndex: 'rewritten', width: 100 },
     { title: t('page.searchOps.avgTook'), dataIndex: 'avg_took_ms', width: 120, render: (v: number) => `${v ?? 0} ms` }
   ];
 
@@ -133,6 +134,12 @@ export function Component() {
             <Statistic title={t('page.searchOps.maxTook')} value={data?.max_took_ms ?? 0} suffix="ms" />
           </Col>
         </Row>
+        <Typography.Text type="secondary" className="text-12px block mt-8px">
+          {t('page.searchOps.rewriteHint', {
+            total: String(data?.rewritten_searches ?? 0),
+            missed: String(data?.rewritten_zero_hit_searches ?? 0)
+          })}
+        </Typography.Text>
       </Card>
 
       <Card size="small" title={t('page.searchOps.indexHealth')}>

@@ -52,7 +52,7 @@ func searchQueryHash(query string) string {
 
 // recordSearchLog persists one completed search asynchronously; failures
 // only log — telemetry must never take a search down.
-func recordSearchLog(ctx context.Context, query, searchType, userID string, total int64, took time.Duration) {
+func recordSearchLog(ctx context.Context, query, searchType, userID string, total int64, took time.Duration, rewritten bool) {
 	normalized := normalizeSearchQuery(query)
 	if normalized == "" || searchType == "" {
 		return
@@ -66,6 +66,7 @@ func recordSearchLog(ctx context.Context, query, searchType, userID string, tota
 		Total:      total,
 		TookMS:     took.Milliseconds(),
 		ZeroHit:    total == 0,
+		Rewritten:  rewritten,
 		UserID:     userID,
 	}
 	if err := orm.Create(octx, entry); err != nil {
@@ -181,19 +182,25 @@ func markFiledGaps(ctx context.Context, stats *searchOpsStats) {
 // searchOpsStats is the overview response body; aggregateSearchLogs is pure
 // so the numbers are unit-testable without a store.
 type searchOpsStats struct {
-	TotalSearches int64              `json:"total_searches"`
-	ZeroHits      int64              `json:"zero_hit_searches"`
-	ZeroHitRate   float64            `json:"zero_hit_rate"`
-	AvgTookMS     int64              `json:"avg_took_ms"`
-	MaxTookMS     int64              `json:"max_took_ms"`
+	TotalSearches int64   `json:"total_searches"`
+	ZeroHits      int64   `json:"zero_hit_searches"`
+	ZeroHitRate   float64 `json:"zero_hit_rate"`
+	AvgTookMS     int64   `json:"avg_took_ms"`
+	MaxTookMS     int64   `json:"max_took_ms"`
+	// Rewrite counts searches where the D8 rewrite leg fired and how many
+	// of those still came back empty — the zero-hit rate among rewritten
+	// searches vs the overall one is the leg's observable lift.
+	Rewritten     int64              `json:"rewritten_searches"`
+	RewrittenMiss int64              `json:"rewritten_zero_hit_searches"`
 	Strategies    []searchOpsRow     `json:"strategies"`
 	LowRecall     []searchOpsLowMiss `json:"low_recall"`
 }
 
 type searchOpsRow struct {
 	Type      string `json:"type"`
-	Count     int    `json:"count"`
-	ZeroHits  int    `json:"zero_hits"`
+	Count     int64  `json:"count"`
+	ZeroHits  int64  `json:"zero_hits"`
+	Rewritten int64  `json:"rewritten"`
 	AvgTookMS int64  `json:"avg_took_ms"`
 }
 
@@ -221,6 +228,10 @@ func aggregateSearchLogs(logs []core.SearchLog) searchOpsStats {
 		entry := &logs[i]
 		stats.TotalSearches++
 		stats.ZeroHits += btoi(entry.ZeroHit)
+		stats.Rewritten += btoi(entry.Rewritten)
+		if entry.Rewritten && entry.ZeroHit {
+			stats.RewrittenMiss++
+		}
 		tookTotal += entry.TookMS
 		if entry.TookMS > stats.MaxTookMS {
 			stats.MaxTookMS = entry.TookMS
@@ -233,7 +244,8 @@ func aggregateSearchLogs(logs []core.SearchLog) searchOpsStats {
 			typeOrder = append(typeOrder, entry.SearchType)
 		}
 		row.Count++
-		row.ZeroHits += int(btoi(entry.ZeroHit))
+		row.ZeroHits += btoi(entry.ZeroHit)
+		row.Rewritten += btoi(entry.Rewritten)
 		row.AvgTookMS += entry.TookMS
 
 		if entry.ZeroHit && entry.Query != "" {

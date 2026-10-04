@@ -19,5 +19,9 @@ type SearchLog struct {
 	Total      int64  `json:"total" elastic_mapping:"total:{type:long}"`
 	TookMS     int64  `json:"took_ms" elastic_mapping:"took_ms:{type:long}"`
 	ZeroHit    bool   `json:"zero_hit" elastic_mapping:"zero_hit:{type:boolean}"`
-	UserID     string `json:"user_id,omitempty" elastic_mapping:"user_id:{type:keyword}"`
+	// Rewritten marks searches where the query-rewrite leg fired and
+	// contributed a rewritten keyword route to the fusion (D8) — the flag
+	// is how the overview quantifies the rewrite's lift.
+	Rewritten bool   `json:"rewritten" elastic_mapping:"rewritten:{type:boolean}"`
+	UserID    string `json:"user_id,omitempty" elastic_mapping:"user_id:{type:keyword}"`
 }

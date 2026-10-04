@@ -4,6 +4,7 @@ export interface SearchOpsRow {
   type: string;
   count: number;
   zero_hits: number;
+  rewritten: number;
   avg_took_ms: number;
 }
 
@@ -20,6 +21,9 @@ export interface SearchOpsOverview {
   zero_hit_rate: number;
   avg_took_ms: number;
   max_took_ms: number;
+  /** D8: searches where the query-rewrite leg fired, and how many still missed */
+  rewritten_searches: number;
+  rewritten_zero_hit_searches: number;
   strategies: SearchOpsRow[];
   low_recall: SearchOpsLowMiss[];
 }

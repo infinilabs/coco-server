@@ -12,6 +12,7 @@ import {
   testSearchStudio
 } from '@/service/api/search-studio';
 
+import { EvalPanel } from './eval-panel';
 const fmtScore = (v: number | undefined) => {
   if (v === undefined || v === null) return '-';
   if (v === 0) return '0';
@@ -26,7 +27,8 @@ const ROUTE_META: { name: string; color: string; bg: string; weightKey: string; 
   { name: 'text', color: 'blue', bg: 'bg-[#1784FC]', weightKey: 'text_weight', labelKey: 'page.searchStudio.textRoute' },
   { name: 'semantic', color: 'purple', bg: 'bg-[#722ED1]', weightKey: 'semantic_weight', labelKey: 'page.searchStudio.semanticRoute' },
   { name: 'wiki', color: 'green', bg: 'bg-[#52C41A]', weightKey: 'wiki_weight', labelKey: 'page.searchStudio.wikiRoute' },
-  { name: 'graph', color: 'orange', bg: 'bg-[#FA8C16]', weightKey: 'graph_weight', labelKey: 'page.searchStudio.graphRoute' }
+  { name: 'graph', color: 'orange', bg: 'bg-[#FA8C16]', weightKey: 'graph_weight', labelKey: 'page.searchStudio.graphRoute' },
+  { name: 'rewrite', color: 'cyan', bg: 'bg-[#13C2C2]', weightKey: 'rewrite_weight', labelKey: 'page.searchStudio.rewriteRoute' }
 ];
 
 export function Component() {
@@ -42,7 +44,7 @@ export function Component() {
   const [size, setSize] = useState(10);
   const [fuzziness, setFuzziness] = useState(3);
   const [rrfK, setRrfK] = useState(60);
-  const [weights, setWeights] = useState<Record<string, number>>({ text: 1, semantic: 1, wiki: 1, graph: 1 });
+  const [weights, setWeights] = useState<Record<string, number>>({ text: 1, semantic: 1, wiki: 1, graph: 1, rewrite: 1 });
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<SearchStudioResult | null>(null);
 
@@ -78,7 +80,8 @@ export function Component() {
           text_weight: weights.text,
           semantic_weight: weights.semantic,
           wiki_weight: weights.wiki,
-          graph_weight: weights.graph
+          graph_weight: weights.graph,
+          rewrite_weight: weights.rewrite
         }
       });
       setResult((res?.data as SearchStudioResult) ?? null);
@@ -271,6 +274,41 @@ export function Component() {
                 return <Col span={8} key={meta.name}>{routePanel(meta, route)}</Col>;
               })}
             </Row>
+            {result.rewrite && (
+              <Card
+                size="small"
+                title={
+                  <Space size={6}>
+                    <span className="inline-block w-8px h-8px rounded-4px bg-[#13C2C2]" />
+                    {t('page.searchStudio.rewriteTitle')}
+                    {result.rewrite.applied ? (
+                      <Tag color="cyan">{t('page.searchStudio.rewriteApplied')}</Tag>
+                    ) : (
+                      <Tag>{t('page.searchStudio.rewriteOff')}</Tag>
+                    )}
+                  </Space>
+                }
+                extra={
+                  <Space size={8}>
+                    {result.rewrite.cached && <Tag color="blue">{t('page.searchStudio.rewriteCached')}</Tag>}
+                    <span className="text-12px text-gray-400">{fmtMs(result.rewrite.took_ms)}</span>
+                  </Space>
+                }
+              >
+                {result.rewrite.applied ? (
+                  <Space size={8} wrap className="mb-4px">
+                    <Typography.Text delete>{result.query}</Typography.Text>
+                    <ArrowRight className="w-14px h-14px" />
+                    <Typography.Text strong>{result.rewrite.query}</Typography.Text>
+                  </Space>
+                ) : null}
+                {result.rewrite.note && (
+                  <Typography.Text type="secondary" className="text-12px">
+                    {result.rewrite.note}
+                  </Typography.Text>
+                )}
+              </Card>
+            )}
             {result.rerank && (
               <Card
                 size="small"
@@ -339,6 +377,8 @@ export function Component() {
           </Card>
         )}
       </Spin>
+
+      <EvalPanel datasourceOptions={datasourceOptions} />
     </div>
   );
 }
