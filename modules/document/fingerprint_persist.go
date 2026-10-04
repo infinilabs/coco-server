@@ -13,15 +13,15 @@ import (
 // Fingerprint persistence (D1.5): every document write stamps the content
 // fingerprint the dedup engine already computes — via one orm pre-hook, so
 // the document API, the datasource API and MCP writes all pass through it.
-// NOT covered: connector ingestion — its pipelines push to the
-// indexing_documents queue and index straight to the engine through the
-// framework's indexing_merge/bulk_indexing processors, never touching orm,
-// so connector-sourced documents carry no fingerprint until a
-// pipeline-side stamp or a backfill closes that gap (open item, tracked in
-// the knowledge-hub workplan). Retrieval then folds visible duplicates:
-// same hash in one result page collapses onto the highest-ranked copy with
-// a "there are N more copies" note. Deep cleanup stays in the dedup report
-// where a human decides.
+// Connector ingestion indexes straight to the engine through the framework's
+// indexing_merge/bulk_indexing processors and never touches orm, so the hook
+// cannot fire there — BatchCollect and the webhook ingester stamp the same
+// fingerprint (modules/common/fingerprint) at the queue-push source instead.
+// Documents ingested before that source-side stamping carry no fingerprint
+// until a one-off backfill runs (open item, knowledge-hub workplan).
+// Retrieval then folds visible duplicates: same hash in one result page
+// collapses onto the highest-ranked copy with a "there are N more copies"
+// note. Deep cleanup stays in the dedup report where a human decides.
 
 // registerFingerprintHook stamps documents on every orm write. Recomputed
 // each time: same content yields the same fingerprint (idempotent),

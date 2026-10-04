@@ -8,6 +8,7 @@ import (
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/modules/common/fingerprint"
 	"infini.sh/coco/modules/datasource"
 	"infini.sh/framework/core/api"
 	httprouter "infini.sh/framework/core/api/router"
@@ -121,6 +122,19 @@ func (processor *ConnectorProcessorBase) BatchCollect(ctx *pipeline.Context, con
 		}
 
 		log.Infof("collect: [%v] [%v] [%v] [%v] [%v]", connector.Name, datasource.Name, doc.ID, doc.Category, doc.Title)
+
+		// stamp the dedup fingerprint at the source (D1.5): this queue
+		// feeds the framework's indexing_merge/bulk_indexing processors,
+		// which index straight to the engine and never touch orm — the
+		// document module's pre-hook cannot fire for connector-sourced
+		// documents. Same math as the hook (modules/common/fingerprint);
+		// !ok clears the fields so a shrunken re-ingest drops its stale
+		// fingerprint instead of keeping the previous write's
+		if h, s, ok := fingerprint.Compute(doc.Content); ok {
+			doc.ContentHash, doc.ContentSimhash = h, int64(s)
+		} else {
+			doc.ContentHash, doc.ContentSimhash = "", 0
+		}
 
 		data := util.MustToJSONBytes(doc)
 		err := queue.Push(processor.Queue, data)
