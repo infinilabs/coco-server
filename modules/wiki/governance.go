@@ -178,7 +178,7 @@ func governanceSweep(ctx context.Context, llm llms.Model) governanceStats {
 					continue
 				}
 				evidence := util.MapStr{"duplicate_of": util.MapStr{"id": pair[1].ID, "title": pair[1].Title}}
-				if hint := duplicatePriorityHint(ctx, &pair[0], &pair[1]); hint != "" {
+				if hint := duplicatePriorityHint(ctx, kb.ID, &pair[0], &pair[1]); hint != "" {
 					evidence["priority_hint"] = hint
 				}
 				if fileProposal(kb, &pair[0], core.WikiGovernanceDuplicate, reason, evidence) {
@@ -523,6 +523,9 @@ func (h *APIHandler) updateGovernanceStatus(w http.ResponseWriter, req *http.Req
 	ctx := orm.NewContextWithParent(req.Context())
 	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	// two reviewers acting on the same queue must see each other's
+	// transitions — both the read and the write wait for refresh
+	ctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
 
 	var proposal core.WikiGovernanceProposal
@@ -563,8 +566,10 @@ func (h *APIHandler) updateGovernanceStatus(w http.ResponseWriter, req *http.Req
 // documents to their datasources and compare the best-ranked source each
 // side cites. Empty when no priority list is configured or the sides tie —
 // a recommendation, never an action (the human gate decides).
-func duplicatePriorityHint(ctx context.Context, a, b *core.WikiArticle) string {
-	schema := loadOntologySchema(ctx, ontologyTenantScope)
+func duplicatePriorityHint(ctx context.Context, kbID string, a, b *core.WikiArticle) string {
+	// the KB's schema override wins over the tenant default — a pair in a
+	// KB with its own source priority must not be judged by tenant rules
+	schema := loadOntologySchemaForKB(ctx, kbID)
 	if schema == nil || schema.Rules == nil || len(schema.Rules.SourcePriority) == 0 {
 		return ""
 	}

@@ -776,6 +776,7 @@ func (h *APIHandler) aiGenerate(w http.ResponseWriter, req *http.Request, ps htt
 	pages := make([]*draftedPage, 0, len(candidates))
 	failed := make([]string, 0)
 	completed := 0
+	emitFailed := false
 	for result := range results {
 		completed++
 		switch {
@@ -792,8 +793,13 @@ func (h *APIHandler) aiGenerate(w http.ResponseWriter, req *http.Request, ps htt
 			Progress:     0.2 + 0.6*float64(completed)/float64(len(candidates)),
 			Eta:          etaSeconds(start, 0.2+0.6*float64(completed)/float64(len(candidates))),
 		}); err != nil {
-			return
+			// keep draining: results is unbuffered and every worker blocks
+			// on it — returning here would leak the whole pool
+			emitFailed = true
 		}
+	}
+	if emitFailed {
+		return
 	}
 
 	if err := stream.emit("progress", progressEvent{Phase: "deliver", PhaseCurrent: 1, PhaseTotal: 1, Progress: 0.95}); err != nil {
@@ -989,6 +995,9 @@ func (h *APIHandler) aiEdit(w http.ResponseWriter, req *http.Request, ps httprou
 	writeCtx := orm.NewContext()
 	writeCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	writeCtx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	// the edit must be visible to the version read right below and to
+	// search immediately — same refresh discipline as the publish route
+	writeCtx.Refresh = orm.WaitForRefresh
 	orm.WithModel(writeCtx, &core.WikiArticle{})
 	article.Content = sanitizeAIArtifactDebris(newContent)
 	if err := orm.Update(writeCtx, &article); err != nil {

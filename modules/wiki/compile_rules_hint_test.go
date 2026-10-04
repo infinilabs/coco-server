@@ -125,18 +125,18 @@ func TestDuplicatePriorityHintPrefersHigherSource(t *testing.T) {
 		require.NoError(t, orm.Create(octx, &d))
 	}
 
-	hint := duplicatePriorityHint(ctx, a, b)
+	hint := duplicatePriorityHint(ctx, "", a, b)
 	assert.Contains(t, hint, "from-official")
 	assert.Contains(t, hint, "ds-official")
 
 	// same datasource on both sides: no recommendation
 	b.Sources = []core.WikiSourceReference{{DocID: "doc-mirror"}}
-	assert.Empty(t, duplicatePriorityHint(ctx, a, b))
+	assert.Empty(t, duplicatePriorityHint(ctx, "", a, b))
 
 	// no priority configured: never recommends
 	require.NoError(t, saveOntologySchema(ctx, ontologyTenantScope, &OntologySchemaDoc{
 		EntityTypes: rulesFixtureTypes,
 		Rules:       &core.WikiCompileRules{},
 	}))
-	assert.Empty(t, duplicatePriorityHint(ctx, a, b))
+	assert.Empty(t, duplicatePriorityHint(ctx, "", a, b))
 }

@@ -41,9 +41,12 @@ const (
 
 // searchEvalCases serves GET /search/studio/eval/_cases.
 func (h *APIHandler) searchEvalCases(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	size := h.GetIntOrDefault(req, "size", 200)
-	if size < 1 || size > 500 {
-		size = 200
+	size := h.GetIntOrDefault(req, "size", evalCaseCap)
+	// the list and the run must agree on the cap: the run evaluates at most
+	// evalCaseCap cases, so listing more would promise evaluations that
+	// never happen
+	if size < 1 || size > evalCaseCap {
+		size = evalCaseCap
 	}
 	octx := orm.NewContextWithParent(req.Context())
 	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
@@ -196,7 +199,7 @@ func (h *APIHandler) runSearchEval(w http.ResponseWriter, req *http.Request, _ h
 	octx := orm.NewContextWithParent(req.Context())
 	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	orm.WithModel(octx, &core.SearchEvalCase{})
-	res, err := orm.SearchV2(octx, orm.NewQuery().Size(evalCaseCap).
+	res, err := orm.SearchV2(octx, orm.NewQuery().Size(evalCaseCap+1).
 		SortBy(orm.Sort{Field: "created", SortType: orm.ASC}))
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -206,6 +209,13 @@ func (h *APIHandler) runSearchEval(w http.ResponseWriter, req *http.Request, _ h
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	// fetch one extra to detect overflow: when the set outgrew the cap the
+	// run silently evaluates the oldest evalCaseCap cases — say so instead
+	// of letting the score look complete
+	truncated := len(cases) > evalCaseCap
+	if truncated {
+		cases = cases[:evalCaseCap]
 	}
 	if len(cases) == 0 {
 		h.WriteError(w, "evaluation set is empty — add cases first", http.StatusBadRequest)
@@ -244,6 +254,8 @@ func (h *APIHandler) runSearchEval(w http.ResponseWriter, req *http.Request, _ h
 		"took_ms":   time.Since(started).Milliseconds(),
 		"top4_rate": run.Top4Rate,
 		"mrr":       run.MRR,
+		"evaluated": len(cases),
+		"truncated": truncated,
 	}, http.StatusOK)
 }
 

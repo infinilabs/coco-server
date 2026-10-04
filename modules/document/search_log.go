@@ -59,6 +59,9 @@ func recordSearchLog(ctx context.Context, query, searchType, userID string, tota
 	}
 	octx := orm.NewContextWithParent(ctx)
 	octx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	// refresh: the knowledge-gap check below reads the log it just wrote —
+	// an un-refreshed read would under-count and miss the threshold
+	octx.Refresh = orm.WaitForRefresh
 	orm.WithModel(octx, &core.SearchLog{})
 	entry := &core.SearchLog{
 		Query:      normalized,
@@ -99,6 +102,9 @@ func maybeFileKnowledgeGap(ctx *orm.Context, query string) {
 	wctx := orm.NewContextWithParent(ctx)
 	wctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	wctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	// refresh: the governance queue must reflect the proposal immediately —
+	// a reviewer looking right after the search that filed it should see it
+	wctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(wctx, &core.WikiGovernanceProposal{})
 
 	// proposals get orm-generated ids; idempotency is by article_id|type,

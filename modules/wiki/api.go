@@ -69,6 +69,9 @@ func (h *APIHandler) updateToc(w http.ResponseWriter, req *http.Request, ps http
 	ctx := orm.NewContext()
 	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	// the drag-and-drop tree must read its own writes — a stale read would
+	// resurrect dropped nodes right after a save
+	ctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(ctx, &core.WikiToc{})
 
 	toc, found, err := findToc(ctx, kbID)
@@ -327,6 +330,10 @@ func (h *APIHandler) updateArticleStatus(w http.ResponseWriter, req *http.Reques
 	ctx := orm.NewContext()
 	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	// publish must be visible the moment it lands — the search wiki leg and
+	// the article list both read near-real-time; without refresh a just
+	// published page stays invisible for the refresh interval
+	ctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(ctx, &core.WikiArticle{})
 
 	var article core.WikiArticle
@@ -562,6 +569,9 @@ func changeTypeFor(article *core.WikiArticle) string {
 func writeVersionSnapshot(article *core.WikiArticle, version int, changeType, changeSummary string) error {
 	ctx := orm.NewContext()
 	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true) // internal snapshot; article owner recorded below
+	// writeVersionIfChanged reads the latest snapshot right after a save —
+	// without refresh a quick double-save can't see v1 and writes v1 twice
+	ctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(ctx, &core.WikiVersion{})
 
 	v := &core.WikiVersion{
