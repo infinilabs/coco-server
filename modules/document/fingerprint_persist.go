@@ -40,7 +40,9 @@ func ensureDocumentFingerprint(doc *core.Document) {
 	if !ok {
 		return
 	}
-	doc.ContentHash, doc.ContentSimhash = hash, sim
+	// int64 reinterpretation: the persisted field is signed so high-bit
+	// simhash values stay storable in the engine's long type
+	doc.ContentHash, doc.ContentSimhash = hash, int64(sim)
 }
 
 // foldDuplicateHits collapses same-content-hash hits within one result
