@@ -326,6 +326,10 @@ func fileEvalKnowledgeGap(ctx context.Context, c *core.SearchEvalCase) {
 	wctx := orm.NewContextWithParent(ctx)
 	wctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	wctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	// operator-paced read-after-write: the run response returns while the
+	// operator's next click opens the governance queue — the refluxed
+	// proposal must be visible by then
+	wctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(wctx, &core.WikiGovernanceProposal{})
 
 	rctx := orm.NewContextWithParent(ctx)
