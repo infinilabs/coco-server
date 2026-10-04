@@ -1,4 +1,4 @@
-import { Button, Form, Spin, Switch } from 'antd';
+import { Button, Form, Select, Spin, Switch } from 'antd';
 import '../index.scss';
 import { fetchSettings, updateSettings } from '@/service/api/server';
 import { useLoading, useRequest } from '@sa/hooks';
@@ -37,12 +37,13 @@ const SearchSettings = memo(() => {
 
   const handleSubmit = async () => {
     const params = await form.validateFields();
-    const { enabled, integration } = params;
+    const { enabled, integration, search_type } = params;
     startLoading();
     const search_settings = {
       enabled,
-      integration: integration?.id
-    } 
+      integration: integration?.id,
+      search_type: search_type || 'keyword'
+    }
     const result = await updateSettings({
        search_settings
     });
@@ -72,11 +73,13 @@ const SearchSettings = memo(() => {
     if (data?.search_settings) {
       form.setFieldsValue({
         ...data?.search_settings,
-        integration: { id: data?.search_settings?.integration }
+        integration: { id: data?.search_settings?.integration },
+        search_type: data?.search_settings?.search_type || 'keyword'
       });
     } else {
-      form.setFieldsValue({ 
-        enabled: false
+      form.setFieldsValue({
+        enabled: false,
+        search_type: 'keyword'
       });
     }
   }, [JSON.stringify(data)]);
@@ -98,6 +101,20 @@ const SearchSettings = memo(() => {
           </Form.Item>
           <Form.Item label={t('page.settings.search_settings.labels.integration')} name={['integration']}>
             <IntegrationSelect filter={{ enabled: [true], type: ['fullscreen', 'page', 'modal']}}/>
+          </Form.Item>
+          <Form.Item
+            label={t('page.settings.search_settings.labels.search_type')}
+            name={['search_type']}
+            tooltip={t('page.settings.search_settings.labels.search_type_desc')}
+          >
+            <Select
+              size="small"
+              className="w-120px"
+              options={['keyword', 'semantic', 'hybrid', 'hybrid_rrf'].map((value) => ({
+                value,
+                label: t(`page.settings.search_settings.options.${value}`)
+              }))}
+            />
           </Form.Item>
           {
             permissions.update && (

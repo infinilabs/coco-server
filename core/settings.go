@@ -25,6 +25,36 @@ type ChatConfig struct {
 type SearchSettings struct {
 	Enabled     bool   `json:"enabled"`
 	Integration string `json:"integration"`
+	// SearchType is the default search strategy /query/_search falls back
+	// to when the request carries no explicit search_type — one of the
+	// values in searchTypes. Empty means keyword, the historic behavior,
+	// so settings saved before this field existed keep their meaning.
+	SearchType string `json:"search_type,omitempty"`
+}
+
+// DefaultType is the nil-safe resolution of the configured default: no
+// saved search_settings section (or a stale value) reads as keyword.
+func (s *SearchSettings) DefaultType() string {
+	if s == nil || !IsValidSearchType(s.SearchType) {
+		return "keyword"
+	}
+	return s.SearchType
+}
+
+// searchTypes are the strategies /query/_search accepts, both as an
+// explicit ?search_type= and as the operator-configured default
+// (search_settings.search_type). semantic and hybrid degrade gracefully
+// when the engine has no AI pipelines — the plan notes travel in the
+// Warning header.
+var searchTypes = map[string]bool{
+	"keyword":    true,
+	"semantic":   true,
+	"hybrid":     true,
+	"hybrid_rrf": true,
+}
+
+func IsValidSearchType(t string) bool {
+	return searchTypes[t]
 }
 
 // Uniquely identifies a model.

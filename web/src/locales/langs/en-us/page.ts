@@ -1435,7 +1435,15 @@ const page: App.I18n.Schema['translation']['page'] = {
     search_settings: {
       labels: {
         enabled: 'Enabled',
-        integration: 'Integration'
+        integration: 'Integration',
+        search_type: 'Default search mode',
+        search_type_desc: 'The strategy /query/_search runs when the request does not set one explicitly; hybrid_rrf enables fused retrieval (wiki pages, graph and query rewrite); takes effect for new searches immediately'
+      },
+      options: {
+        keyword: 'Keyword (BM25)',
+        semantic: 'Semantic',
+        hybrid: 'Hybrid',
+        hybrid_rrf: 'Hybrid fusion (hybrid_rrf)'
       },
       title: 'Search Settings'
     },

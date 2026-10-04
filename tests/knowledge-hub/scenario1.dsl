@@ -650,3 +650,85 @@ GET /search/ops/index-health
 #   _ctx.response.status: 200,
 #   _ctx.response.body_json.healthy: 8,
 #},
+
+
+#//----------------------------------------------------------------------------
+#// default search mode wiring: the operator sets search_settings.search_type
+#// to hybrid_rrf, then a /query/_search with NO search_type parameter runs
+#// the fusion pipeline. The request scopes to a nonexistent datasource, so
+#// the text leg's domain is empty and totals 0 without touching the engine
+#// — the wiki leg is not datasource-scoped and returns every published page
+#// (all three here; the latin-vs-pinyin letter match makes any query match,
+#// the two content pages carry 年终双薪 directly). Under the keyword
+#// default the same request totals 0 and has no hits at all, which is what
+#// makes this a fusion proof. An invalid mode is rejected with 400 before
+#// anything is saved.
+#//----------------------------------------------------------------------------
+
+PUT /settings
+{
+  "search_settings": {
+    "search_type": "banana"
+  }
+}
+# request: {
+#   headers: [
+#     {Authorization: "Bearer $[[admin_token]]"},
+#   ],
+# },
+#
+# assert: {
+#   _ctx.response.status: 400,
+#},
+#
+
+PUT /settings
+{
+  "search_settings": {
+    "search_type": "hybrid_rrf"
+  }
+}
+# request: {
+#   headers: [
+#     {Authorization: "Bearer $[[admin_token]]"},
+#   ],
+# },
+#
+# assert: {
+#   _ctx.response.status: 200,
+#   _ctx.response.body_json.acknowledged: true,
+#},
+#
+
+GET /settings
+# request: {
+#   headers: [
+#     {Authorization: "Bearer $[[admin_token]]"},
+#   ],
+# },
+#
+# assert: {
+#   _ctx.response.status: 200,
+#   _ctx.response.body_json.search_settings.search_type: "hybrid_rrf",
+#},
+#
+
+#// the wiki leg scores each candidate page at query time; the concept
+#// page's gate inputs settle shortly after publish, so give the published
+#// layer the same settling window the company-map assert uses
+# sleep: {
+#   sleep_in_milli_seconds: 4000,
+# },
+
+GET /query/_search?query=%E5%B9%B4%E7%BB%88%E5%8F%8C%E8%96%AA&datasource=no-such-datasource
+# request: {
+#   headers: [
+#     {Authorization: "Bearer $[[admin_token]]"},
+#   ],
+# },
+#
+# assert: {
+#   _ctx.response.status: 200,
+#   _ctx.response.body_json.hits.total.value: 3,
+#},
+#

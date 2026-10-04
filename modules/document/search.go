@@ -33,7 +33,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		category     = h.GetParameterOrDefault(req, "category", "")
 		subcategory  = h.GetParameterOrDefault(req, "subcategory", "")
 		richCategory = h.GetParameterOrDefault(req, "rich_category", "")
-		searchType   = h.GetParameterOrDefault(req, "search_type", "keyword")
+		searchType   = h.GetParameterOrDefault(req, "search_type", "")
 		fuzzinessStr = h.GetParameterOrDefault(req, "fuzziness", "3")
 	)
 
@@ -44,6 +44,14 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		if err == nil && parsed >= 0 && parsed <= 5 {
 			fuzziness = parsed
 		}
+	}
+
+	if searchType == "" {
+		// no explicit strategy: the operator's configured default decides
+		// (search_settings.search_type) — this is the switch that puts the
+		// hybrid pipeline the studio evaluates in front of the app search
+		// and the widget without URL surgery; keyword when unset
+		searchType = common.AppConfig().SearchSettings.DefaultType()
 	}
 
 	query = util.CleanUserQuery(query)

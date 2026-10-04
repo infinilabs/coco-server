@@ -1382,7 +1382,15 @@ const page: App.I18n.Schema['translation']['page'] = {
       title: '搜索设置',
       labels: {
         enabled: '启用状态',
-        integration: '组件'
+        integration: '组件',
+        search_type: '默认搜索模式',
+        search_type_desc: '用户未显式指定搜索模式时 /query/_search 使用的策略；hybrid_rrf 会启用融合检索（含 Wiki 页、图谱与查询改写）；更改后对新搜索立即生效'
+      },
+      options: {
+        keyword: '关键词（BM25）',
+        semantic: '语义',
+        hybrid: '混合',
+        hybrid_rrf: '混合融合（hybrid_rrf）'
       }
     },
     default_model: {

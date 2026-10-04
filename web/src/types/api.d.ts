@@ -266,6 +266,7 @@ declare namespace Api {
       search_settings?: {
         enabled?: boolean;
         integration?: string;
+        search_type?: string;
       };
       security?: {
         managed?: boolean;

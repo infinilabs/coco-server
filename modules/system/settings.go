@@ -68,6 +68,9 @@ var settingsSections = []struct {
 	{
 		name: "search_settings",
 		apply: func(incoming, old *core.Config) error {
+			if t := incoming.SearchSettings; t != nil && t.SearchType != "" && !core.IsValidSearchType(t.SearchType) {
+				return fmt.Errorf("invalid search_type %q: must be one of keyword, semantic, hybrid, hybrid_rrf", t.SearchType)
+			}
 			return mergeSection(old.SearchSettings, incoming.SearchSettings, func(v *core.SearchSettings) { old.SearchSettings = v })
 		},
 	},
