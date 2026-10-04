@@ -18,26 +18,31 @@ import (
 // N more copies" note. Deep cleanup stays in the dedup report where a human
 // decides.
 
-// registerFingerprintHook stamps documents on create and update. Recomputed
-// every write: same content yields the same fingerprint (idempotent),
-// changed content must never keep the stale one.
+// registerFingerprintHook stamps documents on every orm write. Recomputed
+// each time: same content yields the same fingerprint (idempotent),
+// changed content must never keep the stale one. OpSave matters because
+// PUT /document/:id goes through orm.Save, not create/update — a hook on
+// the latter two alone would silently skip plain document edits.
 func registerFingerprintHook() {
 	orm.RegisterDataOperationPreHook(100, func(ctx *orm.Context, _ orm.Operation, model interface{}) (*orm.Context, interface{}, error) {
 		if doc, ok := model.(*core.Document); ok {
 			ensureDocumentFingerprint(doc)
 		}
 		return ctx, model, nil
-	}, orm.OpCreate, orm.OpUpdate)
+	}, orm.OpCreate, orm.OpUpdate, orm.OpSave)
 }
 
 // ensureDocumentFingerprint computes hash+simhash from the content when
-// there is enough of it; blank or too-short content leaves the fields empty.
+// there is enough of it; blank or too-short content clears the fields —
+// a write that shrinks content below the floor must not keep the previous
+// write's fingerprint, or unrelated docs would keep folding together.
 func ensureDocumentFingerprint(doc *core.Document) {
 	if doc == nil {
 		return
 	}
 	hash, sim, ok := contentFingerprint(doc.Content)
 	if !ok {
+		doc.ContentHash, doc.ContentSimhash = "", 0
 		return
 	}
 	// int64 reinterpretation: the persisted field is signed so high-bit

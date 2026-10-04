@@ -23,6 +23,7 @@ import (
 	"infini.sh/coco/modules/connector"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
+	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
@@ -511,6 +512,14 @@ func (h *APIHandler) batchDeleteDoc(w http.ResponseWriter, req *http.Request, ps
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	// the framework's delete-by-query does not forward a refresh flag —
+	// without an explicit refresh the UI's immediate re-list still sees the
+	// deleted rows until the engine's refresh interval elapses
+	if client := elastic.GetClientNoPanic(global.MustLookupString(elastic.GlobalSystemElasticsearchID)); client != nil {
+		if rerr := client.Refresh(orm.GetIndexName(&core.Document{})); rerr != nil {
+			log.Warnf("document index refresh after batch delete failed: %v", rerr)
+		}
 	}
 
 	h.WriteAckOKJSON(w)

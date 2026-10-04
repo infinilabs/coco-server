@@ -56,8 +56,11 @@ func init() {
 		api.MCPTool("search_documents_bm25", "Search documents (BM25). Pass query, optional filters and size; returns ids, titles, summaries — then get_document reads the full content."))
 	api.HandleUIMethod(api.DELETE, "/document/", handler.batchDeleteDoc, api.RequirePermission(deletePermission))
 
-	//content dedup: deterministic fingerprints, human review, no auto-delete
-	api.HandleUIMethod(api.GET, "/document/dedup/report", handler.dedupReportHandler, api.RequirePermission(readPermission))
+	//content dedup: deterministic fingerprints, human review, no auto-delete;
+	//the report scans cross-datasource with direct reads, so it shares the
+	//operator-grade update gate with the dismiss/action endpoints instead
+	//of the every-user document:read
+	api.HandleUIMethod(api.GET, "/document/dedup/report", handler.dedupReportHandler, api.RequirePermission(updatePermission))
 	api.HandleUIMethod(api.POST, "/document/dedup/dismiss", handler.dedupDismissHandler, api.RequirePermission(updatePermission))
 	api.HandleUIMethod(api.POST, "/document/dedup/action", handler.dedupActionHandler, api.RequirePermission(updatePermission))
 

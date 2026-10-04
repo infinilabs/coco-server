@@ -472,6 +472,11 @@ func (h *APIHandler) dedupActionHandler(w http.ResponseWriter, req *http.Request
 	}
 
 	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	// the reviewer acts with route-level document:update (delete is checked
+	// again above); the orm-level owner/sharing check would reject exactly
+	// the cross-datasource documents a dedup cleanup is meant to reach
+	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 	ctx.Refresh = orm.WaitForRefresh
 
 	acted, failed := 0, 0

@@ -148,12 +148,11 @@ func articleConfig() crud.Config[core.WikiArticle] {
 			if obj.Title == "" {
 				return fmt.Errorf("title is required")
 			}
-			if obj.Status == "" {
-				obj.Status = core.WikiArticleDraft
-			}
-			if err := validateArticleStatus(obj.Status); err != nil {
-				return err
-			}
+			// D1: creation always starts at draft — a client-supplied
+			// status must never reach the store, otherwise one POST
+			// sidesteps the review gate and the /status transition
+			// endpoint (including via the MCP create tool)
+			obj.Status = core.WikiArticleDraft
 			// the company map starts from the navigation skeleton so authors
 			// fill a structure instead of staring at an empty page (D6)
 			if obj.PageType == core.WikiPageTypeMap && strings.TrimSpace(obj.Content) == "" {
