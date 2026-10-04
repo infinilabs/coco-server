@@ -369,13 +369,15 @@ POST /search/studio/eval/_cases
 #// pinyin-intent probes: full-syllable input and abbreviation input must
 #// keep resolving to the Chinese titles — the title.pinyin leg is a
 #// designed capability, and these cases pin it so any recall-looseness
+#// (both docs are expected: "zf"/"zhifu" match either 支付 title with a
+#// near-tie score, so the first expected hit is rank 1 on any tie-break)
 #// tightening (single-letter accidents vs abbreviation search) that
 #// breaks pinyin input fails here loudly
 POST /search/studio/eval/_cases
 {
   "query": "zhifu",
-  "expected_ids": ["$[[manual_doc]]"],
-  "expected_titles": ["支付服务运维手册"],
+  "expected_ids": ["$[[manual_doc]]", "$[[trouble_doc]]"],
+  "expected_titles": ["支付服务运维手册", "支付链路故障排查"],
   "datasource": "$[[ds_id]]"
 }
 # request: {
@@ -389,8 +391,8 @@ POST /search/studio/eval/_cases
 POST /search/studio/eval/_cases
 {
   "query": "zf",
-  "expected_ids": ["$[[manual_doc]]"],
-  "expected_titles": ["支付服务运维手册"],
+  "expected_ids": ["$[[manual_doc]]", "$[[trouble_doc]]"],
+  "expected_titles": ["支付服务运维手册", "支付链路故障排查"],
   "datasource": "$[[ds_id]]"
 }
 # request: {
