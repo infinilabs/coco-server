@@ -93,6 +93,9 @@ func (h *APIHandler) createSearchEvalCase(w http.ResponseWriter, req *http.Reque
 	wctx := orm.NewContextWithParent(req.Context())
 	wctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	wctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	// operator-paced read-after-write: the natural flow is "add a case,
+	// hit run" — the write must be visible to the run's snapshot
+	wctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(wctx, &core.SearchEvalCase{})
 
 	normalized := normalizeSearchQuery(query)
@@ -136,6 +139,7 @@ func (h *APIHandler) deleteSearchEvalCase(w http.ResponseWriter, req *http.Reque
 	id := ps.ByName("id")
 	dctx := orm.NewContextWithParent(req.Context())
 	dctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	dctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(dctx, &core.SearchEvalCase{})
 	entry := &core.SearchEvalCase{}
 	entry.SetID(id)
