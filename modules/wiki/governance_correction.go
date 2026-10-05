@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	httprouter "infini.sh/framework/core/api/router"
-	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
@@ -102,28 +101,32 @@ func (h *APIHandler) createCorrection(w http.ResponseWriter, req *http.Request, 
 	ctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
 
-	existing, found := findProposalByAnchor(ctx, anchor, core.WikiGovernanceCorrection)
-	if found {
+	// the anchor's row id is deterministic: two reports racing through the
+	// check-then-create window land on the same id, the loser overwrites
+	// byte-identical content instead of spawning a queue duplicate
+	existing, generation := proposalAnchorState(ctx, anchor, core.WikiGovernanceCorrection)
+	if existing != nil {
 		// a second report on the same answer strengthens the existing
 		// proposal instead of spamming the queue
-		if existing.Status == core.WikiGovernanceOpen {
-			count := 1
-			if v, ok := existing.Evidence["report_count"].(int); ok {
-				count = v + 1
-			} else if v, ok := existing.Evidence["report_count"].(float64); ok {
-				count = int(v) + 1
-			}
-			evidence["report_count"] = count
-			existing.Evidence = evidence
-			if err := orm.Update(ctx, existing); err != nil {
-				h.WriteError(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			h.WriteOKJSON(w, util.MapStr{"id": existing.ID, "report_count": evidence["report_count"]})
+		count := 1
+		if v, ok := existing.Evidence["report_count"].(int); ok {
+			count = v + 1
+		} else if v, ok := existing.Evidence["report_count"].(float64); ok {
+			count = int(v) + 1
+		}
+		evidence["report_count"] = count
+		existing.Evidence = evidence
+		if err := orm.Update(ctx, existing); err != nil {
+			h.WriteError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		h.WriteOKJSON(w, util.MapStr{"id": existing.ID, "report_count": evidence["report_count"]})
+		return
 	}
 
+	// first report — or a reopen after the previous proposal was resolved
+	// (the generation suffix gives the refile its own row, the resolved one
+	// stays as audit history)
 	evidence["report_count"] = 1
 	proposal := &core.WikiGovernanceProposal{
 		KbID:         body.KbID,
@@ -134,6 +137,7 @@ func (h *APIHandler) createCorrection(w http.ResponseWriter, req *http.Request, 
 		Reason:       hint,
 		Evidence:     evidence,
 	}
+	proposal.ID = core.AnchoredProposalID(anchor, core.WikiGovernanceCorrection, generation+1)
 	if err := orm.Create(ctx, proposal); err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -152,20 +156,6 @@ func correctionAnchor(messageID, query, comment string) string {
 		base = query
 	}
 	return "correction:" + util.MD5digest(base+"|"+comment)
-}
-
-// findProposalByAnchor fetches the (unique) proposal with this anchor id.
-func findProposalByAnchor(ctx *orm.Context, anchor, pType string) (*core.WikiGovernanceProposal, bool) {
-	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1).
-		Filter(orm.TermQuery("article_id", anchor), orm.TermQuery("type", pType)))
-	if err != nil {
-		return nil, false
-	}
-	hits, _, err := elastic.DecodeHits[core.WikiGovernanceProposal](res)
-	if err != nil || len(hits) == 0 {
-		return nil, false
-	}
-	return &hits[0], true
 }
 
 func truncateForTitle(s string) string {

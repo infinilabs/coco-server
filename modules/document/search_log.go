@@ -107,20 +107,29 @@ func maybeFileKnowledgeGap(ctx *orm.Context, query string) {
 	wctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(wctx, &core.WikiGovernanceProposal{})
 
-	// proposals get orm-generated ids; idempotency is by article_id|type,
-	// the same key the governance scanner uses
-	rctx2 := orm.NewContextWithParent(ctx)
-	rctx2.Set(orm.DirectReadWithoutPermissionCheck, true)
-	orm.WithModel(rctx2, &core.WikiGovernanceProposal{})
-	pres, err := orm.SearchV2(rctx2, orm.NewQuery().Size(1).
-		Filter(orm.TermQuery("article_id", gapID), orm.TermQuery("type", core.WikiGovernanceKnowledgeGap)))
+	// anchored row id (article_id+type, generation-suffixed on reopen):
+	// concurrent zero-hit searches racing through the check-then-create
+	// window land on the same id, the loser overwrites identical content
+	// instead of filing the same gap twice
+	generation := 0
+	pres, err := orm.SearchV2(wctx, orm.NewQuery().Size(100).
+		Filter(orm.TermQuery("article_id", gapID), orm.TermQuery("type", core.WikiGovernanceKnowledgeGap)).
+		SortBy(orm.Sort{Field: "created", SortType: orm.DESC}))
 	if err == nil {
 		existing, _, derr := elastic.DecodeHits[core.WikiGovernanceProposal](pres)
 		if derr == nil && len(existing) > 0 {
-			// refresh the counter while the proposal is still open
-			if existing[0].Status == core.WikiGovernanceOpen {
-				existing[0].Evidence = util.MapStr{"query": query, "zero_hit_count": len(hits)}
-				_ = orm.Update(wctx, &existing[0])
+			generation = len(existing)
+			// refresh the counter on the row still open — found by scan, not
+			// sort position: rows filed in the same tick order ambiguously,
+			// and a resolved/dismissed gap must not be refiled by ordering luck
+			for i := range existing {
+				if existing[i].Status != core.WikiGovernanceOpen {
+					continue
+				}
+				row := existing[i]
+				row.Evidence = util.MapStr{"query": query, "zero_hit_count": len(hits)}
+				_ = orm.Update(wctx, &row)
+				break
 			}
 			return
 		}
@@ -134,6 +143,7 @@ func maybeFileKnowledgeGap(ctx *orm.Context, query string) {
 		Reason:       "query keeps returning zero hits — the knowledge base lacks a page for it",
 		Evidence:     util.MapStr{"query": query, "zero_hit_count": len(hits)},
 	}
+	proposal.ID = core.AnchoredProposalID(gapID, core.WikiGovernanceKnowledgeGap, generation+1)
 	if err := orm.Create(wctx, proposal); err != nil {
 		log.Warnf("knowledge gap proposal create failed: %v", err)
 	}

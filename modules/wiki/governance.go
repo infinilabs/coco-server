@@ -443,12 +443,53 @@ func openProposalKeys(ctx context.Context) map[string]bool {
 	return out
 }
 
+// proposalAnchorState reads the anchor's history for one proposal type: the
+// row still open under the anchor, if any (the row a new report folds into),
+// and how many rows exist (the generation the next filing claims). The open
+// row is found by scan, not by sort position — rows filed in the same
+// timestamp tick sort ambiguously, and the fold-or-refile decision must not
+// depend on which one the store happens to return first. Sized for sanity,
+// not completeness — beyond a century of refiling the same anchor the
+// generation simply pins.
+func proposalAnchorState(ctx *orm.Context, anchor, pType string) (open *core.WikiGovernanceProposal, generation int) {
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
+	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(100).
+		Filter(orm.TermQuery("article_id", anchor), orm.TermQuery("type", pType)).
+		SortBy(orm.Sort{Field: "created", SortType: orm.DESC}))
+	if err != nil {
+		return nil, 0
+	}
+	hits, _, err := elastic.DecodeHits[core.WikiGovernanceProposal](res)
+	if err != nil || len(hits) == 0 {
+		return nil, 0
+	}
+	for i := range hits {
+		if hits[i].Status == core.WikiGovernanceOpen {
+			open = &hits[i]
+			break
+		}
+	}
+	return open, len(hits)
+}
+
 // fileProposal persists one proposal and notifies the KB owner; best-effort
-// beyond the create itself.
+// beyond the create itself. The row id is anchored to article+type with a
+// generation: concurrent filings of the same anchor collapse onto one row,
+// while a refile after resolution opens the next generation and keeps the
+// resolved rows as history.
 func fileProposal(kb *core.WikiKnowledgeBase, article *core.WikiArticle, pType, reason string, evidence util.MapStr) bool {
 	ctx := orm.NewContext()
 	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
+
+	// self-contained idempotency: an open twin means the queue already
+	// carries this finding (the sweep's open-map short-circuits the common
+	// path, this check makes the function safe on its own)
+	openTwin, generation := proposalAnchorState(ctx, article.ID, pType)
+	if openTwin != nil {
+		return false
+	}
 
 	proposal := &core.WikiGovernanceProposal{
 		KbID:         kb.ID,
@@ -459,6 +500,7 @@ func fileProposal(kb *core.WikiKnowledgeBase, article *core.WikiArticle, pType, 
 		Reason:       reason,
 		Evidence:     evidence,
 	}
+	proposal.ID = core.AnchoredProposalID(article.ID, pType, generation+1)
 	if err := orm.Create(ctx, proposal); err != nil {
 		log.Warnf("wiki: governance proposal create failed: %v", err)
 		return false

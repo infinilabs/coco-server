@@ -354,6 +354,11 @@ func resolveOrCreateEntity(ctx *orm.Context, extracted *extractedEntity, doc *co
 			log.Debugf("[%s] schema sanitize dropped from %q: %v", ProcessorName, extracted.Name, dropped)
 		}
 	}
+	// name-anchored id: extraction resolves identity by name, so two
+	// workers racing past the lookup write the same row instead of leaving
+	// twin proposed entities that never self-merge; the loser's overwrite
+	// differs only in provenance, and the next pass re-appends sources
+	entity.SetID(core.AnchoredEntityID(entity.Name))
 	if err := orm.Create(ctx, entity); err != nil {
 		return nil, false, err
 	}

@@ -616,8 +616,11 @@ func findPropertyDef(typeDef *OntologyEntityTypeDef, key string) *OntologyProper
 
 // FileEntityGovernanceProposal files an entity-dimension governance proposal
 // (extraction conflicts and duplicates). Idempotent per open (entity, type);
-// the KB owner gets a notification. Best-effort — returns false when the
-// proposal could not be recorded.
+// the KB owner gets a notification. The row id is anchored to entity+type
+// with a generation, so concurrent extraction workers racing on the same
+// conflict file one row, and a refile after resolution opens the next
+// generation instead of clobbering history. Best-effort — returns false
+// when the proposal could not be recorded.
 func FileEntityGovernanceProposal(kbID string, entity *core.WikiEntity, pType, reason string, evidence util.MapStr) bool {
 	if entity == nil || entity.ID == "" {
 		return false
@@ -634,6 +637,11 @@ func FileEntityGovernanceProposal(kbID string, entity *core.WikiEntity, pType, r
 	wctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(wctx, &core.WikiGovernanceProposal{})
 
+	openTwin, generation := proposalAnchorState(wctx, entity.ID, pType)
+	if openTwin != nil {
+		return false // the open-map can lag a just-filed twin; the anchor check closes the race
+	}
+
 	proposal := &core.WikiGovernanceProposal{
 		KbID:         kbID,
 		ArticleID:    entity.ID,
@@ -643,6 +651,7 @@ func FileEntityGovernanceProposal(kbID string, entity *core.WikiEntity, pType, r
 		Reason:       reason,
 		Evidence:     evidence,
 	}
+	proposal.ID = core.AnchoredProposalID(entity.ID, pType, generation+1)
 	if err := orm.Create(wctx, proposal); err != nil {
 		log.Warnf("wiki: entity governance proposal create failed: %v", err)
 		return false

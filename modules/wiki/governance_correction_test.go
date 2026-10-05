@@ -121,3 +121,62 @@ func TestCorrectionIdempotentPerMessage(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code)
 	assert.NotEqual(t, out1["id"], out3["id"])
 }
+
+func fetchProposalsByAnchor(t *testing.T, anchor string) []core.WikiGovernanceProposal {
+	t.Helper()
+	ctx := orm.NewContext()
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
+	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(10).
+		Filter(orm.TermQuery("article_id", anchor), orm.TermQuery("type", core.WikiGovernanceCorrection)))
+	require.NoError(t, err)
+	proposals, _, err := elastic.DecodeHits[core.WikiGovernanceProposal](res)
+	require.NoError(t, err)
+	return proposals
+}
+
+func TestCorrectionReopenAfterResolve(t *testing.T) {
+	_, _, h := setupFlow(t)
+
+	body := `{"query":"q","message_id":"msg-9","route_hint":"fact_missing","comment":"c1"}`
+	anchor := correctionAnchor("msg-9", "q", "c1")
+	_, out1 := correctionCall(t, h, body)
+	id1, ok := out1["id"].(string)
+	require.True(t, ok, "expected proposal id, got %v", out1)
+	assert.Equal(t, core.AnchoredProposalID(anchor, core.WikiGovernanceCorrection, 1), id1)
+
+	// a reviewer resolves the proposal
+	proposals := fetchProposalsByAnchor(t, anchor)
+	require.Len(t, proposals, 1)
+	proposals[0].Status = core.WikiGovernanceResolved
+	wctx := orm.NewContext()
+	wctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	orm.WithModel(wctx, &core.WikiGovernanceProposal{})
+	require.NoError(t, orm.Update(wctx, &proposals[0]))
+
+	// the same correction reported again after resolution reopens on a new
+	// generation — the resolved row stays as audit history
+	_, out2 := correctionCall(t, h, body)
+	id2, ok := out2["id"].(string)
+	require.True(t, ok, "expected proposal id, got %v", out2)
+	assert.NotEqual(t, id1, id2)
+	assert.Equal(t, core.AnchoredProposalID(anchor, core.WikiGovernanceCorrection, 2), id2)
+
+	proposals = fetchProposalsByAnchor(t, anchor)
+	require.Len(t, proposals, 2, "reopen must keep the resolved ancestor")
+	statuses := map[string]string{proposals[0].ID: proposals[0].Status, proposals[1].ID: proposals[1].Status}
+	assert.Equal(t, core.WikiGovernanceResolved, statuses[id1])
+	assert.Equal(t, core.WikiGovernanceOpen, statuses[id2])
+
+	// further reports fold into the open generation, never a third row
+	_, out3 := correctionCall(t, h, body)
+	require.Equal(t, id2, out3["id"])
+
+	proposals = fetchProposalsByAnchor(t, anchor)
+	require.Len(t, proposals, 2)
+	for _, p := range proposals {
+		if p.ID == id2 {
+			assert.Equal(t, float64(2), p.Evidence["report_count"])
+		}
+	}
+}
