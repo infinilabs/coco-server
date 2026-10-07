@@ -199,8 +199,10 @@ func (h *APIHandler) runSearchEval(w http.ResponseWriter, req *http.Request, _ h
 	octx := orm.NewContextWithParent(req.Context())
 	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	orm.WithModel(octx, &core.SearchEvalCase{})
+	// newest-first, same direction as the case list: with the set over the
+	// cap, the two views must at least look at the same batch
 	res, err := orm.SearchV2(octx, orm.NewQuery().Size(evalCaseCap+1).
-		SortBy(orm.Sort{Field: "created", SortType: orm.ASC}))
+		SortBy(orm.Sort{Field: "created", SortType: orm.DESC}))
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -211,8 +213,8 @@ func (h *APIHandler) runSearchEval(w http.ResponseWriter, req *http.Request, _ h
 		return
 	}
 	// fetch one extra to detect overflow: when the set outgrew the cap the
-	// run silently evaluates the oldest evalCaseCap cases — say so instead
-	// of letting the score look complete
+	// run evaluates only the newest evalCaseCap cases — say so instead of
+	// letting the score look complete
 	truncated := len(cases) > evalCaseCap
 	if truncated {
 		cases = cases[:evalCaseCap]

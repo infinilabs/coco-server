@@ -281,6 +281,9 @@ const (
 	dedupScanPageSize   = 500
 	dedupScanDefaultMax = 5000
 	dedupReportTTL      = time.Minute
+	// one-shot load bound for the dismissal set; query-time filtering is
+	// the scaled fix, this cap keeps the in-memory map bounded until then
+	dedupDismissalCap = 10000
 )
 
 var (
@@ -289,15 +292,23 @@ var (
 	dedupReportAt    time.Time
 )
 
-// loadDedupDismissals returns the dismissed pair keys.
+// loadDedupDismissals returns the dismissed pair keys. Sorted newest-first
+// so the cap, when it bites, drops the stalest dismissals; at the cap it
+// warns — a silently-truncated set re-recommends dismissed pairs, which
+// reads like a dedup bug but is a load limit.
 func loadDedupDismissals(ctx context.Context) (map[string]bool, error) {
 	octx := orm.NewContextWithParent(ctx)
 	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.DocumentDedupDismissal{})
 	var items []core.DocumentDedupDismissal
-	err, _ := elastic.SearchV2WithResultItemMapper(octx, &items, orm.NewQuery().Size(10000), nil)
+	builder := orm.NewQuery().Size(dedupDismissalCap).
+		SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
+	err, _ := elastic.SearchV2WithResultItemMapper(octx, &items, builder, nil)
 	if err != nil {
 		return nil, err
+	}
+	if len(items) >= dedupDismissalCap {
+		log.Warnf("dedup: dismissal set hit the %d-row load cap — oldest dismissals fell out, dismissed pairs may reappear in the report", dedupDismissalCap)
 	}
 	out := make(map[string]bool, len(items))
 	for _, item := range items {

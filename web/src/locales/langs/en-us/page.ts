@@ -375,6 +375,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     gapFiled: 'gap proposal filed',
     noData: 'No data',
     lowRecallHint: 'A query with ≥3 zero-hit searches files a knowledge-gap proposal in the governance queue; a human decides what page to add.',
+    zeroHitCaveat: 'The zero-hit signal family is demo-grade: the pinyin analyzer matches nearly any non-empty query on the text leg, so the zero-hit rate undercounts and the low-recall board and gap backflow rarely fire on organic traffic — do not steer operations by them until the analyzer is tightened.',
     indexHealth: 'Index health',
     indexName: 'Store',
     indexStatus: 'Status',

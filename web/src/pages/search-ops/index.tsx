@@ -1,5 +1,5 @@
 import { Activity, AlertTriangle, Search, Timer } from 'lucide-react';
-import { Button, Card, Col, Row, Space, Statistic, Table, Tag, Tooltip, Typography, message } from 'antd';
+import { Alert, Button, Card, Col, Row, Space, Statistic, Table, Tag, Tooltip, Typography, message } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -140,6 +140,9 @@ export function Component() {
             missed: String(data?.rewritten_zero_hit_searches ?? 0)
           })}
         </Typography.Text>
+        {data?.signals_caveat ? (
+          <Alert className="mt-8px" type="warning" showIcon message={t('page.searchOps.zeroHitCaveat')} />
+        ) : null}
       </Card>
 
       <Card size="small" title={t('page.searchOps.indexHealth')}>

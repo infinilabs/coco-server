@@ -26,6 +26,8 @@ export interface SearchOpsOverview {
   rewritten_zero_hit_searches: number;
   strategies: SearchOpsRow[];
   low_recall: SearchOpsLowMiss[];
+  /** standing annotation qualifying the zero-hit family; empty when unqualified */
+  signals_caveat?: string;
 }
 
 export interface IndexHealthEntry {

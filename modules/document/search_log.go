@@ -169,6 +169,7 @@ func (h *APIHandler) searchOpsOverview(w http.ResponseWriter, req *http.Request,
 	}
 
 	stats := aggregateSearchLogs(logs)
+	stats.SignalsCaveat = zeroHitSignalsCaveat
 	markFiledGaps(req.Context(), &stats)
 	h.WriteJSON(w, stats, http.StatusOK)
 }
@@ -210,7 +211,19 @@ type searchOpsStats struct {
 	RewrittenMiss int64              `json:"rewritten_zero_hit_searches"`
 	Strategies    []searchOpsRow     `json:"strategies"`
 	LowRecall     []searchOpsLowMiss `json:"low_recall"`
+	// SignalsCaveat qualifies the zero-hit family: the pinyin analyzer emits
+	// single-letter tokens under an OR match, so the text leg matches almost
+	// any non-empty query and these signals undercount by construction.
+	// Demo-grade until the analyzer is tightened — set by the handler, not
+	// by the pure aggregation.
+	SignalsCaveat string `json:"signals_caveat"`
 }
+
+// zeroHitSignalsCaveat is the standing annotation for the zero-hit signals
+// (zero_hit_rate, low-recall board, knowledge-gap backflow). Analyzer-level
+// tightening is the root fix and a separate project; until it lands, the
+// operator-facing numbers must say what they are.
+const zeroHitSignalsCaveat = "zero-hit signals are demo-grade: the pinyin analyzer matches nearly any non-empty query on the text leg, so zero_hit_rate undercounts and the low-recall board and gap backflow rarely fire on organic traffic"
 
 type searchOpsRow struct {
 	Type      string `json:"type"`

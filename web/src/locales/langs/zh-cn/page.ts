@@ -375,6 +375,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     gapFiled: '已提交缺口提议',
     noData: '暂无数据',
     lowRecallHint: '同一查询零命中 ≥3 次会自动提交「知识缺口」提议到治理队列,由人工决定补什么页。',
+    zeroHitCaveat: '零命中一族信号目前为演示级:pinyin 分析器对几乎任何非空查询都能在文本腿命中,零命中率被系统性低估,低召回榜与缺口回流在真实流量下很少触发——分析器收紧前请勿作为运营依据。',
     indexHealth: '索引体检',
     indexName: '存储',
     indexStatus: '状态',
