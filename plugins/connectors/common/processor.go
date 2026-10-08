@@ -121,6 +121,11 @@ func (processor *ConnectorProcessorBase) BatchCollect(ctx *pipeline.Context, con
 			panic("datasource has been deleted, skip further collect")
 		}
 
+		// sync run journal (W8): per-document progress — the shared choke
+		// every connector passes through; the journal lives in
+		// modules/common (the neutral import floor)
+		common.RecordSyncBatch(datasource.ID, 1)
+
 		log.Infof("collect: [%v] [%v] [%v] [%v] [%v]", connector.Name, datasource.Name, doc.ID, doc.Category, doc.Title)
 
 		// stamp the dedup fingerprint at the source (D1.5): this queue
