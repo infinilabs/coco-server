@@ -17,6 +17,7 @@ import (
 	"infini.sh/coco/modules/common"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
+	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 )
@@ -194,13 +195,44 @@ func (h *APIHandler) engineCapabilityReport(w http.ResponseWriter, req *http.Req
 			"engine":          plan.Engine,
 			"embedding_model": model,
 		},
-		"vector_field":    documentEmbeddingField(),
-		"search_pipeline": engineSearchPipelineName(),
+		"vector_field":         documentEmbeddingField(),
+		"search_pipeline":      engineSearchPipelineName(),
+		"server_side_collapse": serverSideCollapse(req.Context()),
 		"documents": util.MapStr{
-			"total":        total,
-			"with_vectors": withVectors,
+			"total":              total,
+			"with_vectors":       withVectors,
+			"by_embedding_model": embeddingModelDistribution(req.Context()),
 		},
 	}, http.StatusOK)
+}
+
+// embeddingModelDistribution aggregates the embedding_model stamps (W1) so a
+// default-model change can see exactly how many documents would keep stale
+// vectors and offer a batch reprocess instead of silently mixing models.
+func embeddingModelDistribution(ctx context.Context) map[string]int64 {
+	octx := orm.NewContextWithParent(ctx)
+	octx.DirectReadAccess()
+	orm.WithModel(octx, &core.Document{})
+
+	builder := orm.NewQuery().Size(0).
+		AddAgg("models", &orm.TermsAggregation{Field: "embedding_model", Size: 10})
+	res, err := orm.Aggregate(octx, builder)
+	if err != nil || res == nil {
+		return nil
+	}
+	node := res.Aggs["models"]
+	if node == nil {
+		return nil
+	}
+	out := map[string]int64{}
+	for _, b := range node.Buckets {
+		key := b.Key
+		if key == "" {
+			key = "(unstamped)"
+		}
+		out[key] = b.DocCount
+	}
+	return out
 }
 
 // engineAIStatusResponse is the read-back (回显) surface: what Coco wants,
@@ -301,4 +333,39 @@ func countDocuments(ctx context.Context) (int64, int64) {
 	total := count(orm.NewQuery().Size(0))
 	withVectors := count(orm.NewQuery().Size(0).Filter(orm.ExistsQuery(documentEmbeddingField())))
 	return total, withVectors
+}
+
+var (
+	collapseMu     sync.Mutex
+	collapseCached *bool
+	collapseUntil  time.Time
+)
+
+// serverSideCollapse probes (60s TTL) whether the engine honors the ES-style
+// collapse parameter on the document index (W12): a true verdict means the
+// fold COULD move server-side and stay correct across pages; false keeps the
+// proven per-page client fold. The report surfaces the capability honestly —
+// the fold itself stays client-side until the switch is deliberate.
+func serverSideCollapse(ctx context.Context) bool {
+	collapseMu.Lock()
+	defer collapseMu.Unlock()
+	if collapseCached != nil && time.Now().Before(collapseUntil) {
+		return *collapseCached
+	}
+	supported := false
+	if client := elastic.GetClientNoPanic(global.MustLookupString(elastic.GlobalSystemElasticsearchID)); client != nil {
+		body := util.MapStr{
+			"size":     1,
+			"collapse": util.MapStr{"field": "content_hash"},
+			"query":    util.MapStr{"match_all": util.MapStr{}},
+		}
+		if _, err := client.SearchWithRawQueryDSL(orm.GetIndexName(&core.Document{}), util.MustToJSONBytes(body)); err == nil {
+			supported = true
+		} else {
+			log.Tracef("search: server-side collapse probe negative: %v", err)
+		}
+	}
+	collapseCached = &supported
+	collapseUntil = time.Now().Add(engineCapabilityTTL)
+	return supported
 }

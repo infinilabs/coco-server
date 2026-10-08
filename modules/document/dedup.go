@@ -290,7 +290,33 @@ var (
 	dedupReportMu    sync.Mutex
 	dedupReportCache *dedupReport
 	dedupReportAt    time.Time
+
+	// dismissal-set cache for retrieval-time folding (W12): the fold runs
+	// on every search, loading the dismissals per query would be absurd;
+	// 60s staleness is fine — a dismissal takes at most a minute to stop
+	// folding its pair
+	dismissedMu    sync.Mutex
+	dismissedCache map[string]bool
+	dismissedAt    time.Time
 )
+
+// dismissedPairsCached serves the fold with a short-TTL copy of the
+// dismissal set; load failures yield nil (fold by hash alone — the
+// pre-W12 behavior, never a failed search).
+func dismissedPairsCached(ctx context.Context) map[string]bool {
+	dismissedMu.Lock()
+	defer dismissedMu.Unlock()
+	if dismissedCache != nil && time.Since(dismissedAt) < time.Minute {
+		return dismissedCache
+	}
+	set, err := loadDedupDismissals(ctx)
+	if err != nil {
+		return nil
+	}
+	dismissedCache = set
+	dismissedAt = time.Now()
+	return set
+}
 
 // loadDedupDismissals returns the dismissed pair keys. Sorted newest-first
 // so the cap, when it bites, drops the stalest dismissals; at the cap it

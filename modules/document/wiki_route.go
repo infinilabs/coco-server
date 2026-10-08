@@ -101,9 +101,20 @@ func wikiArticleToHit(article *core.WikiArticle, score float32) elastic.Document
 // wikiRoute runs the wiki recall leg: BM25 over the curated pages the user
 // is allowed to search. Hits become pseudo-documents (wikiArticleToHit) so
 // the fusion math treats them like any other route.
+//
+// W16a gray switch: with search_settings.wiki_projection on, the leg reads
+// the published-article PROJECTION rows from the document index instead
+// (type=wiki_article — the "KB as a built-in datasource" unification).
+// The projection rows are already proper documents; they are returned
+// as-is, no pseudo-doc wrapping needed. The noise gate enforced itself at
+// projection time.
 func (h *APIHandler) wikiRoute(req *http.Request, query string, window int) (*elastic.SearchResponseWithMeta[core.Document], error) {
 	if !wikiSearchPermission(req) {
 		return nil, errWikiRouteSkipped
+	}
+
+	if cfg := appConfigFn(); cfg.SearchSettings != nil && cfg.SearchSettings.WikiProjection {
+		return wikiProjectionRoute(req, query, window)
 	}
 
 	octx := orm.NewContextWithParent(req.Context())
@@ -137,5 +148,30 @@ func (h *APIHandler) wikiRoute(req *http.Request, query string, window int) (*el
 	// map[string]interface{} only, a named type would read as zero and the
 	// route's count would vanish from the fused total
 	out.Hits.Total = map[string]interface{}{"value": int64(len(out.Hits.Hits)), "relation": "eq"}
+	return out, nil
+}
+
+// wikiProjectionRoute serves the wiki leg from the document-index
+// projection rows (W16a): same BM25 fields the documents use, restricted
+// to type=wiki_article. Rows carry their own URL and provenance metadata.
+func wikiProjectionRoute(req *http.Request, query string, window int) (*elastic.SearchResponseWithMeta[core.Document], error) {
+	octx := orm.NewContextWithParent(req.Context())
+	octx.DirectReadAccess()
+	orm.WithModel(octx, &core.Document{})
+
+	builder := orm.NewQuery().From(0).Size(window)
+	builder.Query(query)
+	builder.DefaultQueryField("title^20", "title.pinyin^8", "summary^4", "tags^2", "combined_fulltext")
+	builder.Filter(orm.TermQuery("type", "wiki_article"))
+	builder.Exclude("document_chunk", "payload", "ai_insights.embedding")
+
+	resp, err := orm.SearchV2(octx, builder)
+	if err != nil {
+		return nil, err
+	}
+	out := &elastic.SearchResponseWithMeta[core.Document]{}
+	if raw, ok := resp.Payload.([]byte); ok && len(raw) > 0 {
+		util.MustFromJSONBytes(raw, out)
+	}
 	return out, nil
 }

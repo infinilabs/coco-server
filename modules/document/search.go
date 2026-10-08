@@ -222,6 +222,9 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 			}
 			builder.EnableBodyBytes()
 			stripHighlightWithoutQuery(builder, query)
+			// ?tags= controlled-vocabulary facet filter (W4): the legs'
+			// recall respects the same facets the UI offers
+			applyTagsFilter(builder, h.GetParameterOrDefault(req, "tags", ""))
 			// one interactive page can never drag unbounded rows out of
 			// the engine — bulk export has dedicated APIs
 			if reqSize := h.GetIntOrDefault(req, "size", 10); reqSize > maxSearchPageSize {
@@ -295,7 +298,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 
 		// same-content copies collapse onto the highest-ranked hit with a
 		// "N more copies" note (D1.5); deep cleanup stays in the dedup report
-		result.Hits.Hits = foldDuplicateHits(result.Hits.Hits)
+		result.Hits.Hits = foldDuplicateHits(result.Hits.Hits, dismissedPairsCached(req.Context()))
 
 		docsSize := len(result.Hits.Hits)
 		//update icon

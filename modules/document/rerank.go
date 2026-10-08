@@ -36,6 +36,20 @@ const (
 	// rerankTimeout caps one rerank call; past it the leg degrades to RRF
 	// instead of stalling the search.
 	rerankTimeout = 10 * time.Second
+
+	// D4.5 composite weights: the model verdict dominates but the RRF
+	// consensus and the configured source priority keep a say — a slightly
+	// lower-scored hit from the authoritative source outranks a twin from
+	// an unranked one.
+	rerankWeightModel  = 0.6
+	rerankWeightRRF    = 0.3
+	rerankWeightSource = 0.1
+
+	// MMR (D4.5): greedy selection scoring 0.7×relevance − 0.3×redundancy
+	// (max Jaccard of title+summary token sets against already-selected
+	// hits), so a near-duplicate of a picked hit sinks below a diverse one.
+	mmrLambda     = 0.7
+	mmrRedundancy = 0.3
 )
 
 // rerankPlan is the resolved rerank configuration for one request.
@@ -126,10 +140,12 @@ type rerankResponse struct {
 }
 
 // rerankFusedHits re-scores the top fused hits with the reranker and returns
-// them in the reranker's order (ties keep RRF order — the sort is stable and
-// starts from the fused sequence). Hits beyond the candidate window keep
-// their RRF order behind the re-scored ones, so nothing is dropped.
-func rerankFusedHits(ctx context.Context, plan rerankPlan, query string, fused []elastic.DocumentWithMeta[core.Document]) ([]elastic.DocumentWithMeta[core.Document], []rerankScoreChange, error) {
+// them in the composite order (D4.5: 0.6 model + 0.3 RRF + 0.1 source
+// priority), then MMR-diversifies the scored window. Ties keep RRF order —
+// the sort is stable and starts from the fused sequence. Hits beyond the
+// candidate window keep their RRF order behind the re-scored ones, so
+// nothing is dropped.
+func rerankFusedHits(ctx context.Context, plan rerankPlan, query string, sourcePriority []string, fused []elastic.DocumentWithMeta[core.Document]) ([]elastic.DocumentWithMeta[core.Document], []rerankScoreChange, error) {
 	if plan.Model == nil || len(fused) == 0 {
 		return fused, nil, nil
 	}
@@ -166,34 +182,55 @@ func rerankFusedHits(ctx context.Context, plan rerankPlan, query string, fused [
 		return fused, nil, err
 	}
 
-	// rank by relevance desc, ties keep RRF order (stable sort on a slice
-	// already in RRF order)
-	order := make([]int, 0, len(parsed.Results))
-	seen := map[int]bool{}
+	// capture the RRF scores of the window before any reordering — the
+	// composite needs them normalized
+	rrfNorm := minMaxNormalizeF32(scoresOfWindow(fused, window))
+
+	// composite per scored hit: 0.6×model(norm) + 0.3×rrf(norm) + 0.1×source
+	modelRaw := make([]float64, 0, len(parsed.Results))
+	idxOf := map[int]int{} // hit index → position in modelRaw
 	for i := range parsed.Results {
 		idx := parsed.Results[i].Index
-		if idx < 0 || idx >= window || seen[idx] {
+		if idx < 0 || idx >= window {
 			continue
 		}
-		seen[idx] = true
-		order = append(order, i)
+		if _, dup := idxOf[idx]; dup {
+			continue
+		}
+		idxOf[idx] = len(modelRaw)
+		modelRaw = append(modelRaw, parsed.Results[i].RelevanceScore)
 	}
-	sort.SliceStable(order, func(a, b int) bool {
-		return parsed.Results[order[a]].RelevanceScore > parsed.Results[order[b]].RelevanceScore
-	})
+	modelNorm := minMaxNormalizeF64(modelRaw)
+
+	scored := make([]rerankComposite, 0, len(idxOf))
+	for idx, pos := range idxOf {
+		scored = append(scored, rerankComposite{
+			idx:       idx,
+			score:     rerankWeightModel*modelNorm[pos] + rerankWeightRRF*rrfNorm[idx] + rerankWeightSource*sourceWeightFor(fused[idx].Source.Source.ID, sourcePriority),
+			relevance: parsed.Results[idxOf[idx]].RelevanceScore,
+		})
+	}
+	sort.SliceStable(scored, func(a, b int) bool { return scored[a].score > scored[b].score })
+
+	// MMR diversification over the reranker texts of the scored hits
+	mmrTexts := make([]string, len(scored))
+	for i, c := range scored {
+		mmrTexts[i] = documents[c.idx]
+	}
+	mmrOrder(scored, mmrTexts)
 
 	out := make([]elastic.DocumentWithMeta[core.Document], 0, len(fused))
-	changes := make([]rerankScoreChange, 0, len(order))
+	changes := make([]rerankScoreChange, 0, len(scored))
 	scoredIndex := map[int]bool{}
-	for newRank, resultIdx := range order {
-		idx := parsed.Results[resultIdx].Index
-		scoredIndex[idx] = true
-		hit := fused[idx]
+	for newRank, c := range scored {
+		scoredIndex[c.idx] = true
+		hit := fused[c.idx]
 		changes = append(changes, rerankScoreChange{
 			ID:             hit.ID,
-			RRFRank:        idx + 1,
+			RRFRank:        c.idx + 1,
 			RerankRank:     newRank + 1,
-			RelevanceScore: parsed.Results[resultIdx].RelevanceScore,
+			RelevanceScore: c.relevance,
+			CompositeScore: c.score,
 		})
 		out = append(out, hit)
 	}
@@ -206,6 +243,167 @@ func rerankFusedHits(ctx context.Context, plan rerankPlan, query string, fused [
 		out = append(out, fused[i])
 	}
 	return out, changes, nil
+}
+
+// scoresOfWindow copies the fused scores of the candidate window.
+func scoresOfWindow(fused []elastic.DocumentWithMeta[core.Document], window int) []float32 {
+	out := make([]float32, window)
+	for i := 0; i < window; i++ {
+		out[i] = fused[i].Score
+	}
+	return out
+}
+
+func minMaxNormalizeF32(v []float32) []float64 {
+	if len(v) == 0 {
+		return nil
+	}
+	min, max := v[0], v[0]
+	for _, x := range v {
+		if x < min {
+			min = x
+		}
+		if x > max {
+			max = x
+		}
+	}
+	out := make([]float64, len(v))
+	span := float64(max - min)
+	for i, x := range v {
+		if span == 0 {
+			out[i] = 1
+			continue
+		}
+		out[i] = float64(x-min) / span
+	}
+	return out
+}
+
+func minMaxNormalizeF64(v []float64) []float64 {
+	if len(v) == 0 {
+		return nil
+	}
+	min, max := v[0], v[0]
+	for _, x := range v {
+		if x < min {
+			min = x
+		}
+		if x > max {
+			max = x
+		}
+	}
+	out := make([]float64, len(v))
+	span := max - min
+	for i, x := range v {
+		if span == 0 {
+			out[i] = 1
+			continue
+		}
+		out[i] = (x - min) / span
+	}
+	return out
+}
+
+// sourceWeightFor maps a hit's datasource to the 0..1 source weight (D4.5):
+// the built-in knowledge source tops at 1.0, listed sources decay linearly
+// from 1.0 toward 0.5 by their priority position, unlisted sit at 0.5 — a
+// recommendation, never a veto.
+func sourceWeightFor(sourceID string, priority []string) float64 {
+	if sourceID == "wiki" {
+		return 1.0
+	}
+	for i, s := range priority {
+		if s == sourceID && len(priority) > 0 {
+			return 1.0 - 0.5*float64(i)/float64(len(priority))
+		}
+	}
+	return 0.5
+}
+
+// rerankComposite is one scored hit's composite verdict (D4.5).
+type rerankComposite struct {
+	idx       int     // index into the fused window
+	score     float64 // composite: 0.6 model + 0.3 rrf + 0.1 source
+	relevance float64 // raw reranker relevance, kept for reporting
+}
+
+// mmrOrder diversifies an already score-ordered list in place (greedy MMR,
+// D4.5): each pick maximizes λ×score − (1−λ)×max Jaccard against the
+// already-picked texts — a near-duplicate of a picked hit sinks below a
+// diverse hit with slightly lower relevance.
+func mmrOrder(scored []rerankComposite, texts []string) {
+	if len(scored) <= 1 {
+		return
+	}
+	picked := make([]int, 0, len(scored))
+	remaining := make([]int, 0, len(scored))
+	for i := range scored {
+		remaining = append(remaining, i)
+	}
+	for len(remaining) > 0 {
+		best, bestScore := 0, 0.0
+		first := true
+		for _, r := range remaining {
+			redundancy := 0.0
+			for _, p := range picked {
+				if j := tokenJaccard(texts[r], texts[p]); j > redundancy {
+					redundancy = j
+				}
+			}
+			v := mmrLambda*scored[r].score - mmrRedundancy*redundancy
+			if first || v > bestScore {
+				best, bestScore, first = r, v, false
+			}
+		}
+		picked = append(picked, best)
+		for i, r := range remaining {
+			if r == best {
+				remaining = append(remaining[:i], remaining[i+1:]...)
+				break
+			}
+		}
+	}
+	reordered := make([]rerankComposite, len(scored))
+	reorderedTexts := make([]string, len(texts))
+	for i, p := range picked {
+		reordered[i] = scored[p]
+		if p < len(texts) {
+			reorderedTexts[i] = texts[p]
+		}
+	}
+	copy(scored, reordered)
+	copy(texts, reorderedTexts)
+}
+
+// tokenJaccard is the Jaccard similarity of two texts' token sets.
+func tokenJaccard(a, b string) float64 {
+	if a == "" || b == "" {
+		return 0
+	}
+	as := tokenSet(a)
+	bs := tokenSet(b)
+	if len(as) == 0 || len(bs) == 0 {
+		return 0
+	}
+	inter := 0
+	for t := range as {
+		if bs[t] {
+			inter++
+		}
+	}
+	union := len(as) + len(bs) - inter
+	if union == 0 {
+		return 0
+	}
+	return float64(inter) / float64(union)
+}
+
+func tokenSet(s string) map[string]bool {
+	out := map[string]bool{}
+	for _, f := range strings.Fields(strings.ToLower(s)) {
+		out[f] = true
+	}
+	return out
 }
 
 // rerankDocumentText is what the reranker reads per hit: title plus summary
@@ -229,6 +427,7 @@ type rerankScoreChange struct {
 	RRFRank        int     `json:"rrf_rank"`
 	RerankRank     int     `json:"rerank_rank"`
 	RelevanceScore float64 `json:"relevance_score"`
+	CompositeScore float64 `json:"composite_score"`
 }
 
 // applyRerank is the production hook: re-score the fused list when a
@@ -245,7 +444,7 @@ func applyRerankWithPlan(ctx context.Context, plan rerankPlan, query string, fus
 	if plan.Model == nil {
 		return fused, plan.Note
 	}
-	reranked, _, err := rerankFusedHits(ctx, plan, query, fused)
+	reranked, _, err := rerankFusedHits(ctx, plan, query, loadCompileRules(ctx).SourcePriority, fused)
 	if err != nil {
 		log.Warnf("hybrid_rrf: rerank failed, keeping RRF order: %v", err)
 		return fused, fmt.Sprintf("rerank degraded: %v", err)

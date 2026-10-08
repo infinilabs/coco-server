@@ -66,7 +66,7 @@ func TestFoldDuplicateHits(t *testing.T) {
 		docHitWithHash("c", "h1", 6), // duplicate of a
 		docHitWithHash("d", "h2", 5),
 	}
-	folded := foldDuplicateHits(hits)
+	folded := foldDuplicateHits(hits, nil)
 	if len(folded) != 3 {
 		t.Fatalf("expected 3 hits after folding, got %d", len(folded))
 	}
@@ -88,7 +88,66 @@ func TestFoldDuplicateHits(t *testing.T) {
 }
 
 func TestFoldDuplicateHitsEmpty(t *testing.T) {
-	if got := foldDuplicateHits(nil); len(got) != 0 {
+	if got := foldDuplicateHits(nil, nil); len(got) != 0 {
 		t.Fatalf("empty input must give empty output, got %d", len(got))
+	}
+}
+
+func TestFoldEnrichesMembers(t *testing.T) {
+	mk := func(id, title, src string) elastic.DocumentWithMeta[core.Document] {
+		hit := elastic.DocumentWithMeta[core.Document]{ID: id}
+		hit.Source.Title = title
+		hit.Source.ContentHash = "hash-x"
+		hit.Source.Source.Name = src
+		hit.Source.Size = 10
+		return hit
+	}
+	hits := []elastic.DocumentWithMeta[core.Document]{
+		mk("a", "原件", "hr"), mk("b", "改名副本", "wiki"), mk("c", "第三份", "fs"),
+	}
+
+	folded := foldDuplicateHits(hits, nil)
+	if len(folded) != 1 {
+		t.Fatalf("expected 1 representative, got %d", len(folded))
+	}
+	dupes, _ := folded[0].Source.Metadata["fingerprint_duplicates"].(util.MapStr)
+	if dupes == nil {
+		t.Fatal("missing fingerprint_duplicates")
+	}
+	if dupes["count"] != 2 || dupes["tier"] != "exact" || dupes["similarity"] != 100 {
+		t.Fatalf("unexpected fold payload: %v", dupes)
+	}
+	ids, _ := dupes["ids"].([]string)
+	if len(ids) != 2 || ids[0] != "b" || ids[1] != "c" {
+		t.Fatalf("unexpected ids: %v", ids)
+	}
+	members, _ := dupes["members"].([]interface{})
+	if len(members) != 2 {
+		t.Fatalf("expected 2 members, got %d", len(members))
+	}
+	m1 := members[0].(util.MapStr)
+	if m1["id"] != "b" || m1["title"] != "改名副本" || m1["source"] != "wiki" {
+		t.Fatalf("unexpected member: %v", m1)
+	}
+}
+
+func TestFoldRespectsDismissedPairs(t *testing.T) {
+	mk := func(id string) elastic.DocumentWithMeta[core.Document] {
+		hit := elastic.DocumentWithMeta[core.Document]{ID: id}
+		hit.Source.ContentHash = "hash-y"
+		return hit
+	}
+	hits := []elastic.DocumentWithMeta[core.Document]{mk("first"), mk("second"), mk("third")}
+
+	// the operator explicitly marked first+second "not duplicates"
+	dismissed := map[string]bool{dedupPairKey("first", "second"): true}
+	folded := foldDuplicateHits(hits, dismissed)
+	if len(folded) != 2 {
+		t.Fatalf("dismissed pair must not fold: expected 2 hits, got %d", len(folded))
+	}
+	// third still folds into first — dismissal is per pair, not per hash
+	dupes, _ := folded[0].Source.Metadata["fingerprint_duplicates"].(util.MapStr)
+	if dupes == nil || dupes["count"] != 1 {
+		t.Fatalf("third copy should fold into first: %v", folded[0].Source.Metadata["fingerprint_duplicates"])
 	}
 }

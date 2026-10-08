@@ -48,7 +48,12 @@ func init() {
 		api.MCPTool("get_document", "Get one document by id, including its content — the end of the citation chain: search hits and wiki pages carry source doc ids, this tool reads them."))
 	api.HandleUIMethod(api.GET, "/document/:doc_id/raw_content/:hint", handler.getDocRawContent, api.RequirePermission(readPermission), api.AllowOPTIONSS(), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.PUT, "/document/:doc_id", handler.updateDoc, api.RequirePermission(updatePermission))
+	api.HandleUIMethod(api.GET, "/document/:doc_id/_timeline", handler.docTimeline, api.RequirePermission(readPermission))
+	api.HandleUIMethod(api.GET, "/document/:doc_id/_chunks", handler.documentChunksHandler, api.RequirePermission(readPermission))
+	api.HandleUIMethod(api.POST, "/document/:doc_id/_reprocess", handler.reprocessDoc, api.RequirePermission(updatePermission))
+	api.HandleUIMethod(api.POST, "/document/datasource/:id/_reprocess", handler.reprocessDatasourceDocs, api.RequirePermission(updatePermission))
 	api.HandleUIMethod(api.DELETE, "/document/:doc_id", handler.deleteDoc, api.RequirePermission(deletePermission))
+
 	api.HandleUIMethod(api.GET, "/document/_search", handler.searchDocs, api.RequirePermission(searchPermission),
 		//distinct from the /query/_search "search_documents" tool: the MCP
 		//registry keys tools by name, a duplicate silently shadows one of
@@ -91,6 +96,13 @@ func init() {
 	api.HandleUIMethod(api.GET, "/search/ops/overview", handler.searchOpsOverview, api.RequirePermission(searchOpsPermission))
 	//index health sweep (P4): every knowledge-hub store, one count each
 	api.HandleUIMethod(api.GET, "/search/ops/index-health", handler.indexHealthHandler, api.RequirePermission(searchOpsPermission))
+
+	// processing task management (W13a ops face): lifecycle distribution,
+	// the failed list with reasons, one-click bulk retry, per-datasource
+	// sync state — ingestion finally has an operable task surface
+	api.HandleUIMethod(api.GET, "/search/ops/processing", handler.processingOverviewHandler, api.RequirePermission(searchOpsPermission))
+	api.HandleUIMethod(api.POST, "/document/_retry_failed", handler.retryFailedHandler, api.RequirePermission(updatePermission))
+	api.HandleUIMethod(api.GET, "/datasource/_sync_status", handler.syncStatusHandler, api.RequirePermission(searchOpsPermission))
 	//engine AI curation: read back the managed pipelines and their drift, and
 	//push the current config to the engine on demand
 	api.HandleUIMethod(api.GET, "/search/engine-ai", handler.engineAIStatus, api.RequirePermission(searchStudioPermission))
@@ -101,6 +113,17 @@ func init() {
 	api.HandleUIMethod(api.POST, "/field_meta/:field_name", handler.getFieldMeta, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
 
 	api.HandleUIMethod(api.OPTIONS, "/query/_search", handler.search, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+
+	// virtual folders + capabilities (W4): the tree is an aggregation,
+	// moves are field updates; capabilities expose what a corpus can do
+	api.HandleUIMethod(api.GET, "/datasource/:id/folders", handler.foldersHandler, api.RequirePermission(readPermission))
+	api.HandleUIMethod(api.POST, "/document/_move_folder", handler.moveFolderHandler, api.RequirePermission(updatePermission))
+	api.HandleUIMethod(api.GET, "/datasource/:id/capabilities", handler.capabilitiesHandler, api.RequirePermission(readPermission))
+
+	// FAQ entries (W5): compiled question documents — negatives never
+	// index, exact phrasing answers directly
+	api.HandleUIMethod(api.POST, "/document/faq", handler.faqCreateHandler, api.RequirePermission(createPermission))
+	api.HandleUIMethod(api.GET, "/query/_faq", handler.faqSearchHandler, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.GET, "/query/_search", handler.search, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS),
 		api.MCPTool("search_documents", "Search the enterprise content indexed by Coco AI — files, wiki pages, chat messages, web pages and more, across all connected data sources. Returns matched documents with title, summary, source and deep link."),
 		api.Label(api.MCPToolInputSchema, common.MCPQueryEnvelopeSchema(util.MapStr{

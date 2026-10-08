@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/util"
@@ -48,7 +49,7 @@ func TestRerankFusedHitsReorders(t *testing.T) {
 	]}`, nil)
 
 	fused := []elastic.DocumentWithMeta[core.Document]{rrfHit("a", 1), rrfHit("b", 2), rrfHit("c", 3)}
-	out, changes, err := rerankFusedHits(context.Background(), rerankTestPlan(), "q", fused)
+	out, changes, err := rerankFusedHits(context.Background(), rerankTestPlan(), "q", nil, fused)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,8 +73,8 @@ func TestRerankTiesKeepRRFOrder(t *testing.T) {
 		{"index":2,"relevance_score":0.5}
 	]}`, nil)
 
-	fused := []elastic.DocumentWithMeta[core.Document]{rrfHit("a", 1), rrfHit("b", 2), rrfHit("c", 3)}
-	out, _, err := rerankFusedHits(context.Background(), rerankTestPlan(), "q", fused)
+	fused := []elastic.DocumentWithMeta[core.Document]{rrfHit("a", 3), rrfHit("b", 2), rrfHit("c", 1)}
+	out, _, err := rerankFusedHits(context.Background(), rerankTestPlan(), "q", nil, fused)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +89,7 @@ func TestRerankUnscoredHitsTrailBehind(t *testing.T) {
 	stubRerankHTTP(t, `{"results":[{"index":1,"relevance_score":0.99}]}`, nil)
 
 	fused := []elastic.DocumentWithMeta[core.Document]{rrfHit("a", 1), rrfHit("b", 2), rrfHit("c", 3)}
-	out, changes, err := rerankFusedHits(context.Background(), rerankTestPlan(), "q", fused)
+	out, changes, err := rerankFusedHits(context.Background(), rerankTestPlan(), "q", nil, fused)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,7 +111,7 @@ func TestRerankIgnoresInvalidIndexes(t *testing.T) {
 	]}`, nil)
 
 	fused := []elastic.DocumentWithMeta[core.Document]{rrfHit("a", 1), rrfHit("b", 2)}
-	out, changes, err := rerankFusedHits(context.Background(), rerankTestPlan(), "q", fused)
+	out, changes, err := rerankFusedHits(context.Background(), rerankTestPlan(), "q", nil, fused)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +128,7 @@ func TestRerankDegradesOnError(t *testing.T) {
 	stubRerankHTTP(t, "", fmt.Errorf("connection refused"))
 
 	fused := []elastic.DocumentWithMeta[core.Document]{rrfHit("a", 1), rrfHit("b", 2)}
-	out, _, err := rerankFusedHits(context.Background(), rerankTestPlan(), "q", fused)
+	out, _, err := rerankFusedHits(context.Background(), rerankTestPlan(), "q", nil, fused)
 	if err == nil {
 		t.Fatal("expected error from failed rerank call")
 	}
@@ -171,7 +172,7 @@ func TestRerankWindowCap(t *testing.T) {
 	for i := range fused {
 		fused[i] = rrfHit(fmt.Sprintf("d%d", i), float32(i))
 	}
-	out, _, err := rerankFusedHits(context.Background(), rerankTestPlan(), "q", fused)
+	out, _, err := rerankFusedHits(context.Background(), rerankTestPlan(), "q", nil, fused)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -183,5 +184,67 @@ func TestRerankWindowCap(t *testing.T) {
 	}
 	if out[0].ID != fused[0].ID {
 		t.Fatalf("empty reranker response keeps RRF order, got %s", out[0].ID)
+	}
+}
+
+/* ---------------- D4.5 composite + MMR ---------------- */
+
+func TestSourceWeightFor(t *testing.T) {
+	assert.Equal(t, 1.0, sourceWeightFor("wiki", nil), "built-in knowledge source tops the scale")
+	assert.InDelta(t, 1.0, sourceWeightFor("ds-first", []string{"ds-first", "ds-second"}), 1e-9)
+	assert.InDelta(t, 0.75, sourceWeightFor("ds-second", []string{"ds-first", "ds-second"}), 1e-9)
+	assert.InDelta(t, 0.5, sourceWeightFor("ds-unranked", []string{"ds-first"}), 1e-9, "unlisted sources sit at the baseline")
+	assert.InDelta(t, 0.5, sourceWeightFor("anything", nil), 1e-9)
+}
+
+func TestRerankCompositeSourcePriorityWins(t *testing.T) {
+	stubRerankProvider(t)
+	// identical model scores and identical RRF scores: the source weight
+	// decides — the priority-listed source outranks the unranked twin
+	stubRerankHTTP(t, `{"results":[
+		{"index":0,"relevance_score":0.8},
+		{"index":1,"relevance_score":0.8}
+	]}`, nil)
+
+	plain := rrfHit("plain", 5)
+	plain.Source.Source.ID = "ds-plain"
+	listed := rrfHit("listed", 5)
+	listed.Source.Source.ID = "ds-trusted"
+	fused := []elastic.DocumentWithMeta[core.Document]{plain, listed}
+
+	out, changes, err := rerankFusedHits(context.Background(), rerankTestPlan(), "q", []string{"ds-trusted"}, fused)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out[0].ID != "listed" {
+		t.Fatalf("priority-listed source must win the tie, got %s first", out[0].ID)
+	}
+	if len(changes) != 2 || changes[0].CompositeScore <= changes[1].CompositeScore {
+		t.Fatalf("composite scores must be reported and ordered, got %+v", changes)
+	}
+}
+
+func TestMMROrderDemotesNearDuplicates(t *testing.T) {
+	// b is a near-duplicate of a (identical text); c is diverse with a
+	// slightly lower composite. MMR must push b below c.
+	scored := []rerankComposite{
+		{idx: 0, score: 0.90},
+		{idx: 1, score: 0.85},
+		{idx: 2, score: 0.80},
+	}
+	texts := []string{
+		"年终奖 发放 政策 修订",
+		"年终奖 发放 政策 修订",
+		"季度 考核 制度 变更",
+	}
+	mmrOrder(scored, texts)
+	if scored[0].idx != 0 {
+		t.Fatalf("highest composite stays first, got %d", scored[0].idx)
+	}
+	if scored[1].idx != 2 {
+		t.Fatalf("diverse hit must outrank the near-duplicate, got order %d,%d,%d", scored[0].idx, scored[1].idx, scored[2].idx)
+	}
+	if scored[2].idx != 1 {
+		t.Fatalf("near-duplicate sinks last, got %d", scored[2].idx)
 	}
 }

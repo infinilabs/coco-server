@@ -75,17 +75,25 @@ func (h *APIHandler) createDoc(w http.ResponseWriter, req *http.Request, ps http
 
 	ctx := orm.NewContextWithParent(req.Context())
 	ctx.Refresh = orm.WaitForRefresh
-	err = orm.Create(ctx, obj)
-	if err != nil {
-		h.WriteError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 
 	// Write-path closure (W0): API-created documents enter the enrichment
 	// pipeline like connector-sourced ones — otherwise they are never
 	// chunked, summarized, tagged or embedded. Content-bearing documents
 	// only; a metadata-only record has nothing to enrich.
-	enqueueIfEnrichable(obj)
+	enrichable := obj != nil && strings.TrimSpace(obj.Content) != ""
+	if enrichable {
+		obj.Status = core.DocumentStatusIndexing
+	}
+	err = orm.Create(ctx, obj)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if enrichable {
+		if err := enqueueForIndexing(obj); err != nil {
+			log.Warnf("failed to enqueue document [%s] for enrichment: %v", obj.ID, err)
+		}
+	}
 
 	h.WriteCreatedOKJSON(w, obj.ID)
 }
@@ -103,6 +111,7 @@ func enqueueIfEnrichable(obj *core.Document) {
 	}
 }
 
+// document content enough to invalidate the stored chunks and embeddings.
 // documentContentChanged reports whether an incoming edit changes the
 // document content enough to invalidate the stored chunks and embeddings.
 // Only fingerprint-bearing new content counts: blank or too-short payloads
@@ -407,14 +416,192 @@ func (h *APIHandler) updateDoc(w http.ResponseWriter, req *http.Request, ps http
 	}
 
 	// Metadata-only edits (same content fingerprint) never re-enter the
-	// pipeline — flipping `disabled` or retitling must stay free.
+	// pipeline — flipping `disabled` or retitling must stay free. A real
+	// content change flips the lifecycle back to indexing before the
+	// re-enqueue (the in-flight state is visible on the record itself).
 	if contentChanged {
+		obj.Status = core.DocumentStatusIndexing
+		obj.ErrorMessage = ""
+		if err := orm.Save(ctx, &obj); err != nil {
+			log.Warnf("failed to mark document [%s] as indexing after content edit: %v", obj.ID, err)
+		}
 		if err := enqueueForIndexing(&obj); err != nil {
 			log.Warnf("failed to enqueue document [%s] for reprocessing after content edit: %v", obj.ID, err)
 		}
 	}
 
 	h.WriteUpdatedOKJSON(w, obj.ID)
+}
+
+// reprocessDoc re-runs the enrichment pipeline for one document (W1):
+// clears the derived artifacts (chunks/summary/insights), flips the
+// lifecycle back to indexing and re-enters the indexing queue. Idempotent
+// guard: a completed document with an unchanged content fingerprint is
+// skipped unless force=true — event-driven callers rely on the guard,
+// explicit re-runs (parameter/model change) pass force.
+func (h *APIHandler) reprocessDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	id := ps.MustGetParameter("doc_id")
+	force := isTruthlyQuery(req.URL.Query().Get("force"))
+
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "document")
+
+	obj := core.Document{}
+	obj.ID = id
+	exists, err := orm.GetV2(ctx, &obj)
+	if err != nil || !exists {
+		h.WriteOpRecordNotFoundJSON(w, id)
+		return
+	}
+
+	if !force && obj.Status == core.DocumentStatusCompleted && obj.ContentHash != "" {
+		h.WriteJSON(w, util.MapStr{
+			"_id":    id,
+			"result": "skipped",
+			"reason": "completed with unchanged content fingerprint; pass force=true to re-run anyway",
+		}, 200)
+		return
+	}
+
+	obj.Chunks = nil
+	obj.Summary = ""
+	obj.AiInsights = core.AiInsights{}
+	obj.Status = core.DocumentStatusIndexing
+	obj.ErrorMessage = ""
+	ctx.Refresh = orm.WaitForRefresh
+	if err := orm.Save(ctx, &obj); err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := enqueueForIndexing(&obj); err != nil {
+		h.WriteError(w, fmt.Sprintf("re-queued for processing but enqueue failed: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	h.WriteJSON(w, util.MapStr{
+		"_id":    id,
+		"result": "reprocessing",
+	}, 200)
+}
+
+// reprocessDatasourceDocs batch-reprocesses every document of a datasource
+// (W1): same semantics per document as the single-doc endpoint, including
+// the unchanged-fingerprint skip — a batch blast must not re-ingest a whole
+// library just because one doc needs it. Capped for safety.
+const reprocessBatchCap = 2000
+
+func (h *APIHandler) reprocessDatasourceDocs(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	datasourceID := ps.MustGetParameter("id")
+	force := isTruthlyQuery(req.URL.Query().Get("force"))
+
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.DirectReadAccess()
+	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+
+	reprocessed, skipped, total := 0, 0, 0
+	for from := 0; from < reprocessBatchCap; from += 100 {
+		q := orm.Query{}
+		var err error
+		q.RawQuery, err = core.RewriteQueryWithFilter(q.RawQuery, util.MapStr{
+			"bool": util.MapStr{
+				"filter": []util.MapStr{
+					{"term": util.MapStr{"source.id": datasourceID}},
+				},
+			},
+		})
+		if err != nil {
+			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		q.From, q.Size = from, 100
+
+		docs := []core.Document{}
+		if err, _ = orm.SearchWithJSONMapper(&docs, &q); err != nil {
+			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if len(docs) == 0 {
+			break
+		}
+		for i := range docs {
+			total++
+			doc := docs[i]
+			if !force && doc.Status == core.DocumentStatusCompleted && doc.ContentHash != "" {
+				skipped++
+				continue
+			}
+			doc.Chunks = nil
+			doc.Summary = ""
+			doc.AiInsights = core.AiInsights{}
+			doc.Status = core.DocumentStatusIndexing
+			doc.ErrorMessage = ""
+			ctx.Refresh = orm.WaitForRefresh
+			if err := orm.Save(ctx, &doc); err != nil {
+				log.Warnf("failed to reset document [%s] for reprocessing: %v", doc.ID, err)
+				skipped++
+				continue
+			}
+			if err := enqueueForIndexing(&doc); err != nil {
+				log.Warnf("failed to enqueue document [%s] for reprocessing: %v", doc.ID, err)
+				skipped++
+				continue
+			}
+			reprocessed++
+		}
+		if len(docs) < 100 {
+			break
+		}
+	}
+
+	h.WriteJSON(w, util.MapStr{
+		"datasource_id": datasourceID,
+		"result":        "ok",
+		"total":         total,
+		"reprocessed":   reprocessed,
+		"skipped":       skipped,
+		"truncated":     total >= reprocessBatchCap,
+	}, 200)
+}
+
+// docTimeline returns the processing lifecycle view (W1/W13a): terminal
+// status, last error, embedding model identity and the capped run history.
+func (h *APIHandler) docTimeline(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	id := ps.MustGetParameter("doc_id")
+
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.SharingEnabled, true)
+	ctx.Set(orm.SharingResourceType, "document")
+
+	obj := core.Document{}
+	obj.ID = id
+	exists, err := orm.GetV2(ctx, &obj)
+	if err != nil || !exists {
+		h.WriteOpRecordNotFoundJSON(w, id)
+		return
+	}
+
+	runs := obj.Metadata["pipeline_runs"]
+	if runs == nil {
+		runs = []interface{}{}
+	}
+	h.WriteJSON(w, util.MapStr{
+		"_id":             id,
+		"status":          obj.Status,
+		"processed":       obj.Processed,
+		"error_message":   obj.ErrorMessage,
+		"embedding_model": obj.EmbeddingModel,
+		"pipeline_runs":   runs,
+	}, 200)
+}
+
+func isTruthlyQuery(v string) bool {
+	switch strings.ToLower(strings.TrimSpace(v)) {
+	case "1", "true", "yes", "on":
+		return true
+	}
+	return false
 }
 
 func (h *APIHandler) deleteDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -430,6 +617,9 @@ func (h *APIHandler) deleteDoc(w http.ResponseWriter, req *http.Request, ps http
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// W11 liaison: the curated layer marks citing articles stale
+	common.FireDocumentDeleted(id)
 
 	h.WriteDeletedOKJSON(w, obj.ID)
 }
@@ -535,7 +725,7 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 
 	// same-content copies collapse onto the highest-ranked hit with a
 	// "N more copies" note (D1.5), same as the app-search path
-	result.Hits.Hits = foldDuplicateHits(result.Hits.Hits)
+	result.Hits.Hits = foldDuplicateHits(result.Hits.Hits, dismissedPairsCached(req.Context()))
 
 	nDocs := len(result.Hits.Hits)
 	if nDocs > 0 {
@@ -583,6 +773,11 @@ func (h *APIHandler) batchDeleteDoc(w http.ResponseWriter, req *http.Request, ps
 		if rerr := client.Refresh(orm.GetIndexName(&core.Document{})); rerr != nil {
 			log.Warnf("document index refresh after batch delete failed: %v", rerr)
 		}
+	}
+
+	// W11 liaison: every deleted document marks its citing articles stale
+	for _, id := range ids {
+		common.FireDocumentDeleted(id)
 	}
 
 	h.WriteAckOKJSON(w)

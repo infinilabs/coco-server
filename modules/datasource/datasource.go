@@ -114,10 +114,20 @@ func (h *APIHandler) deleteDatasource(w http.ResponseWriter, req *http.Request, 
 	ctx1 := orm.NewContextWithParent(req.Context())
 	orm.WithModel(ctx1, &core.Document{})
 
+	// collect ids before the delete: the W11 liaison needs them to mark
+	// citing wiki articles stale (evidence loss is marked, never removed)
+	var doomed []core.Document
+	err, _ = elastic.SearchV2WithResultItemMapper(ctx1, &doomed, orm.NewQuery().Size(1000).
+		Filter(orm.TermQuery("source.id", id)).Include("id"), nil)
+
 	_, err = orm.DeleteByQuery(ctx1, builder)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	for _, d := range doomed {
+		common.FireDocumentDeleted(d.ID)
 	}
 
 	err = orm.Delete(ctx, &obj)

@@ -56,12 +56,18 @@ func ensureDocumentFingerprint(doc *core.Document) {
 }
 
 // foldDuplicateHits collapses same-content-hash hits within one result
-// page onto the first (highest-ranked) occurrence and annotates it with the
-// copies; hits without a fingerprint (legacy docs, wiki/assistant pseudo
+// page onto the first (highest-ranked) occurrence and annotates it with
+// the copies; hits without a fingerprint (legacy docs, wiki/assistant pseudo
 // hits) pass through untouched. The total stays as reported by the engine —
 // this is presentation-level folding, the dedup report remains the deep
 // cleanup surface.
-func foldDuplicateHits(hits []elastic.DocumentWithMeta[core.Document]) []elastic.DocumentWithMeta[core.Document] {
+//
+// W12 upgrades: the fold payload carries the member list (title/source/
+// size/updated straight from the in-page hits — no extra queries), the tier
+// label and 100% similarity (a shared content hash IS an exact copy); and a
+// pair the operator explicitly marked "not a duplicate" NEVER folds —
+// folding respects the review, the same way the dedup report does.
+func foldDuplicateHits(hits []elastic.DocumentWithMeta[core.Document], dismissed map[string]bool) []elastic.DocumentWithMeta[core.Document] {
 	seen := map[string]int{} // content_hash → index of the representative
 	out := make([]elastic.DocumentWithMeta[core.Document], 0, len(hits))
 	for i := range hits {
@@ -70,22 +76,38 @@ func foldDuplicateHits(hits []elastic.DocumentWithMeta[core.Document]) []elastic
 			out = append(out, hits[i])
 			continue
 		}
-		if first, ok := seen[hash]; ok {
-			if out[first].Source.Metadata == nil {
-				out[first].Source.Metadata = util.MapStr{}
-			}
-			dupes, _ := out[first].Source.Metadata["fingerprint_duplicates"].(util.MapStr)
-			if dupes == nil {
-				dupes = util.MapStr{}
-				out[first].Source.Metadata["fingerprint_duplicates"] = dupes
-			}
-			dupes["count"] = toInt(dupes["count"]) + 1
-			ids, _ := dupes["ids"].([]string)
-			dupes["ids"] = append(ids, hits[i].ID)
+		first, ok := seen[hash]
+		if !ok {
+			seen[hash] = len(out)
+			out = append(out, hits[i])
 			continue
 		}
-		seen[hash] = len(out)
-		out = append(out, hits[i])
+		if dismissed[dedupPairKey(out[first].ID, hits[i].ID)] {
+			out = append(out, hits[i]) // operator said "not duplicates" — respect it
+			continue
+		}
+		if out[first].Source.Metadata == nil {
+			out[first].Source.Metadata = util.MapStr{}
+		}
+		dupes, _ := out[first].Source.Metadata["fingerprint_duplicates"].(util.MapStr)
+		if dupes == nil {
+			dupes = util.MapStr{
+				"tier":       "exact",
+				"similarity": 100,
+			}
+			out[first].Source.Metadata["fingerprint_duplicates"] = dupes
+		}
+		dupes["count"] = toInt(dupes["count"]) + 1
+		ids, _ := dupes["ids"].([]string)
+		dupes["ids"] = append(ids, hits[i].ID)
+		members, _ := dupes["members"].([]interface{})
+		dupes["members"] = append(members, util.MapStr{
+			"id":      hits[i].ID,
+			"title":   hits[i].Source.Title,
+			"source":  hits[i].Source.Source.Name,
+			"size":    hits[i].Source.Size,
+			"updated": hits[i].Source.Updated,
+		})
 	}
 	return out
 }

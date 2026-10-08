@@ -30,6 +30,7 @@ type searchStudioBody struct {
 		SemanticWeight float64 `json:"semantic_weight"`
 		WikiWeight     float64 `json:"wiki_weight"`
 		GraphWeight    float64 `json:"graph_weight"`
+		EntityWeight   float64 `json:"entity_weight"`
 		RewriteWeight  float64 `json:"rewrite_weight"`
 	} `json:"rrf"`
 }
@@ -110,6 +111,7 @@ func (h *APIHandler) searchStudioTest(w http.ResponseWriter, req *http.Request, 
 		rrfRouteSemantic: body.RRF.SemanticWeight,
 		rrfRouteWiki:     body.RRF.WikiWeight,
 		rrfRouteGraph:    body.RRF.GraphWeight,
+		rrfRouteEntity:   body.RRF.EntityWeight,
 		rrfRouteRewrite:  body.RRF.RewriteWeight,
 	}}.normalized()
 
@@ -249,6 +251,22 @@ func (h *APIHandler) searchStudioTest(w http.ResponseWriter, req *http.Request, 
 		}
 	}
 
+	// --- entity route (direct entity hit; W10) ---
+	{
+		result := &studioRouteResult{Name: rrfRouteEntity, Hits: []studioRouteHit{}}
+		started := nowMilli()
+		resp, err := h.entityRoute(req, query, size)
+		result.TookMS = nowMilli() - started
+		if err != nil {
+			result.Error = err.Error()
+			collect(rrfRouteEntity, nil, result)
+		} else {
+			*result = *studioRouteResultFromHits(rrfRouteEntity, resp.Hits.Hits, resp.GetTotal())
+			result.TookMS = nowMilli() - started
+			collect(rrfRouteEntity, resp.Hits.Hits, result)
+		}
+	}
+
 	// --- rewrite route (the rewritten text as an extra keyword leg) ---
 	if rw.Applied {
 		builder := orm.NewQuery().From(0).Size(size)
@@ -285,7 +303,7 @@ func (h *APIHandler) searchStudioTest(w http.ResponseWriter, req *http.Request, 
 	rerankInfo := util.MapStr{"applied": false}
 	if plan := planRerank(); plan.Model != nil {
 		started := nowMilli()
-		_, changes, err := rerankFusedHits(req.Context(), plan, query, fusedHitsList)
+		_, changes, err := rerankFusedHits(req.Context(), plan, query, loadCompileRules(req.Context()).SourcePriority, fusedHitsList)
 		if err != nil {
 			rerankInfo["note"] = fmt.Sprintf("rerank degraded: %v", err)
 		} else {

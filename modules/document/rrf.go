@@ -20,13 +20,17 @@ const (
 	rrfRouteSemantic = "semantic"
 	rrfRouteWiki     = "wiki"
 	rrfRouteGraph    = "graph"
+	// rrfRouteEntity is the direct entity hit leg (W10): BM25 over entity
+	// names/aliases — the graph leg traverses relations, this leg meets
+	// the entity itself.
+	rrfRouteEntity = "entity"
 	// rrfRouteRewrite runs the model-rewritten query as one more keyword
 	// route (D8) — add-only, the original text route keeps running.
 	rrfRouteRewrite = "rewrite"
 )
 
 // rrfRouteNames is the canonical order routes are listed and rendered in.
-var rrfRouteNames = []string{rrfRouteText, rrfRouteSemantic, rrfRouteWiki, rrfRouteGraph, rrfRouteRewrite}
+var rrfRouteNames = []string{rrfRouteText, rrfRouteSemantic, rrfRouteWiki, rrfRouteGraph, rrfRouteEntity, rrfRouteRewrite}
 
 // RRFConfig controls how the recall routes are fused with Reciprocal Rank
 // Fusion:

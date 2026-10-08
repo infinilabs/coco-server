@@ -30,6 +30,7 @@ func (h *APIHandler) parseRRFParams(req *http.Request) RRFConfig {
 			rrfRouteSemantic: defaultRRFWeight,
 			rrfRouteWiki:     defaultRRFWeight,
 			rrfRouteGraph:    defaultRRFWeight,
+			rrfRouteEntity:   defaultRRFWeight,
 			rrfRouteRewrite:  defaultRRFWeight,
 		},
 	}
@@ -56,6 +57,7 @@ func (h *APIHandler) parseRRFParams(req *http.Request) RRFConfig {
 	setWeight(rrfRouteSemantic, "semantic_weight")
 	setWeight(rrfRouteWiki, "wiki_weight")
 	setWeight(rrfRouteGraph, "graph_weight")
+	setWeight(rrfRouteEntity, "entity_weight")
 	setWeight(rrfRouteRewrite, "rewrite_weight")
 	return cfg.normalized()
 }
@@ -125,6 +127,8 @@ func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrat
 	addRoute(rrfRouteWiki, resp, err)
 	graphResp, _, err := h.graphRoute(req, query, window)
 	addRoute(rrfRouteGraph, graphResp, err)
+	entityResp, err := h.entityRoute(req, query, window)
+	addRoute(rrfRouteEntity, entityResp, err)
 	if rw.Applied {
 		resp, err = h.rrfRoute(req, "keyword", rw.Query, datasource, integrationID, category, subcategory, richCategory, fuzziness, window)
 		addRoute(rrfRouteRewrite, resp, err)
@@ -186,6 +190,9 @@ func (h *APIHandler) rrfRoute(req *http.Request, searchType, query, datasource, 
 	// same pure-filter guard as the keyword/semantic leg: an empty query
 	// turns a posted highlight section into mark-everything fragments
 	stripHighlightWithoutQuery(builder, query)
+	// ?tags= controlled-vocabulary facet filter (W4) applies to every
+	// hybrid leg's recall — the routes filter identically to the UI facets
+	applyTagsFilter(builder, req.URL.Query().Get("tags"))
 	// Both routes must rank by relevance from the very top for RRF to be
 	// meaningful; page after fusion, not per route.
 	builder.From(0)
