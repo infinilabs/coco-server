@@ -61,6 +61,10 @@ func getBoolFromMap(m map[string]interface{}, key string) bool {
 	return false
 }
 
+// enqueueForIndexing re-queues a document into the enrichment pipeline;
+// swappable in tests to observe the write-path closure without a queue backend.
+var enqueueForIndexing = common.EnqueueForIndexing
+
 func (h *APIHandler) createDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	var obj = &core.Document{}
 	err := h.DecodeJSON(req, obj)
@@ -77,7 +81,41 @@ func (h *APIHandler) createDoc(w http.ResponseWriter, req *http.Request, ps http
 		return
 	}
 
+	// Write-path closure (W0): API-created documents enter the enrichment
+	// pipeline like connector-sourced ones — otherwise they are never
+	// chunked, summarized, tagged or embedded. Content-bearing documents
+	// only; a metadata-only record has nothing to enrich.
+	enqueueIfEnrichable(obj)
+
 	h.WriteCreatedOKJSON(w, obj.ID)
+}
+
+// enqueueIfEnrichable pushes a freshly written document onto the indexing
+// queue when it carries content worth enriching. Failures are logged, never
+// fatal: the document is already persisted, the queue retry is an
+// enhancement, not a transaction.
+func enqueueIfEnrichable(obj *core.Document) {
+	if obj == nil || strings.TrimSpace(obj.Content) == "" {
+		return
+	}
+	if err := enqueueForIndexing(obj); err != nil {
+		log.Warnf("failed to enqueue document [%s] for enrichment: %v", obj.ID, err)
+	}
+}
+
+// documentContentChanged reports whether an incoming edit changes the
+// document content enough to invalidate the stored chunks and embeddings.
+// Only fingerprint-bearing new content counts: blank or too-short payloads
+// (UI partial updates) never trigger a reprocess.
+func documentContentChanged(old, next *core.Document) bool {
+	if next == nil {
+		return false
+	}
+	hash, _, ok := contentFingerprint(next.Content)
+	if !ok {
+		return false
+	}
+	return hash != old.ContentHash
 }
 
 func (h *APIHandler) getDoc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -345,10 +383,35 @@ func (h *APIHandler) updateDoc(w http.ResponseWriter, req *http.Request, ps http
 	ctx.Set(orm.SharingResourceParentPath, obj.Category)
 	ctx.Set(orm.SharingCheckingInheritedRulesEnabled, true)
 
+	// Write-path closure (W0): fetch the stored document with the same
+	// sharing semantics the save enforces, so a real content change can be
+	// detected before saving — stale chunks and embeddings must not
+	// outlive the edit that invalidated them.
+	old := core.Document{}
+	old.ID = id
+	oldCtx := orm.NewContextWithParent(req.Context())
+	oldCtx.Set(orm.SharingEnabled, true)
+	oldCtx.Set(orm.SharingResourceType, "document")
+	oldCtx.Set(orm.SharingCheckingResourceCategoryEnabled, true)
+	oldCtx.Set(orm.SharingResourceCategoryType, "datasource")
+	oldCtx.Set(orm.SharingResourceCategoryFilterField, "source.id")
+	oldCtx.Set(orm.SharingResourceCategoryID, obj.Source.ID)
+	oldCtx.Set(orm.SharingCheckingInheritedRulesEnabled, true)
+	oldExists, oldErr := orm.GetV2(oldCtx, &old)
+	contentChanged := oldErr == nil && oldExists && documentContentChanged(&old, &obj)
+
 	err = orm.Save(ctx, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Metadata-only edits (same content fingerprint) never re-enter the
+	// pipeline — flipping `disabled` or retitling must stay free.
+	if contentChanged {
+		if err := enqueueForIndexing(&obj); err != nil {
+			log.Warnf("failed to enqueue document [%s] for reprocessing after content edit: %v", obj.ID, err)
+		}
 	}
 
 	h.WriteUpdatedOKJSON(w, obj.ID)

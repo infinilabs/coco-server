@@ -340,22 +340,39 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
           options={[
             { label: t('page.modelprovider.options.languageModel'), value: 'language' },
             { label: t('page.modelprovider.options.visionModel'), value: 'vision' },
-            { label: t('page.modelprovider.options.embeddingModel'), value: 'embedding' }
+            { label: t('page.modelprovider.options.embeddingModel'), value: 'embedding' },
+            { label: t('page.modelprovider.options.rerankModel'), value: 'rerank' }
           ]}
           rules={[{ required: true }]}
         />
 
-        <ProFormSwitch
-          initialValue={true}
-          label={t('page.modelprovider.labels.inferenceMode')}
-          name={['support_reasoning']}
-          formItemProps={{
-            layout: 'horizontal',
-            className: 'mb-0!'
-          }}
-        />
+        {/* the backend rejects support_reasoning on non-language models; an
+            unset type counts as language, mirroring core.Model.Validate */}
+        <Form.Item
+          noStyle
+          shouldUpdate={(prev, curr) => prev.type !== curr.type}
+        >
+          {({ getFieldValue }) =>
+            getFieldValue('type') === 'language' || !getFieldValue('type') ? (
+              <>
+                <ProFormSwitch
+                  initialValue={true}
+                  label={t('page.modelprovider.labels.inferenceMode')}
+                  name={['support_reasoning']}
+                  formItemProps={{
+                    layout: 'horizontal',
+                    className: 'mb-0!',
+                    // drop the flag from the payload when the field hides,
+                    // so switching type never trips backend validation
+                    preserve: false
+                  }}
+                />
 
-        <span className='text-color-3'>{t('page.modelprovider.hints.inferenceMode')}</span>
+                <span className='text-color-3'>{t('page.modelprovider.hints.inferenceMode')}</span>
+              </>
+            ) : null
+          }
+        </Form.Item>
       </ModalForm>
     </>
   );

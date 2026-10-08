@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -95,6 +96,9 @@ var settingsSections = []struct {
 						return fmt.Errorf("invalid llm_generation_language %q: %v", lang, err)
 					}
 				}
+				if err := validateDocumentProcessingTika(incoming.DocumentProcessing); err != nil {
+					return err
+				}
 			}
 			return mergeSection(old.DocumentProcessing, incoming.DocumentProcessing, func(v *core.DocumentProcessing) { old.DocumentProcessing = v })
 		},
@@ -121,6 +125,108 @@ var settingsSections = []struct {
 			return mergeSection(old.EngineAI, incoming.EngineAI, func(v *core.EngineAI) { old.EngineAI = v })
 		},
 	},
+	{
+		name: "appearance",
+		apply: func(incoming, old *core.Config) error {
+			if incoming.Appearance != nil {
+				if err := validateAppearance(incoming.Appearance); err != nil {
+					return err
+				}
+			}
+			return mergeSection(old.Appearance, incoming.Appearance, func(v *core.AppearanceSettings) { old.Appearance = v })
+		},
+	},
+}
+
+// maxAppearanceImageLength caps one branding image field (a data URL or a
+// remote URL) at roughly 2MB of text, so a careless upload can't blow up the
+// settings document that every client fetches.
+const maxAppearanceImageLength = 2 * 1024 * 1024
+
+var hexColorPattern = regexp.MustCompile(`^#[0-9a-fA-F]{3,8}$`)
+
+var appearanceImagePattern = regexp.MustCompile(`^(data:image/(png|jpe?g|gif|webp|svg\+xml);base64,[A-Za-z0-9+/=\s]+|https?://\S+)$`)
+
+// validateAppearance rejects malformed branding values before they are
+// persisted: colors must be hex, images must be data URLs or http(s) URLs.
+func validateAppearance(cfg *core.AppearanceSettings) error {
+	checkColors := func(prefix string, colors ...string) error {
+		for _, c := range colors {
+			if c != "" && !hexColorPattern.MatchString(c) {
+				return fmt.Errorf("%s: invalid color %q (expected hex, e.g. #0087FF)", prefix, c)
+			}
+		}
+		return nil
+	}
+	checkImage := func(field, v string) error {
+		if v == "" {
+			return nil
+		}
+		if len(v) > maxAppearanceImageLength {
+			return fmt.Errorf("%s: image too large (max %d bytes)", field, maxAppearanceImageLength)
+		}
+		if !appearanceImagePattern.MatchString(v) {
+			return fmt.Errorf("%s: must be a data:image URL or an http(s) URL", field)
+		}
+		return nil
+	}
+
+	if c := cfg.ThemeColors; c != nil {
+		if err := checkColors("appearance.theme_colors", c.Primary, c.PrimaryDark, c.Success, c.Warning, c.Error); err != nil {
+			return err
+		}
+		for _, n := range []struct {
+			name  string
+			value *core.NeutralColors
+		}{
+			{"light", c.Light},
+			{"dark", c.Dark},
+		} {
+			if n.value == nil {
+				continue
+			}
+			if err := checkColors("appearance.theme_colors."+n.name, n.value.Layout, n.value.Container, n.value.BaseText); err != nil {
+				return err
+			}
+		}
+	}
+	if l := cfg.Logo; l != nil {
+		for _, img := range []struct{ name, value string }{
+			{"logo.light", l.Light}, {"logo.dark", l.Dark}, {"logo.icon", l.Icon},
+		} {
+			if err := checkImage("appearance."+img.name, img.value); err != nil {
+				return err
+			}
+		}
+	}
+	if s := cfg.Search; s != nil {
+		for _, pair := range []struct {
+			name  string
+			value *core.AppearanceImagePair
+		}{
+			{"search.logo", s.Logo},
+			{"search.background", s.Background},
+		} {
+			if pair.value == nil {
+				continue
+			}
+			if err := checkImage("appearance."+pair.name+".light", pair.value.Light); err != nil {
+				return err
+			}
+			if err := checkImage("appearance."+pair.name+".dark", pair.value.Dark); err != nil {
+				return err
+			}
+		}
+	}
+	if l := cfg.Login; l != nil {
+		if err := checkColors("appearance.login.background_color", l.BackgroundColor); err != nil {
+			return err
+		}
+		if err := checkImage("appearance.login.background_image", l.BackgroundImage); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (h *APIHandler) updateServerSettings(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -199,6 +305,23 @@ func validateDefaultModel(cfg *core.DefaultModel) error {
 		if err := validateLanguageModelType(check.model, check.name); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// validateDocumentProcessingTika rejects a Tika endpoint that isn't a valid
+// http(s) URL, and timeout values outside the sane range, before they are
+// persisted — the processors silently fall back to defaults otherwise, and a
+// typo in the address would surface only as mysteriously failed extraction.
+func validateDocumentProcessingTika(cfg *core.DocumentProcessing) error {
+	if endpoint := strings.TrimSpace(cfg.TikaEndpoint); endpoint != "" {
+		u, err := url.Parse(endpoint)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+			return fmt.Errorf("invalid tika_endpoint %q: must be an http(s) URL", endpoint)
+		}
+	}
+	if t := cfg.TikaTimeoutInSeconds; t < 0 || t > 3600 {
+		return fmt.Errorf("tika_timeout_in_seconds must be between 1 and 3600")
 	}
 	return nil
 }

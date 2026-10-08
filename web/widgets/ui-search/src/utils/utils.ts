@@ -40,7 +40,11 @@ export function normalizeCoverIconUrl(data: EsSearchResult, baseUrl: string) {
         ...source,
         cover: normalizeField(source.cover),
         icon: normalizeField(source.icon),
-        url: normalizeField(source.url),
+        // url is an in-app route ("/#/preview/document/…") when the server
+        // endpoint is configured as a relative path; prefixing it with the
+        // API base (e.g. /proxy-default in dev) would open the preview page
+        // under a bogus path segment, so it passes through untouched
+        url: source.url,
         thumbnail: normalizeField(source.thumbnail),
       }
     };

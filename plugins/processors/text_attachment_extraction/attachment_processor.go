@@ -63,10 +63,8 @@ type AttachmentConfig struct {
 
 func NewAttachmentProcessor(c *config.Config) (pipeline.Processor, error) {
 	cfg := AttachmentConfig{
-		MessageField:         core.PipelineContextDocuments,
-		TikaEndpoint:         "http://127.0.0.1:9998",
-		TikaTimeoutInSeconds: 120,
-		ImageContentFormat:   "data_uri",
+		MessageField:       core.PipelineContextDocuments,
+		ImageContentFormat: "data_uri",
 	}
 	if err := c.Unpack(&cfg); err != nil {
 		return nil, fmt.Errorf("failed to unpack config of %s processor: %w", AttachmentProcessorName, err)
@@ -182,7 +180,7 @@ func (p *AttachmentTextExtractionProcessor) extractText(ctx context.Context, att
 // extractTextWithTika uses Apache Tika to extract text from a document file.
 // This method never extracts embedded attachments (images, etc.) from the document.
 func (p *AttachmentTextExtractionProcessor) extractTextWithTika(ctx context.Context, localPath string) (string, error) {
-	htmlReader, err := fileproc.TikaGetTextHtml(ctx, p.config.TikaEndpoint, p.config.TikaTimeoutInSeconds, localPath)
+	htmlReader, err := fileproc.TikaGetTextHtml(ctx, resolveTikaEndpoint(p.config.TikaEndpoint), resolveTikaTimeout(p.config.TikaTimeoutInSeconds), localPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to extract text using tika: %w", err)
 	}

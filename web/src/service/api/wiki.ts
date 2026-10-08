@@ -178,11 +178,15 @@ export function getWikiArticleVersions(articleId: string) {
 
 /* ---------------- TOC ---------------- */
 
+/** toc nodes plus the server-derived article_id→page_type map used for tree icons */
 export function getWikiToc(kbId: string) {
-  return request<{ _source?: { nodes?: Api.Wiki.TocNode[] } }>({
+  return request<{ _source?: { nodes?: Api.Wiki.TocNode[]; page_types?: Record<string, string> } }>({
     method: 'get',
     url: `/wiki/kb/${kbId}/toc`
-  }).then(res => res?.data?._source?.nodes ?? []);
+  }).then(res => ({
+    nodes: (res?.data?._source?.nodes ?? []) as Api.Wiki.TocNode[],
+    pageTypes: res?.data?._source?.page_types ?? {}
+  }));
 }
 
 export function updateWikiToc(kbId: string, toc: Api.Wiki.TocNode[]) {
@@ -513,10 +517,105 @@ export function createWikiWorkspace(name: string) {
 
 /* ---------------- misc ---------------- */
 
+export interface KbAssistantOption {
+  id: string;
+  name: string;
+  /** pipeline architecture: simple / deep_think / deep_research / external_workflow */
+  type?: string;
+  /** assistant classification: 'processing' = powers pipelines, unset = user-facing */
+  category?: string;
+  builtin?: boolean;
+}
+
+/** the builtin knowledge-management assistant seeded by the wiki module */
+export const BUILTIN_KM_ASSISTANT_ID = 'builtin-wiki-km';
+
+export type KbAssistantGroup = 'chat' | 'search' | 'deep_research' | 'deep_think' | 'processing';
+
+/** usage group: processing category wins, then assistant type, else plain chat */
+export function isProcessingAssistant(a: Pick<KbAssistantOption, 'builtin' | 'category'>) {
+  return a.category === 'processing' || a.builtin === true;
+}
+
+/**
+ * usage group of an assistant: explicit processing category wins, then search
+ * integrations that reference it, then the assistant type (how it works),
+ * defaulting to plain chat
+ */
+export function assistantGroupOf(a: KbAssistantOption, searchBoundIds?: Set<string>): KbAssistantGroup {
+  if (isProcessingAssistant(a)) return 'processing';
+  if (searchBoundIds?.has(a.id)) return 'search';
+  if (a.type === 'deep_research') return 'deep_research';
+  if (a.type === 'deep_think') return 'deep_think';
+  return 'chat';
+}
+
+/** collect assistant ids referenced anywhere inside search integration
+ * records (ai_overview.assistant, deep_think_assistant,
+ * deep_research_assistant, ai_chat.assistants, …) */
+export function collectSearchBoundAssistantIds(integrations: unknown[]): Set<string> {
+  const ids = new Set<string>();
+  const walk = (value: any, key = '') => {
+    if (Array.isArray(value)) {
+      value.forEach(item => walk(item, key));
+      return;
+    }
+    if (value && typeof value === 'object') {
+      for (const [k, v] of Object.entries(value)) {
+        if (k === 'assistants' && Array.isArray(v)) {
+          v.forEach(item => {
+            const id = typeof item === 'string' ? item : item?.id;
+            if (id) ids.add(id);
+          });
+        } else {
+          walk(v, k);
+        }
+      }
+      return;
+    }
+    const k = key.toLowerCase();
+    if (typeof value === 'string' && value && (k === 'assistant' || k.endsWith('_assistant'))) {
+      ids.add(value);
+    }
+  };
+  integrations.forEach(i => walk(i));
+  return ids;
+}
+
+/** KB-bound assistants as grouped select options — empty groups dropped */
+export function groupKbAssistantOptions(
+  list: KbAssistantOption[],
+  t: (key: string) => string,
+  searchBoundIds?: Set<string>
+): { label: string; options: { value: string; label: string }[] }[] {
+  const toOption = (a: KbAssistantOption) => ({ value: a.id, label: a.name });
+  const order: { key: KbAssistantGroup; labelKey: string }[] = [
+    { key: 'chat', labelKey: 'page.wiki.assistantGroup.chat' },
+    { key: 'search', labelKey: 'page.wiki.assistantGroup.search' },
+    { key: 'deep_think', labelKey: 'page.wiki.assistantGroup.deepThink' },
+    { key: 'deep_research', labelKey: 'page.wiki.assistantGroup.deepResearch' },
+    { key: 'processing', labelKey: 'page.wiki.assistantGroup.processing' }
+  ];
+  return order
+    .map(({ key, labelKey }) => ({
+      label: t(labelKey),
+      options: list.filter(a => assistantGroupOf(a, searchBoundIds) === key).map(toOption)
+    }))
+    .filter(group => group.options.length > 0);
+}
+
 export function listWikiAssistants() {
   return request<{ hits: any }>({ method: 'get', url: '/assistant/_search' }).then(res => {
     const es = formatESSearchResult(res?.data);
-    return es.data || [];
+    return ((es.data || []) as any[]).map(
+      (a: any): KbAssistantOption => ({
+        id: a?.id ?? '',
+        name: a?.name ?? '',
+        type: a?.type,
+        category: a?.category,
+        builtin: Boolean(a?.builtin)
+      })
+    );
   });
 }
 

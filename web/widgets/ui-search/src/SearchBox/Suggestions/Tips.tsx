@@ -13,6 +13,7 @@ const Tips: FC = () => {
         <ListContainer
             type={SUGGESTION_TIPS}
             title={t('labels.searchTips')}
+            compactTitle
             data={[
                 {
                     icon: <Lightbulb className="w-16px h-16px" />,

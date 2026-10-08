@@ -1,6 +1,7 @@
 import { Tabs } from 'antd';
 
 import './index.scss';
+import AppearanceSettings from './modules/Appearance';
 import AppSettings from './modules/AppSettings';
 import ConnectorSettings from './modules/Connector';
 import SearchSettings from './modules/SearchSettings';
@@ -9,6 +10,7 @@ import DocProcessing from './modules/DocProcessing';
 import DataSecurity from './modules/DataSecurity';
 import EngineAI from './modules/EngineAI';
 import Dedup from './modules/Dedup';
+import Environment from './modules/Environment';
 
 export function Component() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -36,6 +38,11 @@ export function Component() {
   }
 
   if (permissions.viewSystemSettings) {
+    items.push({
+      component: AppearanceSettings,
+      key: 'appearance',
+      label: t(`page.settings.appearance.title`),
+    })
     items.push({
       component: AppSettings,
       key: 'app_settings',
@@ -70,6 +77,11 @@ export function Component() {
       component: Dedup,
       key: 'dedup',
       label: t(`page.settings.dedup.title`),
+    })
+    items.push({
+      component: Environment,
+      key: 'environment',
+      label: t(`page.settings.environment.title`),
     })
   }
 

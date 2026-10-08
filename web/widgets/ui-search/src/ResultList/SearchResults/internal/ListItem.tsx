@@ -6,6 +6,7 @@ import { AuthorDate } from "./AuthorDate";
 import { BreadcrumbsLine } from "./BreadcrumbsLine";
 import { HighlightText } from "./HighlightText";
 import { ItemInteractive } from "./ItemInteractive";
+import { MetaDot } from "./MetaDot";
 import { MetaLine } from "./MetaLine";
 import { SectionHeader } from "./SectionHeader";
 import { TypeBadge } from "./TypeBadge";
@@ -65,16 +66,17 @@ export function ListItem({
           ) : null}
 
           {item.breadcrumbs?.length || item.author || item.date ? (
-            <div className="mt-2 flex min-w-0 items-center gap-8px text-[#6B7280] dark:text-white/60">
-              <div className="min-w-0 shrink-0">
+            <div className="mt-2 flex min-w-0 items-center gap-x-6px text-xs text-[#6B7280] dark:text-white/60">
+              {item.breadcrumbs?.length ? (
                 <BreadcrumbsLine breadcrumbs={item.breadcrumbs} />
-              </div>
-              {
-                item.author || item.date ? (
-                  <span className="h-3 w-px flex-none bg-black/15 dark:bg-white/20" aria-hidden="true" />
-                ) : null
-              }
-              <div className="flex min-w-0 flex-1 items-center gap-6px">
+              ) : null}
+              {item.breadcrumbs?.length && (item.author || item.date) ? <MetaDot /> : null}
+              <div
+                className={clsx(
+                  "flex min-w-0 items-center gap-x-6px",
+                  item.breadcrumbs?.length ? "shrink-0" : "flex-1"
+                )}
+              >
                 <AuthorDate author={item.author} date={item.date} />
                 {item.href ? (
                   <span
@@ -107,10 +109,13 @@ export function ListItem({
       rel={item.rel}
       onClick={handleClick}
       className={clsx(
-        "border-0 bg-transparent group block w-full rounded-xl px-16px! py-14px! text-left no-underline transition-colors",
+        "relative border-0 bg-transparent group block w-full rounded-xl px-16px! py-14px! text-left no-underline transition-colors",
         "hover:bg-slate-100/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300",
         "dark:hover:bg-slate-800/60 dark:focus-visible:ring-slate-600",
-        item.isActive ? "bg-slate-100/70 dark:bg-slate-800/60" : ''
+        // the selected row must read as selected, not as a stuck hover: the
+        // hover-equivalent wash is kept but anchored by a primary accent bar
+        item.isActive &&
+          "bg-slate-100/70 dark:bg-slate-800/60 before:absolute before:bottom-10px before:left-0 before:top-10px before:w-3px before:rounded-full before:bg-[var(--ant-color-primary)] before:content-['']"
       )}
     >
       {content}

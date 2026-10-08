@@ -1,5 +1,5 @@
 env:
-  ES_ENDPOINT: https://localhost:9200
+  ES_ENDPOINT: http://localhost:9205
   ES_USERNAME: admin
   ES_PASSWORD: "$[[keystore.ES_PASSWORD]]"
   WEB_BINDING: 0.0.0.0:9000
@@ -36,6 +36,12 @@ coco:
 # curl -u admin:45ff432a5428ade77c7b -k -XDELETE  https://localhost:9200/_scripts/coco-query-string
 # curl -u admin:45ff432a5428ade77c7b -k -XDELETE  https://localhost:9200/_scripts/coco-query-string-extra-should
 # curl -u admin:45ff432a5428ade77c7b -k -XDELETE   https://localhost:9200/coco_*
+# fsync every KV write (attachment binaries live in the local badger store);
+# with the default sync_writes:false a hard kill loses everything still sitting
+# in the WAL, which is how recently crawled cover/thumbnail images went missing
+badger:
+  sync_writes: true
+
 elastic:
   elasticsearch: prod
   enabled: true

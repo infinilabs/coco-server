@@ -1,5 +1,6 @@
 import {
   BookOutlined,
+  ClockCircleOutlined,
   DeleteOutlined,
   EditOutlined,
   EllipsisOutlined,
@@ -7,20 +8,7 @@ import {
   SearchOutlined,
   TeamOutlined
 } from '@ant-design/icons';
-import {
-  Avatar,
-  Button,
-  Card,
-  Dropdown,
-  Empty,
-  Input,
-  List,
-  Modal,
-  Select,
-  Skeleton,
-  Tag,
-  Tooltip
-} from 'antd';
+import { Button, Dropdown, Empty, Input, Modal, Select, Skeleton, Tooltip } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -37,11 +25,11 @@ import { SearchModal } from '../components/SearchModal';
 import { getRecentArticles } from '../shared/recent';
 import { WikiShell } from '../components/WikiShell';
 
-const AI_STATUS_COLOR: Record<string, string> = {
-  ready: 'success',
-  processing: 'processing',
-  queued: 'default',
-  updating: 'warning'
+const AI_STATUS_PILL: Record<string, { color: string }> = {
+  ready: { color: '#27a644' },
+  processing: { color: '#1990ff' },
+  queued: { color: '#8b9199' },
+  updating: { color: '#f2c94c' }
 };
 
 export function Component() {
@@ -113,21 +101,25 @@ export function Component() {
     });
   };
 
+  const visibilityLabel = (kb: Api.Wiki.Kb) =>
+    kb.visibility === 'team'
+      ? t('page.wiki.visibility.team')
+      : kb.visibility === 'public'
+        ? t('page.wiki.visibility.public')
+        : t('page.wiki.visibility.private');
+
   return (
     <WikiShell>
-    <div className='min-h-500px'>
-      <Card bordered={false} className='card-wrapper'>
-        <div className='mb-4 mt-4 flex items-center justify-between'>
-          <div>
-            <div className='text-xl font-semibold'>{t('page.wiki.hub.title')}</div>
-            <div className='mt-1 text-gray-500'>{t('page.wiki.hub.subtitle')}</div>
-          </div>
-          <div className='flex items-center gap-3'>
+      <div className='wiki-hub-page pb-24px'>
+        <header className='wiki-hero'>
+          <span className='wiki-hero-eyebrow'>{t('page.wiki.hub.eyebrow')}</span>
+          <h1 className='wiki-hero-title'>{t('page.wiki.hub.title')}</h1>
+          <p className='wiki-hero-subtitle'>{t('page.wiki.hub.subtitle')}</p>
+          <div className='wiki-hero-actions'>
             <Select
-              className="w-180px"
+              className='w-170px'
               showSearch={false}
               value={workspaceId}
-              onChange={setWorkspaceId}
               options={[
                 { value: 'all', label: t('page.wiki.workspace.all') },
                 ...workspaces.map(w => ({ value: w.id, label: w.name }))
@@ -140,43 +132,85 @@ export function Component() {
                   }}
                 />
               }
+              onChange={setWorkspaceId}
             />
             <Input.Search
               allowClear
-              className='w-260px'
-              enterButton={t('common.refresh')}
+              className='w-240px'
+              placeholder={t('page.wiki.articles.filterPlaceholder')}
               value={keyword}
               onChange={e => setKeyword(e.target.value)}
               onSearch={onSearch}
             />
             <Tooltip title={t('page.wiki.hub.search')}>
-              <Button icon={<SearchOutlined />} onClick={() => setSearchOpen(true)} />
+              <Button
+                icon={<SearchOutlined />}
+                onClick={() => setSearchOpen(true)}
+              />
             </Tooltip>
-            <Button icon={<PlusOutlined />} type='primary' onClick={() => setCreateOpen(true)}>
+            <Button
+              icon={<PlusOutlined />}
+              type='primary'
+              onClick={() => setCreateOpen(true)}
+            >
               {t('page.wiki.hub.newKb')}
             </Button>
           </div>
-        </div>
+        </header>
 
         {loading ? (
-          <Card.Grid className='w-full'>
-            <Skeleton active />
-          </Card.Grid>
+          <div className='grid grid-cols-1 gap-14px 2xl:grid-cols-4 sm:grid-cols-2 xl:grid-cols-3'>
+            {[0, 1, 2].map(i => (
+              <div
+                className='wiki-kb-card'
+                key={i}
+              >
+                <Skeleton
+                  active
+                  paragraph={{ rows: 2 }}
+                  title={{ width: '60%' }}
+                />
+              </div>
+            ))}
+          </div>
         ) : visibleKbs.length === 0 ? (
-          <Empty description={t('page.wiki.hub.empty')} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          <div className='wiki-panel mx-auto max-w-480px px-24px py-36px text-center'>
+            <Empty
+              description={t('page.wiki.hub.empty')}
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          </div>
         ) : (
-          <List
-            grid={{ gutter: 16, column: 3, xs: 1, sm: 2 }}
-            dataSource={visibleKbs}
-            renderItem={kb => (
-              <List.Item>
-                <Card
-                  hoverable
-                  actions={[
-                    <span key='articles'>{`${kb.article_count} ${t('page.wiki.hub.articlesUnit')}`}</span>,
-                    <span key='members'>{`${kb.members.length} ${t('page.wiki.hub.membersUnit')}`}</span>,
+          <div className='grid grid-cols-1 gap-14px 2xl:grid-cols-4 sm:grid-cols-2 xl:grid-cols-3'>
+            {visibleKbs.map(kb => {
+              const ai = kb.ai_status ? AI_STATUS_PILL[kb.ai_status] : undefined;
+              return (
+                <div
+                  className='wiki-kb-card group'
+                  key={kb.id}
+                  onClick={() => nav(`/wiki/kb/${kb.id}`)}
+                >
+                  <div className='wiki-kb-card-head'>
+                    <div className='wiki-kb-icon-tile'>{kb.icon}</div>
+                    <div className='min-w-0 flex-1'>
+                      <div className='flex items-center justify-between gap-8px'>
+                        <span className='truncate text-15px color-[var(--wiki-text)] font-600'>{kb.name}</span>
+                        {ai && (
+                          <span className='wiki-pill'>
+                            <i
+                              className='wiki-pill-dot'
+                              style={{ background: ai.color, opacity: 1 }}
+                            />
+                            {t(`page.wiki.aiStatus.${kb.ai_status}`)}
+                          </span>
+                        )}
+                      </div>
+                      <div className='mt-4px flex items-center gap-6px text-12px color-[var(--wiki-text-3)]'>
+                        <TeamOutlined />
+                        {visibilityLabel(kb)}
+                      </div>
+                    </div>
                     <Dropdown
-                      key='more'
                       menu={{
                         items: [
                           {
@@ -195,75 +229,77 @@ export function Component() {
                         ]
                       }}
                     >
-                      <EllipsisOutlined className='cursor-pointer' />
+                      <EllipsisOutlined
+                        className='cursor-pointer color-[var(--wiki-text-3)] opacity-0 transition-opacity group-hover:opacity-100'
+                        onClick={e => e.stopPropagation()}
+                      />
                     </Dropdown>
-                  ]}
-                  onClick={() => nav(`/wiki/kb/${kb.id}`)}
-                >
-                  <Card.Meta
-                    avatar={<Avatar className='flex items-center justify-center text-xl' src=''>{kb.icon}</Avatar>}
-                    description={
-                      <div className='h-40px overflow-hidden text-ellipsis-2'>{kb.description}</div>
-                    }
-                    title={
-                      <div className='flex items-center justify-between gap-2'>
-                        <span className='truncate'>{kb.name}</span>
-                        {kb.ai_status && (
-                          <Tag color={AI_STATUS_COLOR[kb.ai_status] || 'default'}>
-                            {t(`page.wiki.aiStatus.${kb.ai_status}`)}
-                          </Tag>
-                        )}
-                      </div>
-                    }
-                  />
-                  <div className='mt-3 flex items-center justify-between text-xs text-gray-400'>
-                    <span>
-                      <TeamOutlined className='mr-1' />
-                      {kb.visibility === 'team'
-                        ? t('page.wiki.visibility.team')
-                        : kb.visibility === 'public'
-                          ? t('page.wiki.visibility.public')
-                          : t('page.wiki.visibility.private')}
+                  </div>
+                  <div className='wiki-kb-card-desc'>{kb.description}</div>
+                  <div className='wiki-kb-card-foot'>
+                    <span className='inline-flex items-center gap-5px'>
+                      <BookOutlined />
+                      {`${kb.article_count} ${t('page.wiki.hub.articlesUnit')}`}
                     </span>
-                    <span>
-                      <BookOutlined className='mr-1' />
+                    <span className='inline-flex items-center gap-5px'>
+                      <TeamOutlined />
+                      {`${kb.members.length} ${t('page.wiki.hub.membersUnit')}`}
+                    </span>
+                    <span className='spacer' />
+                    <span className='inline-flex items-center gap-5px'>
+                      <ClockCircleOutlined />
                       {`${t('page.wiki.hub.lastUpdated')} ${kb.last_updated}`}
                     </span>
                   </div>
-                </Card>
-              </List.Item>
-            )}
-          />
-        )}
-      </Card>
-
-      {recents.length > 0 && (
-        <Card bordered={false} className='card-wrapper mt-12px' title={t('page.wiki.recent.title')}>
-          <div className='flex flex-wrap gap-8px'>
-            {recents.map(r => (
-              <Button key={r.id} onClick={() => nav(`/wiki/article/${r.id}${r.kb_id ? `?kb=${r.kb_id}` : ''}`)}>
-                {r.title}
-              </Button>
-            ))}
+                </div>
+              );
+            })}
           </div>
-        </Card>
-      )}
+        )}
 
-      {bookmarkedArticles.length > 0 && (
-        <Card bordered={false} className='card-wrapper mt-12px' title={t('page.wiki.bookmarks.title')}>
-          <List
-            dataSource={bookmarkedArticles}
-            grid={{ gutter: 16, column: 3, xs: 1, sm: 2 }}
-            renderItem={article => (
-              <List.Item>
-                <Card hoverable onClick={() => nav(`/wiki/article/${article.id}`)} size="small">
-                  <Card.Meta description={article.summary?.slice(0, 60)} title={article.title} />
-                </Card>
-              </List.Item>
-            )}
-          />
-        </Card>
-      )}
+        {recents.length > 0 && (
+          <section className='wiki-panel mt-16px'>
+            <div className='wiki-panel-head'>
+              <span className='wiki-panel-title'>
+                <ClockCircleOutlined className='color-[var(--wiki-accent)]' />
+                {t('page.wiki.recent.title')}
+              </span>
+            </div>
+            <div className='flex flex-wrap gap-8px p-16px'>
+              {recents.map(r => (
+                <button
+                  className='wiki-pill wiki-pill-clickable'
+                  key={r.id}
+                  onClick={() => nav(`/wiki/article/${r.id}${r.kb_id ? `?kb=${r.kb_id}` : ''}`)}
+                >
+                  <BookOutlined />
+                  {r.title}
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {bookmarkedArticles.length > 0 && (
+          <section className='wiki-panel mt-16px'>
+            <div className='wiki-panel-head'>
+              <span className='wiki-panel-title'>{t('page.wiki.bookmarks.title')}</span>
+            </div>
+            <div className='grid grid-cols-1 gap-10px p-16px 2xl:grid-cols-4 sm:grid-cols-2 xl:grid-cols-3'>
+              {bookmarkedArticles.map(article => (
+                <div
+                  className='wiki-kb-card !p-14px'
+                  key={article.id}
+                  onClick={() => nav(`/wiki/article/${article.id}`)}
+                >
+                  <div className='text-14px color-[var(--wiki-text)] font-550'>{article.title}</div>
+                  <div className='wiki-kb-card-desc !mt-8px !min-h-36px'>{article.summary?.slice(0, 90)}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
 
       <Modal
         cancelText={t('common.cancel')}
@@ -280,9 +316,15 @@ export function Component() {
         />
       </Modal>
 
-      <CreateKbModal onClose={() => setCreateOpen(false)} onCreated={() => fetchData(keyword)} open={createOpen} />
-      <SearchModal onClose={() => setSearchOpen(false)} open={searchOpen} />
-    </div>
+      <CreateKbModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={() => fetchData(keyword)}
+      />
+      <SearchModal
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+      />
     </WikiShell>
   );
 }

@@ -15,6 +15,7 @@ import (
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/attachment"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/modules/connector"
 	"infini.sh/framework/core/api"
@@ -29,7 +30,124 @@ import (
 // humans and widgets; bulk export has dedicated APIs.
 const maxSearchPageSize = 100
 
+// Multimodal search: attachments posted alongside the query (images the
+// vision pipeline described, documents with extracted text) join the query
+// text so a picture can be searched by what it shows.
+const (
+	// multimodalAttachmentTextCap limits each attachment's contribution —
+	// vision descriptions can run long and the keyword leg turns every term
+	// into a clause
+	multimodalAttachmentTextCap = 400
+	// multimodalQueryTextCap bounds the combined attachment text
+	multimodalQueryTextCap = 1000
+	// multimodalWaitTimeout bounds how long the search waits for an
+	// attachment's background text extraction (vision model) to finish;
+	// chat waits far longer, a search must stay interactive
+	multimodalWaitTimeout = 10 * time.Second
+)
+
+// enrichQueryFromAttachments merges the extracted text of the given
+// attachment IDs into the user query (multimodal search). It waits briefly
+// for in-flight extraction, skips attachments with no usable text (pending,
+// failed, or owned by someone else — attachment IDs are unguessable UUIDs,
+// this is a cheap consistency guard, not the security boundary), and returns
+// the enriched query plus a human-readable note for the Warning header when
+// something was skipped.
+func enrichQueryFromAttachments(ctx context.Context, query string, attachmentsParam string, userID string) (string, string) {
+	return enrichQuery(ctx, query, attachmentsParam, userID,
+		func(ctx context.Context, ids []string) error {
+			_, err := attachment.WaitForAttachmentsCompletion(ctx, ids, multimodalWaitTimeout, nil)
+			return err
+		},
+		attachment.LoadAttachmentsForChat)
+}
+
+// enrichQuery is enrichQueryFromAttachments with the extraction wait and the
+// attachment loader as seams, so the merge rules are unit-testable without a
+// live engine.
+func enrichQuery(ctx context.Context, query string, attachmentsParam string, userID string,
+	wait func(ctx context.Context, ids []string) error,
+	load func(ids []string) []*core.Attachment) (string, string) {
+
+	ids := make([]string, 0, 4)
+	for _, id := range strings.Split(attachmentsParam, ",") {
+		if id = strings.TrimSpace(id); id != "" {
+			ids = append(ids, id)
+		}
+	}
+	if len(ids) == 0 {
+		return query, ""
+	}
+
+	// an image submitted right after upload may still be describing; wait a
+	// bounded moment so its text makes it into this search. A timeout or
+	// client cancel is not fatal: search with whatever text is ready.
+	if err := wait(ctx, ids); err != nil {
+		log.Debugf("multimodal search: attachment wait ended early: %v", err)
+	}
+
+	var parts []string
+	skipped := 0
+	for _, att := range load(ids) {
+		if owner := att.GetOwnerID(); owner != "" && owner != userID {
+			skipped++
+			continue
+		}
+		text := strings.TrimSpace(att.Text)
+		if text == "" {
+			skipped++
+			continue
+		}
+		parts = append(parts, util.SubString(text, 0, multimodalAttachmentTextCap))
+	}
+
+	note := ""
+	if skipped > 0 {
+		note = fmt.Sprintf("multimodal: %d of %d attachments had no usable text (extraction pending, failed, or unavailable); searched without them", skipped, len(ids))
+	}
+	if len(parts) == 0 {
+		return query, note
+	}
+
+	combined := strings.Join(parts, " ")
+	combined = util.SubString(combined, 0, multimodalQueryTextCap)
+	if strings.TrimSpace(query) == "" {
+		return combined, note
+	}
+	return query + " " + combined, note
+}
+
+// stripHighlightWithoutQuery drops the highlight section a client posted in
+// the request body when the search carries no query term. Pure-filter
+// browsing has nothing to mark, and the empty text clauses the keyword leg
+// builds for an empty query (an empty prefix matches every term) would
+// light whole fragments up instead.
+func stripHighlightWithoutQuery(builder *orm.QueryBuilder, query string) {
+	if strings.TrimSpace(query) != "" {
+		return
+	}
+	body := builder.RequestBodyBytesVal()
+	if len(body) == 0 {
+		return
+	}
+	var dsl map[string]interface{}
+	if err := util.FromJSONBytes(body, &dsl); err != nil || dsl == nil {
+		return
+	}
+	if _, ok := dsl["highlight"]; !ok {
+		return
+	}
+	delete(dsl, "highlight")
+	builder.SetRequestBodyBytes(util.MustToJSONBytes(dsl))
+}
+
 func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+
+	// connector facet filters arrive as source.connector_id terms; documents
+	// carry no such field — rewrite them into datasource terms before any
+	// query builder (keyword/semantic legs, RRF routes, aggregations) reads
+	// the request
+	translateConnectorFilters(req)
 
 	var (
 		query        = h.GetParameterOrDefault(req, "query", "")
@@ -39,6 +157,9 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		richCategory = h.GetParameterOrDefault(req, "rich_category", "")
 		searchType   = h.GetParameterOrDefault(req, "search_type", "")
 		fuzzinessStr = h.GetParameterOrDefault(req, "fuzziness", "3")
+		// multimodal search: uploaded attachments (images/documents) whose
+		// extracted text joins the query, comma-separated IDs
+		attachmentsParam = h.GetParameterOrDefault(req, "attachments", "")
 	)
 
 	// Parse fuzziness
@@ -58,12 +179,21 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		searchType = common.AppConfig().SearchSettings.DefaultType()
 	}
 
+	reqUser := security.MustGetUserFromRequest(req)
+
+	// multimodal search: enrich the query with attachment text BEFORE the
+	// empty-query gate below so an image-only search (no typed query) still
+	// searches — the enrichment output is what "the query" means from here on
+	multimodalNote := ""
+	if attachmentsParam != "" {
+		query, multimodalNote = enrichQueryFromAttachments(req.Context(), query, attachmentsParam, reqUser.UserID)
+	}
+
 	query = util.CleanUserQuery(query)
 	searchStarted := time.Now()
 
 	//try to collect assistants
 	if query != "" || h.GetParameter(req, "filter") != "" {
-		reqUser := security.MustGetUserFromRequest(req)
 		integrationID := req.Header.Get(core.HeaderIntegrationID)
 
 		result := elastic.SearchResponseWithMeta[core.Document]{}
@@ -91,6 +221,7 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 				return
 			}
 			builder.EnableBodyBytes()
+			stripHighlightWithoutQuery(builder, query)
 			// one interactive page can never drag unbounded rows out of
 			// the engine — bulk export has dedicated APIs
 			if reqSize := h.GetIntOrDefault(req, "size", 10); reqSize > maxSearchPageSize {
@@ -154,8 +285,9 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		}
 
 		// both branches may carry a note: the semantic plan (which route
-		// actually ran) and the rerank verdict (applied/degraded)
-		for _, n := range []string{note, rerankNote} {
+		// actually ran), the rerank verdict (applied/degraded), and the
+		// multimodal verdict (attachments actually searched or not)
+		for _, n := range []string{note, rerankNote, multimodalNote} {
 			if n != "" {
 				w.Header().Add("Warning", n)
 			}
@@ -176,6 +308,13 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 				}
 				RefineDocument(req.Context(), &result.Hits.Hits[i].Source)
 			}
+		}
+
+		// the datasource facet labels its buckets via top_hits carrying the
+		// indexed source.name — stale after a datasource rename, so refresh
+		// it the same way the hits above are refreshed
+		if agg, ok := result.Aggregations["source.id"]; ok {
+			refreshDatasourceFacetLabels(req.Context(), agg)
 		}
 
 		size := h.GetIntOrDefault(req, "size", 10)
@@ -271,13 +410,80 @@ func ResolveIcon(
 	return ""
 }
 
+// refreshDatasourceFacetLabels rewrites the top_hits-carried source.name of a
+// "source.id" terms aggregation with the live datasource name. Buckets are
+// keyed by datasource id, so each label is one cached config lookup.
+func refreshDatasourceFacetLabels(ctx context.Context, agg elastic.AggregationResponse) {
+	if len(agg.Buckets) == 0 {
+		return
+	}
+	ctx1 := orm.NewContextWithParent(ctx)
+	ctx1.DirectReadAccess()
+	ctx1.PermissionScope(security.PermissionScopePlatform)
+
+	for _, bucket := range agg.Buckets {
+		datasourceID, ok := bucket["key"].(string)
+		if !ok || datasourceID == "" {
+			continue
+		}
+		datasourceConfig, err := common.GetDatasourceConfig(ctx1, datasourceID)
+		if err != nil || datasourceConfig == nil || datasourceConfig.Name == "" {
+			continue
+		}
+		rewriteBucketDatasourceName(bucket, datasourceConfig.Name)
+	}
+}
+
+// rewriteBucketDatasourceName walks a terms bucket's top_hits payload and
+// replaces the indexed source.name snapshot with the given live name. The
+// payload is generic JSON, so every level is guarded; a bucket without the
+// expected shape is left alone.
+func rewriteBucketDatasourceName(bucket elastic.BucketBase, name string) {
+	top, ok := bucket["top"].(map[string]interface{})
+	if !ok {
+		return
+	}
+	hitsObj, ok := top["hits"].(map[string]interface{})
+	if !ok {
+		return
+	}
+	hits, ok := hitsObj["hits"].([]interface{})
+	if !ok || len(hits) == 0 {
+		return
+	}
+	hit, ok := hits[0].(map[string]interface{})
+	if !ok {
+		return
+	}
+	source, ok := hit["_source"].(map[string]interface{})
+	if !ok {
+		return
+	}
+	if docSource, ok := source["source"].(map[string]interface{}); ok {
+		docSource["name"] = name
+	}
+}
+
 func RefineIcon(ctx context.Context, doc *core.Document) {
 	ctx1 := orm.NewContextWithParent(ctx)
 	ctx1.DirectReadAccess()
 	ctx1.PermissionScope(security.PermissionScopePlatform)
 
 	datasourceConfig, err := common.GetDatasourceConfig(ctx1, doc.Source.ID)
-	if err != nil || datasourceConfig == nil || datasourceConfig.Connector.ConnectorID == "" {
+	if err != nil || datasourceConfig == nil {
+		return
+	}
+
+	// The indexed source.name is an ingestion-time snapshot: after a rename,
+	// every already-indexed document still carries the previous name and the
+	// results list keeps showing it. Refresh from the live config (cached,
+	// invalidation happens on datasource update) — same read-time pattern as
+	// the connector fields below.
+	if datasourceConfig.Name != "" {
+		doc.Source.Name = datasourceConfig.Name
+	}
+
+	if datasourceConfig.Connector.ConnectorID == "" {
 		return
 	}
 
@@ -294,6 +500,23 @@ func RefineIcon(ctx context.Context, doc *core.Document) {
 	// Update doc.Source.Icon
 	if icon := ResolveIcon(connectorConfig, datasourceConfig, doc.Source.Icon); icon != "" {
 		doc.Source.Icon = icon
+	}
+
+	// Stamp the connector reference (read-time only, never persisted): the
+	// detail views render the datasource and its connector as filterable
+	// entity cards, and both configs are already in hand here — no extra
+	// lookups. Guarded so a doc that ever carries the values (e.g. stamped at
+	// ingestion in the future) keeps its own.
+	if doc.Source.ConnectorID == "" {
+		doc.Source.ConnectorID = connectorConfig.ID
+	}
+	if doc.Source.ConnectorName == "" {
+		doc.Source.ConnectorName = connectorConfig.Name
+	}
+	if doc.Source.ConnectorIcon == "" {
+		if icon := common.ParseAndGetIcon(connectorConfig, connectorConfig.Icon); icon != "" {
+			doc.Source.ConnectorIcon = icon
+		}
 	}
 }
 

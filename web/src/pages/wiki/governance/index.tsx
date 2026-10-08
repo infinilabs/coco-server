@@ -1,9 +1,9 @@
 import { CheckOutlined, CloseOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
-import { Badge, Button, Card, Empty, List, Popconfirm, Segmented, Space, Tag, Tooltip } from 'antd';
+import { Badge, Button, Empty, List, Popconfirm, Segmented, Space, Tag, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { searchWikiGovernance, updateWikiGovernanceStatus, type GovernanceProposal } from '@/service/api';
+import { type GovernanceProposal, searchWikiGovernance, updateWikiGovernanceStatus } from '@/service/api';
 import { WikiShell } from '../components/WikiShell';
 
 const TYPE_COLOR: Record<string, string> = {
@@ -17,10 +17,9 @@ const TYPE_COLOR: Record<string, string> = {
 };
 
 /**
- * Knowledge-governance queue: the background scanner files proposals (stale
- * pages, duplicates, conflicts, low quality, orphans) and this page is the
- * human gate — every fix happens on the article face, marking resolved or
- * dismissing only records the decision (D1).
+ * Knowledge-governance queue: the background scanner files proposals (stale pages, duplicates, conflicts, low quality,
+ * orphans) and this page is the human gate — every fix happens on the article face, marking resolved or dismissing only
+ * records the decision (D1).
  */
 export function Component() {
   const { t } = useTranslation();
@@ -63,104 +62,128 @@ export function Component() {
 
   return (
     <WikiShell>
-      <Card
-        bordered={false}
-        className="card-wrapper"
-        title={
-          <Space>
-            <SafetyCertificateOutlined />
-            <span>{t('page.wiki.governance.title')}</span>
-          </Space>
-        }
-        extra={
+      <section className='wiki-panel'>
+        <div className='wiki-panel-head'>
+          <span className='wiki-panel-title'>
+            <SafetyCertificateOutlined className='color-[var(--wiki-accent)]' />
+            {t('page.wiki.governance.title')}
+          </span>
           <Segmented
             value={status}
-            onChange={v => setStatus(v as string)}
             options={[
               { value: 'open', label: t('page.wiki.governance.statusOpen') },
               { value: 'resolved', label: t('page.wiki.governance.statusResolved') },
               { value: 'dismissed', label: t('page.wiki.governance.statusDismissed') },
               { value: 'all', label: t('page.wiki.governance.statusAll') }
             ]}
+            onChange={v => setStatus(v as string)}
           />
-        }
-      >
-        {t('page.wiki.governance.subtitle')}
-        <List
-          className="mt-4"
-          dataSource={proposals}
-          loading={loading}
-          locale={{ emptyText: <Empty description={t('page.wiki.governance.empty')} image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
-          pagination={{ pageSize: 10, hideOnSinglePage: true }}
-          renderItem={proposal => {
-            const dupOf = proposal.evidence?.duplicate_of;
-            return (
-              <List.Item
-                actions={[
-                  <Popconfirm
-                    key="resolve"
-                    title={t('page.wiki.governance.resolveConfirm')}
-                    onConfirm={() => act(proposal, 'resolved')}
-                  >
-                    <Button icon={<CheckOutlined />} size="small" type="primary" ghost>
-                      {t('page.wiki.governance.resolve')}
-                    </Button>
-                  </Popconfirm>,
-                  <Popconfirm
-                    key="dismiss"
-                    title={t('page.wiki.governance.dismissConfirm')}
-                    onConfirm={() => act(proposal, 'dismissed')}
-                  >
-                    <Button icon={<CloseOutlined />} size="small">
-                      {t('page.wiki.governance.dismiss')}
-                    </Button>
-                  </Popconfirm>
-                ]}
-                className="cursor-pointer"
-                onClick={() => goArticle(proposal)}
-              >
-                <List.Item.Meta
-                  description={
-                    <Space direction="vertical" size={2}>
-                      <span>{proposal.reason}</span>
-                      {dupOf && (
-                        <Tooltip title={t('page.wiki.governance.duplicateOf')}>
-                          <Tag
-                            className="cursor-pointer"
-                            color="purple"
-                            onClick={e => {
-                              e.stopPropagation();
-                              nav(`/wiki/article/${dupOf.id}?kb=${proposal.kb_id}`);
-                            }}
-                          >
-                            {String(dupOf.title || dupOf.id)}
-                          </Tag>
-                        </Tooltip>
-                      )}
-                      {proposal.evidence?.pending_version ? (
-                        <span className="text-xs text-gray-400">
-                          {t('page.wiki.governance.pendingVersion', { version: String(proposal.evidence.pending_version) })}
-                        </span>
-                      ) : null}
-                    </Space>
-                  }
-                  title={
-                    <Space>
-                      <Badge count={status === 'open' ? '!' : 0} offset={[10, 0]}>
-                        <Tag color={TYPE_COLOR[proposal.type] || 'default'}>{t(`page.wiki.governance.type.${proposal.type}`)}</Tag>
-                      </Badge>
-                      <a>{proposal.article_title || proposal.article_id}</a>
-                    </Space>
-                  }
+        </div>
+        <div className='px-16px pb-16px pt-4px'>
+          <div className='mb-10px text-12.5px color-[var(--wiki-text-3)]'>{t('page.wiki.governance.subtitle')}</div>
+          <List
+            className='wiki-row-list'
+            dataSource={proposals}
+            loading={loading}
+            pagination={{ pageSize: 10, hideOnSinglePage: true }}
+            locale={{
+              emptyText: (
+                <Empty
+                  description={t('page.wiki.governance.empty')}
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
                 />
-              </List.Item>
-            );
-          }}
-        />
-        {status === 'open' && openCount > 0 && (
-          <div className="mt-2 text-xs text-gray-400">{t('page.wiki.governance.hint', { count: String(openCount) })}</div>
-        )}
-      </Card>
+              )
+            }}
+            renderItem={proposal => {
+              const dupOf = proposal.evidence?.duplicate_of;
+              return (
+                <List.Item
+                  className='cursor-pointer'
+                  actions={[
+                    <Popconfirm
+                      key='resolve'
+                      title={t('page.wiki.governance.resolveConfirm')}
+                      onConfirm={() => act(proposal, 'resolved')}
+                    >
+                      <Button
+                        ghost
+                        icon={<CheckOutlined />}
+                        size='small'
+                        type='primary'
+                      >
+                        {t('page.wiki.governance.resolve')}
+                      </Button>
+                    </Popconfirm>,
+                    <Popconfirm
+                      key='dismiss'
+                      title={t('page.wiki.governance.dismissConfirm')}
+                      onConfirm={() => act(proposal, 'dismissed')}
+                    >
+                      <Button
+                        icon={<CloseOutlined />}
+                        size='small'
+                      >
+                        {t('page.wiki.governance.dismiss')}
+                      </Button>
+                    </Popconfirm>
+                  ]}
+                  onClick={() => goArticle(proposal)}
+                >
+                  <List.Item.Meta
+                    description={
+                      <Space
+                        direction='vertical'
+                        size={2}
+                      >
+                        <span>{proposal.reason}</span>
+                        {dupOf && (
+                          <Tooltip title={t('page.wiki.governance.duplicateOf')}>
+                            <Tag
+                              className='cursor-pointer'
+                              color='purple'
+                              onClick={e => {
+                                e.stopPropagation();
+                                nav(`/wiki/article/${dupOf.id}?kb=${proposal.kb_id}`);
+                              }}
+                            >
+                              {String(dupOf.title || dupOf.id)}
+                            </Tag>
+                          </Tooltip>
+                        )}
+                        {proposal.evidence?.pending_version ? (
+                          <span className='text-xs color-[var(--wiki-text-3)]'>
+                            {t('page.wiki.governance.pendingVersion', {
+                              version: String(proposal.evidence.pending_version)
+                            })}
+                          </span>
+                        ) : null}
+                      </Space>
+                    }
+                    title={
+                      <Space>
+                        <Badge
+                          count={status === 'open' ? '!' : 0}
+                          offset={[10, 0]}
+                        >
+                          <Tag color={TYPE_COLOR[proposal.type] || 'default'}>
+                            {t(`page.wiki.governance.type.${proposal.type}`)}
+                          </Tag>
+                        </Badge>
+                        <a>{proposal.article_title || proposal.article_id}</a>
+                      </Space>
+                    }
+                  />
+                </List.Item>
+              );
+            }}
+          />
+          {status === 'open' && openCount > 0 && (
+            <div className='mt-2 text-xs color-[var(--wiki-text-3)]'>
+              {t('page.wiki.governance.hint', { count: String(openCount) })}
+            </div>
+          )}
+        </div>
+      </section>
     </WikiShell>
   );
 }

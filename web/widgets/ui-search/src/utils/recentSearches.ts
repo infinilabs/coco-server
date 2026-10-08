@@ -4,7 +4,7 @@
 // because localStorage can be unavailable (private mode, quota, embedders).
 
 const STORAGE_KEY = "ui-search-recent-queries";
-const MAX_RECENT_SEARCHES = 10;
+const MAX_RECENT_SEARCHES = 5;
 
 function readRaw(): string[] {
   try {
@@ -27,7 +27,8 @@ function writeRaw(items: string[]) {
 }
 
 export function loadRecentSearches(): string[] {
-  return readRaw();
+  // slice on read too, so entries saved under a larger historical cap stop showing
+  return readRaw().slice(0, MAX_RECENT_SEARCHES);
 }
 
 export function pushRecentSearch(query: string) {

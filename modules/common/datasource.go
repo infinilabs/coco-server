@@ -21,6 +21,9 @@ const (
 	DisabledDatasourceIDsCacheKey = "disabled_datasource_ids"
 	EnabledDatasourceIDsCacheKey  = "enabled_datasource_ids"
 	DatasourceItemsCacheKey       = "datasource_items"
+	// whole connector_id -> datasource ids map under one key, so a datasource
+	// create/rebind/delete invalidates it with a single delete
+	ConnectorDatasourceMapCacheKey = "connector_datasource_map"
 )
 
 func ClearDatasourceCache(id string) {
@@ -30,6 +33,7 @@ func ClearDatasourceCache(id string) {
 func ClearDatasourcesCache() {
 	GeneralObjectCache.Delete(DatasourcePrimaryCacheKey, DisabledDatasourceIDsCacheKey)
 	GeneralObjectCache.Delete(DatasourcePrimaryCacheKey, EnabledDatasourceIDsCacheKey)
+	GeneralObjectCache.Delete(DatasourcePrimaryCacheKey, ConnectorDatasourceMapCacheKey)
 }
 
 // GetDisabledDatasourceIDs retrieves the list of disabled data source IDs from the cache.
@@ -175,4 +179,46 @@ func GetUsersOwnDatasource(userID string) []string {
 		ids = append(ids, v.ID)
 	}
 	return ids
+}
+
+// GetDatasourceIDsByConnector returns the ids of every datasource running the
+// given connector. Documents carry no indexed connector field — connector
+// facet filters translate into datasource terms at query time, and this
+// mapping backs the translation. The whole connector→datasource map is built
+// in one scan and cached under a single key (cleared by ClearDatasourcesCache
+// on datasource writes), so repeated lookups cost nothing.
+func GetDatasourceIDsByConnector(connectorID string) []string {
+	m := connectorDatasourceMap()
+	return m[connectorID]
+}
+
+func connectorDatasourceMap() map[string][]string {
+	if item := GeneralObjectCache.Get(DatasourcePrimaryCacheKey, ConnectorDatasourceMapCacheKey); item != nil && !item.Expired() {
+		if m, ok := item.Value().(map[string][]string); ok {
+			return m
+		}
+	}
+
+	ctx := orm.NewContext()
+	ctx.DirectReadAccess()
+
+	ctx.PermissionScope(security.PermissionScopePlatform)
+
+	orm.WithModel(ctx, &core.DataSource{})
+	builder := orm.NewQuery()
+	builder.Size(1000)
+
+	docs := []core.DataSource{}
+
+	_, _ = elastic.SearchV2WithResultItemMapper(ctx, &docs, builder, nil)
+	m := map[string][]string{}
+	for _, v := range docs {
+		if v.Connector.ConnectorID == "" {
+			continue
+		}
+		m[v.Connector.ConnectorID] = append(m[v.Connector.ConnectorID], v.ID)
+	}
+
+	GeneralObjectCache.Set(DatasourcePrimaryCacheKey, ConnectorDatasourceMapCacheKey, m, util.GetDurationOrDefault("30m", time.Duration(30)*time.Minute))
+	return m
 }

@@ -88,15 +88,6 @@ const GlobalHeader: FC<Props> = memo(({ isMobile, mode, reverse, siderWidth }) =
         >
           <AppstoreOutlined />
         </ButtonIcon>
-        {search_settings?.enabled && search_settings?.integration && (
-          <ButtonIcon
-            className="px-12px"
-            tooltipContent={t('common.search')}
-            onClick={() => nav(`/search`)}
-          >
-            <IconUilSearch />
-          </ButtonIcon>
-        )}
         {/* <GlobalSearch /> */}
         {/* {!isMobile && (
           <FullScreen

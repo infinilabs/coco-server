@@ -2,7 +2,6 @@ import { AuthImage } from "./AuthImage";
 import { normalizeFileType } from "./normalizeFileType";
 
 import type { SearchResultListItem, SearchResultsRecord } from "../types";
-import { formatDateWithRelative } from "../../../utils/date";
 import { cleanHighlightFragment, cleanSummary, decodeHtmlEntities } from "../../../utils/utils"
 
 export function recordToListItem(
@@ -25,7 +24,9 @@ export function recordToListItem(
   const breadcrumbs = [sourceName, categoryText].filter(Boolean) as string[];
 
   const author = record.owner?.title ?? record.owner?.username ?? record.owner?.name ?? record.last_updated_by?.user?.username;
-  const date = formatDateWithRelative(record.last_updated_by?.timestamp ?? record.metadata?.last_reviewed ?? record.updated ?? record.created);
+  // raw timestamp — AuthorDate renders the short relative time and keeps the
+  // exact time on hover, so no pre-formatting here
+  const date = record.last_updated_by?.timestamp ?? record.metadata?.last_reviewed ?? record.updated ?? record.created;
 
   const typeIconUrl = record.metadata?.icon_link ?? record.icon;
   const typeIcon = typeIconUrl ? (

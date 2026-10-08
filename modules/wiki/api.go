@@ -50,7 +50,64 @@ func (h *APIHandler) getToc(w http.ResponseWriter, req *http.Request, ps httprou
 		// an empty tree is a valid state for a new KB
 		toc = &core.WikiToc{KbID: kbID, Nodes: []core.WikiTocNode{}}
 	}
-	h.WriteGetOKJSON(w, toc.ID, util.MapStr{"kb_id": kbID, "nodes": toc.Nodes})
+	// article toc nodes carry no page_type of their own, and the client tree
+	// draws a per-type icon — ship an article_id→page_type map alongside the
+	// nodes. Derived on read (never persisted back through updateToc), so it
+	// cannot go stale inside the toc document.
+	pageTypes := map[string]string{}
+	if ids := tocArticleIDs(toc.Nodes); len(ids) > 0 {
+		if m, err := articlePageTypes(ctx, ids); err == nil {
+			pageTypes = m
+		}
+	}
+	h.WriteGetOKJSON(w, toc.ID, util.MapStr{"kb_id": kbID, "nodes": toc.Nodes, "page_types": pageTypes})
+}
+
+// tocArticleIDs flattens every article node id of a toc tree.
+func tocArticleIDs(nodes []core.WikiTocNode) []string {
+	ids := make([]string, 0, len(nodes))
+	var walk func(list []core.WikiTocNode)
+	walk = func(list []core.WikiTocNode) {
+		for i := range list {
+			if list[i].ArticleID != "" {
+				ids = append(ids, list[i].ArticleID)
+			}
+			if len(list[i].Children) > 0 {
+				walk(list[i].Children)
+			}
+		}
+	}
+	walk(nodes)
+	return ids
+}
+
+// articlePageTypes loads id→page_type for the toc's article nodes, in
+// terms-query-safe chunks (graphEntityChunkSize batch).
+func articlePageTypes(ctx *orm.Context, ids []string) (map[string]string, error) {
+	orm.WithModel(ctx, &core.WikiArticle{})
+	out := make(map[string]string, len(ids))
+	for start := 0; start < len(ids); start += graphEntityChunkSize {
+		end := start + graphEntityChunkSize
+		if end > len(ids) {
+			end = len(ids)
+		}
+		res, err := orm.SearchV2(ctx, orm.NewQuery().Size(end-start).
+			Filter(orm.TermsQuery("id", ids[start:end])).
+			Include("id", "page_type"))
+		if err != nil {
+			return nil, err
+		}
+		hits, _, err := elastic.DecodeHits[core.WikiArticle](res)
+		if err != nil {
+			return nil, err
+		}
+		for i := range hits {
+			if hits[i].PageType != "" {
+				out[hits[i].ID] = hits[i].PageType
+			}
+		}
+	}
+	return out, nil
 }
 
 func (h *APIHandler) updateToc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {

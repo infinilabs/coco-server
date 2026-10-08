@@ -36,14 +36,14 @@ interface UseSearchBoxParams {
   setAttachments?: (attachments: any) => void;
 }
 
-export default function useSearchBox({ 
-  queryParams, 
-  onSearch, 
-  onSuggestion, 
-  filterFieldsMeta = {}, 
+export default function useSearchBox({
+  queryParams,
+  onSearch,
+  onSuggestion,
+  filterFieldsMeta = {},
   onUpload,
   attachments = [],
-  setAttachments, 
+  setAttachments,
 }: UseSearchBoxParams) {
   const [currentQueryParams, setCurrentQueryParams] = useState<any>(queryParams);
   const { query, filter = {}, filters = [], action_type, search_type = ACTION_TYPE_SEARCH_KEYWORD, fuzziness = DEFAULT_SEARCH_FUZZINESS, sort = DEFAULT_SEARCH_SORT } = currentQueryParams;
@@ -175,33 +175,43 @@ export default function useSearchBox({
   const handleSearch = useCallback((searchQuery: any, searchFilters: any, actionType: any, searchType: any, searchFuzziness = DEFAULT_SEARCH_FUZZINESS, searchSort = DEFAULT_SEARCH_SORT) => {
     const normalizedFuzziness = normalizeSearchFuzziness(searchFuzziness);
     const normalizedSort = normalizeSearchSort(searchSort);
-    if (attachments.length > 0) {
+    const newFilter: Record<string, any> = {};
+    // Rebuild filter from current filters array
+    if (Array.isArray(searchFilters) && searchFilters.length > 0) {
+      searchFilters.forEach((item: any) => {
+        const field = item.field?.field_name;
+        if (field && item.value) {
+          const key = item.operator === 'not' ? `!${field}` : field;
+          const values = Array.isArray(item.value) ? item.value : [item.value];
+          newFilter[key] = Array.from(new Set([...(newFilter[key] || []), ...values]));
+        }
+      });
+    }
+    // Multimodal search: a plain search with attachments stays a search — the
+    // server joins each attachment's AI-extracted text (vision descriptions,
+    // document text) into the query. Only an explicit AI action (deepthink /
+    // deepresearch) carries attachments into chat.
+    const isPlainSearch = !actionType || actionType === ACTION_TYPE_SEARCH;
+    if (attachments.length > 0 && !isPlainSearch) {
       onSearch?.({
         query: searchQuery,
         attachments: attachments,
         mode: 'chat'
       })
     } else {
-      const newFilter: Record<string, any> = {};
-      // Rebuild filter from current filters array
-      if (Array.isArray(searchFilters) && searchFilters.length > 0) {
-        searchFilters.forEach((item: any) => {
-          const field = item.field?.field_name;
-          if (field && item.value) {
-            const key = item.operator === 'not' ? `!${field}` : field;
-            const values = Array.isArray(item.value) ? item.value : [item.value];
-            newFilter[key] = Array.from(new Set([...(newFilter[key] || []), ...values]));
-          }
-        });
-      }
+      // only fully uploaded attachments have server IDs worth searching; the
+      // key is always present (possibly '') so a re-search after removing a
+      // chip overwrites any stale attachments param in the merged state
+      const searchableAttachmentIds = attachments.filter((a: any) => a.status === 'uploaded').map((a: any) => a.id).join(',');
       onSearch?.({
         query: searchQuery,
         filter: newFilter,
+        attachments: searchableAttachmentIds,
         action_type: actionType,
         search_type: searchType,
         fuzziness: normalizedFuzziness,
         sort: normalizedSort,
-        mode: !actionType || actionType === ACTION_TYPE_SEARCH ? 'search' : 'chat'
+        mode: isPlainSearch ? 'search' : 'chat'
       }, true, true);
     }
     setMainInputActive(false);

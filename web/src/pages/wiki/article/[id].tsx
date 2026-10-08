@@ -6,24 +6,22 @@ import {
   CopyOutlined,
   DownloadOutlined,
   EditOutlined,
-  LineOutlined,
-  LinkOutlined,
-  UnorderedListOutlined,
   EyeOutlined,
   HistoryOutlined,
+  LikeFilled,
+  LikeOutlined,
+  LineOutlined,
+  LinkOutlined,
   RobotOutlined,
   SendOutlined,
   StarFilled,
   StarOutlined,
-  LikeFilled,
-  LikeOutlined,
-  TagsOutlined
+  TagsOutlined,
+  UnorderedListOutlined
 } from '@ant-design/icons';
 import {
   Avatar,
   Button,
-  Card,
-  Descriptions,
   Divider,
   Drawer,
   Empty,
@@ -43,12 +41,14 @@ import { useTranslation } from 'react-i18next';
 import Markdown from '@/components/DocumentDrawer/Markdown';
 import {
   createWikiBookmark,
+  createWikiEntity,
+  createWikiLike,
   deleteWikiBookmark,
+  deleteWikiLike,
   getWikiArticle,
   getWikiArticleVersions,
   getWikiEntity,
-  createWikiLike,
-  deleteWikiLike,
+  relinkWikiArticle,
   searchWikiBookmarks,
   searchWikiLikes,
   updateWikiArticle,
@@ -66,13 +66,6 @@ import { selectUserInfo } from '@/store/slice/auth';
 import { useAuth } from '@/hooks/business/auth';
 import { WikiShell } from '../components/WikiShell';
 
-const STATUS_COLOR: Record<string, string> = {
-  draft: 'default',
-  reviewed: 'processing',
-  published: 'success',
-  archived: 'warning'
-};
-
 const CHANGE_TYPE_COLOR: Record<string, string> = {
   'ai-generated': 'purple',
   'human-edited': 'blue',
@@ -86,33 +79,49 @@ const NEXT_STATUS: Partial<Record<string, { to: string; labelKey: string }[]>> =
   published: [{ to: 'archived', labelKey: 'page.wiki.article.archive' }]
 };
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children }: { readonly title: string; readonly children: React.ReactNode }) {
   return (
-    <div className='mb-5'>
-      <div className='mb-2 font-medium'>{title}</div>
+    <div className='mb-6'>
+      <div className='wiki-section-label'>{title}</div>
       {children}
     </div>
   );
 }
 
-function RelatedList({ items, color, resolve, onOpen }: { items: string[]; color: string; resolve: (type: string, name: string) => boolean; onOpen: (type: string, name: string) => void }) {
+function RelatedList({
+  items,
+  color,
+  resolve,
+  onOpen
+}: {
+  readonly items: string[];
+  readonly color: string;
+  readonly resolve: (type: string, name: string) => boolean;
+  readonly onOpen: (type: string, name: string) => void;
+}) {
   return (
-    <Space size={4} wrap>
+    <Space
+      wrap
+      size={4}
+    >
       {items.map(entry => {
         const link = parseWikiLink(entry);
         if (link) {
           return (
             <WikiLinkTag
               key={entry}
-              type={link.type}
               label={link.label}
               resolved={resolve(link.type, link.label)}
+              type={link.type}
               onClick={() => onOpen(link.type, link.label)}
             />
           );
         }
         return (
-          <Tag color={color} key={entry}>
+          <Tag
+            color={color}
+            key={entry}
+          >
             {entry}
           </Tag>
         );
@@ -180,7 +189,7 @@ export function Component() {
     if (!id) return;
     setLoading(true);
     getWikiArticle(id).then(res => {
-      const a = (res as any) as Api.Wiki.Article | null;
+      const a = res as any as Api.Wiki.Article | null;
       setArticle(a);
       setLoading(false);
     });
@@ -234,7 +243,7 @@ export function Component() {
       const results = await Promise.all(
         unresolvedLinks.map(lp =>
           createWikiEntity({ name: lp.name, type: lp.type || 'concept' })
-            .then(res => ({ name: lp.name, ok: !!(res as any)?._id }))
+            .then(res => ({ name: lp.name, ok: Boolean((res as any)?._id) }))
             .catch(() => ({ name: lp.name, ok: false }))
         )
       );
@@ -271,10 +280,7 @@ export function Component() {
     }
   };
 
-  const structured = useMemo(
-    () => (article ? parseStructuredContent(article.content) : null),
-    [article?.content]
-  );
+  const structured = useMemo(() => (article ? parseStructuredContent(article.content) : null), [article?.content]);
 
   // wikilink capsules (ontology O4): [[type:name]] in the content resolves
   // against linked_pages saved with the article — resolved links render as
@@ -287,7 +293,10 @@ export function Component() {
     return m;
   }, [article?.linked_pages]);
 
-  const resolveWikiLink = useCallback((type: string, name: string) => !!linkIndex.get(`${type}:${name}`)?.entity_id, [linkIndex]);
+  const resolveWikiLink = useCallback(
+    (type: string, name: string) => Boolean(linkIndex.get(`${type}:${name}`)?.entity_id),
+    [linkIndex]
+  );
 
   const openWikiLink = useCallback(
     (type: string, name: string) => {
@@ -327,7 +336,12 @@ export function Component() {
       const type = params.get('t') || '';
       const label = params.get('n') || '';
       return (
-        <WikiLinkTag type={type} label={label} resolved={resolveWikiLink(type, label)} onClick={() => openWikiLink(type, label)} />
+        <WikiLinkTag
+          label={label}
+          resolved={resolveWikiLink(type, label)}
+          type={type}
+          onClick={() => openWikiLink(type, label)}
+        />
       );
     },
     [resolveWikiLink, openWikiLink]
@@ -379,47 +393,116 @@ export function Component() {
   const backTo = () => nav(kbId ? `/wiki/kb/${kbId}` : '/wiki/list');
 
   return (
-    <WikiShell kbId={kbId} articleId={id}>
-    <div className='wiki-article-page min-h-500px'>
-      <Card
-        bordered={false}
-        className='card-wrapper'
-        title={
-            <div className='flex items-center gap-3'>
-              <Button icon={<ArrowLeftOutlined />} onClick={backTo} />
-              {loading ? null : article?.title}
+    <WikiShell
+      articleId={id}
+      kbId={kbId}
+    >
+      <div className='wiki-article-page min-h-500px'>
+        {/* page header lives on the shell background; the content below renders in
+          its own reading surface so chrome and article stay visually apart */}
+        <header className='mb-4 flex flex-wrap items-start justify-between gap-x-6 gap-y-2'>
+          <div className='min-w-0 flex flex-1 items-start gap-3'>
+            <Button
+              icon={<ArrowLeftOutlined />}
+              onClick={backTo}
+            />
+            <div className='min-w-0'>
+              <h1 className='m-0 truncate text-22px font-650 leading-30px tracking-[-0.01em]'>
+                {article?.title || ''}
+              </h1>
+              {article && (
+                <div className='mt-8px flex flex-wrap items-center gap-6px text-xs'>
+                  {article.status && (
+                    <span className='wiki-pill'>
+                      <i
+                        className='wiki-pill-dot'
+                        style={{ background: 'currentColor' }}
+                      />
+                      {t(`page.wiki.status.${article.status}`)}
+                    </span>
+                  )}
+                  {article.page_type && (
+                    <span className='wiki-pill wiki-pill-accent'>{t(`page.wiki.pageType.${article.page_type}`)}</span>
+                  )}
+                  {article.ai_generated && (
+                    <span
+                      className='wiki-pill'
+                      style={{ borderColor: 'rgba(150, 100, 220, .35)', color: '#a06ce0' }}
+                    >
+                      {`AI · ${t(`page.wiki.confidence.${article.confidence || 'medium'}`)}`}
+                    </span>
+                  )}
+                  {article.aliases?.map(alias => (
+                    <span
+                      className='wiki-pill'
+                      key={alias}
+                    >
+                      {alias}
+                    </span>
+                  ))}
+                  <span className='color-[var(--wiki-text-3)]'>{`${t('page.wiki.hub.lastUpdated')} ${article.updated_at}`}</span>
+                  <span className='ml-auto flex items-center gap-1'>
+                    {article.contributors.map(c => (
+                      <Avatar
+                        key={c.id}
+                        size='small'
+                      >
+                        {c.avatar}
+                      </Avatar>
+                    ))}
+                  </span>
+                </div>
+              )}
             </div>
-        }
-        extra={
-          !editing &&
-          article && (
-            <Space>
-              {article.status && <Tag color={STATUS_COLOR[article.status]}>{t(`page.wiki.status.${article.status}`)}</Tag>}
+          </div>
+          {!editing && article && (
+            <Space
+              wrap
+              className='pt-4px'
+              size={0}
+            >
               <Tooltip title={likeId ? t('page.wiki.like.remove') : t('page.wiki.like.add')}>
-                <Button icon={likeId ? <LikeFilled style={{ color: '#1990ff' }} /> : <LikeOutlined />} onClick={toggleLike}>
+                <Button
+                  icon={likeId ? <LikeFilled style={{ color: '#1990ff' }} /> : <LikeOutlined />}
+                  type='text'
+                  onClick={toggleLike}
+                >
                   {likeCount > 0 ? likeCount : ''}
                 </Button>
               </Tooltip>
               <Tooltip title={bookmarkId ? t('page.wiki.bookmark.remove') : t('page.wiki.bookmark.add')}>
                 <Button
                   icon={bookmarkId ? <StarFilled style={{ color: '#faad14' }} /> : <StarOutlined />}
+                  type='text'
                   onClick={toggleBookmark}
                 />
               </Tooltip>
               {canEditArticle &&
                 (NEXT_STATUS[article.status] || []).map(({ to, labelKey }) => (
-                  <Tooltip key={to} title={t('page.wiki.article.statusFlowHint')}>
-                    <Button icon={<SendOutlined />} onClick={() => transitionStatus(to)}>
+                  <Tooltip
+                    key={to}
+                    title={t('page.wiki.article.statusFlowHint')}
+                  >
+                    <Button
+                      icon={<SendOutlined />}
+                      type='text'
+                      onClick={() => transitionStatus(to)}
+                    >
                       {t(labelKey)}
                     </Button>
                   </Tooltip>
                 ))}
-              <Button icon={<HistoryOutlined />} onClick={openVersions}>
+              <Button
+                icon={<HistoryOutlined />}
+                type='text'
+                onClick={openVersions}
+              >
                 {t('page.wiki.article.versions')}
               </Button>
               <Tooltip title={t('page.wiki.article.copyLink')}>
                 <Button
                   icon={<CopyOutlined />}
+                  type='text'
                   onClick={() => {
                     navigator.clipboard?.writeText(window.location.href);
                     window.$message?.success(t('page.wiki.article.linkCopied'));
@@ -427,41 +510,62 @@ export function Component() {
                 />
               </Tooltip>
               <Tooltip title={t('page.wiki.article.exportMd')}>
-                <Button icon={<DownloadOutlined />} onClick={onExportMarkdown} />
+                <Button
+                  icon={<DownloadOutlined />}
+                  type='text'
+                  onClick={onExportMarkdown}
+                />
               </Tooltip>
               {canEditArticle && (
-                <Button icon={<RobotOutlined />} onClick={() => setAiEditOpen(true)}>
+                <Button
+                  icon={<RobotOutlined />}
+                  type='text'
+                  onClick={() => setAiEditOpen(true)}
+                >
                   {t('page.wiki.aiEdit.title')}
                 </Button>
               )}
-{canEditArticle && (
-              <Button icon={<EditOutlined />} type="primary" onClick={startEdit}>
-                {t('page.wiki.article.edit')}
-              </Button>
+              {canEditArticle && (
+                <Button
+                  className='ml-4px'
+                  icon={<EditOutlined />}
+                  type='primary'
+                  onClick={startEdit}
+                >
+                  {t('page.wiki.article.edit')}
+                </Button>
               )}
             </Space>
-          )
-        }
-      >
-        <Spin spinning={loading}>
-          {!article || editing || unresolvedLinks.length === 0 ? null : (
-            <div className='mb-3 flex items-center justify-between rounded-6px border border-dashed border-gray-300 px-12px py-8px dark:border-gray-600'>
-              <span className='text-13px text-gray-500'>
-                {t('page.wiki.repair.hint', { count: String(unresolvedLinks.length) })}
-                {unresolvedLinks.slice(0, 5).map(lp => (
-                  <Tag className='ml-2' key={lp.name}>
-                    {lp.type ? `${lp.type}:` : ''}
-                    {lp.name}
-                  </Tag>
-                ))}
-              </span>
-              <Button loading={repairing} onClick={() => setRepairOpen(true)} size='small' type='primary' ghost>
-                {t('page.wiki.repair.action')}
-              </Button>
-            </div>
           )}
+        </header>
+        {!article || editing || unresolvedLinks.length === 0 ? null : (
+          <div className='mb-3 flex items-center justify-between border border-gray-300 rounded-6px border-dashed px-12px py-8px dark:border-gray-600'>
+            <span className='text-13px text-gray-500'>
+              {t('page.wiki.repair.hint', { count: String(unresolvedLinks.length) })}
+              {unresolvedLinks.slice(0, 5).map(lp => (
+                <Tag
+                  className='ml-2'
+                  key={lp.name}
+                >
+                  {lp.type ? `${lp.type}:` : ''}
+                  {lp.name}
+                </Tag>
+              ))}
+            </span>
+            <Button
+              ghost
+              loading={repairing}
+              size='small'
+              type='primary'
+              onClick={() => setRepairOpen(true)}
+            >
+              {t('page.wiki.repair.action')}
+            </Button>
+          </div>
+        )}
+        <Spin spinning={loading}>
           {!article ? null : editing ? (
-            <div className='flex flex-col gap-4'>
+            <div className='wiki-window mx-auto max-w-1200px w-full flex flex-col gap-4 px-24px py-20px xl:px-32px xl:py-24px'>
               <Input
                 placeholder={t('page.wiki.createArticle.title')}
                 size='large'
@@ -489,23 +593,43 @@ export function Component() {
                 <div className='flex items-center gap-4px'>
                   <span className='font-medium'>{t('page.wiki.article.contentEditor')}</span>
                   <Tooltip title={t('page.wiki.editor.heading')}>
-                    <Button icon={<LineOutlined />} onClick={() => insertAround('\n## ', '', t('page.wiki.editor.sectionTitle'))} size='small' type='text' />
+                    <Button
+                      icon={<LineOutlined />}
+                      size='small'
+                      type='text'
+                      onClick={() => insertAround('\n## ', '', t('page.wiki.editor.sectionTitle'))}
+                    />
                   </Tooltip>
                   <Tooltip title={t('page.wiki.editor.bold')}>
-                    <Button icon={<BoldOutlined />} onClick={() => insertAround('**', '**', t('page.wiki.editor.text'))} size='small' type='text' />
+                    <Button
+                      icon={<BoldOutlined />}
+                      size='small'
+                      type='text'
+                      onClick={() => insertAround('**', '**', t('page.wiki.editor.text'))}
+                    />
                   </Tooltip>
                   <Tooltip title={t('page.wiki.editor.list')}>
-                    <Button icon={<UnorderedListOutlined />} onClick={() => insertAround('\n- ', '', t('page.wiki.editor.item'))} size='small' type='text' />
+                    <Button
+                      icon={<UnorderedListOutlined />}
+                      size='small'
+                      type='text'
+                      onClick={() => insertAround('\n- ', '', t('page.wiki.editor.item'))}
+                    />
                   </Tooltip>
                   <Tooltip title={t('page.wiki.editor.link')}>
-                    <Button icon={<LinkOutlined />} onClick={() => insertAround('[', '](url)', t('page.wiki.editor.linkText'))} size='small' type='text' />
+                    <Button
+                      icon={<LinkOutlined />}
+                      size='small'
+                      type='text'
+                      onClick={() => insertAround('[', '](url)', t('page.wiki.editor.linkText'))}
+                    />
                   </Tooltip>
                   <Tooltip title={t('page.wiki.editor.wikilink')}>
                     <Button
                       icon={<ClusterOutlined />}
-                      onClick={() => insertAround('[[', ']]', 'type:name')}
                       size='small'
                       type='text'
+                      onClick={() => insertAround('[[', ']]', 'type:name')}
                     />
                   </Tooltip>
                 </div>
@@ -528,7 +652,7 @@ export function Component() {
                 />
                 {preview && (
                   <div
-                    className='min-h-300px min-w-0 flex-1 overflow-auto rounded border border-solid p-4'
+                    className='min-h-300px min-w-0 flex-1 overflow-auto border rounded border-solid p-4'
                     style={{ borderColor: 'var(--ant-color-border)' }}
                   >
                     <Markdown content={draft.content || ''} />
@@ -536,7 +660,12 @@ export function Component() {
                 )}
               </div>
               <Space>
-                <Button icon={<CheckOutlined />} loading={saving} type='primary' onClick={save}>
+                <Button
+                  icon={<CheckOutlined />}
+                  loading={saving}
+                  type='primary'
+                  onClick={save}
+                >
                   {t('common.confirm')}
                 </Button>
                 <Button
@@ -549,280 +678,307 @@ export function Component() {
               </Space>
             </div>
           ) : (
-            <div className='flex flex-row gap-4'>
-            <div className='wiki-article-body mx-auto min-w-0 max-w-860px flex-1'>
-              <div className='mb-4 flex flex-wrap items-center gap-2 text-xs text-gray-400'>
-                {article.page_type && <Tag>{t(`page.wiki.pageType.${article.page_type}`)}</Tag>}
-                {article.ai_generated && (
-                  <Tag color='purple'>
-                    {`AI · ${t(`page.wiki.confidence.${article.confidence || 'medium'}`)}`}
-                  </Tag>
-                )}
-                {article.aliases?.map(alias => (
-                  <Tag key={alias}>{alias}</Tag>
-                ))}
-                <span>{`${t('page.wiki.hub.lastUpdated')} ${article.updated_at}`}</span>
-                <span className='ml-auto flex items-center gap-1'>
-                  {article.contributors.map(c => (
-                    <Avatar key={c.id} size='small'>
-                      {c.avatar}
-                    </Avatar>
-                  ))}
-                </span>
-              </div>
-
-              {structured && (
-                <>
-                  {structured.definition && (
-                    <Section title={t('page.wiki.article.sections.definition')}>
-                      <Typography.Paragraph>{renderInlineWikiLinks(structured.definition, resolveWikiLink, openWikiLink)}</Typography.Paragraph>
-                    </Section>
-                  )}
-                  {structured.keyCharacteristics.length > 0 && (
-                    <Section title={t('page.wiki.article.sections.characteristics')}>
-                      <ul className='ml-5 list-disc'>
-                        {structured.keyCharacteristics.map(item => (
-                          <li key={item}>{renderInlineWikiLinks(item, resolveWikiLink, openWikiLink)}</li>
-                        ))}
-                      </ul>
-                    </Section>
-                  )}
-                  {structured.applications.length > 0 && (
-                    <Section title={t('page.wiki.article.sections.applications')}>
-                      <ul className='ml-5 list-disc'>
-                        {structured.applications.map(item => (
-                          <li key={item}>{renderInlineWikiLinks(item, resolveWikiLink, openWikiLink)}</li>
-                        ))}
-                      </ul>
-                    </Section>
-                  )}
-                  {structured.relatedConcepts.length > 0 && (
-                    <Section title={t('page.wiki.article.sections.relatedConcepts')}>
-                      <RelatedList color='geekblue' items={structured.relatedConcepts} resolve={resolveWikiLink} onOpen={openWikiLink} />
-                    </Section>
-                  )}
-                  {structured.relatedEntities.length > 0 && (
-                    <Section title={t('page.wiki.article.sections.relatedEntities')}>
-                      <RelatedList color='cyan' items={structured.relatedEntities} resolve={resolveWikiLink} onOpen={openWikiLink} />
-                    </Section>
-                  )}
-                  {structured.mentions.length > 0 && (
-                    <Section title={t('page.wiki.article.sections.mentions')}>
-                      <div className='flex flex-col gap-2'>
-                        {structured.mentions.map(mention => (
-                          <blockquote
-                            className='ma-0 border-l-4 border-solid pl-3 text-gray-500'
-                            key={mention}
-                            style={{ borderColor: 'var(--ant-color-border)' }}
-                          >
-                            {renderInlineWikiLinks(mention, resolveWikiLink, openWikiLink)}
-                          </blockquote>
-                        ))}
-                      </div>
-                    </Section>
-                  )}
-                  {structured.mainContent.trim() && (
+            // no items-start: the outline rail must stretch to the row height so
+            // its sticky inner block can follow the scroll for the whole article.
+            // justify-center keeps article + outline as one centered composition
+            // (the rail hugs the text instead of drifting to the container edge)
+            <div className='flex flex-row justify-center gap-6'>
+              <article className='wiki-window wiki-article-body max-w-860px min-w-0 w-full self-start 2xl:max-w-940px'>
+                {/* document window chrome: traffic lights + title strip, mrdoc hero mock style */}
+                <div className='wiki-window-bar'>
+                  <span className='wiki-window-dots'>
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                  <span className='wiki-window-title'>{article.title}</span>
+                </div>
+                <div className='wiki-doc-surface'>
+                  {structured && (
                     <>
-                      <Divider />
-                      <Markdown content={mainContent} renderLink={renderWikiLink} />
-                    </>
-                  )}
-                  {article.sources.length > 0 && (
-                    <>
-                      <Divider />
-                      <Section title={t('page.wiki.article.sections.sources')}>
-                        <List
-                          dataSource={article.sources}
-                          renderItem={src => (
-                            <List.Item
-                              actions={[
-                                src.url ? (
-                                  <a href={src.url} key='url' rel='noreferrer' target='_blank'>
-                                    {t('page.wiki.article.openSource')}
-                                  </a>
-                                ) : null
-                              ]}
-                            >
-                              <List.Item.Meta
-                                description={
-                                  <div>
-                                    <div className='text-gray-500'>{src.excerpt}</div>
-                                    <Space className='mt-1' size={4}>
-                                      <Tag>{src.source_name}</Tag>
-                                      {src.locator && <span className='text-xs text-gray-400'>{src.locator}</span>}
-                                    </Space>
+                      {structured.definition && (
+                        <Section title={t('page.wiki.article.sections.definition')}>
+                          <Typography.Paragraph className='text-15px leading-7 !mb-0'>
+                            {renderInlineWikiLinks(structured.definition, resolveWikiLink, openWikiLink)}
+                          </Typography.Paragraph>
+                        </Section>
+                      )}
+                      {structured.keyCharacteristics.length > 0 && (
+                        <Section title={t('page.wiki.article.sections.characteristics')}>
+                          <ul className='ml-5 list-disc'>
+                            {structured.keyCharacteristics.map(item => (
+                              <li key={item}>{renderInlineWikiLinks(item, resolveWikiLink, openWikiLink)}</li>
+                            ))}
+                          </ul>
+                        </Section>
+                      )}
+                      {structured.applications.length > 0 && (
+                        <Section title={t('page.wiki.article.sections.applications')}>
+                          <ul className='ml-5 list-disc'>
+                            {structured.applications.map(item => (
+                              <li key={item}>{renderInlineWikiLinks(item, resolveWikiLink, openWikiLink)}</li>
+                            ))}
+                          </ul>
+                        </Section>
+                      )}
+                      {structured.relatedConcepts.length > 0 && (
+                        <Section title={t('page.wiki.article.sections.relatedConcepts')}>
+                          <RelatedList
+                            color='geekblue'
+                            items={structured.relatedConcepts}
+                            resolve={resolveWikiLink}
+                            onOpen={openWikiLink}
+                          />
+                        </Section>
+                      )}
+                      {structured.relatedEntities.length > 0 && (
+                        <Section title={t('page.wiki.article.sections.relatedEntities')}>
+                          <RelatedList
+                            color='cyan'
+                            items={structured.relatedEntities}
+                            resolve={resolveWikiLink}
+                            onOpen={openWikiLink}
+                          />
+                        </Section>
+                      )}
+                      {structured.mentions.length > 0 && (
+                        <Section title={t('page.wiki.article.sections.mentions')}>
+                          <div className='flex flex-col gap-8px'>
+                            {structured.mentions.map(mention => (
+                              <blockquote
+                                className='ma-0 border-l-3 rounded-r-8px border-solid py-8px pl-14px pr-14px text-13.5px color-[var(--wiki-text-2)]'
+                                key={mention}
+                                style={{
+                                  borderColor: 'var(--wiki-accent)',
+                                  background: 'var(--wiki-accent-softer)'
+                                }}
+                              >
+                                {renderInlineWikiLinks(mention, resolveWikiLink, openWikiLink)}
+                              </blockquote>
+                            ))}
+                          </div>
+                        </Section>
+                      )}
+                      {structured.mainContent.trim() && (
+                        <>
+                          <Divider />
+                          <Markdown
+                            content={mainContent}
+                            renderLink={renderWikiLink}
+                          />
+                        </>
+                      )}
+                      {article.sources.length > 0 && (
+                        <>
+                          <Divider />
+                          <Section title={t('page.wiki.article.sections.sources')}>
+                            {/* grounded-answer citation cards: numbered mono badge,
+                            source chip + locator, excerpt */}
+                            <div className='flex flex-col gap-8px'>
+                              {article.sources.map((src, i) => (
+                                <div
+                                  className='wiki-citation'
+                                  key={`${src.doc_id}-${i}`}
+                                >
+                                  <span className='wiki-citation-index'>{i + 1}</span>
+                                  <div className='min-w-0 flex-1'>
+                                    <div className='flex flex-wrap items-center gap-8px'>
+                                      <span className='text-13.5px color-[var(--wiki-text)] font-550'>{src.title}</span>
+                                      <span className='wiki-pill'>{src.source_name}</span>
+                                      {src.locator && (
+                                        <span className='text-11px color-[var(--wiki-text-3)] font-mono'>
+                                          {src.locator}
+                                        </span>
+                                      )}
+                                      {src.url && (
+                                        <a
+                                          className='ml-auto text-12px'
+                                          href={src.url}
+                                          rel='noreferrer'
+                                          target='_blank'
+                                        >
+                                          {t('page.wiki.article.openSource')}
+                                        </a>
+                                      )}
+                                    </div>
+                                    {src.excerpt && (
+                                      <div className='mt-4px text-12.5px color-[var(--wiki-text-3)] leading-5'>
+                                        {src.excerpt}
+                                      </div>
+                                    )}
                                   </div>
-                                }
-                                title={`${src.title} · doc_id:${src.doc_id}`}
-                              />
-                            </List.Item>
-                          )}
-                        />
-                      </Section>
+                                </div>
+                              ))}
+                            </div>
+                          </Section>
+                        </>
+                      )}
                     </>
                   )}
-                </>
-              )}
-              {article.page_type === 'entity' && article.entity_id && (
-                <EntityArticleSections entityId={article.entity_id} kbId={kbId || article.kb_id || ''} />
-              )}
-              <Divider />
-              <ArticleComments
-                articleId={article.id}
-                currentUserId={userInfo?.id || ''}
-                currentUserName={userInfo?.name || ''}
-              />
-            </div>
-            <ArticleOutline content={article.content} />
+                  {article.page_type === 'entity' && article.entity_id && (
+                    <EntityArticleSections
+                      entityId={article.entity_id}
+                      kbId={kbId || article.kb_id || ''}
+                    />
+                  )}
+                  <Divider />
+                  <ArticleComments
+                    articleId={article.id}
+                    currentUserId={userInfo?.id || ''}
+                    currentUserName={userInfo?.name || ''}
+                  />
+                </div>
+              </article>
+              <ArticleOutline content={article.content} />
             </div>
           )}
         </Spin>
-      </Card>
 
-      <Modal
-        cancelText={t('common.cancel')}
-        okText={t('page.wiki.repair.confirm')}
-        confirmLoading={repairing}
-        onCancel={() => setRepairOpen(false)}
-        onOk={runRepair}
-        open={repairOpen}
-        title={t('page.wiki.repair.title')}
-      >
-        <p className='mb-2 text-gray-500'>{t('page.wiki.repair.description')}</p>
-        {unresolvedLinks.map(lp => (
-          <Tag key={`${lp.type}:${lp.name}`}>
-            {lp.type ? `${lp.type}:` : ''}
-            {lp.name}
-          </Tag>
-        ))}
-      </Modal>
+        <Modal
+          cancelText={t('common.cancel')}
+          confirmLoading={repairing}
+          okText={t('page.wiki.repair.confirm')}
+          open={repairOpen}
+          title={t('page.wiki.repair.title')}
+          onCancel={() => setRepairOpen(false)}
+          onOk={runRepair}
+        >
+          <p className='mb-2 text-gray-500'>{t('page.wiki.repair.description')}</p>
+          {unresolvedLinks.map(lp => (
+            <Tag key={`${lp.type}:${lp.name}`}>
+              {lp.type ? `${lp.type}:` : ''}
+              {lp.name}
+            </Tag>
+          ))}
+        </Modal>
 
-      <Drawer
-        open={versionsOpen}
-        title={t('page.wiki.article.versions')}
-        onClose={() => setVersionsOpen(false)}
-        width={480}
-      >
-        <List
-          dataSource={versions}
-          renderItem={(v, idx) => (
-            <List.Item
-              actions={[
-                <Button
-                  key='view'
-                  size='small'
-                  type='link'
-                  onClick={() => {
-                    setVersionView(v);
-                  }}
-                >
-                  {t('page.wiki.article.versionView')}
-                </Button>,
-                idx < versions.length - 1 ? (
+        <Drawer
+          open={versionsOpen}
+          title={t('page.wiki.article.versions')}
+          width={480}
+          onClose={() => setVersionsOpen(false)}
+        >
+          <List
+            dataSource={versions}
+            renderItem={(v, idx) => (
+              <List.Item
+                actions={[
                   <Button
-                    key='diff'
+                    key='view'
                     size='small'
                     type='link'
                     onClick={() => {
-                      setDiffPair({ older: versions[idx + 1], newer: v });
+                      setVersionView(v);
                     }}
                   >
-                    {t('page.wiki.diff.view')}
-                  </Button>
-                ) : null
-              ]}
-            >
-              <List.Item.Meta
-                description={
-                  <Space wrap>
-                    <span className='text-xs text-gray-400'>{v.created_at}</span>
-                    <span className='text-xs text-gray-400'>{v.created_by}</span>
-                  </Space>
-                }
-                title={
-                  <Space>
-                    <Tag color={CHANGE_TYPE_COLOR[v.change_type]}>{t(`page.wiki.changeType.${v.change_type}`)}</Tag>
-                    <span>{`v${v.version}`}</span>
-                  </Space>
-                }
-              />
-              {v.change_summary && <div className='text-xs text-gray-500'>{v.change_summary}</div>}
-            </List.Item>
+                    {t('page.wiki.article.versionView')}
+                  </Button>,
+                  idx < versions.length - 1 ? (
+                    <Button
+                      key='diff'
+                      size='small'
+                      type='link'
+                      onClick={() => {
+                        setDiffPair({ older: versions[idx + 1], newer: v });
+                      }}
+                    >
+                      {t('page.wiki.diff.view')}
+                    </Button>
+                  ) : null
+                ]}
+              >
+                <List.Item.Meta
+                  description={
+                    <Space wrap>
+                      <span className='text-xs text-gray-400'>{v.created_at}</span>
+                      <span className='text-xs text-gray-400'>{v.created_by}</span>
+                    </Space>
+                  }
+                  title={
+                    <Space>
+                      <Tag color={CHANGE_TYPE_COLOR[v.change_type]}>{t(`page.wiki.changeType.${v.change_type}`)}</Tag>
+                      <span>{`v${v.version}`}</span>
+                    </Space>
+                  }
+                />
+                {v.change_summary && <div className='text-xs text-gray-500'>{v.change_summary}</div>}
+              </List.Item>
+            )}
+          />
+        </Drawer>
+
+        <Modal
+          footer={null}
+          open={Boolean(versionView)}
+          title={versionView ? `v${versionView.version} · ${t(`page.wiki.changeType.${versionView.change_type}`)}` : ''}
+          width={720}
+          onCancel={() => setVersionView(null)}
+        >
+          {versionView && <Markdown content={versionView.content} />}
+        </Modal>
+
+        <Modal
+          footer={null}
+          open={Boolean(diffPair)}
+          width={720}
+          title={
+            diffPair ? t('page.wiki.diff.vsPrev', { older: diffPair.older.version, newer: diffPair.newer.version }) : ''
+          }
+          onCancel={() => setDiffPair(null)}
+        >
+          {diffPair && (
+            <div className='text-xs font-mono'>
+              <div className='mb-2 flex gap-4 text-gray-400'>
+                <span>
+                  <span className='mr-1 inline-block h-10px w-10px bg-[var(--ant-color-success)]' />
+                  {t('page.wiki.diff.added', { count: currentDiff.filter(l => l.type === 'add').length })}
+                </span>
+                <span>
+                  <span className='mr-1 inline-block h-10px w-10px bg-[var(--ant-color-error)]' />
+                  {t('page.wiki.diff.removed', { count: currentDiff.filter(l => l.type === 'del').length })}
+                </span>
+              </div>
+              <div
+                className='max-h-480px overflow-auto border rounded border-solid'
+                style={{ borderColor: 'var(--ant-color-border)' }}
+              >
+                {currentDiff.map((line, i) => (
+                  <div
+                    className='whitespace-pre-wrap px-2'
+                    key={i}
+                    style={{
+                      background:
+                        line.type === 'add'
+                          ? 'var(--ant-color-success-bg)'
+                          : line.type === 'del'
+                            ? 'var(--ant-color-error-bg)'
+                            : undefined,
+                      color:
+                        line.type === 'add'
+                          ? 'var(--ant-color-success)'
+                          : line.type === 'del'
+                            ? 'var(--ant-color-error)'
+                            : undefined
+                    }}
+                  >
+                    {line.type === 'add' ? '+ ' : line.type === 'del' ? '- ' : '  '}
+                    {line.text}
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
+        </Modal>
+
+        <AIEditModal
+          articleId={id || ''}
+          open={aiEditOpen}
+          onApplied={fetchArticle}
+          onClose={() => {
+            setAiEditOpen(false);
+          }}
         />
-      </Drawer>
-
-      <Modal
-        footer={null}
-        open={!!versionView}
-        title={versionView ? `v${versionView.version} · ${t(`page.wiki.changeType.${versionView.change_type}`)}` : ''}
-        width={720}
-        onCancel={() => setVersionView(null)}
-      >
-        {versionView && <Markdown content={versionView.content} />}
-      </Modal>
-
-      <Modal
-        footer={null}
-        open={!!diffPair}
-        title={
-          diffPair
-            ? t('page.wiki.diff.vsPrev', { older: diffPair.older.version, newer: diffPair.newer.version })
-            : ''
-        }
-        width={720}
-        onCancel={() => setDiffPair(null)}
-      >
-        {diffPair && (
-          <div className='font-mono text-xs'>
-            <div className='mb-2 flex gap-4 text-gray-400'>
-              <span>
-                <span className='mr-1 inline-block h-10px w-10px bg-[var(--ant-color-success)]' />
-                {t('page.wiki.diff.added', { count: currentDiff.filter(l => l.type === 'add').length })}
-              </span>
-              <span>
-                <span className='mr-1 inline-block h-10px w-10px bg-[var(--ant-color-error)]' />
-                {t('page.wiki.diff.removed', { count: currentDiff.filter(l => l.type === 'del').length })}
-              </span>
-            </div>
-            <div className='max-h-480px overflow-auto rounded border border-solid' style={{ borderColor: 'var(--ant-color-border)' }}>
-              {currentDiff.map((line, i) => (
-                <div
-                  className='whitespace-pre-wrap px-2'
-                  key={i}
-                  style={{
-                    background:
-                      line.type === 'add'
-                        ? 'var(--ant-color-success-bg)'
-                        : line.type === 'del'
-                          ? 'var(--ant-color-error-bg)'
-                          : undefined,
-                    color:
-                      line.type === 'add'
-                        ? 'var(--ant-color-success)'
-                        : line.type === 'del'
-                          ? 'var(--ant-color-error)'
-                          : undefined
-                  }}
-                >
-                  {line.type === 'add' ? '+ ' : line.type === 'del' ? '- ' : '  '}
-                  {line.text}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      <AIEditModal
-        articleId={id || ''}
-        open={aiEditOpen}
-        onClose={() => {
-          setAiEditOpen(false);
-        }}
-        onApplied={fetchArticle}
-      />
-    </div>
+      </div>
     </WikiShell>
   );
 }

@@ -1,42 +1,22 @@
 import ClassNames from 'classnames';
 
-import { getDarkMode } from '@/store/slice/theme';
+import loadingIcon from '@/assets/svg-icon/file-loading.svg';
 
-import SystemLogo from './SystemLogo';
-
-const loadingClasses = [
-  'left-0 top-0',
-  'left-0 bottom-0 animate-delay-500',
-  'right-0 top-0 animate-delay-1000',
-  'right-0 bottom-0 animate-delay-1500'
-];
+// hold the icon back briefly so fast loads never flash it on screen
+const ICON_DELAY_MS = 300;
 
 const GlobalLoading = memo((props: any) => {
   const { className } = props;
-  const darkMode = useAppSelector(getDarkMode);
+  const [showIcon, setShowIcon] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowIcon(true), ICON_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   return (
-    <div className={`fixed-center flex-col bg-[rgb(var(--layout-bg-color))] ${className}`}>
-      {darkMode ? (
-        <div className="h-128px w-320px">
-          <DarkSystemLogo />
-        </div>
-      ) : (
-        <SystemLogo className="h-128px w-320px text-primary" />
-      )}
-      <div className="my-24px h-48px w-48px">
-        <div className="relative h-full animate-spin">
-          {loadingClasses.map(item => {
-            return (
-              <div
-                className={ClassNames('absolute w-16px h-16px bg-primary rounded-8px animate-pulse ', item)}
-                key={item}
-              />
-            );
-          })}
-        </div>
-      </div>
-      {/* <h2 className="text-28px text-#646464 font-500">{t('system.title')}</h2> */}
+    <div className={ClassNames('fixed-center bg-[rgb(var(--layout-bg-color))]', className)}>
+      {showIcon && <img className="h-48px w-48px" src={loadingIcon} alt="" />}
     </div>
   );
 });

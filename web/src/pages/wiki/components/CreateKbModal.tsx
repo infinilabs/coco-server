@@ -1,19 +1,52 @@
 import { Form, Input, Modal, Select } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { createWikiKb, listWikiAssistants, listWikiDatasources } from '@/service/api';
+import {
+  BUILTIN_KM_ASSISTANT_ID,
+  type KbAssistantOption,
+  collectSearchBoundAssistantIds,
+  createWikiKb,
+  fetchIntegrations,
+  groupKbAssistantOptions,
+  listWikiAssistants,
+  listWikiDatasources
+} from '@/service/api';
 
-export function CreateKbModal({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: () => void }) {
+export function CreateKbModal({
+  open,
+  onClose,
+  onCreated
+}: {
+  readonly open: boolean;
+  readonly onClose: () => void;
+  readonly onCreated: () => void;
+}) {
   const { t } = useTranslation();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [assistants, setAssistants] = useState<{ id: string; name: string }[]>([]);
+  const [assistants, setAssistants] = useState<KbAssistantOption[]>([]);
   const [datasources, setDatasources] = useState<Api.Wiki.DatasourceInfo[]>([]);
+  const [searchBoundIds, setSearchBoundIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!open) return;
-    listWikiAssistants().then(list => setAssistants(((list as any) || []).map((a: any) => ({ id: a.id, name: a.name }))));
+    listWikiAssistants().then(list => {
+      const arr = (list as KbAssistantOption[]) || [];
+      // new KBs default to the builtin knowledge-management assistant —
+      // keep it selectable even when the seed hasn't landed yet
+      setAssistants(
+        arr.some(a => a.id === BUILTIN_KM_ASSISTANT_ID)
+          ? arr
+          : [{ id: BUILTIN_KM_ASSISTANT_ID, name: '知识管理助手', category: 'processing', builtin: true }, ...arr]
+      );
+    });
     listWikiDatasources().then(list => setDatasources(((list as any) || []) as Api.Wiki.DatasourceInfo[]));
+    fetchIntegrations({})
+      .then((res: any) => {
+        const sources = (res?.data?.hits?.hits || []).map((h: any) => h._source);
+        setSearchBoundIds(collectSearchBoundAssistantIds(sources));
+      })
+      .catch(() => {});
   }, [open]);
 
   const onOk = () => {
@@ -35,24 +68,46 @@ export function CreateKbModal({ open, onClose, onCreated }: { open: boolean; onC
   return (
     <Modal
       destroyOnHidden
+      confirmLoading={loading}
       okText={t('common.create')}
       open={open}
       title={t('page.wiki.createKb.title')}
       onCancel={onClose}
       onOk={onOk}
     >
-      <Form className='my-2em' form={form} layout='vertical'>
-        <Form.Item label={t('page.wiki.createKb.name')} name='name' rules={[{ required: true }]}>
+      <Form
+        className='my-2em'
+        form={form}
+        layout='vertical'
+      >
+        <Form.Item
+          label={t('page.wiki.createKb.name')}
+          name='name'
+          rules={[{ required: true }]}
+        >
           <Input />
         </Form.Item>
-        <Form.Item label={t('page.wiki.createKb.description')} name='description'>
+        <Form.Item
+          label={t('page.wiki.createKb.description')}
+          name='description'
+        >
           <Input.TextArea rows={2} />
         </Form.Item>
         <div className='flex gap-3'>
-          <Form.Item className='flex-1' label={t('page.wiki.createKb.icon')} name='icon' initialValue='📚'>
+          <Form.Item
+            className='flex-1'
+            initialValue='📚'
+            label={t('page.wiki.createKb.icon')}
+            name='icon'
+          >
             <Input />
           </Form.Item>
-          <Form.Item className='flex-1' label={t('page.wiki.createKb.visibility')} name='visibility' initialValue='team'>
+          <Form.Item
+            className='flex-1'
+            initialValue='team'
+            label={t('page.wiki.createKb.visibility')}
+            name='visibility'
+          >
             <Select
               options={[
                 { value: 'public', label: t('page.wiki.visibility.public') },
@@ -62,10 +117,21 @@ export function CreateKbModal({ open, onClose, onCreated }: { open: boolean; onC
             />
           </Form.Item>
         </div>
-        <Form.Item label={t('page.wiki.createKb.assistant')} name='assistant_id'>
-          <Select allowClear options={assistants.map(a => ({ value: a.id, label: a.name }))} />
+        <Form.Item
+          initialValue={BUILTIN_KM_ASSISTANT_ID}
+          label={t('page.wiki.createKb.assistant')}
+          name='assistant_id'
+          tooltip={t('page.wiki.settings.agentTooltip')}
+        >
+          <Select
+            allowClear
+            options={groupKbAssistantOptions(assistants, t, searchBoundIds)}
+          />
         </Form.Item>
-        <Form.Item label={t('page.wiki.createKb.datasources')} name='datasource_ids'>
+        <Form.Item
+          label={t('page.wiki.createKb.datasources')}
+          name='datasource_ids'
+        >
           <Select
             allowClear
             mode='multiple'

@@ -6,6 +6,8 @@ import Search from 'antd/es/input/Search';
 import type { IntegratedStoreModalRef } from '@/components/common/IntegratedStoreModal';
 import InfiniIcon from '@/components/common/icon';
 import useQueryParams from '@/hooks/common/queryParams';
+import { fetchIntegrations } from '@/service/api/integration';
+import { assistantGroupOf, collectSearchBoundAssistantIds } from '@/service/api/wiki';
 import { cloneAssistant, deleteAssistant, searchAssistant, updateAssistant } from '@/service/api/assistant';
 import { formatESSearchResult } from '@/service/request/es';
 import { Api } from '@/types/api';
@@ -38,6 +40,18 @@ export function Component() {
   const applicationSetting = useAppSelector(getApplicationSetting);
 
   const nav = useNavigate();
+
+  // assistants referenced by search integrations are tagged AI 搜索 in the
+  // category column (usage-based classification for easier management)
+  const [searchBoundIds, setSearchBoundIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    fetchIntegrations({})
+      .then((res: any) => {
+        const sources = (res?.data?.hits?.hits || []).map((h: any) => h._source);
+        setSearchBoundIds(collectSearchBoundAssistantIds(sources));
+      })
+      .catch(() => {});
+  }, []);
 
   const onMenuClick = ({ key, record }: any) => {
     switch (key) {
@@ -205,6 +219,15 @@ export function Component() {
       minWidth: 90,
       render: (value: string, record: Assistant) => {
         return ['simple', 'deep_think', 'deep_research'].includes(value) ? t(`page.assistant.mode.${value}`) : '-';
+      }
+    },
+    {
+      title: t('page.assistant.labels.category'),
+      dataIndex: 'category',
+      minWidth: 100,
+      render: (_: string, record: Assistant) => {
+        const group = assistantGroupOf(record as any, searchBoundIds);
+        return t(`page.wiki.assistantGroup.${group}`);
       }
     },
     {

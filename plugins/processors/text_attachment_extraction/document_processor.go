@@ -72,10 +72,8 @@ type DocumentConfig struct {
 
 func NewDocumentProcessor(c *config.Config) (pipeline.Processor, error) {
 	cfg := DocumentConfig{
-		MessageField:         core.PipelineContextDocuments,
-		TikaEndpoint:         "http://127.0.0.1:9998",
-		TikaTimeoutInSeconds: 120,
-		ImageContentFormat:   "data_uri",
+		MessageField:       core.PipelineContextDocuments,
+		ImageContentFormat: "data_uri",
 	}
 	if err := c.Unpack(&cfg); err != nil {
 		return nil, err
@@ -136,13 +134,19 @@ func (p *DocumentTextAttachmentExtractionProcessor) Process(ctx *pipeline.Contex
 		}
 
 		connectorID, err := utils.GetConnectorID(&doc)
-		if err != nil {
-			log.Warnf("processor [%s] failed to get connector ID for document [%s]: %v", p.Name(), doc.ID, err)
-			continue
+		if err != nil && doc.ID != "" {
+			log.Debugf("processor [%s] no connector for document [%s]: %v", p.Name(), doc.ID, err)
 		}
 
-		if !supportedConnectors[connectorID] || doc.Type != connectors.TypeFile {
-			log.Debugf("processor [%s] skipping document [%s/%s]: not a supported file connector [%s]", p.Name(), doc.Title, doc.ID, connectorID)
+		if err != nil || !supportedConnectors[connectorID] || doc.Type != connectors.TypeFile {
+			// Content-only documents (API-created, webhook-synced, edited
+			// through the document API) never go through file extraction,
+			// but they still deserve chunks so the embedding stage has
+			// something to vectorize — without this branch a POST /document
+			// document stays chunk-less forever.
+			if p.chunkContentOnly(&doc) {
+				messages[i].Data = util.MustToJSONBytes(doc)
+			}
 			continue
 		}
 
@@ -202,6 +206,19 @@ func (p *DocumentTextAttachmentExtractionProcessor) processDocument(ctx context.
 }
 
 // extractTextAndAttachment dispatches to the correct extractor based on file extension.
+// chunkContentOnly gives non-file documents (API-created, webhook-synced,
+// edited through the document API) chunks cut straight from their content,
+// mirroring what file extraction produces for uploads. Always recomputes —
+// an edit that changed content must not keep the previous chunks — and
+// reports whether anything changed so the caller re-serializes only then.
+func (p *DocumentTextAttachmentExtractionProcessor) chunkContentOnly(doc *core.Document) bool {
+	if doc == nil || strings.TrimSpace(doc.Content) == "" {
+		return false
+	}
+	doc.Chunks = fileproc.SplitPagesToChunks([]string{doc.Content}, p.config.ChunkSize)
+	return true
+}
+
 func (p *DocumentTextAttachmentExtractionProcessor) extractTextAndAttachment(ctx context.Context, doc *core.Document, localPath string) error {
 	ext := strings.ToLower(filepath.Ext(localPath))
 

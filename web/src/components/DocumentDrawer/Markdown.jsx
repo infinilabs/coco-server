@@ -10,6 +10,8 @@ import RehypeRaw from "rehype-raw";
 import mermaid from "mermaid";
 import { useDebouncedCallback } from "use-debounce";
 
+import ProgressiveImage from "../common/ProgressiveImage";
+
 import "./markdown.scss";
 import "./highlight.css";
 
@@ -250,6 +252,12 @@ function _MarkDownContent(props) {
         pre: PreCode,
         code: CustomCode,
         p: (pProps) => <p {...pProps} dir="auto" />,
+        // markdown images arrive without dimensions and without error
+        // handling — route them through the progressive tile so loading and
+        // broken sources both look designed instead of browser-default
+        img: (imgProps) => (
+          <ProgressiveImage {...imgProps} className={imgProps.className} />
+        ),
         a: (aProps) => {
           if (renderLink) {
             const replaced = renderLink(aProps.href || "", aProps.children);

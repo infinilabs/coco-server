@@ -44,6 +44,10 @@ func init() {
 		api.Feature(core.FeatureRemoveSensitiveField))
 	api.HandleUIMethod(api.PUT, "/settings", handler.updateServerSettings, api.RequirePermission(updatePermission))
 
+	// live probes of the external dependencies the document pipeline needs
+	// (tika, libreoffice, poppler, chrome) plus the configured engine health
+	api.HandleUIMethod(api.GET, "/environment/_check", handler.checkEnvironment, api.RequirePermission(readPermission))
+
 	//list all icons for connectors
 	api.HandleUIMethod(api.GET, "/icons/list", handler.getIcons, api.AllowPublicAccess())
 
@@ -57,7 +61,23 @@ func init() {
 
 	api.RegisterAppSetting("search_settings", func() interface{} {
 		info := common.AppConfig()
-		return info.SearchSettings
+		settings := core.SearchSettings{}
+		if info.SearchSettings != nil {
+			settings = *info.SearchSettings
+		}
+		// the app's own search page always renders the built-in fullscreen
+		// widget (edited in the search settings tab) — ignore any stale saved
+		// reference to another integration so the UI and the page can never
+		// point at different configs
+		settings.Integration = core.DefaultSearchIntegrationID
+		return settings
+	})
+
+	// branding: readable pre-login so the login page and the search home can
+	// pick up logo/title/theme colors without authentication
+	api.RegisterAppSetting("appearance", func() interface{} {
+		info := common.AppConfig()
+		return info.Appearance
 	})
 
 }

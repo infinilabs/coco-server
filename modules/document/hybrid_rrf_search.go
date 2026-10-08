@@ -183,6 +183,9 @@ func (h *APIHandler) rrfRoute(req *http.Request, searchType, query, datasource, 
 		return nil, err
 	}
 	builder.EnableBodyBytes()
+	// same pure-filter guard as the keyword/semantic leg: an empty query
+	// turns a posted highlight section into mark-everything fragments
+	stripHighlightWithoutQuery(builder, query)
 	// Both routes must rank by relevance from the very top for RRF to be
 	// meaningful; page after fusion, not per route.
 	builder.From(0)

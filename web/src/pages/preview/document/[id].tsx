@@ -1,8 +1,10 @@
-import { Button, Result, Spin } from 'antd';
+import { Button, Result } from 'antd';
 import { useParams } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 
 import { request } from '@/service/request';
 import { fetchEntityUser } from '@/service/api/entity';
+import loadingIcon from '@/assets/svg-icon/file-loading.svg';
 import logoLight from '@/assets/imgs/coco-logo-text-light.svg';
 import logoDark from '@/assets/imgs/coco-logo-text-dark.svg';
 import { getDarkMode } from '@/store/slice/theme';
@@ -10,6 +12,7 @@ import { useAppSelector } from '@/hooks/business/useStore';
 import classNames from 'classnames';
 
 import PreviewContent from './components/PreviewContent';
+import { ensureFilenameExtension, extensionFromMime } from 'ui-search/source';
 
 // Helper function to extract a filename from a Content-Disposition header.
 // Supported forms include:
@@ -40,6 +43,23 @@ export function Component() {
   const [downloadFilename, setDownloadFilename] = useState<string>();
   const [rawContentError, setRawContentError] = useState<string>();
   const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  // Search results open this page with window.open, so the tab usually has no
+  // history to go back to. Close the tab when an opener exists (returning the
+  // user to the results they came from), use in-tab history when present, and
+  // fall back to home for direct links.
+  const handleBack = () => {
+    if ((history.state?.idx ?? 0) > 0) {
+      navigate(-1);
+      return;
+    }
+    if (window.opener) {
+      window.close();
+      return;
+    }
+    navigate('/');
+  };
 
   // requestHeaders is used by the Preview sub-components when fetching the
   // raw_content URL. We pass the app-integration-id header so embedded/widget
@@ -73,12 +93,27 @@ export function Component() {
       }
 
       const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const filename = parseFilenameFromContentDisposition(
-        res.headers.get('Content-Disposition'),
-        docData.title || 'download'
+      // the Content-Disposition name (or the title fallback) often carries no
+      // extension — a file saved that way can't be opened, so derive one from
+      // the document metadata or the blob's own content type
+      const { file_extension, mime_type, content_type } = docData?.metadata ?? {};
+      const extension =
+        file_extension?.replace(/^\./, '') ||
+        extensionFromMime(mime_type) ||
+        extensionFromMime(blob.type) ||
+        '';
+      const filename = ensureFilenameExtension(
+        parseFilenameFromContentDisposition(res.headers.get('Content-Disposition'), docData.title || 'download'),
+        extension
       );
 
+      // for images, tag the blob URL with the filename as a fragment: the URL
+      // keeps resolving, but a copied address / save-as now carries a real
+      // name with an extension instead of the bare blob UUID
+      const blobUrl =
+        content_type === 'image'
+          ? `${URL.createObjectURL(blob)}#${encodeURIComponent(filename)}`
+          : URL.createObjectURL(blob);
       setContentBlobUrl(blobUrl);
       setDownloadFilename(filename);
 
@@ -151,11 +186,9 @@ export function Component() {
   const renderContent = () => {
     if (loading) {
       return (
-        <Spin
-          fullscreen
-          percent='auto'
-          spinning={loading}
-        />
+        <div className='fixed-center'>
+          <img className='h-64px w-64px' src={loadingIcon} alt='' />
+        </div>
       );
     }
 
@@ -222,7 +255,14 @@ export function Component() {
     <div className='h-screen bg-white dark:bg-black'>
       <div className={classNames('h-full flex flex-col', [embedded ? 'p-6' : 'px-16px max-w-240 m-auto'])}>
         {!embedded && (
-          <div className='h-20 flex items-center border-b border-border-secondary'>
+          <div className='h-20 flex items-center gap-12px border-b border-border-secondary'>
+            <Button
+              aria-label={t('page.preview.buttons.back')}
+              icon={<ArrowLeft size={18} />}
+              title={t('page.preview.buttons.back')}
+              type='text'
+              onClick={handleBack}
+            />
             <div className='children:h-10'>
               <img
                 className='dark:hidden'

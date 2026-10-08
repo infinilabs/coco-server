@@ -58,22 +58,23 @@ const ChatLayout: FC<ChatLayoutProps> = (props) => {
 
   useNProgress(loading);
 
-  const logoNode = (
+  // logo === null means the host app already carries the brand (e.g. the
+  // coco app shell) — render no widget branding at all, not even the bundled
+  // fallback wordmark; the sidebar history list starts right at the top
+  const logoNode = logo === null ? null : (
     <div className='flex items-center gap-16px'>
-      {logo !== null && (
-        <div className='flex items-center cursor-pointer' onClick={() => handleLogoClick?.()}>
-          <img
-            alt='Coco'
-            className='block h-10 w-auto dark:hidden'
-            src={logo?.light || logoTextLight}
-          />
-          <img
-            alt='Coco'
-            className='hidden h-10 w-auto dark:block'
-            src={logo?.dark || logoTextDark}
-          />
-        </div>
-      )}
+      <div className='flex items-center cursor-pointer' onClick={() => handleLogoClick?.()}>
+        <img
+          alt='Coco'
+          className='block h-10 w-auto dark:hidden'
+          src={logo?.light || logoTextLight}
+        />
+        <img
+          alt='Coco'
+          className='hidden h-10 w-auto dark:block'
+          src={logo?.dark || logoTextDark}
+        />
+      </div>
       <div className='flex items-center gap-1 rounded-9px px-2 py-1.5 bg-[#FFF] dark:bg-[#000]'>
         <ChatIcon
           className='h-4 w-4 text-[#7C3AED]'
@@ -102,7 +103,9 @@ const ChatLayout: FC<ChatLayoutProps> = (props) => {
           width={260}
         >
           <div className='h-full flex flex-col w-[260px]'>
-            <div className='h-16 flex shrink-0 items-center bg-[#F3F4F6] px-14px dark:bg-[#1F2937]'>{logoNode}</div>
+            {logoNode && (
+              <div className='h-16 flex shrink-0 items-center bg-[#F3F4F6] px-14px dark:bg-[#1F2937]'>{logoNode}</div>
+            )}
             <div className='flex-1 overflow-y-hidden bg-[#F3F4F6] dark:bg-[#1F2937]'>{sidebar}</div>
           </div>
         </Sider>

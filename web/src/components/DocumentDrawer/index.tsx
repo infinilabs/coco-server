@@ -1,6 +1,7 @@
 import { Descriptions, Drawer, Tag, Typography } from "antd";
 import styles from "./index.module.less";
 import Markdown from "./Markdown";
+import ProgressiveImage from "../common/ProgressiveImage";
 import { Tags, X } from "lucide-react";
 
 export default function DocumentDrawer(props) {
@@ -47,8 +48,8 @@ export default function DocumentDrawer(props) {
                     }
                     {
                         data.thumbnail && (
-                            <div className={`flex justify-center items-center w-full bg-#F6F8FA rounded-lg mb-16px`}>
-                                <img src={data.thumbnail} className="max-w-full max-h-full object-contain"/>
+                            <div className={`flex justify-center items-center w-full bg-#F6F8FA rounded-lg mb-16px min-h-120px`}>
+                                <ProgressiveImage src={data.thumbnail} className="max-w-full max-h-full object-contain"/>
                             </div>
                         )
                     }

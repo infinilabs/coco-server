@@ -29,6 +29,15 @@ const common: App.I18n.Schema['translation']['common'] = {
   },
   error: '错误',
   errorHint: '出错了，请稍后再试',
+  exception: {
+    backToPrev: '返回上一页',
+    title404: '页面不存在',
+    desc404: '页面可能已被移除、重命名或从未存在',
+    title403: '无权访问',
+    desc403: '你没有访问此页面的权限，如有需要请联系管理员',
+    title500: '服务出错了',
+    desc500: '服务遇到异常，请稍后重试'
+  },
   expandColumn: '展开列',
   index: '序号',
   keywordSearch: '请输入关键词搜索',

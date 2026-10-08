@@ -59,6 +59,14 @@ export function syncEngineAI() {
   });
 }
 
+/** Probe the server's document-pipeline dependencies (tika, libreoffice, poppler, chrome) and engine health */
+export function fetchEnvironmentCheck() {
+  return request<Api.Environment.CheckResult>({
+    method: 'get',
+    url: '/environment/_check'
+  });
+}
+
 export function fetchSettings() {
   return request({
     method: 'get',

@@ -73,6 +73,7 @@ declare global {
   const PERMISSION_MAPPING: typeof import('../components/Resource/Shares')['PERMISSION_MAPPING']
   const PinToggler: typeof import('../components/stateless/common/PinToggler')['default']
   const PrincipalSelect: typeof import('../components/Resource/PrincipalSelect')['default']
+  const ProgressiveImage: typeof import('../components/common/ProgressiveImage')['default']
   const ReloadButton: typeof import('../components/stateless/common/ReloadButton')['default']
   const Route: typeof import('react-router-dom')['Route']
   const Routes: typeof import('react-router-dom')['Routes']

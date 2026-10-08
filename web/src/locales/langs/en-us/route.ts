@@ -106,7 +106,7 @@ const route: App.I18n.Schema['translation']['route'] = {
   connector_edit: 'Edit Connector',
   preview_document: 'Document Preview',
   wiki_governance: 'Knowledge Governance',
-  wiki: 'AI Knowledge Base',
+  wiki: 'AI Wiki',
   wiki_list: 'Knowledge Hub',
   wiki_kb: 'Knowledge Base',
   wiki_article: 'Wiki Article'

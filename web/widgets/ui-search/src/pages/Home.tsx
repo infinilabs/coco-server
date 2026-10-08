@@ -9,6 +9,14 @@ interface HomeProps {
   loading?: boolean;
   /** pass null to hide the banner logo (host app already shows its brand) */
   logo?: Record<string, any> | null;
+  /** page background image per theme: { light, dark } */
+  background?: Record<string, any>;
+  /** banner slot max height in px (width stays adaptive) */
+  logoMaxHeight?: number;
+  /** welcome text font size in px (default 30) */
+  welcomeFontSize?: number;
+  /** brand-gradient welcome text (default on) */
+  welcomeGradient?: boolean;
   onSearch?: (...args: any[]) => void;
   placeholder?: string;
   welcome?: string;
@@ -27,6 +35,10 @@ export default function Home({
     commonProps, 
     loading, 
     logo, 
+    background,
+    logoMaxHeight,
+    welcomeFontSize,
+    welcomeGradient,
     onSearch, 
     placeholder, 
     welcome, 
@@ -43,6 +55,8 @@ export default function Home({
     <HomeLayout
       {...commonProps}
       loading={loading}
+      background={background}
+      logoMaxHeight={logoMaxHeight}
       logo={logo === null ? null : (
         <Logo
           isHome={true}
@@ -64,14 +78,16 @@ export default function Home({
           settings={settings}
         />
       }
-      welcome={
-        welcome ? (
-          <Welcome
-            {...commonProps}
-            text={welcome}
-          />
-        ) : null
-      }
+          welcome={
+            welcome ? (
+              <Welcome
+                {...commonProps}
+                fontSize={welcomeFontSize}
+                gradient={welcomeGradient}
+                text={welcome}
+              />
+            ) : null
+          }
       recommends={<Recommends onRecommend={(callback: any) => onRecommend?.("hot_topics_for_homepage", callback)}/>}
     />
   );

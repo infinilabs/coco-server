@@ -25,6 +25,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     settings: {
       basic: 'Basic Info',
       agent: 'AI Agent',
+      agentTooltip: 'When bound, AI generation and AI editing for this KB use the model configured on this assistant',
       danger: 'Danger Zone',
       deleteKb: 'Delete Knowledge Base',
       saved: 'Settings saved'
@@ -44,6 +45,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       empty: 'No notifications'
     },
     outline: { title: 'On this page' },
+    assistantGroup: { chat: 'Chat assistants', search: 'AI Search', deepThink: 'Deep thinking', deepResearch: 'Deep research', processing: 'Processing assistants' },
     comments: {
       title: 'Comments',
       placeholder: 'Add a comment…',
@@ -81,7 +83,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     hub: {
       title: 'Knowledge Hub',
-      subtitle: 'Curated, citation-backed knowledge bases generated and maintained with the KM agent',
+      eyebrow: 'Knowledge base · AI generated · Citation-backed',
+      subtitle: 'Knowledge bases generated and maintained by AI — every claim traced to its source',
       newKb: 'New Knowledge Base',
       search: 'Search articles & knowledge bases',
       empty: 'No knowledge base yet',
@@ -96,7 +99,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       description: 'Description',
       icon: 'Icon',
       visibility: 'Visibility',
-      assistant: 'KM Agent',
+      assistant: 'AI Assistant',
       datasources: 'Datasources',
       datasourcesPlaceholder: 'Select synced datasources to bind'
     },
@@ -113,7 +116,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     role: { owner: 'Owner', editor: 'Editor', viewer: 'Viewer', agent: 'Agent' },
     changeType: { 'ai-generated': 'AI Generated', 'human-edited': 'Human Edited', 'auto-updated': 'Auto Updated' },
     generate: {
-      title: 'Generate with KM Agent',
+      title: 'Generate with AI',
       hintPlaceholder: 'Focus hint (optional), e.g. supplier policies for Maxim\'s HK stores',
       start: 'Generate',
       cancel: 'Stop',
@@ -397,6 +400,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   assistant: {
+    categoryPlaceholder: 'Select or input a category',
     delete: {
       confirm: 'Are you sure you want to delete this ai assistant "{{name}}"?'
     },
@@ -1378,7 +1382,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       chatModel: 'Chat Model',
       languageModel: 'Language Model',
       visionModel: 'Vision Model',
-      embeddingModel: 'Embedding Model'
+      embeddingModel: 'Embedding Model',
+      rerankModel: 'Rerank Model'
     },
     hints: {
       selectOrInputModel: 'Select or input a model',
@@ -1386,6 +1391,38 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   settings: {
+    appearance: {
+      app_logo: 'App Icon',
+      brand: 'Brand',
+      labels: {
+        base_text: 'Base text',
+        container_bg: 'Container background',
+        dark: 'Dark',
+        dark_mode: 'Dark mode',
+        error: 'Error',
+        functional: 'Functional colors',
+        image_too_large: 'Image exceeds 1MB, please compress it first',
+        layout_bg: 'Layout background',
+        light: 'Light',
+        light_mode: 'Light mode',
+        logo: 'App Icon',
+        logo_icon: 'App Icon',
+        logo_icon_hint: 'Icon at the left of the AI Search / AI Chat / AI Knowledge tabs; square 128×128 recommended, displayed at ~30px',
+        login_background: 'Background color',
+        login_background_hint: 'Login page left panel background, recommended 560×1090, ≤ 1MB',
+        login_background_image: 'Background image',
+        primary: 'Brand color',
+        success: 'Success',
+        theme_enforced: 'Theme colors are managed by the administrator and enforced for all users (local customizations are overridden)',
+        title: 'Site title',
+        title_hint: 'Appended as the browser tab title suffix and shown next to the logo in the header',
+        warning: 'Warning'
+      },
+      login_page: 'Login Page',
+      search_page: 'Search Page',
+      theme_colors: 'Theme Colors',
+      title: 'Appearance'
+    },
     app_settings: {
       chat_settings: {
         labels: {
@@ -1434,10 +1471,21 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: 'Type'
     },
     search_settings: {
+      title: 'Search Settings',
       labels: {
+        banner_height: 'Banner max height',
+        banner_height_hint: 'Max height of the search home banner (width adapts to the image ratio); default 64px',
+        builtin_widget: 'AI Search Widget (Built-in)',
+        builtin_widget_hint: 'The in-app AI search reuses this built-in fullscreen widget; only search-relevant parameters are shown here and changes apply immediately. The built-in integration never appears in the integration list',
         enabled: 'Enabled',
         integration: 'Integration',
+        search_background: 'Search Background',
+        search_background_dark: 'Background image (dark mode)',
+        search_background_hint: 'Search home background, ≥ 1920×1080 recommended, ≤ 1MB',
+        search_background_light: 'Background image (light mode)',
         search_type: 'Default search mode',
+        welcome_font_size: 'Welcome font size',
+        welcome_gradient: 'Gradient text (brand-color gradient; off = solid color)',
         search_type_desc: 'The strategy /query/_search runs when the request does not set one explicitly; hybrid_rrf enables fused retrieval (wiki pages, graph and query rewrite); takes effect for new searches immediately'
       },
       options: {
@@ -1562,6 +1610,22 @@ const page: App.I18n.Schema['translation']['page'] = {
       },
       title: 'Document Processing'
     },
+    environment: {
+      title: 'Environment',
+      labels: {
+        tika_service: 'Tika Service',
+        tika_desc:
+          'Tika server used for document parsing and OCR. Leave empty for the default; a pipeline that pins its own address takes precedence over this global setting.',
+        tika_invalid: 'Must be a valid http(s) URL',
+        tika_timeout: 'Timeout',
+        overridden_title: 'Some pipelines pin their own Tika address',
+        overridden_desc:
+          'These pipelines set tika_endpoint explicitly and ignore the global setting: {{pipelines}}. Clear the override in those pipelines to apply the global one.',
+        checks_title: 'Dependency checks',
+        recheck: 'Re-check',
+        install_hint: 'Install'
+      }
+    },
     setupLater: 'Set Up Later'
   },
   webhook: {
@@ -1667,10 +1731,20 @@ const page: App.I18n.Schema['translation']['page'] = {
     labels: {
       type: 'Type',
       size: 'Size',
+      format: 'Format',
+      source: 'Source',
+      connector: 'Connector',
       createdBy: 'Created By',
       createdAt: 'Created At',
       updatedAt: 'Updated At',
+      location: 'Location',
+      link: 'Link',
+      tag: 'Tag',
+      noMoreInfo: 'No additional information',
       preview: 'Preview',
+      previewUnavailableTitle: "This document can't be previewed",
+      previewUnavailableDescription: 'The document format may be unsupported or the content is temporarily unavailable',
+      openSourceFromPreview: 'Open Source',
       aiInterpretation: 'AI Interpretation'
     },
     buttons: {
@@ -1678,7 +1752,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       reload: 'Reload',
       continueVisiting: 'Continue Visiting',
       cancel: 'Cancel',
-      download: 'Download'
+      download: 'Download',
+      back: 'Back'
     },
     hints: {
       failed: 'Sorry, something went wrong',

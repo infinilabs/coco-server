@@ -1,6 +1,6 @@
 import { createSelector, createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import { getPaletteColorByNumber } from '@sa/color';
+import { getPaletteColorByNumber, getRgb } from '@sa/color';
 
 import { DARK_MODE_MEDIA_QUERY } from '@/constants/common';
 import { localStg } from '@/utils/storage';
@@ -94,6 +94,38 @@ export const themeSlice = createSlice({
     setRecommendColor(state, { payload }: PayloadAction<boolean>) {
       state.settings.recommendColor = payload;
     },
+    /**
+     * Merge admin-configured surface colors (appearance settings) into one
+     * mode's theme tokens. Values arrive as hex and are stored in the rgb()
+     * form the CSS-var generator expects; empty/unparseable entries are
+     * skipped so they keep the built-in values.
+     *
+     * @param mode Which theme mode's tokens to patch
+     * @param colors Configured neutral colors (layout / container / base_text)
+     */
+    setThemeTokenColors(
+      state,
+      { payload: { colors, mode } }: PayloadAction<{ colors: Record<string, string>; mode: 'dark' | 'light' }>
+    ) {
+      const target = state.settings.tokens[mode]?.colors;
+      if (!target) return;
+      // hex → the `rgb(r, g, b)` string the CSS-var generator expects
+      const toRgb = (hex?: string) => {
+        if (!hex) return null;
+        try {
+          const { b, g, r } = getRgb(hex);
+          return `rgb(${r}, ${g}, ${b})`;
+        } catch {
+          return null;
+        }
+      };
+      const layout = toRgb(colors.layout);
+      if (layout) target.layout = layout;
+      const container = toRgb(colors.container);
+      if (container) target.container = container;
+      const baseText = toRgb(colors.base_text);
+      if (baseText) target['base-text'] = baseText;
+    },
     setSider(state, { payload }: PayloadAction<Partial<App.Theme.ThemeSetting['sider']>>) {
       Object.assign(state.settings.sider, payload);
     },
@@ -175,6 +207,7 @@ export const {
   setSiderInverted,
   setTab,
   setThemeScheme,
+  setThemeTokenColors,
   setWatermark,
   updateThemeColors
 } = themeSlice.actions;

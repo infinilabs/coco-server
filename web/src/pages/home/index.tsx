@@ -58,15 +58,20 @@ export function Component() {
     manual: true
   });
 
-  const endpoint = data?.endpoint || getEndpoint();
+  // Stored endpoint may be empty on purpose: an empty value means "use the
+  // current access address" — the effective endpoint falls back to the
+  // browser origin, and server-side URL builders emit relative paths.
+  const storedEndpoint = typeof data?.endpoint === 'string' ? data.endpoint.trim() : '';
+  const endpoint = storedEndpoint || getEndpoint();
 
   const handleSubmit = async (field: 'endpoint' | 'name', callback?: () => void) => {
     const params = await form.validateFields([field]);
+    const value = typeof params[field] === 'string' ? params[field].trim() : params[field];
     startLoading();
     const { error } = await updateSettings({
       server: {
         ...(data || {}),
-        [field]: params[field]
+        [field]: value
       }
     });
     if (error) {
@@ -99,8 +104,10 @@ export function Component() {
   }, [endpoint, domRef.current]);
 
   useEffect(() => {
-    form.setFieldsValue({ endpoint, name: data?.name });
-  }, [endpoint, data?.name]);
+    // Prefill the edit box with the stored value (possibly empty), not the
+    // effective fallback — saving the fallback would pin the endpoint.
+    form.setFieldsValue({ endpoint: storedEndpoint, name: data?.name });
+  }, [storedEndpoint, data?.name]);
 
   return (
     <Spin spinning={dataLoading || loading}>
@@ -163,14 +170,14 @@ export function Component() {
               <Form form={form}>
                 <Form.Item
                   name="endpoint"
-                  rules={[defaultRequiredRule]}
                 >
                   <Input
                     autoFocus
                     className="h-48px w-[calc(100%+30px)] p-r-32px"
+                    placeholder={endpoint}
                     onBlur={e => {
                       if (e.relatedTarget?.id !== 'endpoint-save') {
-                        form.setFieldsValue({ endpoint });
+                        form.setFieldsValue({ endpoint: storedEndpoint });
                       }
                     }}
                   />

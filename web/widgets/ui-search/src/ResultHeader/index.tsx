@@ -8,6 +8,9 @@ interface ResultHeaderProps {
   isMobile?: boolean;
   hasAggregations?: boolean;
   hasRecommends?: boolean;
+  /** first page still in flight — a placeholder bar keeps the summary row's
+   * place instead of flashing "0 results" before the real count lands */
+  initialLoading?: boolean;
   siderCollapse?: boolean;
   setSiderCollapse?: (v: boolean) => void;
   recommendsCollapse?: boolean;
@@ -26,6 +29,7 @@ export const ResultHeader: FC<ResultHeaderProps> = (props) => {
     hits, isMobile,
     hasAggregations,
     hasRecommends,
+    initialLoading,
     siderCollapse, setSiderCollapse,
     recommendsCollapse, setRecommendsCollapse,
     userCollapsedLeft, userCollapsedRight,
@@ -80,17 +84,21 @@ export const ResultHeader: FC<ResultHeaderProps> = (props) => {
         )
       }
       <div className={`text-12px flex-1 overflow-hidden`}>
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={toolbar ? 'toolbar' : 'summary'}
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 4 }}
-            transition={{ duration: 0.16, ease: 'easeOut' }}
-          >
-            {toolbar || String(t('labels.results', { count: hits?.total || 0 }))}
-          </motion.div>
-        </AnimatePresence>
+        {initialLoading ? (
+          <span className='animate-pulse inline-block h-12px w-96px rounded-4px bg-slate-200 dark:bg-slate-700' />
+        ) : (
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={toolbar ? 'toolbar' : 'summary'}
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={{ duration: 0.16, ease: 'easeOut' }}
+            >
+              {toolbar || String(t('labels.results', { count: hits?.total || 0 }))}
+            </motion.div>
+          </AnimatePresence>
+        )}
       </div>
       {showRightToggle && (
         <span className="h-18px flex flex-none items-center">

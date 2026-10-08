@@ -1,7 +1,7 @@
 import { Layout } from "antd";
 import styles from "./index.module.less";
 import { DARK_CLASS } from "../theme/shared";
-import { cloneElement, useEffect, useRef, useState, type ReactNode, type FC, type ReactElement } from "react";
+import { cloneElement, isValidElement, useEffect, useRef, useState, type ReactNode, type FC, type ReactElement } from "react";
 import useNProgress from "../hooks/useNProgress";
 import SearchHeaderLayout from "./SearchHeaderLayout";
 import CommonDrawer from "./CommonDrawer";
@@ -58,10 +58,28 @@ const MediaLayout: FC<MediaLayoutProps> = (props) => {
   const scrollContainer = getContainer?.() ?? null;
   const [leftDrawerOpen, setLeftDrawerOpen] = useState(false);
   const [headerScrolled, setHeaderScrolled] = useState(false);
+  // the open detail docks as a full-height pane beside the grid when there is
+  // room for both; otherwise (narrow container / mobile) it takes the full page
+  const [detailDocked, setDetailDocked] = useState(false);
   const userCollapsedLeftRef = useRef(false);
   const siderCollapseRef = useRef(siderCollapse);
 
   useEffect(() => { siderCollapseRef.current = siderCollapse; }, [siderCollapse]);
+
+  // dock the detail pane beside the grid only when the grid keeps a readable
+  // width (~one masonry column) next to the 820px pane
+  const syncDetailDocked = (totalWidth: number, siderExpanded: boolean) => {
+    const availableForDetail = totalWidth - (aggregations && siderExpanded ? 280 : 0);
+    const nextDetailDocked = availableForDetail >= 1120;
+    setDetailDocked(prev => (prev === nextDetailDocked ? prev : nextDetailDocked));
+  };
+
+  // the sider expands/collapses without resizing the scroll container it lives
+  // in — re-evaluate the dock mode on that change too
+  useEffect(() => {
+    if (isMobile || !scrollContainer) return;
+    syncDetailDocked(scrollContainer.clientWidth, !siderCollapse);
+  }, [scrollContainer, isMobile, aggregations, siderCollapse]);
 
   // Collapse left sider on mount
   useEffect(() => {
@@ -90,6 +108,10 @@ const MediaLayout: FC<MediaLayoutProps> = (props) => {
           setSiderCollapse?.(targetLeftCollapse);
         }
       }
+
+      // dock the detail pane beside the grid only when the grid keeps a
+      // readable width (~one masonry column) next to the 820px pane
+      syncDetailDocked(totalWidth, !siderCollapseRef.current);
     };
 
     const observer = new ResizeObserver(handleResize);
@@ -106,7 +128,7 @@ const MediaLayout: FC<MediaLayoutProps> = (props) => {
     if (siderCollapse) setLeftDrawerOpen(false);
   }, [siderCollapse]);
 
-  const headerHeight = '122px';
+  const headerHeight = isMobile ? '122px' : '64px';
 
   useNProgress(loading);
 
@@ -141,7 +163,7 @@ const MediaLayout: FC<MediaLayoutProps> = (props) => {
                 onClose={() => setLeftDrawerOpen(false)}
                 getContainer={getContainer}
                 classNames={{
-                  wrapper: '!left-0px !top-122px !bottom-0px',
+                  wrapper: `!left-0px !bottom-0px ${isMobile ? '!top-122px' : '!top-64px'}`,
                   body: '!p-16px',
                 }}
                 size={280}
@@ -155,7 +177,7 @@ const MediaLayout: FC<MediaLayoutProps> = (props) => {
             )
           )}
           <Content className={`bg-[rgb(var(--ui-search--layout-bg-color))] ${isMobile ? 'min-w-0' : 'min-w-400px'} ${aggregations && !(isMobile || siderCollapse) ? 'w-[calc(100%-280px)]' : 'w-[calc(100%)]'}`} style={{ overflow: 'visible' }}>
-            <div className={`py-32px transition-[width] duration-300 ease-in-out ${isMobile ? 'px-16px' : siderCollapse ? 'pl-24px' : 'pl-72px'} pr-24px ${detailCollapse || (isMobile || siderCollapse) ? 'w-full' : 'w-[calc(100%-820px)]'}`}>
+            <div className={`py-32px transition-[width] duration-300 ease-in-out ${isMobile ? 'px-16px' : siderCollapse ? 'pl-24px' : 'pl-72px'} pr-24px ${detailCollapse || !detailDocked ? 'w-full' : 'w-[calc(100%-820px)]'}`}>
               <div className={`mb-16px`}>
                 {resultHeader && cloneElement(resultHeader, {
                   userCollapsedLeft: userCollapsedLeftRef.current,
@@ -179,7 +201,13 @@ const MediaLayout: FC<MediaLayoutProps> = (props) => {
                   </motion.div>
                 ) : null}
               </AnimatePresence>
-              <div>{resultList}</div>
+              <div>
+                {isValidElement(resultList)
+                  // the list owns the detail state; the layout only tells it
+                  // how the open detail should render
+                  ? cloneElement(resultList as ReactElement<any>, { detailMode: detailDocked ? 'docked' : 'page' })
+                  : resultList}
+              </div>
             </div>
           </Content>
         </Layout>

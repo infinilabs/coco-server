@@ -12,11 +12,6 @@ export interface PipelineTemplate {
   processor: Record<string, any>[];
 }
 
-const TIKA = {
-  tika_endpoint: 'http://127.0.0.1:9998',
-  tika_timeout_in_seconds: 360
-};
-
 export const PIPELINE_TEMPLATES: PipelineTemplate[] = [
   {
     id: 'general-enrich',
@@ -30,7 +25,7 @@ export const PIPELINE_TEMPLATES: PipelineTemplate[] = [
       { file_type_detection: {} },
       { file_metadata: {} },
       { generate_document_cover: {} },
-      { document_text_attachment_extraction: { chunk_size: 7000, extract_attachments: true, ...TIKA } },
+      { document_text_attachment_extraction: { chunk_size: 7000, extract_attachments: true } },
       { document_summarization: { ai_insights_max_length: 500, model_context_length: 128000 } },
       { extract_tags: { model_context_length: 128000 } },
       { extract_entities: { model_context_length: 128000, max_entities: 20 } },
@@ -43,7 +38,7 @@ export const PIPELINE_TEMPLATES: PipelineTemplate[] = [
     suggestedName: 'pdf-processing',
     processor: [
       { file_type_detection: {} },
-      { document_text_attachment_extraction: { chunk_size: 7000, extract_attachments: true, ...TIKA } },
+      { document_text_attachment_extraction: { chunk_size: 7000, extract_attachments: true } },
       { document_summarization: { ai_insights_max_length: 500, model_context_length: 128000 } },
       { extract_tags: { model_context_length: 128000 } },
       { document_embedding: {} }
@@ -55,7 +50,7 @@ export const PIPELINE_TEMPLATES: PipelineTemplate[] = [
     suggestedName: 'word-processing',
     processor: [
       { file_type_detection: {} },
-      { document_text_attachment_extraction: { chunk_size: 7000, extract_attachments: true, ...TIKA } },
+      { document_text_attachment_extraction: { chunk_size: 7000, extract_attachments: true } },
       { document_summarization: { ai_insights_max_length: 500, model_context_length: 128000 } },
       { extract_tags: { model_context_length: 128000 } }
     ]
@@ -71,8 +66,8 @@ export const PIPELINE_TEMPLATES: PipelineTemplate[] = [
       // image files are described by the vision model inside text extraction
       // (configure vision_model_provider/vision_model when a vision model is
       // available); embedded image OCR also runs through Tika
-      { document_text_attachment_extraction: { chunk_size: 7000, extract_attachments: true, ...TIKA } },
-      { face_extraction: { pigo_facefinder_path: './config/ai/facefinder', ...TIKA } },
+      { document_text_attachment_extraction: { chunk_size: 7000, extract_attachments: true } },
+      { face_extraction: { pigo_facefinder_path: './config/ai/facefinder' } },
       { extract_tags: { model_context_length: 128000 } }
     ]
   },
@@ -94,7 +89,7 @@ export const PIPELINE_TEMPLATES: PipelineTemplate[] = [
     // the attachment side of the 8+2 story: extract the text, then give the
     // attachment a cover — two nodes, runs as the attachment pipeline
     processor: [
-      { attachment_text_extraction: { ...TIKA } },
+      { attachment_text_extraction: {} },
       { generate_attachment_cover: {} }
     ]
   }

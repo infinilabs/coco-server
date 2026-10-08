@@ -21,6 +21,15 @@ type DataSourceReference struct {
 	Name string `json:"name,omitempty" elastic_mapping:"name:{type:keyword}"`  // Name of the datasource (e.g., "My Github", "My Google Drive", "My Dropbox")
 	ID   string `json:"id,omitempty" elastic_mapping:"id:{type:keyword}"`      // ID of this the datasource, eg: 8ca2fe8cf5027b0f1b5f932b429e38c3
 	Icon string `json:"icon,omitempty" elastic_mapping:"icon:{enabled:false}"` // Icon Key, need work with datasource's assets to get the icon url, if it is a full url, then use it directly
+	// Connector behind the datasource (eg: github, yuque). Not stamped at
+	// ingestion — RefineDocument resolves it from the datasource/connector
+	// configs at read time, so existing documents carry it too. A connector
+	// facet filters on connector_id; the search API translates that into
+	// datasource terms before querying (documents hold no indexed connector
+	// field).
+	ConnectorID   string `json:"connector_id,omitempty" elastic_mapping:"connector_id:{type:keyword}"`
+	ConnectorName string `json:"connector_name,omitempty" elastic_mapping:"connector_name:{type:keyword}"`
+	ConnectorIcon string `json:"connector_icon,omitempty" elastic_mapping:"connector_icon:{enabled:false}"`
 }
 
 type Document struct {
@@ -138,7 +147,10 @@ type DocumentChunk struct {
 }
 
 type AiInsights struct {
-	Text      string    `json:"text" elastic_mapping:"text:{type:text}"`
+	// Text participates in combined_fulltext like Summary/Content do, so
+	// keyword search recalls documents by their AI-generated interpretation
+	// (e.g. Chinese insights on an English-language source document).
+	Text      string    `json:"text" elastic_mapping:"text:{type:text,copy_to:combined_fulltext}"`
 	Embedding Embedding `json:"embedding" elastic_mapping:"embedding:{type:object}"`
 }
 

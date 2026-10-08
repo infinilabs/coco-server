@@ -25,6 +25,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     settings: {
       basic: '基本信息',
       agent: 'AI 智能体',
+      agentTooltip: '绑定后,该知识库的「AI 生成」与「AI 编辑」将使用此智能体配置的模型',
       danger: '危险操作',
       deleteKb: '删除知识库',
       saved: '设置已保存'
@@ -44,6 +45,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       empty: '暂无消息'
     },
     outline: { title: '本页目录' },
+    assistantGroup: { chat: '对话使用', search: 'AI 搜索', deepThink: '深度思考', deepResearch: '深度研究', processing: '加工处理' },
     comments: {
       title: '评论',
       placeholder: '写下你的评论…',
@@ -81,7 +83,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     hub: {
       title: '知识中心',
-      subtitle: '由 KM Agent 生成并维护、带引用溯源的知识库',
+      eyebrow: '知识库 · AI 生成 · 引用可溯源',
+      subtitle: '由 AI 生成并维护、带引用溯源的知识库',
       newKb: '新建知识库',
       search: '搜索文章与知识库',
       empty: '还没有知识库',
@@ -96,7 +99,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       description: '描述',
       icon: '图标',
       visibility: '可见性',
-      assistant: 'KM Agent',
+      assistant: 'AI 助手',
       datasources: '数据源',
       datasourcesPlaceholder: '选择要绑定的已同步数据源'
     },
@@ -113,7 +116,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     role: { owner: '所有者', editor: '编辑者', viewer: '查看者', agent: '智能体' },
     changeType: { 'ai-generated': 'AI 生成', 'human-edited': '人工编辑', 'auto-updated': '自动更新' },
     generate: {
-      title: 'KM Agent 生成',
+      title: 'AI 生成',
       hintPlaceholder: '聚焦提示（可选），如：美心港店供应商政策',
       start: '开始生成',
       cancel: '停止',
@@ -397,6 +400,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   assistant: {
+    categoryPlaceholder: '选择或输入分类',
     delete: {
       confirm: 'Are you sure you want to delete this ai assistant "{{name}}"?'
     },
@@ -1333,6 +1337,38 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   settings: {
+    appearance: {
+      app_logo: '应用 ICON',
+      brand: '品牌',
+      labels: {
+        base_text: '正文文字',
+        container_bg: '容器背景',
+        dark: '深色',
+        dark_mode: '深色模式',
+        error: '错误',
+        functional: '功能色',
+        image_too_large: '图片超过 1MB,请压缩后重试',
+        layout_bg: '布局背景',
+        light: '浅色',
+        light_mode: '浅色模式',
+        logo: '应用 ICON',
+        logo_icon: '应用 ICON',
+        logo_icon_hint: '顶部 AI 搜索 / AI 聊天 / AI 知识库 切换栏左侧的图标,建议 128×128 正方形,显示约 30px',
+        login_background: '背景颜色',
+        login_background_hint: '登录页左侧背景,建议尺寸 560×1090,≤ 1MB',
+        login_background_image: '背景图片',
+        primary: '品牌色',
+        success: '成功',
+        theme_enforced: '主题颜色由管理员统一配置,将对所有用户强制生效(用户本地的自定义颜色会被覆盖)',
+        title: '站点标题',
+        title_hint: '作为浏览器标签页标题的后缀展示,并显示在顶栏 Logo 旁边',
+        warning: '警告'
+      },
+      login_page: '登录页',
+      search_page: '搜索页',
+      theme_colors: '主题颜色',
+      title: '外观设置'
+    },
     app_settings: {
       chat_settings: {
         labels: {
@@ -1382,9 +1418,19 @@ const page: App.I18n.Schema['translation']['page'] = {
     search_settings: {
       title: '搜索设置',
       labels: {
+        banner_height: '横幅最大高度',
+        banner_height_hint: '搜索首页横幅的最大高度(宽度按原图比例自适应);默认 64px',
+        builtin_widget: 'AI 搜索组件(内置)',
+        builtin_widget_hint: '站内 AI 搜索复用这套内置的全屏组件,此处只展示与 AI 搜索相关的参数,修改立即生效。该内置组件不会出现在集成列表中',
         enabled: '启用状态',
         integration: '组件',
+        search_background: '搜索页背景',
+        search_background_dark: '背景图(深色模式)',
+        search_background_hint: '搜索首页背景,建议 ≥ 1920×1080,≤ 1MB',
+        search_background_light: '背景图(浅色模式)',
         search_type: '默认搜索模式',
+        welcome_font_size: '欢迎语字号',
+        welcome_gradient: '渐变文字效果(按品牌色渐变,关闭则为纯色)',
         search_type_desc: '用户未显式指定搜索模式时 /query/_search 使用的策略；hybrid_rrf 会启用融合检索（含 Wiki 页、图谱与查询改写）；更改后对新搜索立即生效'
       },
       options: {
@@ -1504,6 +1550,22 @@ const page: App.I18n.Schema['translation']['page'] = {
         output_language_desc: '控制 Pipeline 中 AI 生成内容的输出语言，包括摘要、标签与分析结果等。'
       },
       title: '文档处理'
+    },
+    environment: {
+      title: '运行环境',
+      labels: {
+        tika_service: 'Tika 服务',
+        tika_desc:
+          '文档解析与 OCR 使用的 Tika 服务器地址。留空使用默认值;若个别 Pipeline 显式配置了地址,则该配置优先。',
+        tika_invalid: '必须是合法的 http(s) 地址',
+        tika_timeout: '超时',
+        overridden_title: '部分 Pipeline 显式覆盖了 Tika 地址',
+        overridden_desc:
+          '以下 Pipeline 显式配置了 tika_endpoint,不会使用上面的全局配置:{{pipelines}}。如需统一,请在对应 Pipeline 中清空该配置。',
+        checks_title: '依赖检测',
+        recheck: '重新检测',
+        install_hint: '安装提示'
+      }
     },
     setupLater: '稍后设置'
   },
@@ -1729,7 +1791,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       chatModel: '对话模型',
       languageModel: '语言模型',
       visionModel: '视觉模型',
-      embeddingModel: 'Embedding 模型'
+      embeddingModel: 'Embedding 模型',
+      rerankModel: 'Rerank 模型'
     },
     hints: {
       selectOrInputModel: '选择或输入一个模型',
@@ -1818,10 +1881,20 @@ const page: App.I18n.Schema['translation']['page'] = {
     labels: {
       type: '类型',
       size: '大小',
+      format: '格式',
+      source: '数据源',
+      connector: '连接器',
       createdBy: '创建者',
       createdAt: '创建时间',
       updatedAt: '最后更新时间',
+      location: '位置',
+      link: '链接',
+      tag: '标签',
+      noMoreInfo: '暂无更多信息',
       preview: '预览',
+      previewUnavailableTitle: '该文档暂无预览',
+      previewUnavailableDescription: '可能是文档格式不支持或内容暂不可用',
+      openSourceFromPreview: '打开来源',
       aiInterpretation: 'AI 解读'
     },
     buttons: {
@@ -1829,7 +1902,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       reload: '重新加载',
       continueVisiting: '继续访问',
       cancel: '取消',
-      download: '下载'
+      download: '下载',
+      back: '返回'
     },
     hints: {
       failed: '抱歉，出错了',

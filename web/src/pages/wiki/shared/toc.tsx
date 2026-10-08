@@ -1,6 +1,7 @@
 /* TOC tree manipulation — ported from the coco-wiki prototype toc-utils.
  * Antd Tree drop events map onto moveNode via gap (before=-1/inside=0/after=1). */
 import type { DataNode } from 'antd/es/tree';
+import { CompassOutlined, FileTextOutlined, FolderOpenOutlined, FolderOutlined, IdcardOutlined, LinkOutlined } from '@ant-design/icons';
 
 export type DropPosition = 'before' | 'inside' | 'after';
 
@@ -71,11 +72,35 @@ export function dropPositionFromAntd(dropToGap: boolean, antdPosition: number, i
   return isFolder ? 'inside' : 'after';
 }
 
-export function toAntdTreeData(nodes: Api.Wiki.TocNode[]): DataNode[] {
+/** per-page-type icon so the tree reads like a file explorer: folders vs article kinds.
+ * Deliberately uncolored — antd's tree mutes them via .wiki-toc-iconEle rules,
+ * color-coded icons read noisy against the flat sidebar (Yuque keeps icons quiet). */
+function articleIcon(pageType?: string) {
+  switch (pageType) {
+    case 'entity':
+      return <IdcardOutlined />;
+    case 'source':
+      return <LinkOutlined />;
+    case 'map':
+      return <CompassOutlined />;
+    default:
+      // concept and untyped pages are plain documents
+      return <FileTextOutlined />;
+  }
+}
+
+export function toAntdTreeData(nodes: Api.Wiki.TocNode[], pageTypes?: Record<string, string>): DataNode[] {
   return nodes.map(node => ({
     key: node.id,
     title: node.title,
-    children: node.children ? toAntdTreeData(node.children) : undefined
+    // only folders expand (lazy children); articles are leaves with no caret —
+    // without isLeaf every node shows an expand arrow because loadData is set
+    isLeaf: node.type !== 'folder',
+    icon:
+      node.type === 'folder'
+        ? ({ expanded }: { expanded?: boolean }) => (expanded ? <FolderOpenOutlined /> : <FolderOutlined />)
+        : articleIcon(pageTypes?.[node.article_id || '']),
+    children: node.children ? toAntdTreeData(node.children, pageTypes) : undefined
   }));
 }
 

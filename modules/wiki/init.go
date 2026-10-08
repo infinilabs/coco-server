@@ -150,4 +150,5 @@ func init() {
 		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
 
 	scheduleSeedOntologySchema()
+	scheduleSeedBuiltinKmAssistant()
 }

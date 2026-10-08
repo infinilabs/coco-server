@@ -1,4 +1,5 @@
-import { Button, Spin, Typography } from "antd";
+import { Button, Typography } from "antd";
+import LoadingIcon from "../../components/LoadingIcon";
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle, useCallback, type ReactNode, type RefObject } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
@@ -10,6 +11,7 @@ import EnterIcon from "../../icons/EnterIcon";
 interface ListContainerProps {
   type?: string;
   title?: string;
+  compactTitle?: boolean;
   data?: any[];
   onItemClick?: (item: any) => void;
   loadNext?: () => void;
@@ -28,10 +30,11 @@ interface ListContainerProps {
 const ITEM_HEIGHT = 40;
 
 const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
-  const { 
-    type, 
-    title, 
-    data = [], 
+  const {
+    type,
+    title,
+    compactTitle = false,
+    data = [],
     onItemClick, 
     loadNext, 
     renderPrefix, 
@@ -245,7 +248,7 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
   return (
     <>
       {title && (
-        <div className="py-14px px-12px text-12px text-[var(--ant-color-text-description)]">
+        <div className={`${compactTitle ? 'py-6px' : 'py-14px'} px-12px text-12px text-[var(--ant-color-text-description)]`}>
           {title}
         </div>
       )}
@@ -310,7 +313,7 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
                     <div className="leading-22px truncate whitespace-nowrap">{item.suggestion}</div>
                   </div>
                   {desc && (
-                    <Typography.Text type="secondary" className="flex-shrink-0" >
+                    <Typography.Text type="secondary" className="min-w-0 truncate" >
                       {desc}
                     </Typography.Text>
                   )}
@@ -333,7 +336,7 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
         </div>
         {loadNext && hasMore && (
           <div className="flex justify-center py-12px text-[var(--ant-color-text-description)]">
-            <Spin size="small" />
+            <LoadingIcon size={24} />
           </div>
         )}
       </div>

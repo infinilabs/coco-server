@@ -277,6 +277,34 @@ declare namespace Api {
       };
     };
   }
+  namespace Environment {
+    type CheckStatus = 'ok' | 'warning' | 'error';
+
+    type Check = {
+      key: string;
+      name: string;
+      status: CheckStatus;
+      version?: string;
+      detail?: string;
+      hint?: string;
+    };
+
+    type PipelineOverride = {
+      id: string;
+      name: string;
+    };
+
+    type EffectiveTika = {
+      endpoint: string;
+      timeout_in_seconds: number;
+      overridden_by_pipelines?: PipelineOverride[];
+    };
+
+    type CheckResult = {
+      checks: Check[];
+      effective_tika: EffectiveTika;
+    };
+  }
   namespace Datasource {
     interface ConnectorConfig {
       urls: string[];
@@ -535,4 +563,15 @@ declare module 'ui-search/source' {
   export const DocDetail: any;
   export const ActionButton: any;
   export const Preview: any;
+  // filename helpers — attachments saved under a bare title (no extension)
+  // can't be opened by the OS afterwards
+  export const ensureFilenameExtension: (
+    filename: string | undefined,
+    extension: string | undefined
+  ) => string;
+  export const extensionFromMime: (mime: string | undefined | null) => string | undefined;
+  // facet field keys — an aggregation must be named after its filter field for
+  // facet clicks to filter on it (used by hosts building their own agg DSL)
+  export const OWNER_FILTER_FIELD: '_system.owner_id';
+  export const TIME_FILTER_FIELD: 'updated_range';
 }

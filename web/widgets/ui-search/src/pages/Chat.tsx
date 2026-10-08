@@ -252,9 +252,9 @@ export default function Chat({
               t={t}
             />
           }
-          onBackToSearch={() => {
+          onBackToSearch={onBackToSearch ? () => {
             chatRef.current?.clearChat(() => onBackToSearch?.());
-          }}
+          } : undefined}
         />
       }
       sidebar={

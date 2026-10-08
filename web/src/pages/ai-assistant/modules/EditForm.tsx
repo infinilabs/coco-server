@@ -192,9 +192,17 @@ export const EditForm = memo((props: AssistantFormProps) => {
     setSuggestedChatChecked(initialValues?.chat_settings?.suggested?.enabled || false);
   }, [initialValues?.chat_settings?.suggested?.enabled]);
 
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState<{ value: string; label: string }[]>([]);
   useEffect(() => {
+    // builtin categories first, then any custom ones already in use (ES aggregation)
+    const builtin = [
+      { value: 'chat', label: t('page.wiki.assistantGroup.chat') },
+      { value: 'deep_think', label: t('page.wiki.assistantGroup.deepThink') },
+      { value: 'deep_research', label: t('page.wiki.assistantGroup.deepResearch') },
+      { value: 'processing', label: t('page.wiki.assistantGroup.processing') }
+    ];
     getAssistantCategory().then(({ data }) => {
+      const custom: { value: string; label: string }[] = [];
       if (!data?.error) {
         const newData = formatESSearchResult(data);
         const cates = newData?.aggregations?.categories?.buckets
@@ -202,10 +210,13 @@ export const EditForm = memo((props: AssistantFormProps) => {
               return item.key;
             })
           : [];
-        setCategories(cates);
+        for (const cate of cates) {
+          if (!builtin.some(b => b.value === cate)) custom.push({ value: cate, label: cate });
+        }
       }
+      setCategories([...builtin, ...custom]);
     });
-  }, []);
+  }, [t]);
 
   const commonFormItemsClassName = `${showAdvanced || assistantMode === 'deep_think' ? '' : 'h-0px m-0px overflow-hidden'}`;
 
@@ -518,10 +529,8 @@ export const EditForm = memo((props: AssistantFormProps) => {
             className='max-w-600px'
             maxCount={1}
             mode='tags'
-            placeholder='Select or input a category'
-            options={categories.map(cate => {
-              return { value: cate };
-            })}
+            placeholder={t('page.assistant.categoryPlaceholder')}
+            options={categories}
           />
         </Form.Item>
         <Form.Item

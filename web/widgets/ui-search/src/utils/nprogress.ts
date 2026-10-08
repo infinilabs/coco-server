@@ -1,33 +1,30 @@
 /**
  * A self-contained, scoped progress bar used by the `ui-search` widget.
  *
- * Why this exists
- * ---------------
- * The host application (and many other consumers) also use the `nprogress`
- * package. Because `nprogress` exports a single shared object (one module
- * instance, one internal `status`, and a hard-coded DOM id `#nprogress`),
- * importing it here would silently couple the widget to the host:
+ * ## Why this exists
  *
- *   - Both would render into / read from the same `#nprogress` element.
- *   - Mutating `NProgress.render` / `remove` here would break the host's router
- *     guard progress bar.
- *   - The widget's CSS (`#nprogress .bar { background: rgb(var(--ui-search--nprogress-color)) }`)
- *     would win the cascade over the host's `#nprogress` rules, and since
- *     `--ui-search--nprogress-color` is only defined inside `.ui-search`, the
- *     host's top-of-page bar becomes transparent ("styles lost").
+ * The host application (and many other consumers) also use the `nprogress` package. Because `nprogress` exports a
+ * single shared object (one module instance, one internal `status`, and a hard-coded DOM id `#nprogress`), importing it
+ * here would silently couple the widget to the host:
+ *
+ * - Both would render into / read from the same `#nprogress` element.
+ * - Mutating `NProgress.render` / `remove` here would break the host's router guard progress bar.
+ * - The widget's CSS (`#nprogress .bar { background: rgb(var(--ui-search--nprogress-color)) }`) would win the cascade
+ *   over the host's `#nprogress` rules, and since `--ui-search--nprogress-color` is only defined inside `.ui-search`,
+ *   the host's top-of-page bar becomes transparent ("styles lost").
  *
  * To stay fully independent, this module provides a tiny progress bar that:
- *   - renders under a *unique* DOM id (`nprogress-ui-search`) so it never
- *     collides with a host's `#nprogress` element or CSS,
- *   - renders inside the widget's own container (`.ui-search` / shadow root),
- *     never into `document.body`,
- *   - keeps its own internal status and timers, so it cannot interfere with
- *     any other progress bar instance,
- *   - reads its color from `--ui-search--nprogress-color` (scoped to the
- *     widget), mirroring the widget's `nprogress.css`.
  *
- * The public surface intentionally mimics the subset of the `nprogress` API
- * the widget actually uses (`configure`, `start`, `done`).
+ * - renders under a _unique_ DOM id (`nprogress-ui-search`) so it never collides with a host's `#nprogress` element or
+ *   CSS,
+ * - renders at `document.body` (or the widget's shadow root), never inside `.ui-search`, so its `position: fixed` bar
+ *   anchors to the _viewport_ — hosts may wrap the widget in a `contain: layout` container (the Coco app shell does),
+ *   which re-anchors fixed descendants to that container and would slide the bar down under the host's header,
+ * - keeps its own internal status and timers, so it cannot interfere with any other progress bar instance,
+ * - reads its color from `--ui-search--nprogress-color` (scoped to the widget), mirroring the widget's `nprogress.css`.
+ *
+ * The public surface intentionally mimics the subset of the `nprogress` API the widget actually uses (`configure`,
+ * `start`, `done`).
  */
 
 export interface ScopedNProgressSettings {
@@ -59,7 +56,9 @@ const DEFAULT_SETTINGS: ScopedNProgressSettings = {
   trickle: true,
   trickleRate: 0.02,
   trickleSpeed: 800,
-  showSpinner: true,
+  // the top bar alone is the loading indicator; a corner spinner collides with
+  // host header controls when the widget is embedded below a host header
+  showSpinner: false,
   template:
     '<div class="bar" role="bar"><div class="peg"></div></div>' +
     '<div class="spinner" role="spinner"><div class="spinner-icon"></div></div>'
@@ -75,8 +74,8 @@ type RootLike = Element | ShadowRoot | Document;
 let rootGetter: () => RootLike = () => document;
 
 /**
- * Configure where the scoped progress bar lives. Called once by the widget's
- * root <Wrapper> so that Shadow DOM usage is supported.
+ * Configure where the scoped progress bar lives. Called once by the widget's root <Wrapper> so that Shadow DOM usage is
+ * supported.
  */
 export function setNProgressRoot(getter: () => RootLike) {
   rootGetter = getter;
@@ -104,17 +103,19 @@ function createScopedNProgress(): ScopedNProgress {
 
   const getRoot = (): RootLike => rootGetter();
 
-  const isRendered = () => !!getRoot().querySelector(`#${PROGRESS_ID}`);
+  const isRendered = () => Boolean(getRoot().querySelector(`#${PROGRESS_ID}`));
 
   /**
    * Resolve the container the progress element should be appended to.
-   * Mirrors the previous behaviour: prefer `.ui-search`, then the shadow root,
-   * then fall back to `document.body`.
+   *
+   * The bar is `position: fixed` and must anchor to the viewport top. A host can wrap the widget in a `contain: layout`
+   * container (the Coco app shell does, to keep the widget's own fixed header below the shell header) — fixed
+   * descendants of such a container re-anchor to the container instead of the viewport. Staying outside the widget
+   * (body / shadow root) keeps the viewport anchoring; the shadow root is required there because that is where this
+   * widget's CSS lives in shadow-DOM embedding.
    */
   const resolveContainer = (): Node => {
     const root = getRoot();
-    const widget = root.querySelector('.ui-search') as HTMLElement | null;
-    if (widget) return widget;
     if (typeof ShadowRoot !== 'undefined' && root instanceof ShadowRoot) return root;
     return document.body;
   };
@@ -136,6 +137,13 @@ function createScopedNProgress(): ScopedNProgress {
     if (!settings.showSpinner) {
       progress.querySelector(SPINNER_SELECTOR)?.remove();
     }
+
+    // The bar's color custom property is scoped to `.ui-search` by the widget
+    // theme setup, but the element renders outside that container — carry the
+    // resolved value onto the element so `rgb(var(...))` still applies.
+    const widget = getRoot().querySelector('.ui-search') as HTMLElement | null;
+    const color = widget ? getComputedStyle(widget).getPropertyValue('--ui-search--nprogress-color').trim() : '';
+    if (color) progress.style.setProperty('--ui-search--nprogress-color', color);
 
     resolveContainer().appendChild(progress);
     return progress;

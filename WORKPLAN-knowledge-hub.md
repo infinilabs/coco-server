@@ -1,6 +1,7 @@
 # Coco AI 知识中枢(feat/knowledge-hub / PR #705)工作计划
 
 > **定稿设计见 [DESIGN-knowledge-hub-v2.md](DESIGN-knowledge-hub-v2.md)**(2026-10-08,第五/六/七篇全部调研的合稿:工作流 W0-W9、批次、验收口径;本文件继续作为调研过程与落地记录日志)
+> **批 0/W0 落地(2026-10-08,未提交待评审)**:编辑闭环(PUT /document 预读旧档按指纹比对,内容实变才重入 indexing_documents,元数据编辑零成本)+ 入口闭环(POST /document 与 /datasource/:id/_doc 两变体,带内容即入队)+ 纯文本直通切块(document_text_attachment_extraction 对非 file 文档按 content 重切,改内容绝不留旧块)+ 共享入队助手 modules/common/indexing_queue.go;单测:document handler 级(独立 sqlite+hook 替换)+ 处理器直测;gofmt/构建绿。S1 凭据加密为批 0 另一半,待做
 > 更新时间:2026-10-07
 > 状态基线(2026-09-29):P0 引擎探针+语义自愈/P1 embedding 统一(8e2a1045)、P1.5 管道策展(63f08caa)、D1 查重引擎、D2 多路 RRF 含 wiki 路(cad6447a)、D3 图谱路(ed3b3912)均已落地,CI 8/8;R1 与三大营销能力、本体四部曲(W1-W4)此前已合入
 > 红线不变:PR 内不引入 license 相关文件(go.mod/go.sum、config/generated.go、.public/static.go、widget dist、二进制、.claw/);AI 只产草稿/提议,发布必须人工(D1)

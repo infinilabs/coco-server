@@ -91,6 +91,28 @@ var resolveLanguageLLM = func(providerID, model string) (llms.Model, error) {
 	return langchain.GetLLM(provider.BaseURL, provider.APIType, modelId.ID, provider.APIKey, ""), nil
 }
 
+// assistantAnsweringModel resolves the answering model and persona prompt of
+// the AI assistant bound to a KB (KB settings → AI 智能体). When a KB has an
+// assistant attached, its configured model drives AI generation/editing and
+// its role prompt steers the pipeline, unless the request pins a model
+// explicitly.
+func (h *APIHandler) assistantAnsweringModel(ctx context.Context, assistantID string) (string, string, string, bool) {
+	readCtx := orm.NewContextWithParent(ctx)
+	readCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(readCtx, &core.Assistant{})
+	var assistant core.Assistant
+	assistant.SetID(assistantID)
+	exists, err := orm.GetV2(readCtx, &assistant)
+	if err != nil || !exists {
+		return "", "", "", false
+	}
+	providerID, model := assistant.AnsweringModel.ProviderID, assistant.AnsweringModel.Name
+	if providerID == "" || model == "" {
+		return "", "", "", false
+	}
+	return providerID, model, assistant.RolePrompt, true
+}
+
 func defaultGenerationLang() string {
 	// AppConfig reads settings from kv, whose handler is only registered
 	// in a booted server; outside one (unit tests) fall back to en-US
@@ -234,6 +256,7 @@ type generationOptions struct {
 	Concurrency  int
 	Lang         string
 	Hint         string
+	RolePrompt   string
 }
 
 func (o *generationOptions) applyDefaults() {
@@ -345,7 +368,7 @@ func clusterPages(ctx context.Context, llm llms.Model, docs []core.Document, opt
 			"Generate the JSON object now.",
 		opts.MaxPages, opts.Lang, clusterHintLine(opts.Hint), listing.String())
 
-	system := "You are a knowledge-management agent planning wiki knowledge-base pages. Your response MUST be in " + opts.Lang + "."
+	system := "You are a knowledge-management agent planning wiki knowledge-base pages. Your response MUST be in " + opts.Lang + "." + rolePromptSuffix(opts.RolePrompt)
 	raw, err := callLLM(ctx, llm, system, userPrompt, usage)
 	if err != nil {
 		return nil, err
@@ -357,6 +380,16 @@ func clusterPages(ctx context.Context, llm llms.Model, docs []core.Document, opt
 		return nil, err
 	}
 	return validateCandidates(parsed.Pages, docs, opts.MaxPages), nil
+}
+
+// rolePromptSuffix folds the KB assistant's persona prompt into pipeline
+// system prompts — empty when no assistant is bound or it has no persona.
+func rolePromptSuffix(rolePrompt string) string {
+	rp := strings.TrimSpace(rolePrompt)
+	if rp == "" {
+		return ""
+	}
+	return "\n\nAdditional guidance from the knowledge-base owner (follow it unless it conflicts with the rules above):\n" + rp
 }
 
 func clusterHintLine(hint string) string {
@@ -439,7 +472,7 @@ func outlinePage(ctx context.Context, llm llms.Model, candidate pageCandidate, d
 			"Source documents:\n%s\n\n"+
 			"Generate the JSON object now.",
 		candidate.Title, candidate.PageType, opts.Lang, opts.Lang, material)
-	raw, err := callLLM(ctx, llm, "You are a knowledge-management agent drafting wiki page outlines. Your response MUST be in "+opts.Lang+".", userPrompt, usage)
+	raw, err := callLLM(ctx, llm, "You are a knowledge-management agent drafting wiki page outlines. Your response MUST be in "+opts.Lang+"."+rolePromptSuffix(opts.RolePrompt), userPrompt, usage)
 	if err != nil {
 		return nil, err
 	}
@@ -525,7 +558,7 @@ func draftChapter(ctx context.Context, llm llms.Model, candidate pageCandidate, 
 			"Source documents:\n%s\n\n"+
 			"Write the chapter body now.",
 		candidate.Title, chapter.Title, keyPoints, opts.Lang, material)
-	return callLLM(ctx, llm, "You are a knowledge-management agent writing cited wiki content. Your response MUST be in "+opts.Lang+".", userPrompt, usage)
+	return callLLM(ctx, llm, "You are a knowledge-management agent writing cited wiki content. Your response MUST be in "+opts.Lang+"."+rolePromptSuffix(opts.RolePrompt), userPrompt, usage)
 }
 
 // sourceReferenceFor adapts a scoped document to the citation backlink
@@ -699,7 +732,18 @@ func (h *APIHandler) aiGenerate(w http.ResponseWriter, req *http.Request, ps htt
 		return
 	}
 
-	llm, err := resolveLanguageLLM(body.ModelProvider, body.Model)
+	// the KB's bound AI assistant (settings → AI 智能体) drives generation when
+	// the request doesn't pin an explicit model; its role prompt steers the
+	// drafting pipeline
+	modelProvider, model := body.ModelProvider, body.Model
+	if modelProvider == "" && model == "" && kb.AssistantID != "" {
+		if provider, name, rolePrompt, ok := h.assistantAnsweringModel(req.Context(), kb.AssistantID); ok {
+			modelProvider, model = provider, name
+			opts.RolePrompt = rolePrompt
+		}
+	}
+
+	llm, err := resolveLanguageLLM(modelProvider, model)
 	if err != nil {
 		h.Error400(w, err.Error())
 		return
@@ -927,7 +971,25 @@ func (h *APIHandler) aiEdit(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 
-	llm, err := resolveLanguageLLM(body.ModelProvider, body.Model)
+	// honor the KB's bound AI assistant (settings → AI 智能体) when the request
+	// doesn't pin an explicit model; its role prompt joins the editing system
+	// prompt below
+	modelProvider, model := body.ModelProvider, body.Model
+	var rolePrompt string
+	if modelProvider == "" && model == "" && article.KbID != "" {
+		kbCtx := orm.NewContextWithParent(req.Context())
+		kbCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+		orm.WithModel(kbCtx, &core.WikiKnowledgeBase{})
+		var kb core.WikiKnowledgeBase
+		kb.SetID(article.KbID)
+		if exists, kerr := orm.GetV2(kbCtx, &kb); kerr == nil && exists && kb.AssistantID != "" {
+			if provider, name, rp, ok := h.assistantAnsweringModel(req.Context(), kb.AssistantID); ok {
+				modelProvider, model, rolePrompt = provider, name, rp
+			}
+		}
+	}
+
+	llm, err := resolveLanguageLLM(modelProvider, model)
 	if err != nil {
 		h.Error400(w, err.Error())
 		return
@@ -947,7 +1009,7 @@ func (h *APIHandler) aiEdit(w http.ResponseWriter, req *http.Request, ps httprou
 	if lang == "" {
 		lang = defaultGenerationLang()
 	}
-	system := "You are a knowledge-management agent editing wiki content. Your response MUST be in " + lang + "."
+	system := "You are a knowledge-management agent editing wiki content. Your response MUST be in " + lang + "." + rolePromptSuffix(rolePrompt)
 	var userPrompt string
 	if body.Selection != "" {
 		userPrompt = fmt.Sprintf(

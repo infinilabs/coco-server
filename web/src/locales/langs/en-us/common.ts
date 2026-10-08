@@ -29,6 +29,15 @@ const common: App.I18n.Schema['translation']['common'] = {
   },
   error: 'Error',
   errorHint: 'Please try again later',
+  exception: {
+    backToPrev: 'Go back',
+    title404: 'Page not found',
+    desc404: 'The page may have been removed, renamed, or never existed',
+    title403: 'Access denied',
+    desc403: "You don't have permission to view this page. Contact your administrator if needed.",
+    title500: 'Server error',
+    desc500: 'Something went wrong on our side. Please try again later.'
+  },
   expandColumn: 'Expand Column',
   index: 'Index',
   install: 'Install',

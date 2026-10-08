@@ -7,6 +7,7 @@ package datasource
 import (
 	"net/http"
 
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/modules/document"
@@ -15,6 +16,23 @@ import (
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 )
+
+// enqueueForIndexing feeds a freshly created document into the enrichment
+// pipeline (W0 write-path closure); swappable in tests.
+var enqueueForIndexing = common.EnqueueForIndexing
+
+// enqueueDocIfEnrichable mirrors the document API's entry closure: a
+// content-bearing document created through /datasource/:id/_doc must be
+// chunked/embedded like a connector-sourced one. Logged, never fatal —
+// the create already succeeded.
+func enqueueDocIfEnrichable(obj *core.Document) {
+	if obj == nil || len(obj.Content) == 0 {
+		return
+	}
+	if err := enqueueForIndexing(obj); err != nil {
+		log.Warnf("failed to enqueue datasource document [%s] for enrichment: %v", obj.ID, err)
+	}
+}
 
 func (h *APIHandler) createDatasource(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	var obj = &core.DataSource{}
@@ -276,6 +294,10 @@ func (h *APIHandler) createDocInDatasource(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
+	// Write-path closure (W0): same enrichment entry as connector-sourced
+	// documents — without this the _doc API lands chunk-less documents.
+	enqueueDocIfEnrichable(obj)
+
 	h.WriteJSON(w, util.MapStr{
 		"_id":    obj.ID,
 		"result": "created",
@@ -316,6 +338,9 @@ func (h *APIHandler) createDocInDatasourceWithID(w http.ResponseWriter, req *htt
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Write-path closure (W0): the keyed variant deserves chunks too.
+	enqueueDocIfEnrichable(obj)
 
 	h.WriteJSON(w, util.MapStr{
 		"_id":    obj.ID,
