@@ -103,6 +103,9 @@ func (p *DocumentTextAttachmentExtractionProcessor) processPdf(ctx context.Conte
 // appendPage processes a goquery page selection and appends its text (with image
 // markers) to pages.  Images are replaced with [[Image(UUID\tOCRText)]] tags.
 // When attachment extraction is disabled (nameToId is empty), img tags are simply removed.
+// The text keeps structure markers (W2 XHTML route): Tika's XHTML already
+// carries h1-h6 and table markup — rendering them as markdown headings and
+// one-line rows is the cheapest breadcrumb signal the chunker (W3) gets.
 func (p *DocumentTextAttachmentExtractionProcessor) appendPage(s *goquery.Selection, pageNum int, nameToId map[string]string, nameToText map[string]string, nameToPageNums map[string][]int, pages *[]string) {
 	s.Find("img").Each(func(i int, img *goquery.Selection) {
 		imageName, exists := img.Attr("src")
@@ -119,5 +122,5 @@ func (p *DocumentTextAttachmentExtractionProcessor) appendPage(s *goquery.Select
 			img.ReplaceWithHtml(fmt.Sprintf("[[Image(%s\t%s)]]", uuid, text))
 		}
 	})
-	*pages = append(*pages, strings.TrimSpace(s.Text()))
+	*pages = append(*pages, selectionToStructuredText(s))
 }

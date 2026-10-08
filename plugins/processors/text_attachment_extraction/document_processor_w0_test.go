@@ -23,17 +23,22 @@ func TestChunkContentOnlySplitsContent(t *testing.T) {
 
 	require.True(t, p.chunkContentOnly(doc))
 	require.NotEmpty(t, doc.Chunks)
-	// 25 runes at chunk_size 10 → 3 chunks (10+10+5); content-only input
-	// is a single "page", so every chunk's page range is {1,1}
+	// structured splitter (W3): 25 runes at cap 10 with the derived 15%
+	// overlap → 3 chunks of 10/10/7 runes; every chunk carries the whole
+	// content modulo the one-rune overlap prefixes on continuations
 	assert.Len(t, doc.Chunks, 3)
 	assert.Equal(t, 10, len([]rune(doc.Chunks[0].Text)))
-	assert.Equal(t, 5, len([]rune(doc.Chunks[2].Text)))
+	assert.Equal(t, 7, len([]rune(doc.Chunks[2].Text)))
 	assert.Equal(t, core.ChunkRange{Start: 1, End: 1}, doc.Chunks[0].Range)
 	var rebuilt strings.Builder
-	for _, c := range doc.Chunks {
-		rebuilt.WriteString(c.Text)
+	for i, c := range doc.Chunks {
+		runes := []rune(c.Text)
+		if i > 0 && len(runes) > 0 {
+			runes = runes[1:] // strip the single-rune overlap prefix
+		}
+		rebuilt.WriteString(string(runes))
 	}
-	assert.Equal(t, doc.Content, rebuilt.String(), "chunks must reassemble to the content losslessly")
+	assert.Equal(t, doc.Content, rebuilt.String(), "chunks minus overlap prefixes must reassemble to the content")
 }
 
 func TestChunkContentOnlyRecomputesOverStaleChunks(t *testing.T) {
