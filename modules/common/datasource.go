@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/common/secretbox"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/orm"
@@ -135,6 +136,10 @@ func GetDatasourceConfig(ctx *orm.Context, id string) (*core.DataSource, error) 
 
 	exists, err := orm.GetV2(ctx, &obj)
 	if err == nil && exists {
+		// S1: connector credentials are encrypted at rest — decrypt for
+		// the consumers of this choke (webhook ingestion, raw-content
+		// fetch) before the object enters the shared cache
+		obj.Connector.Config = secretbox.DecryptConfig(obj.Connector.Config)
 		GeneralObjectCache.Set(DatasourceItemsCacheKey, id, &obj, util.GetDurationOrDefault("30m", time.Duration(30)*time.Minute))
 		return &obj, nil
 	}
