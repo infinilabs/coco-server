@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/api/crud"
@@ -182,9 +183,16 @@ func articleConfig() crud.Config[core.WikiArticle] {
 				return err
 			}
 			persistLinkedPages(obj)
+			// published-article projection (W16a): content edits on a
+			// published page re-project; edits elsewhere reconcile to no row
+			SyncArticleProjection(obj)
 			return syncArticleTitleInToc(obj.KbID, obj.ID, obj.Title)
 		},
 		PostDelete: func(obj *core.WikiArticle) error {
+			// the projection row dies with the article
+			if err := removeArticleProjection(obj.ID); err != nil {
+				log.Debugf("wiki: projection removal on delete failed for [%s]: %v", obj.ID, err)
+			}
 			ctx := orm.NewContext()
 			ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 			ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
@@ -271,8 +279,22 @@ func registerEntityCRUD() {
 		// entities are retired via status, not deletion (design doc §4.1);
 		// create is hand-registered in init.go to accept the kb_id
 		// passthrough that selects the KB-scoped vocabulary (W3)
-		SkipActions:     []string{crud.ActionDelete, crud.ActionCreate},
-		PrepareUpdate:   prepareEntityUpdate,
+		SkipActions: []string{crud.ActionDelete, crud.ActionCreate},
+		PrepareUpdate: func(obj *core.WikiEntity, delta util.MapStr) error {
+			if err := prepareEntityUpdate(obj, delta); err != nil {
+				return err
+			}
+			// W10 propagation, stage 1: record what changed while the
+			// store still holds the pre-edit entity
+			recordEntityEditForPropagation(obj)
+			return nil
+		},
+		PostUpdate: func(obj *core.WikiEntity) error {
+			// W10 propagation, stage 2: file article_refresh proposals —
+			// only after the save actually happened
+			propagateEntityEditAfterSave(obj)
+			return nil
+		},
 		ProtectedFields: []string{"created", "sources"}, // sources are pipeline provenance (B2/B3)
 	})
 }

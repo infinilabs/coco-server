@@ -425,6 +425,10 @@ func (h *APIHandler) updateArticleStatus(w http.ResponseWriter, req *http.Reques
 	// entity pages mirror their workflow onto the ontology (B4)
 	syncEntityStatus(&article, body.Status)
 
+	// published-article projection (W16a): publish projects the article
+	// into the document index, unpublish/archive removes the row
+	SyncArticleProjection(&article)
+
 	// audit trail: record the workflow transition alongside the content
 	_ = writeVersionSnapshot(&article, nextVersionNumber(article.ID), core.WikiChangeHumanEdited,
 		fmt.Sprintf("status: %s -> %s", prev, body.Status))

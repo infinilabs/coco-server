@@ -522,6 +522,8 @@ func governanceTypeLabel(pType string) string {
 		return "low quality"
 	case core.WikiGovernanceOrphan:
 		return "orphaned page"
+	case core.WikiGovernanceArticleRefresh:
+		return "refresh after entity edit"
 	}
 	return pType
 }

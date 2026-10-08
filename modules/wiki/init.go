@@ -149,6 +149,12 @@ func init() {
 	api.HandleUIMethod(api.POST, "/wiki/article/:id/_relink", handler.relinkArticle,
 		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
 
+	// one-off published-article projection backfill (W16a): run before
+	// flipping search_settings.wiki_projection so the unified leg never
+	// serves a half-empty index
+	api.HandleUIMethod(api.POST, "/wiki/_backfill_projection", handler.backfillProjection,
+		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
+
 	scheduleSeedOntologySchema()
 	scheduleSeedBuiltinKmAssistant()
 }
