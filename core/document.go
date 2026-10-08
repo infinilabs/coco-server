@@ -79,10 +79,34 @@ type Document struct {
 	URL       string   `json:"url,omitempty" elastic_mapping:"url:{enabled:false}"`              // Direct link to the document, if available
 	Size      int      `json:"size,omitempty" elastic_mapping:"size:{type:long}"`                // File size in bytes, if applicable
 
+	// FolderPath is the virtual folder tree position (W4): normalized
+	// "/a/b" form, empty = root. The tree is an aggregation over this
+	// field; moves update it without reparsing.
+	FolderPath string `json:"folder_path,omitempty" elastic_mapping:"folder_path:{type:keyword}"`
+
 	LastUpdatedBy *EditorInfo `json:"last_updated_by,omitempty" elastic_mapping:"last_updated_by:{type:object}"` // Struct containing last update information
 	Disabled      bool        `json:"disabled,omitempty" elastic_mapping:"disabled:{type:boolean}"`              // Whether the document is disabled or not
 	Processed     bool        `json:"processed" elastic_mapping:"processed:{type:boolean}"`                      // Whether the document was successfully processed by a pipeline
+
+	// Processing lifecycle (W1): terminal state is stamped by the
+	// indexing consumer when the enrichment pipeline finishes, run
+	// history rides in Metadata["pipeline_runs"] (capped, newest first).
+	// Empty status = legacy document written before W1.
+	Status       string `json:"status,omitempty" elastic_mapping:"status:{type:keyword}"`            // indexing | completed | failed
+	ErrorMessage string `json:"error_message,omitempty" elastic_mapping:"error_message:{type:text}"` // Last pipeline failure reason
+
+	// Embedding model identity ("provider/model") that produced this
+	// document's vectors — stamped by the embedding processor so a model
+	// change can detect and batch-reprocess stale vectors (W1).
+	EmbeddingModel string `json:"embedding_model,omitempty" elastic_mapping:"embedding_model:{type:keyword}"`
 }
+
+// Document processing lifecycle states (Document.Status).
+const (
+	DocumentStatusIndexing  = "indexing"  // queued / enrichment in flight
+	DocumentStatusCompleted = "completed" // enrichment pipeline finished
+	DocumentStatusFailed    = "failed"    // enrichment pipeline returned an error
+)
 
 func (document *Document) GetAllCategories() string {
 	// Initialize a slice to hold all category strings
@@ -144,6 +168,11 @@ type DocumentChunk struct {
 	Range     ChunkRange `json:"range" elastic_mapping:"range:{type:object}"`
 	Text      string     `json:"text" elastic_mapping:"text:{type:text}"`
 	Embedding Embedding  `json:"embedding" elastic_mapping:"embedding:{type:object}"`
+	// Breadcrumb is the accumulated heading path of the section this chunk
+	// belongs to ("年报 > 财务 > 营收"), cut by the structure-aware
+	// splitter (W3/D10). Empty on legacy chunks. It is the cheapest
+	// section-level locator and feeds the embedding input.
+	Breadcrumb string `json:"breadcrumb,omitempty" elastic_mapping:"breadcrumb:{type:text}"`
 }
 
 type AiInsights struct {

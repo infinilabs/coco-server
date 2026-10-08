@@ -17,6 +17,12 @@ type DataSource struct {
 	Category string   `json:"category,omitempty" elastic_mapping:"category:{type:keyword}"`
 	Tags     []string `json:"tags,omitempty" elastic_mapping:"tags:{type:keyword}"`
 
+	// TagsVocab is the controlled vocabulary (W4): when set, the
+	// extract_tags processor may ONLY pick from this list — unknown model
+	// outputs are dropped, manual tags are never touched. Empty = free-form
+	// tagging (the historic behavior).
+	TagsVocab []string `json:"tags_vocab,omitempty" elastic_mapping:"tags_vocab:{type:keyword}}"`
+
 	Connector ConnectorConfig `json:"connector,omitempty" elastic_mapping:"connector:{type:object}"` // Connector configuration
 
 	// Whether synchronization is allowed

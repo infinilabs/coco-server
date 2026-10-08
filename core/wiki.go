@@ -62,6 +62,11 @@ const (
 	// (correction) so the scanner-style idempotency key still dedups.
 	WikiGovernanceKnowledgeGap = "knowledge_gap" // query keeps returning zero hits
 	WikiGovernanceCorrection   = "correction"    // user corrected an answer from work
+	// entity edit propagation (W10): a rename/alias/type/relations change
+	// on an entity invalidates the articles that reference it — refresh
+	// proposals keep the human gate (edits merge into the live article,
+	// never automatically)
+	WikiGovernanceArticleRefresh = "article_refresh"
 
 	// entity-dimension proposals filed by the extraction pipeline: the same
 	// human gate, different subject

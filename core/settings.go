@@ -15,6 +15,25 @@ type Config struct {
 	DataSecurity       *DataSecurity       `config:"data_security" json:"data_security,omitempty"`
 	EngineAI           *EngineAI           `config:"engine_ai" json:"engine_ai,omitempty"`
 	Appearance         *AppearanceSettings `config:"appearance" json:"appearance,omitempty"`
+	WikiSettings       *WikiSettings       `config:"wiki_settings" json:"wiki_settings,omitempty"`
+}
+
+// Settings under the "AI 知识库" tab: the assistant that curates the wiki
+// when a knowledge base doesn't bind its own. Per-KB bindings (KB settings →
+// AI 智能体) override this default.
+type WikiSettings struct {
+	// AssistantID is the default processing assistant for wiki AI
+	// generation/editing — overridable per knowledge base via its settings.
+	AssistantID string `config:"assistant_id" json:"assistant_id,omitempty"`
+}
+
+// GetAssistantID is nil-receiver safe: configs saved before this section
+// existed decode with a nil WikiSettings.
+func (s *WikiSettings) GetAssistantID() string {
+	if s == nil {
+		return ""
+	}
+	return s.AssistantID
 }
 
 // Settings under the "Appearance" tab: site branding. Images are stored as
@@ -103,6 +122,12 @@ type SearchSettings struct {
 	// values in searchTypes. Empty means keyword, the historic behavior,
 	// so settings saved before this field existed keep their meaning.
 	SearchType string `json:"search_type,omitempty"`
+	// WikiProjection serves the wiki retrieval leg from the document index
+	// (published-article projections, type=wiki_article) instead of the
+	// wiki_article index — the "KB as a built-in datasource" unification
+	// (W16a). Off by default: flip it after the one-off backfill so the
+	// leg never serves a half-empty index.
+	WikiProjection bool `json:"wiki_projection,omitempty"`
 }
 
 // DefaultType is the nil-safe resolution of the configured default: no
