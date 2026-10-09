@@ -31,6 +31,7 @@ type searchStudioBody struct {
 		WikiWeight     float64 `json:"wiki_weight"`
 		GraphWeight    float64 `json:"graph_weight"`
 		EntityWeight   float64 `json:"entity_weight"`
+		ChunkWeight    float64 `json:"chunk_weight"`
 		RewriteWeight  float64 `json:"rewrite_weight"`
 	} `json:"rrf"`
 }
@@ -112,6 +113,7 @@ func (h *APIHandler) searchStudioTest(w http.ResponseWriter, req *http.Request, 
 		rrfRouteWiki:     body.RRF.WikiWeight,
 		rrfRouteGraph:    body.RRF.GraphWeight,
 		rrfRouteEntity:   body.RRF.EntityWeight,
+		rrfRouteChunk:    body.RRF.ChunkWeight,
 		rrfRouteRewrite:  body.RRF.RewriteWeight,
 	}}.normalized()
 
@@ -264,6 +266,25 @@ func (h *APIHandler) searchStudioTest(w http.ResponseWriter, req *http.Request, 
 			*result = *studioRouteResultFromHits(rrfRouteEntity, resp.Hits.Hits, resp.GetTotal())
 			result.TookMS = nowMilli() - started
 			collect(rrfRouteEntity, resp.Hits.Hits, result)
+		}
+	}
+
+	// --- chunk route (standalone KnowledgeChunk index; W3 方案 c) ---
+	{
+		result := &studioRouteResult{Name: rrfRouteChunk, Hits: []studioRouteHit{}}
+		started := nowMilli()
+		resp, err := h.chunkIndexRoute(req, query, size)
+		result.TookMS = nowMilli() - started
+		if err != nil {
+			result.Error = err.Error()
+			collect(rrfRouteChunk, nil, result)
+		} else if resp == nil {
+			result.Note = "no chunk rows for this query's scope — leg off or no projection yet"
+			collect(rrfRouteChunk, nil, result)
+		} else {
+			*result = *studioRouteResultFromHits(rrfRouteChunk, resp.Hits.Hits, resp.GetTotal())
+			result.TookMS = nowMilli() - started
+			collect(rrfRouteChunk, resp.Hits.Hits, result)
 		}
 	}
 
