@@ -182,6 +182,12 @@ func GenerateResponse(taskCtx context.Context, provider *core.ModelProvider, mod
 		}
 	}
 
+	if v, ok := inputValues["memory_section"]; ok {
+		if text, ok := v.(string); ok && text != "" {
+			contextPrompt += text
+		}
+	}
+
 	if v, ok := inputValues["references"]; ok {
 		contextPrompt += util.SubString(fmt.Sprintf("\nReferences:\n%v\n", v), 0, 4096*2) //TODO
 	}
