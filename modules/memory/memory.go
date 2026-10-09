@@ -461,3 +461,37 @@ func decodeRecords(res *orm.SearchResult) ([]core.MemoryRecord, int64, error) {
 	}
 	return recs, out.Hits.Total, nil
 }
+
+// AutoDistill is the session-close hook (W6): rate-limited (5 min per
+// user), recovers panics, fires asynchronously — the chat flow never
+// waits for distillation. Returns immediately; results file as pending
+// records and notify the user.
+func AutoDistill(userID, excerpt, sessionID string) {
+	if userID == "" || strings.TrimSpace(excerpt) == "" {
+		return
+	}
+	if last, loaded := distillMu.Load(userID); loaded {
+		if t := last.(time.Time); time.Since(t) < distillCooldown {
+			return
+		}
+	}
+	distillMu.Store(userID, time.Now())
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Warnf("memory: auto-distill panicked: %v", r)
+			}
+		}()
+		created, err := Distill(context.Background(), userID, excerpt, sessionID)
+		if err != nil {
+			log.Debugf("memory: auto-distill failed: %v", err)
+			return
+		}
+		if created > 0 {
+			NotifyPendingMemories(userID, created)
+		}
+	}()
+}
+
+// distillCooldown is the per-user auto-distill interval.
+const distillCooldown = 5 * time.Minute
