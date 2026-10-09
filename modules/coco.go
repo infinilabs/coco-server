@@ -34,6 +34,7 @@ func (this *Coco) Setup() {
 
 	orm.MustRegisterSchemaWithIndexName(core.Session{}, "session"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.Document{}, "document"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.KnowledgeChunk{}, "knowledge-chunk"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.ChatMessage{}, "message"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.Attachment{}, "attachment"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.Connector{}, "connector"+suffix)

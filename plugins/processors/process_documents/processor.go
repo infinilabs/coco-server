@@ -5,6 +5,7 @@
 package process_documents
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/modules/document"
 	fwconfig "infini.sh/framework/core/config"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/param"
@@ -233,6 +235,11 @@ func (p *ProcessDocumentsProcessor) pushEnriched(data []byte, success bool, pipe
 		return queue.Push(p.outputQueue, data)
 	}
 	applyProcessingOutcome(&doc, success, pipelineName, tookMs, errMsg)
+	// W3 方案 c: mirror the (re-)chunked document into the standalone
+	// KnowledgeChunk index — the retrieval face for chunk-level legs
+	if success && len(doc.Chunks) > 0 {
+		document.ProjectDocumentChunksFn(context.Background(), &doc)
+	}
 	// W11 liaison: notify the curated layer on every enrichment completion
 	// — handlers decide (fingerprint compare) whether anything changed
 	common.FireDocumentProcessed(&doc)
