@@ -149,6 +149,11 @@ func init() {
 	api.HandleUIMethod(api.POST, "/wiki/article/:id/_relink", handler.relinkArticle,
 		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
 
+	// knowledge compiler (W9): four-stage pipeline over the KB's source
+	// documents — every output is a governance proposal
+	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_compile", handler.compileKBHandler,
+		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
+
 	// one-off published-article projection backfill (W16a): run before
 	// flipping search_settings.wiki_projection so the unified leg never
 	// serves a half-empty index
