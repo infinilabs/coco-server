@@ -61,9 +61,17 @@ func init() {
 
 	api.RegisterAppSetting("search_settings", func() interface{} {
 		info := common.AppConfig()
-		settings := core.SearchSettings{}
+		// search is the product's core entry — a fresh instance (no saved
+		// section) has it enabled by default so /search is reachable without
+		// the operator first visiting settings. An explicit saved.Enabled=false
+		// is an operator decision and is respected.
+		settings := core.SearchSettings{Enabled: true}
 		if info.SearchSettings != nil {
-			settings = *info.SearchSettings
+			saved := *info.SearchSettings
+			settings.Enabled = saved.Enabled
+			settings.SearchType = saved.SearchType
+			settings.WikiProjection = saved.WikiProjection
+			settings.ChunkRoute = saved.ChunkRoute
 		}
 		// the app's own search page always renders the built-in fullscreen
 		// widget (edited in the search settings tab) — ignore any stale saved
