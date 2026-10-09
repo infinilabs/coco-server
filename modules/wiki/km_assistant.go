@@ -6,6 +6,7 @@ package wiki
 
 import (
 	"context"
+	"strings"
 
 	log "github.com/cihub/seelog"
 
@@ -42,7 +43,9 @@ func seedBuiltinKmAssistant() {
 	var existing core.Assistant
 	existing.SetID(builtinKmAssistantID)
 	exists, err := orm.GetV2(ctx, &existing)
-	if err != nil {
+	// GetV2 reports a missing record as (false, "record not found") — that is
+	// the normal first-boot path, not a failure; only bail on real errors.
+	if err != nil && !strings.Contains(err.Error(), "record not found") {
 		log.Errorf("wiki: check builtin KM assistant: %v", err)
 		return
 	}
@@ -62,7 +65,8 @@ func seedBuiltinKmAssistant() {
 	assistant.SetID(builtinKmAssistantID)
 
 	createCtx := orm.NewContextWithParent(context.Background())
-	createCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	// OpCreate hooks bypass on the write flag (the read flag only covers get/search)
+	createCtx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 	createCtx.Refresh = orm.WaitForRefresh
 	if err := orm.Create(createCtx, &assistant); err != nil {
 		log.Errorf("wiki: seed builtin KM assistant: %v", err)

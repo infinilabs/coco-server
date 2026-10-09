@@ -247,7 +247,10 @@ func (processor *ExtractEntitiesProcessor) extractAndLink(ctx context.Context, l
 	}
 
 	ormCtx := orm.NewContext()
-	ormCtx.Set(orm.DirectWriteWithoutPermissionCheck, true) // pipeline context has no session user
+	// pipeline context has no session user: the write flag passes create/update
+	// hooks, the read flag passes the search hooks (entity lookups below)
+	ormCtx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ormCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
 
 	resolved := make([]*core.WikiEntity, 0, len(result.Entities))
 	seen := map[string]bool{}

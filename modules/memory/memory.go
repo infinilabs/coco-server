@@ -372,6 +372,9 @@ func Distill(ctx context.Context, userID, excerpt, sessionID string) (int, error
 	}
 
 	octx := orm.NewContextWithParent(ctx)
+	// distill runs in the background — no session user, so the create
+	// hooks need the write bypass to pass
+	octx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 	octx.Refresh = orm.WaitForRefresh
 	created := 0
 	for _, item := range parsed {

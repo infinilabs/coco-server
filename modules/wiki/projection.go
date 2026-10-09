@@ -53,6 +53,8 @@ func passesProjectionGate(article *core.WikiArticle, conceptMinSources int) bool
 func projectArticleToDocument(article *core.WikiArticle) error {
 	ctx := orm.NewContext()
 	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	// GetV2 below is an OpGet — the get/search hooks bypass on the read flag
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	ctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(ctx, &core.Document{})
 
