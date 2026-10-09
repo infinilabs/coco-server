@@ -463,6 +463,12 @@ func fileCompileProposal(ctx *orm.Context, kb *core.WikiKnowledgeBase, item Comp
 		log.Debugf("wiki compiler: proposal create failed for [%s]: %v", key.Name, err)
 		return false
 	}
+	// the human gate needs to know the gate has a new item — the KB owner
+	// gets the same notification the scanner's proposals carry
+	if kb.GetOwnerID() != "" {
+		notifyOwner(kb.GetOwnerID(), "article", kb.ID, "governance",
+			fmt.Sprintf("知识编译:%s %s 页提议(来自 %d 条来源主张)", actionLabel, key.Name, len(key.Statements)))
+	}
 	return true
 }
 

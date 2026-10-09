@@ -338,6 +338,9 @@ func (h *APIHandler) distill(w http.ResponseWriter, r *http.Request, _ httproute
 		return
 	}
 	distillMu.Store(userID, time.Now())
+	if created > 0 {
+		NotifyPendingMemories(userID, created)
+	}
 	writeJSON(w, util.MapStr{"created": created, "status": "pending — confirm via /memory/:id/_confirm"})
 }
 
