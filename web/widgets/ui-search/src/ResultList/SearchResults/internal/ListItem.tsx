@@ -84,7 +84,9 @@ export function ListItem({
                     title={item.href}
                     onClick={(e) => {
                       e.stopPropagation();
-                      window.open(item.href, "_blank");
+                      // W17: in-app preview links carry the live query so
+                      // the preview can land on and highlight the terms
+                      window.open(withHighlightQuery(item.href), "_blank");
                     }}
                   >
                     <SquareArrowOutUpRight size={12}/>
@@ -121,4 +123,21 @@ export function ListItem({
       {content}
     </ItemInteractive>
   );
+}
+
+// withHighlightQuery appends ?q=<current search> to in-app preview URLs
+// (term highlight in the preview, W17); external links pass untouched.
+export function withHighlightQuery(href: string): string {
+  try {
+    if (!href.includes("/#/preview/")) return href;
+    // the app search page mirrors the live query into the URL
+    // (enableQueryParams) — reading it survives rerenders and needs no
+    // DOM probing
+    const q = new URLSearchParams(window.location.search).get("query")?.trim();
+    if (!q) return href;
+    const sep = href.includes("?") ? "&" : "?";
+    return href + sep + "q=" + encodeURIComponent(q);
+  } catch {
+    return href;
+  }
 }

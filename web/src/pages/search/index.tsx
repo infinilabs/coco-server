@@ -5,7 +5,7 @@ import { fetchIntegration } from '@/service/api/integration';
 import useQueryParams from '@/hooks/common/queryParams';
 import { FullscreenPage, OWNER_FILTER_FIELD, TIME_FILTER_FIELD } from 'ui-search/source';
 import { querySearch, fetchSuggestions, fetchRecommends, fetchFieldsMeta, uploadAttachment } from '@/service/api/ai-search';
-import { getApiBaseUrl } from '@/service/request';
+import { getApiBaseUrl, request } from '@/service/request';
 import { consumePendingSearch } from '@/utils/search-handoff';
 import queryString from 'query-string';
 import { getDarkMode } from '@/store/slice/theme';
@@ -198,6 +198,36 @@ export function Component() {
     const body = JSON.stringify(aggs)
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
     const res = await querySearch(body, searchStr, { headers, ignoreError: true })
+
+    // W15: the per-leg aggregation describes one recall leg, not the
+    // fusion — the fused counts for the three main facets (source/type/
+    // tags) come from /query/_aggregations, which runs the same hybrid
+    // pipeline. Merge them over the leg-local buckets; content_category
+    // (the image/doc tabs) keeps its own aggregation untouched.
+    try {
+      const fusedStr = queryString.stringify({ query, search_type, fuzziness })
+      const fusedRes = await request({
+        method: 'get',
+        url: `/query/_aggregations?${fusedStr}`,
+        headers,
+        ignoreError: true
+      })
+      const fused = fusedRes?.data
+      if (fused && res?.data?.aggregations) {
+        const mergeFacet = (fieldName: string, buckets: { value: string; count: number }[] | undefined) => {
+          if (!buckets) return
+          res.data.aggregations[fieldName] = {
+            buckets: buckets.map(b => ({ key: b.value, doc_count: b.count }))
+          }
+        }
+        mergeFacet('source.id', fused.datasources)
+        mergeFacet('type', fused.types)
+        mergeFacet('tags', fused.tags)
+      }
+    } catch {
+      // fused facets are an enhancement — leg-local buckets stand on failure
+    }
+
     if (callback) callback(res.data)
     if (setLoading) setLoading(false)
   }

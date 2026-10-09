@@ -17,6 +17,8 @@ import (
 	"infini.sh/coco/modules/integration"
 	_ "infini.sh/coco/modules/integration"
 	_ "infini.sh/coco/modules/llm"
+	_ "infini.sh/coco/modules/mcpep"
+	_ "infini.sh/coco/modules/memory"
 	_ "infini.sh/coco/modules/pipeline"
 	_ "infini.sh/coco/modules/skill"
 	_ "infini.sh/coco/modules/system"
@@ -53,7 +55,6 @@ func (this *Coco) Setup() {
 	orm.MustRegisterSchemaWithIndexName(core.WikiLike{}, "wiki-like"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.WikiEntity{}, "wiki-entity"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.WikiOntologySchema{}, "wiki-ontology-schema"+suffix)
-	orm.MustRegisterSchemaWithIndexName(core.AssistantTemplate{}, "assistant-template"+suffix)
 }
 
 func (this *Coco) Start() error {
