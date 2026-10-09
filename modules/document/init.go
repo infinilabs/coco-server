@@ -51,7 +51,7 @@ func init() {
 	api.HandleUIMethod(api.GET, "/document/:doc_id/_timeline", handler.docTimeline, api.RequirePermission(readPermission))
 	api.HandleUIMethod(api.GET, "/document/:doc_id/_chunks", handler.documentChunksHandler, api.RequirePermission(readPermission))
 	api.HandleUIMethod(api.POST, "/document/:doc_id/_reprocess", handler.reprocessDoc, api.RequirePermission(updatePermission))
-	api.HandleUIMethod(api.POST, "/document/datasource/:id/_reprocess", handler.reprocessDatasourceDocs, api.RequirePermission(updatePermission))
+	api.HandleUIMethod(api.POST, "/datasource/:id/_reprocess", handler.reprocessDatasourceDocs, api.RequirePermission(updatePermission))
 
 	// document amendment (W11): upload evidence against a document, the
 	// model aligns it into a correction/supplement diff — a governance

@@ -237,7 +237,7 @@ func (p *ProcessDocumentsProcessor) pushEnriched(data []byte, success bool, pipe
 	applyProcessingOutcome(&doc, success, pipelineName, tookMs, errMsg)
 	// W3 方案 c: mirror the (re-)chunked document into the standalone
 	// KnowledgeChunk index — the retrieval face for chunk-level legs
-	if success && len(doc.Chunks) > 0 {
+	if len(doc.Chunks) > 0 {
 		document.ProjectDocumentChunksFn(context.Background(), &doc)
 	}
 	// W11 liaison: notify the curated layer on every enrichment completion
