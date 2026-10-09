@@ -45,7 +45,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       empty: '暂无消息'
     },
     outline: { title: '本页目录' },
-    assistantGroup: { chat: '对话使用', search: 'AI 搜索', deepThink: '深度思考', deepResearch: '深度研究', processing: '加工处理' },
+    assistantGroup: { chat: '对话使用', search: 'AI 搜索', deepThink: '深度思考', deepResearch: '深度研究', dataProcessing: '数据加工' },
     comments: {
       title: '评论',
       placeholder: '写下你的评论…',
@@ -356,6 +356,36 @@ const page: App.I18n.Schema['translation']['page'] = {
     noResults: '无结果',
     empty: '输入查询并点「试跑」,查看各路召回的排名、原始分与融合得分'
   },
+  faq: {
+    tabTitle: 'FAQ 条目',
+    title: 'FAQ 知识条目',
+    hint: '索引内容=标准问+相似问;负例问题绝不入索引(问到即整条出局),答案只在精确命中时直接返回。',
+    refresh: '刷新',
+    newEntry: '新建条目',
+    empty: '暂无 FAQ 条目',
+    standard: '标准问题',
+    standardPlaceholder: '用户会怎么问这个问题',
+    answerCol: '答案',
+    similarCol: '相似问(每行一个)',
+    negativeCol: '负例问题(每行一个)',
+    linesHint: '每行一个问题,留空跳过',
+    linesPlaceholder: '每行一个问题',
+    negativeHint: '问到与负例完全一致时,该条目直接出局',
+    actions: '操作',
+    delete: '删除',
+    deleteConfirm: '删除这条 FAQ 条目?',
+    created: '已创建',
+    duplicate: '相同问题集已存在,跳过',
+    deleted: '已删除',
+    loadFailed: '加载失败',
+    createOk: '创建',
+    testTitle: '试搜',
+    testPlaceholder: '输入一个问题,验证召回/负例/直答',
+    testRun: '试搜',
+    exactHit: '精确命中 · 标准答案可直接采用',
+    rankedHits: '排序命中 {{n}} 条',
+    noHit: '无命中(可能被负例过滤)',
+  },
   searchOps: {
     title: '检索运营',
     subtitle: '大家在搜什么、哪条策略在跑、哪里召回落空、花了多少毫秒——迭代回路的数据面',
@@ -383,6 +413,33 @@ const page: App.I18n.Schema['translation']['page'] = {
     indexName: '存储',
     indexStatus: '状态',
     indexDocs: '文档数',
+    ingestionTitle: '接入任务',
+    ingestionSubtitle: '摄取管道的生命周期分布与失败清单——失败可一键批量重试',
+    statusIndexing: '处理中',
+    statusCompleted: '已完成',
+    statusFailed: '失败',
+    statusLegacy: '存量(未盖章)',
+    failedTitle: '失败清单',
+    failedDocTitle: '文档',
+    failedDatasource: '数据源',
+    failedError: '失败原因',
+    failedUpdated: '更新时间',
+    retryFailed: '批量重试失败文档',
+    retryConfirm: '将把所有失败文档清空产物后重新入队处理,继续吗?',
+    retryDone: '已重试 {{retried}} 篇,{{still}} 篇未能重试',
+    syncTitle: '同步状态',
+    syncName: '数据源',
+    syncType: '类型',
+    syncEnabled: '启用',
+    syncInterval: '同步间隔',
+    syncLastDispatch: '上次调度',
+    syncCursor: '增量游标',
+    syncRunState: '最近运行',
+    syncRunProgress: '{{batches}} 批 / {{documents}} 篇',
+    syncStale: '疑似僵死',
+    syncSuperseded: '未记终态',
+    syncRunning: '运行中',
+    syncNever: '从未运行',
   },
   apitoken: {
     columns: {
@@ -521,6 +578,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       internal_datasource_ids: '数据源'
     },
     mode: {
+      data_processing: '数据加工',
       deep_think: '深度思考',
       deep_research: '深度研究',
       simple: '简单模式',
@@ -1415,6 +1473,17 @@ const page: App.I18n.Schema['translation']['page'] = {
       top_p_desc: '与随机性类似，但不要和随机性一起更改',
       type: '类型'
     },
+    wiki_settings: {
+      title: 'AI 知识库',
+      labels: {
+        assistant: '整理智能体',
+        assistant_desc: '「AI 生成」与「AI 编辑」默认使用的智能体；知识库单独绑定的智能体优先于此处',
+        assistant_placeholder: '选择默认智能体',
+        default_hint_title: '生效规则',
+        default_hint: '此处为全系统默认配置；某个知识库在「设置 → AI 智能体」单独绑定后，以该绑定为准。内置的「知识管理助手」开箱即用（引用溯源、只产草稿）。'
+      }
+    },
+
     search_settings: {
       title: '搜索设置',
       labels: {
@@ -1569,6 +1638,31 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     setupLater: '稍后设置'
   },
+  memory_settings: {
+    title: '我的记忆',
+    hint: '蒸馏产出的记忆一律先待确认——确认前绝不进入任何提示词;拒绝保留抑制记录,删除彻底移除。仅自己可见。',
+    kind: '类型',
+    content: '内容',
+    status: '状态',
+    updated: '更新时间',
+    actions: '操作',
+    pending: '待确认',
+    confirmed: '已生效',
+    rejected: '已拒绝',
+    all: '全部',
+    confirm: '确认',
+    reject: '拒绝',
+    confirmTitle: '确认这条记忆?',
+    confirmHint: '确认后,该记忆将进入你的助手上下文(常驻类每次注入,事实/任务类按查询召回)。',
+    rejectTitle: '拒绝这条记忆?',
+    rejectHint: '拒绝后该记忆永不注入,记录保留作审计。',
+    settled: '已处理',
+    delete: '删除',
+    deleteConfirm: '彻底删除这条记忆?',
+    deleted: '已删除',
+    empty: '暂无记忆(会话蒸馏或手动提交后出现在这里)',
+    loadFailed: '加载失败',
+  },
   webhook: {
     form: {
       title: {
@@ -1631,20 +1725,6 @@ const page: App.I18n.Schema['translation']['page'] = {
     inverse: '逆关系',
     bareType: '该类型暂无属性与关系',
     empty: '暂无词表,点击"新增类型"开始定义本体'
-  },
-  assistantTemplate: {
-    title: '智能体模板',
-    subtitle: '一键将场景预设(角色提示词 + 建议问题)实例化为可用的 AI 助手,可选绑定知识库。',
-    use: '使用模板',
-    useTitle: '使用模板:{{title}}',
-    name: '助手名称',
-    bindKb: '绑定知识库(可选)',
-    bindKbPlaceholder: '选择要绑定的知识库,助手将检索其数据源',
-    bindHint: '绑定后:助手的数据范围 = 该知识库的数据源,知识库也会记录此助手,便于"询问本知识库"。',
-    create: '创建并开始对话',
-    created: '助手已创建,正在前往对话',
-    empty: '暂无模板',
-    category: { support: '客服', sales: '销售', hr: '人力资源', it: 'IT 支持', productivity: '效率' }
   },
   pipeline: {
         templates: {
@@ -1878,6 +1958,22 @@ const page: App.I18n.Schema['translation']['page'] = {
   setupLater: '稍后设置',
   preview: {
     title: '文档预览',
+    processing: {
+      title: '加工',
+      open: '查看加工过程与产物',
+      statusIndexing: '处理中',
+      statusCompleted: '已完成',
+      statusFailed: '失败',
+      statusLegacy: '存量(未盖章)',
+      model: '嵌入模型',
+      runsTitle: '运行记录(最近 5 次)',
+      noRuns: '暂无运行记录(存量文档或尚未处理)',
+      chunksTitle: '解析产物 · 块清单(共 {{total}} 块)',
+      breadcrumb: '面包屑',
+      pages: '页区间',
+      excerpt: '摘录',
+      vectorized: '向量'
+    },
     labels: {
       type: '类型',
       size: '大小',

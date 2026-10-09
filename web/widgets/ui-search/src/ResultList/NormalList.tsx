@@ -1,5 +1,6 @@
-import { memo, useEffect, useMemo, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { useTranslation } from 'react-i18next';
 import styles from './NormalList.module.less';
 import LoadingIcon from '../components/LoadingIcon';
 import { EndList } from './EndList';
@@ -167,6 +168,10 @@ export function NormalList(props: NormalListProps) {
                     onOpen(record);
                   }}
                 />
+                {/* duplicate fold (W12): same content_hash copies collapsed
+                    onto this hit by the server; the review stays on the
+                    dedup report — here it is show-and-jump only */}
+                <DuplicateFold item={item} />
                 {virtualRow.index < listData.length - 1 && (
                   <div className='mx-16px border-b border-solid border-slate-200/70 dark:border-slate-700/50' />
                 )}
@@ -198,3 +203,45 @@ export function NormalList(props: NormalListProps) {
 }
 
 export default memo(NormalList);
+
+/* ---------------- duplicate fold (W12) ---------------- */
+
+interface FoldMember {
+  id: string;
+  title?: string;
+  source?: string;
+  updated?: string;
+}
+
+function DuplicateFold({ item }: { item: any }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const dupes = item?.metadata?.fingerprint_duplicates;
+  const count = dupes?.count ?? 0;
+  const members: FoldMember[] = dupes?.members ?? [];
+  if (!count || count < 1) return null;
+
+  return (
+    <div className='mx-16px mb-4px flex flex-col gap-2px'>
+      <button
+        type='button'
+        className='text-12px text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-left'
+        onClick={() => setOpen(v => !v)}
+      >
+        {open
+          ? t('labels.duplicatesHide', { count, tier: dupes?.tier ?? 'exact' })
+          : t('labels.duplicatesFold', { count, tier: dupes?.tier ?? 'exact' })}
+      </button>
+      {open && (
+        <div className='flex flex-col gap-2px pl-8px border-l border-solid border-slate-200 dark:border-slate-700'>
+          {members.map(m => (
+            <span key={m.id} className='text-12px text-slate-500 dark:text-slate-400 truncate'>
+              · {m.title || m.id}
+              {m.source ? ` — ${m.source}` : ''}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

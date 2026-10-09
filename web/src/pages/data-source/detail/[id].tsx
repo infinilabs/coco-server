@@ -2,6 +2,7 @@ import { Tabs } from 'antd';
 
 import './index.scss';
 import FileManagement from './modules/FileManagement';
+import FaqManagement from './modules/FaqManagement';
 import { useRoute } from '@sa/simple-router';
 import MappingManagement from './modules/MappingManagement';
 
@@ -28,6 +29,12 @@ export function Component() {
       component: FileManagement,
       key: 'file',
       label: t(`page.datasource.file.title`),
+    })
+    // FAQ entries are documents of this datasource (W5) — same view gate
+    items.push({
+      component: FaqManagement,
+      key: 'faq',
+      label: t(`page.faq.tabTitle`),
     })
     // items.push({
     //   component: MappingManagement,

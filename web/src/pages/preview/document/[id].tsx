@@ -1,6 +1,7 @@
-import { Button, Result } from 'antd';
+import { Button, Drawer, Result } from 'antd';
 import { useParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { highlightTerms } from './highlight';
+import { ArrowLeft, Wrench } from 'lucide-react';
 
 import { request } from '@/service/request';
 import { fetchEntityUser } from '@/service/api/entity';
@@ -12,6 +13,7 @@ import { useAppSelector } from '@/hooks/business/useStore';
 import classNames from 'classnames';
 
 import PreviewContent from './components/PreviewContent';
+import ProcessingPanel from './components/ProcessingPanel';
 import { ensureFilenameExtension, extensionFromMime } from 'ui-search/source';
 
 // Helper function to extract a filename from a Content-Disposition header.
@@ -42,6 +44,10 @@ export function Component() {
   const [contentBlobUrl, setContentBlobUrl] = useState<string>();
   const [downloadFilename, setDownloadFilename] = useState<string>();
   const [rawContentError, setRawContentError] = useState<string>();
+  const [processingOpen, setProcessingOpen] = useState(false);
+  // W17 terms-only highlight: ?q= carries the originating search terms
+  const highlightQuery = searchParams.get('q') ?? '';
+  const contentRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -183,6 +189,18 @@ export function Component() {
     };
   }, [contentBlobUrl]);
 
+  // highlight after the content renders (blob load + paint settle)
+  useEffect(() => {
+    if (loading || error || !highlightQuery || !contentRef.current) return;
+    const timer = setTimeout(() => {
+      const { marks, firstElement } = highlightTerms(contentRef.current, highlightQuery);
+      if (marks > 0 && firstElement) {
+        firstElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [loading, error, highlightQuery, contentBlobUrl, data]);
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -278,12 +296,36 @@ export function Component() {
         )}
 
         <div
+          ref={contentRef}
           className={classNames('flex-1 overflow-hidden', {
             'mt-8': !embedded
           })}
         >
           {renderContent()}
         </div>
+
+        {/* processing panel (W13): lifecycle + chunks for this document —
+            hidden in embedded/widget mode, ops actions stay on the ops page */}
+        {!embedded && !loading && !error ? (
+          <>
+            <Button
+              type="primary"
+              shape="circle"
+              icon={<Wrench size={18} />}
+              title={t('page.preview.processing.open')}
+              className="fixed bottom-24px right-24px z-10"
+              onClick={() => setProcessingOpen(true)}
+            />
+            <Drawer
+              title={t('page.preview.processing.title')}
+              width={560}
+              open={processingOpen}
+              onClose={() => setProcessingOpen(false)}
+            >
+              <ProcessingPanel docId={id} headers={requestHeaders} />
+            </Drawer>
+          </>
+        ) : null}
       </div>
     </div>
   );

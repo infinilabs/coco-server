@@ -45,7 +45,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       empty: 'No notifications'
     },
     outline: { title: 'On this page' },
-    assistantGroup: { chat: 'Chat assistants', search: 'AI Search', deepThink: 'Deep thinking', deepResearch: 'Deep research', processing: 'Processing assistants' },
+    assistantGroup: { chat: 'Chat assistants', search: 'AI Search', deepThink: 'Deep thinking', deepResearch: 'Deep research', dataProcessing: 'Data processing' },
     comments: {
       title: 'Comments',
       placeholder: 'Add a comment…',
@@ -356,6 +356,36 @@ const page: App.I18n.Schema['translation']['page'] = {
     noResults: 'No results',
     empty: 'Enter a query and hit Run to see per-route ranks, raw scores and fused scores'
   },
+  faq: {
+    tabTitle: 'FAQ Entries',
+    title: 'FAQ knowledge entries',
+    hint: 'Index content = standard + similar questions; negative questions never index (an exact negative match knocks the entry out), answers return only on exact hits.',
+    refresh: 'Refresh',
+    newEntry: 'New entry',
+    empty: 'No FAQ entries yet',
+    standard: 'Standard question',
+    standardPlaceholder: 'How would a user ask this?',
+    answerCol: 'Answer',
+    similarCol: 'Similar questions (one per line)',
+    negativeCol: 'Negative questions (one per line)',
+    linesHint: 'One question per line, skip empty lines',
+    linesPlaceholder: 'one question per line',
+    negativeHint: 'An exact negative match removes this entry entirely',
+    actions: 'Actions',
+    delete: 'Delete',
+    deleteConfirm: 'Delete this FAQ entry?',
+    created: 'Created',
+    duplicate: 'Identical question set exists, skipped',
+    deleted: 'Deleted',
+    loadFailed: 'Load failed',
+    createOk: 'Create',
+    testTitle: 'Test search',
+    testPlaceholder: 'Ask a question to verify recall / negatives / direct answer',
+    testRun: 'Test',
+    exactHit: 'Exact hit — standard answer may be adopted',
+    rankedHits: '{{n}} ranked hits',
+    noHit: 'No hit (possibly filtered by a negative)',
+  },
   searchOps: {
     title: 'Search Ops',
     subtitle: 'What people searched, which strategies ran, where recall came up empty and what it cost — the data face of the iteration loop',
@@ -383,6 +413,33 @@ const page: App.I18n.Schema['translation']['page'] = {
     indexName: 'Store',
     indexStatus: 'Status',
     indexDocs: 'Docs',
+    ingestionTitle: 'Ingestion Tasks',
+    ingestionSubtitle: 'Pipeline lifecycle distribution and the failed list — failures retry in one click',
+    statusIndexing: 'Indexing',
+    statusCompleted: 'Completed',
+    statusFailed: 'Failed',
+    statusLegacy: 'Legacy (unstamped)',
+    failedTitle: 'Failed Documents',
+    failedDocTitle: 'Document',
+    failedDatasource: 'Datasource',
+    failedError: 'Error',
+    failedUpdated: 'Updated',
+    retryFailed: 'Retry failed documents',
+    retryConfirm: 'Every failed document will be reset and re-queued for processing. Continue?',
+    retryDone: 'Retried {{retried}} documents, {{still}} could not be retried',
+    syncTitle: 'Sync Status',
+    syncName: 'Datasource',
+    syncType: 'Type',
+    syncEnabled: 'Enabled',
+    syncInterval: 'Interval',
+    syncLastDispatch: 'Last dispatch',
+    syncCursor: 'Increment cursor',
+    syncRunState: 'Last run',
+    syncRunProgress: '{{batches}} batches / {{documents}} docs',
+    syncStale: 'likely stuck',
+    syncSuperseded: 'ended unrecorded',
+    syncRunning: 'running',
+    syncNever: 'never ran',
   },
   apitoken: {
     columns: {
@@ -526,6 +583,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       internal_datasource_ids: 'Datasources'
     },
     mode: {
+      data_processing: 'Data Processing',
       deep_think: 'Deep Think',
       deep_research: 'Deep Research',
       simple: 'Simple',
@@ -1222,20 +1280,6 @@ const page: App.I18n.Schema['translation']['page'] = {
     bareType: 'No properties or relations yet',
     empty: 'No schema on file — start by adding a type'
   },
-  assistantTemplate: {
-    title: 'Assistant Templates',
-    subtitle: 'Turn a scenario preset (curated role prompt + suggested questions) into a working assistant in one click, optionally bound to a knowledge base.',
-    use: 'Use template',
-    useTitle: 'Use template: {{title}}',
-    name: 'Assistant name',
-    bindKb: 'Bind knowledge base (optional)',
-    bindKbPlaceholder: 'Pick a knowledge base; the assistant will search its datasources',
-    bindHint: 'When bound: the assistant data scope becomes the KB datasources, and the KB records the assistant for "ask this KB".',
-    create: 'Create and chat',
-    created: 'Assistant created, opening chat',
-    empty: 'No templates yet',
-    category: { support: 'Support', sales: 'Sales', hr: 'HR', it: 'IT', productivity: 'Productivity' }
-  },
   pipeline: {
         templates: {
           title: 'Start from a common task',
@@ -1470,6 +1514,17 @@ const page: App.I18n.Schema['translation']['page'] = {
       top_p_desc: `similar to temperature, don't change them simultaneously`,
       type: 'Type'
     },
+    wiki_settings: {
+      title: 'AI Wiki',
+      labels: {
+        assistant: 'Curation assistant',
+        assistant_desc: 'The assistant used by AI generation & AI editing by default; a knowledge-base-level binding takes precedence',
+        assistant_placeholder: 'Select the default assistant',
+        default_hint_title: 'How it resolves',
+        default_hint: 'This is the system-wide default; a KB that binds its own assistant (KB settings → AI 智能体) overrides it. The builtin 知识管理助手 works out of the box (citation-backed, drafts only).'
+      }
+    },
+
     search_settings: {
       title: 'Search Settings',
       labels: {
@@ -1628,6 +1683,31 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     setupLater: 'Set Up Later'
   },
+  memory_settings: {
+    title: 'My Memory',
+    hint: 'Distilled memories stay PENDING until you confirm them here — nothing enters a prompt before that. Rejects keep a suppressed record; delete removes it outright. Only you can see these.',
+    kind: 'Kind',
+    content: 'Content',
+    status: 'Status',
+    updated: 'Updated',
+    actions: 'Actions',
+    pending: 'Pending',
+    confirmed: 'Active',
+    rejected: 'Rejected',
+    all: 'All',
+    confirm: 'Confirm',
+    reject: 'Reject',
+    confirmTitle: 'Confirm this memory?',
+    confirmHint: 'Once confirmed it joins your assistant context (resident kinds every turn, facts/tasks recalled per query).',
+    rejectTitle: 'Reject this memory?',
+    rejectHint: 'Rejected memories never inject; the record stays for audit.',
+    settled: 'Done',
+    delete: 'Delete',
+    deleteConfirm: 'Delete this memory permanently?',
+    deleted: 'Deleted',
+    empty: 'No memories yet (distilled conversations or manual entries land here)',
+    loadFailed: 'Load failed',
+  },
   webhook: {
     form: {
       title: {
@@ -1728,6 +1808,22 @@ const page: App.I18n.Schema['translation']['page'] = {
   },
   preview: {
     title: 'Document Preview',
+    processing: {
+      title: 'Processing',
+      open: 'View processing timeline and artifacts',
+      statusIndexing: 'Indexing',
+      statusCompleted: 'Completed',
+      statusFailed: 'Failed',
+      statusLegacy: 'Legacy (unstamped)',
+      model: 'Embedding model',
+      runsTitle: 'Run history (latest 5)',
+      noRuns: 'No runs recorded (legacy document or not yet processed)',
+      chunksTitle: 'Parsing artifacts · chunks ({{total}} total)',
+      breadcrumb: 'Breadcrumb',
+      pages: 'Pages',
+      excerpt: 'Excerpt',
+      vectorized: 'Vector'
+    },
     labels: {
       type: 'Type',
       size: 'Size',
