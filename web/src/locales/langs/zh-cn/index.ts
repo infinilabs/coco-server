@@ -32,7 +32,16 @@ const local: App.I18n.Schema['translation'] = {
     about: '关于'
   },
   menu: {
-    administration: '管理'
+    administration: '管理',
+    group: {
+      chat: '聊天',
+      data: '数据资料',
+      kb: '知识库',
+      others: '其他',
+      processing: '数据加工',
+      search: '数据搜索',
+      system: '系统设置'
+    }
   },
   page,
   request: {
