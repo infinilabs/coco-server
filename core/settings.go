@@ -128,6 +128,11 @@ type SearchSettings struct {
 	// (W16a). Off by default: flip it after the one-off backfill so the
 	// leg never serves a half-empty index.
 	WikiProjection bool `json:"wiki_projection,omitempty"`
+	// ChunkRoute adds the standalone KnowledgeChunk index as an extra RRF
+	// leg (W3 方案 c): BM25 over retrievable child chunks, hit a chunk →
+	// cite its mom section. Off by default — the text/semantic document
+	// legs stay; flip after _reprocess has projected enough documents.
+	ChunkRoute bool `json:"chunk_route,omitempty"`
 }
 
 // DefaultType is the nil-safe resolution of the configured default: no

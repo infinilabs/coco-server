@@ -31,6 +31,7 @@ func (h *APIHandler) parseRRFParams(req *http.Request) RRFConfig {
 			rrfRouteWiki:     defaultRRFWeight,
 			rrfRouteGraph:    defaultRRFWeight,
 			rrfRouteEntity:   defaultRRFWeight,
+			rrfRouteChunk:    defaultRRFWeight,
 			rrfRouteRewrite:  defaultRRFWeight,
 		},
 	}
@@ -58,6 +59,7 @@ func (h *APIHandler) parseRRFParams(req *http.Request) RRFConfig {
 	setWeight(rrfRouteWiki, "wiki_weight")
 	setWeight(rrfRouteGraph, "graph_weight")
 	setWeight(rrfRouteEntity, "entity_weight")
+	setWeight(rrfRouteChunk, "chunk_weight")
 	setWeight(rrfRouteRewrite, "rewrite_weight")
 	return cfg.normalized()
 }
@@ -129,6 +131,17 @@ func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrat
 	addRoute(rrfRouteGraph, graphResp, err)
 	entityResp, err := h.entityRoute(req, query, window)
 	addRoute(rrfRouteEntity, entityResp, err)
+	// W3 方案 c gray switch: the chunk-index leg runs alongside the
+	// document-level text leg — both feed the fusion, chunk hits carry
+	// mom/breadcrumb/quote for citations. Off = zero behavior change.
+	if cfg := appConfigFn(); cfg.SearchSettings != nil && cfg.SearchSettings.ChunkRoute {
+		chunkResp, cerr := h.chunkIndexRoute(req, query, window)
+		if cerr != nil {
+			log.Warnf("hybrid_rrf: chunk route failed: %v", cerr)
+		} else if chunkResp != nil {
+			addRoute(rrfRouteChunk, chunkResp, nil)
+		}
+	}
 	if rw.Applied {
 		resp, err = h.rrfRoute(req, "keyword", rw.Query, datasource, integrationID, category, subcategory, richCategory, fuzziness, window)
 		addRoute(rrfRouteRewrite, resp, err)

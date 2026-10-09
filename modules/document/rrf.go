@@ -24,13 +24,18 @@ const (
 	// names/aliases — the graph leg traverses relations, this leg meets
 	// the entity itself.
 	rrfRouteEntity = "entity"
+	// rrfRouteChunk is the standalone chunk-index leg (W3 方案 c): BM25
+	// over retrievable child chunks — hit a chunk, cite its mom section.
+	// Gray-switched (search_settings.chunk_route); the document-level
+	// text leg keeps running alongside.
+	rrfRouteChunk = "chunk"
 	// rrfRouteRewrite runs the model-rewritten query as one more keyword
 	// route (D8) — add-only, the original text route keeps running.
 	rrfRouteRewrite = "rewrite"
 )
 
 // rrfRouteNames is the canonical order routes are listed and rendered in.
-var rrfRouteNames = []string{rrfRouteText, rrfRouteSemantic, rrfRouteWiki, rrfRouteGraph, rrfRouteEntity, rrfRouteRewrite}
+var rrfRouteNames = []string{rrfRouteText, rrfRouteSemantic, rrfRouteWiki, rrfRouteGraph, rrfRouteEntity, rrfRouteChunk, rrfRouteRewrite}
 
 // RRFConfig controls how the recall routes are fused with Reciprocal Rank
 // Fusion:
