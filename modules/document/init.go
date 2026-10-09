@@ -78,7 +78,7 @@ func init() {
 	// groups fold in search only after this confirmation — a wrong fold
 	// is worse than a visible duplicate
 	api.HandleUIMethod(api.POST, "/document/dedup/confirm_group", handler.dedupGroupConfirmHandler, api.RequirePermission(updatePermission))
-	api.HandleUIMethod(api.DELETE, "/document/dedup/confirm_group/:key", handler.dedupGroupRemoveHandler, api.RequirePermission(updatePermission))
+	api.HandleUIMethod(api.POST, "/document/dedup/confirm_group/_remove", handler.dedupGroupRemoveHandler, api.RequirePermission(updatePermission))
 
 	querySearchPermission := security.GetSimplePermission(Category, Search, string(security.Search))
 	assistantSearchPermission := security.GetSimplePermission(Category, Assistant, QuickAISearchAction)

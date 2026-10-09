@@ -89,9 +89,20 @@ func (h *APIHandler) dedupGroupConfirmHandler(w http.ResponseWriter, req *http.R
 }
 
 // dedupGroupRemoveHandler deletes a confirmed group:
-// DELETE /document/dedup/confirm_group/:key — un-folds the group.
+// POST /document/dedup/confirm_group/_remove {"group_key": "..."} — un-folds.
+// (Path-param form would add a :key wildcard under /document/dedup/, which
+// conflicts with /document/:doc_id's subtree in httprouter.)
 func (h *APIHandler) dedupGroupRemoveHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	key := ps.ByName("key")
+	body := util.MapStr{}
+	if err := h.DecodeJSON(req, &body); err != nil {
+		h.WriteError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	key, _ := body["group_key"].(string)
+	if key == "" {
+		h.WriteError(w, "group_key required", http.StatusBadRequest)
+		return
+	}
 	ctx := orm.NewContextWithParent(req.Context())
 	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 	ctx.Refresh = orm.WaitForRefresh
