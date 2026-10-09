@@ -340,6 +340,10 @@ func (h APIHandler) createEntity(w http.ResponseWriter, req *http.Request, _ htt
 	}
 	kbID, _ := body["kb_id"].(string)
 	delete(body, "kb_id")
+	// lenient (repair flow, O2): undeclared types degrade to concept instead
+	// of 400 — the wikilink still binds and the operator can re-type later
+	lenient, _ := body["lenient"].(bool)
+	delete(body, "lenient")
 
 	obj := &core.WikiEntity{}
 	raw, err := util.ToJSONBytes(body)
@@ -362,12 +366,20 @@ func (h APIHandler) createEntity(w http.ResponseWriter, req *http.Request, _ htt
 	// check, not run after it, or KB-only types still die on the tenant gate.
 	if kbID != "" {
 		if err := validateEntityForKB(req.Context(), obj, kbID); err != nil {
+			if lenient && degradeUndeclaredType(obj, kbID) {
+				// repair flow: undeclared type degraded to concept — proceed
+			} else {
+				h.WriteError(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+		}
+	} else if err := validateEntityAgainstSchema(req.Context(), obj); err != nil {
+		if lenient && degradeUndeclaredType(obj, "") {
+			// repair flow: undeclared type degraded to concept — proceed
+		} else {
 			h.WriteError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-	} else if err := validateEntityAgainstSchema(req.Context(), obj); err != nil {
-		h.WriteError(w, err.Error(), http.StatusBadRequest)
-		return
 	}
 
 	ctx := orm.NewContextWithParent(req.Context())

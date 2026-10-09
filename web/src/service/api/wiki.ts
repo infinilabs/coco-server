@@ -352,7 +352,7 @@ export function reportWikiCorrection(body: {
   return request({ data: body, method: 'post', url: '/wiki/governance/_correction' });
 }
 
-export function createWikiEntity(body: { name: string; type?: string; subtype?: string; aliases?: string[]; status?: string; properties?: Record<string, unknown>; relations?: { relation: string; target_id: string }[]; kb_id?: string }) {
+export function createWikiEntity(body: { name: string; type?: string; subtype?: string; aliases?: string[]; status?: string; properties?: Record<string, unknown>; relations?: { relation: string; target_id: string }[]; kb_id?: string; lenient?: boolean }) {
   return request<{ _id: string }>({ method: 'post', data: body, url: '/wiki/entity/' }).then(res => res?.data);
 }
 

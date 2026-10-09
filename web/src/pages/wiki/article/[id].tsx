@@ -242,7 +242,10 @@ export function Component() {
     try {
       const results = await Promise.all(
         unresolvedLinks.map(lp =>
-          createWikiEntity({ name: lp.name, type: lp.type || 'concept' })
+          // lenient: undeclared types degrade to concept (the schema is the
+          // source of truth — unknown wikilink types still bind, the operator
+          // can re-type later in the entity manager)
+          createWikiEntity({ name: lp.name, type: lp.type || 'concept', kb_id: kbId || undefined, lenient: true })
             .then(res => ({ name: lp.name, ok: Boolean((res as any)?._id) }))
             .catch(() => ({ name: lp.name, ok: false }))
         )

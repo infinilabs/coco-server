@@ -242,6 +242,33 @@ func saveOntologySchema(ctx context.Context, scope string, doc *OntologySchemaDo
 // Without a schema (or a type not covered by one) validation is lenient:
 // the ontology constrains what it knows about, it never blocks legacy or
 // exploratory data.
+// degradeUndeclaredType rewrites an undeclared entity type to "concept"
+// (repair-flow lenient mode, O2): the wikilink still binds and knowledge is
+// preserved; the operator can re-type the entity in the manager later.
+// Returns false when the type IS declared (nothing to degrade) or the entity
+// is untyped.
+func degradeUndeclaredType(entity *core.WikiEntity, kbID string) (degraded bool) {
+	if entity == nil || entity.Type == "" {
+		return false
+	}
+	// vocabulary load can panic when the store isn't initialized (tests,
+	// early boot) — treat as no vocabulary: validation was lenient anyway
+	defer func() {
+		if r := recover(); r != nil {
+			degraded = false
+		}
+	}()
+	doc := loadOntologySchemaForKB(context.Background(), kbID)
+	if doc == nil {
+		return false // no vocabulary on file: validation was lenient anyway
+	}
+	if doc.typeDef(entity.Type) != nil {
+		return false // declared (possibly via case fallback) — keep it
+	}
+	entity.Type = "concept"
+	return true
+}
+
 func validateEntityAgainstSchema(ctx context.Context, entity *core.WikiEntity) error {
 	return validateEntityWithDoc(ctx, entity, loadOntologySchema(ctx, ontologyTenantScope))
 }
@@ -264,6 +291,13 @@ func validateEntityWithDoc(ctx context.Context, entity *core.WikiEntity, doc *On
 	typeDef := doc.typeDef(entity.Type)
 	if typeDef == nil {
 		return fmt.Errorf("entity type %q is not declared in the ontology schema", entity.Type)
+	}
+	// canonicalize the stored casing to the declared form: typeDef resolves
+	// case-insensitively, so "Organization" validates — but the entity must
+	// PERSIST the schema's canonical casing or every later exact-match
+	// (relation targets, cards, filters) drifts
+	if !strings.EqualFold(typeDef.Name, entity.Type) || entity.Type != typeDef.Name {
+		entity.Type = typeDef.Name
 	}
 
 	for _, prop := range typeDef.Properties {
