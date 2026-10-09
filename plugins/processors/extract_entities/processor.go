@@ -360,6 +360,18 @@ func resolveOrCreateEntity(ctx *orm.Context, extracted *extractedEntity, doc *co
 	// differs only in provenance, and the next pass re-appends sources
 	entity.SetID(core.AnchoredEntityID(entity.Name))
 	if err := orm.Create(ctx, entity); err != nil {
+		// a concurrent extraction created the row first (409) — the design
+		// wants one row with merged provenance, so fall back to the merge
+		// path on the winner instead of failing the batch
+		if strings.Contains(err.Error(), "version_conflict") {
+			if winner := findEntityByName(ctx, entity.Name); winner != nil {
+				appendEntitySource(winner, extracted, doc)
+				if uerr := orm.Update(ctx, winner); uerr != nil {
+					return nil, false, uerr
+				}
+				return winner, false, nil
+			}
+		}
 		return nil, false, err
 	}
 	return entity, true, nil
