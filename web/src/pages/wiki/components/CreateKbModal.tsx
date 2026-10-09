@@ -37,7 +37,7 @@ export function CreateKbModal({
       setAssistants(
         arr.some(a => a.id === BUILTIN_KM_ASSISTANT_ID)
           ? arr
-          : [{ id: BUILTIN_KM_ASSISTANT_ID, name: '知识管理助手', category: 'processing', builtin: true }, ...arr]
+          : [{ id: BUILTIN_KM_ASSISTANT_ID, name: '知识管理助手', type: 'data_processing' }, ...arr]
       );
     });
     listWikiDatasources().then(list => setDatasources(((list as any) || []) as Api.Wiki.DatasourceInfo[]));

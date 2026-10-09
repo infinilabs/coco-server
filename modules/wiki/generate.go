@@ -732,16 +732,27 @@ func (h *APIHandler) aiGenerate(w http.ResponseWriter, req *http.Request, ps htt
 		return
 	}
 
-	// the KB's bound AI assistant (settings → AI 智能体) drives generation when
-	// the request doesn't pin an explicit model; its role prompt steers the
-	// drafting pipeline
+	// assistant resolution order: request-pinned model → the KB's bound AI
+	// assistant (settings → AI 智能体) → the system default (设置 → AI 知识库)
+	// → the server default language model. The bound/system assistant's role
+	// prompt steers the drafting pipeline.
 	modelProvider, model := body.ModelProvider, body.Model
+	rolePrompt := ""
 	if modelProvider == "" && model == "" && kb.AssistantID != "" {
-		if provider, name, rolePrompt, ok := h.assistantAnsweringModel(req.Context(), kb.AssistantID); ok {
+		if provider, name, rp, ok := h.assistantAnsweringModel(req.Context(), kb.AssistantID); ok {
 			modelProvider, model = provider, name
-			opts.RolePrompt = rolePrompt
+			rolePrompt = rp
 		}
 	}
+	if modelProvider == "" && model == "" {
+		if assistantID := strings.TrimSpace(common.AppConfig().WikiSettings.GetAssistantID()); assistantID != "" {
+			if provider, name, rp, ok := h.assistantAnsweringModel(req.Context(), assistantID); ok {
+				modelProvider, model = provider, name
+				rolePrompt = rp
+			}
+		}
+	}
+	opts.RolePrompt = rolePrompt
 
 	llm, err := resolveLanguageLLM(modelProvider, model)
 	if err != nil {
@@ -971,9 +982,9 @@ func (h *APIHandler) aiEdit(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 
-	// honor the KB's bound AI assistant (settings → AI 智能体) when the request
-	// doesn't pin an explicit model; its role prompt joins the editing system
-	// prompt below
+	// assistant resolution order mirrors aiGenerate: request-pinned model →
+	// the KB's bound AI assistant → the system default (设置 → AI 知识库) →
+	// the server default language model
 	modelProvider, model := body.ModelProvider, body.Model
 	var rolePrompt string
 	if modelProvider == "" && model == "" && article.KbID != "" {
@@ -984,6 +995,13 @@ func (h *APIHandler) aiEdit(w http.ResponseWriter, req *http.Request, ps httprou
 		kb.SetID(article.KbID)
 		if exists, kerr := orm.GetV2(kbCtx, &kb); kerr == nil && exists && kb.AssistantID != "" {
 			if provider, name, rp, ok := h.assistantAnsweringModel(req.Context(), kb.AssistantID); ok {
+				modelProvider, model, rolePrompt = provider, name, rp
+			}
+		}
+	}
+	if modelProvider == "" && model == "" {
+		if assistantID := strings.TrimSpace(common.AppConfig().WikiSettings.GetAssistantID()); assistantID != "" {
+			if provider, name, rp, ok := h.assistantAnsweringModel(req.Context(), assistantID); ok {
 				modelProvider, model, rolePrompt = provider, name, rp
 			}
 		}

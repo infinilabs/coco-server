@@ -445,7 +445,7 @@ func defaultOntologySchema() *OntologySchemaDoc {
 }
 
 // seedDefaultOntologySchema inserts the tenant schema once; local edits are
-// never overwritten (same contract as skill/assistant-template seeds).
+// never overwritten (same contract as skill seeds).
 func seedDefaultOntologySchema() {
 	ctx := context.Background()
 	if loadOntologySchema(ctx, ontologyTenantScope) != nil {

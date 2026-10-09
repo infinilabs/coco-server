@@ -511,6 +511,15 @@ declare namespace App {
         };
         menu: {
           administration: string;
+          group: {
+            chat: string;
+            data: string;
+            kb: string;
+            others: string;
+            processing: string;
+            search: string;
+            system: string;
+          };
         };
         route: Record<I18nRouteKey, string>;
         system: {
