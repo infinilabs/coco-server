@@ -18,6 +18,7 @@ import (
 	log "github.com/cihub/seelog"
 
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/common/netguard"
 )
 
 // Pluggable parse backends (W2 L1): Tika stays the always-on baseline;
@@ -43,6 +44,11 @@ type remoteParseResult struct {
 var parseRemoteFn = parseRemote
 
 func parseRemote(ctx context.Context, endpoint, filename, localPath string, timeout time.Duration) ([]string, error) {
+	// S2: the endpoint is operator-configured outbound traffic — the
+	// netguard rejects private/metadata targets before anything is sent
+	if err := netguard.ValidateURL(endpoint); err != nil {
+		return nil, err
+	}
 	data, err := os.ReadFile(localPath)
 	if err != nil {
 		return nil, err

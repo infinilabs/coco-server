@@ -18,6 +18,15 @@ import (
 	"infini.sh/coco/core"
 )
 
+// allowLoopbackForTest switches netguard to whitelist mode with the
+// httptest loopback endpoint allowed — the guard correctly denies 127.0.0.1
+// in deny-list mode, tests must opt in explicitly.
+func allowLoopbackForTest(t *testing.T) {
+	t.Helper()
+	t.Setenv("SSRF_WHITELIST", "on")
+	t.Setenv("SSRF_WHITELIST_EXTRA", "127.0.0.1")
+}
+
 func writeParseFile(t *testing.T, name string) string {
 	t.Helper()
 	p := filepath.Join(t.TempDir(), name)
@@ -26,6 +35,7 @@ func writeParseFile(t *testing.T, name string) string {
 }
 
 func TestParseRemoteJSONPages(t *testing.T) {
+	allowLoopbackForTest(t)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"pages":["# 第一章","正文一","# 第二章","正文二"]}`))
@@ -39,6 +49,7 @@ func TestParseRemoteJSONPages(t *testing.T) {
 }
 
 func TestParseRemotePlainTextFallback(t *testing.T) {
+	allowLoopbackForTest(t)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("  整篇 markdown 文本  "))
 	}))
@@ -51,6 +62,7 @@ func TestParseRemotePlainTextFallback(t *testing.T) {
 }
 
 func TestParseRemoteErrorStatus(t *testing.T) {
+	allowLoopbackForTest(t)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "boom", http.StatusBadGateway)
 	}))
@@ -62,6 +74,7 @@ func TestParseRemoteErrorStatus(t *testing.T) {
 }
 
 func TestParseRemoteEmptyAnswer(t *testing.T) {
+	allowLoopbackForTest(t)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"pages":["", "  "]}`))
 	}))
@@ -72,6 +85,7 @@ func TestParseRemoteEmptyAnswer(t *testing.T) {
 }
 
 func TestTryRemoteParseBackendGating(t *testing.T) {
+	allowLoopbackForTest(t)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"pages":["远程解析结果"]}`))
 	}))
@@ -100,6 +114,7 @@ func TestTryRemoteParseBackendGating(t *testing.T) {
 }
 
 func TestTryRemoteParseBackendFallsBackOnError(t *testing.T) {
+	allowLoopbackForTest(t)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "down", http.StatusInternalServerError)
 	}))
