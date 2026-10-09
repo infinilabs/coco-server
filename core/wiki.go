@@ -62,6 +62,10 @@ const (
 	// (correction) so the scanner-style idempotency key still dedups.
 	WikiGovernanceKnowledgeGap = "knowledge_gap" // query keeps returning zero hits
 	WikiGovernanceCorrection   = "correction"    // user corrected an answer from work
+	// schema drift (W10 close-out): an entity's type is no longer declared
+	// in the ontology vocabulary — deterministic, no LLM confirmation needed
+	WikiGovernanceDrift = "drift"
+
 	// entity edit propagation (W10): a rename/alias/type/relations change
 	// on an entity invalidates the articles that reference it — refresh
 	// proposals keep the human gate (edits merge into the live article,

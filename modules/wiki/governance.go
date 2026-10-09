@@ -189,7 +189,108 @@ func governanceSweep(ctx context.Context, llm llms.Model) governanceStats {
 			}
 		}
 	}
+	driftStats := schemaDriftScan(ctx)
+	stats.filed += driftStats
+
 	return stats
+}
+
+// schemaDriftScan files drift proposals for entities whose type is no
+// longer declared in the ontology vocabulary — schema edits can orphan
+// types silently, and every downstream consumer (validation, relation
+// checks, cards) degrades for those entities. LLM confirmation does not
+// apply here: the vocabulary mismatch is deterministic. Anchored per
+// entity+type so re-scans stay idempotent.
+func schemaDriftScan(ctx context.Context) int {
+	// the declared type names from the tenant-level schema (KB overrides
+	// refine it, the tenant vocabulary is the shared floor)
+	declared := map[string]bool{}
+	if doc := loadOntologySchema(ctx, ontologyTenantScope); doc != nil {
+		for i := range doc.EntityTypes {
+			declared[strings.ToLower(doc.EntityTypes[i].Name)] = true
+		}
+	}
+	if len(declared) == 0 {
+		return 0
+	}
+
+	octx := orm.NewContext()
+	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(octx, &core.WikiEntity{})
+	res, err := orm.SearchV2(octx, orm.NewQuery().Size(500))
+	if err != nil {
+		return 0
+	}
+	entities, _, derr := elastic.DecodeHits[core.WikiEntity](res)
+	if derr != nil {
+		return 0
+	}
+
+	filed := 0
+	seen := map[string]bool{}
+	for i := range entities {
+		e := &entities[i]
+		if e.Type == "" || declared[strings.ToLower(e.Type)] || seen[e.ID+"|"+e.Type] {
+			continue
+		}
+		seen[e.ID+"|"+e.Type] = true
+
+		// entities are tenant-scoped (no KbID) — the drift proposal anchors
+		// to the entity itself; if it has a curated article, that article's
+		// KB carries the notification
+		proposal := &core.WikiGovernanceProposal{
+			Type:         core.WikiGovernanceDrift,
+			Status:       core.WikiGovernanceOpen,
+			ArticleTitle: e.Name,
+			Reason:       fmt.Sprintf("entity type %q is no longer declared in the ontology vocabulary", e.Type),
+		}
+		proposal.ID = core.AnchoredProposalID("drift:"+e.ID+":"+e.Type, core.WikiGovernanceDrift, 1)
+		proposal.Evidence = util.MapStr{
+			"entity_id":   e.ID,
+			"entity_type": e.Type,
+			"entity_name": e.Name,
+			"cascade":     "schema-drift",
+		}
+		pctx := orm.NewContext()
+		pctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+		if cerr := orm.Create(pctx, proposal); cerr != nil {
+			log.Debugf("wiki: drift proposal create failed for [%s]: %v", e.Name, cerr)
+			continue
+		}
+
+		// notify via the linked article's KB owner when one exists
+		if e.ArticleID != "" {
+			if kb := kbOfArticle(e.ArticleID); kb != nil && kb.GetOwnerID() != "" {
+				notifyOwner(kb.GetOwnerID(), "article", e.ArticleID, "governance",
+					fmt.Sprintf("词表漂移:实体 %q 的类型 %q 已不在本体词表中", e.Name, e.Type))
+			}
+		}
+		filed++
+	}
+	return filed
+}
+
+// kbOfArticle resolves the owning KB of an article (best-effort).
+func kbOfArticle(articleID string) *core.WikiKnowledgeBase {
+	ctx := orm.NewContext()
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(ctx, &core.WikiArticle{})
+	a := core.WikiArticle{}
+	a.ID = articleID
+	exists, err := orm.GetV2(ctx, &a)
+	if err != nil || !exists || a.KbID == "" {
+		return nil
+	}
+	kctx := orm.NewContext()
+	kctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(kctx, &core.WikiKnowledgeBase{})
+	kb := core.WikiKnowledgeBase{}
+	kb.ID = a.KbID
+	exists, err = orm.GetV2(kctx, &kb)
+	if err != nil || !exists {
+		return nil
+	}
+	return &kb
 }
 
 /* ---------------- detectors ---------------- */
