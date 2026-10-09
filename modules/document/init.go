@@ -52,6 +52,11 @@ func init() {
 	api.HandleUIMethod(api.GET, "/document/:doc_id/_chunks", handler.documentChunksHandler, api.RequirePermission(readPermission))
 	api.HandleUIMethod(api.POST, "/document/:doc_id/_reprocess", handler.reprocessDoc, api.RequirePermission(updatePermission))
 	api.HandleUIMethod(api.POST, "/document/datasource/:id/_reprocess", handler.reprocessDatasourceDocs, api.RequirePermission(updatePermission))
+
+	// document amendment (W11): upload evidence against a document, the
+	// model aligns it into a correction/supplement diff — a governance
+	// proposal, never a direct write
+	api.HandleUIMethod(api.POST, "/document/:doc_id/_amend", handler.amendHandler, api.RequirePermission(updatePermission))
 	api.HandleUIMethod(api.DELETE, "/document/:doc_id", handler.deleteDoc, api.RequirePermission(deletePermission))
 
 	api.HandleUIMethod(api.GET, "/document/_search", handler.searchDocs, api.RequirePermission(searchPermission),
@@ -101,6 +106,11 @@ func init() {
 	// the failed list with reasons, one-click bulk retry, per-datasource
 	// sync state — ingestion finally has an operable task surface
 	api.HandleUIMethod(api.GET, "/search/ops/processing", handler.processingOverviewHandler, api.RequirePermission(searchOpsPermission))
+
+	// engine-native security (S3, dry-run): probe + tier projection; the
+	// enforcement flip (run-as on searches) is a separate deliberate step
+	api.HandleUIMethod(api.GET, "/search/security-engine", handler.engineSecurityStatusHandler, api.RequirePermission(searchOpsPermission))
+	api.HandleUIMethod(api.POST, "/search/security-engine/sync", handler.engineSecuritySyncHandler, api.RequirePermission(searchOpsPermission))
 	api.HandleUIMethod(api.POST, "/document/_retry_failed", handler.retryFailedHandler, api.RequirePermission(updatePermission))
 	api.HandleUIMethod(api.GET, "/datasource/_sync_status", handler.syncStatusHandler, api.RequirePermission(searchOpsPermission))
 	//engine AI curation: read back the managed pipelines and their drift, and
@@ -124,6 +134,10 @@ func init() {
 	// index, exact phrasing answers directly
 	api.HandleUIMethod(api.POST, "/document/faq", handler.faqCreateHandler, api.RequirePermission(createPermission))
 	api.HandleUIMethod(api.GET, "/query/_faq", handler.faqSearchHandler, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+
+	// fused-window facets (W15): the filter sidebar describes exactly what
+	// the search sees — same pipeline, same permissions, same fusion
+	api.HandleUIMethod(api.GET, "/query/_aggregations", handler.aggregationsHandler, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.GET, "/query/_search", handler.search, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS),
 		api.MCPTool("search_documents", "Search the enterprise content indexed by Coco AI — files, wiki pages, chat messages, web pages and more, across all connected data sources. Returns matched documents with title, summary, source and deep link."),
 		api.Label(api.MCPToolInputSchema, common.MCPQueryEnvelopeSchema(util.MapStr{
