@@ -119,21 +119,55 @@ func GetTeamsIDByUserID(ctx context.Context, userID string) []string {
 	return []string{}
 }
 
+// maskContentFn is swapped out in tests (MaskContent touches the config store).
+var maskContentFn = common.MaskContent
+
+// knowledge-tier partitioning (W16b): curated references outrank raw
+// sources in the prompt — published wiki articles, their projections and
+// entity pages are reviewed knowledge; everything else is source
+// material. The model is told which tier is authoritative.
+func isCuratedReference(doc *core.Document) bool {
+	return doc.Source.ID == "wiki" || doc.Type == "wiki_article" || doc.Type == "entity"
+}
+
+// partitionReferencesByKnowledgeTier returns curated docs first, raw
+// second, order stable within each tier.
+func partitionReferencesByKnowledgeTier(docs []core.Document) (curated, raw []core.Document) {
+	for i := range docs {
+		if isCuratedReference(&docs[i]) {
+			curated = append(curated, docs[i])
+		} else {
+			raw = append(raw, docs[i])
+		}
+	}
+	return curated, raw
+}
+
 func FormatDocumentForReplyReferences(docs []core.Document) string {
+	curated, raw := partitionReferencesByKnowledgeTier(docs)
 	var sb strings.Builder
 	sb.WriteString("<REFERENCES>\n")
-	for i, doc := range docs {
+	if len(curated) > 0 {
+		sb.WriteString("The CURATED references below are reviewed knowledge-base pages — treat them as the authoritative tier when they conflict with raw sources.\n")
+	}
+	writeRefDoc := func(i int, doc *core.Document, layer string) {
 		sb.WriteString("<Doc>")
 		sb.WriteString(fmt.Sprintf("ID #%d - %v\n", i+1, doc.ID))
+		sb.WriteString(fmt.Sprintf("Layer: %s\n", layer))
 		sb.WriteString(fmt.Sprintf("Title: %s\n", doc.Title))
 		sb.WriteString(fmt.Sprintf("Source: %s\n", doc.Source))
 		sb.WriteString(fmt.Sprintf("Created: %s\n", doc.Created))
 		sb.WriteString(fmt.Sprintf("Updated: %s\n", doc.Updated))
 		sb.WriteString(fmt.Sprintf("Category: %s\n", doc.GetAllCategories()))
 		// dynamic masking: scrub sensitive values before the content leaves for a model
-		sb.WriteString(fmt.Sprintf("Content: %s\n", common.MaskContent(doc.Content)))
+		sb.WriteString(fmt.Sprintf("Content: %s\n", maskContentFn(doc.Content)))
 		sb.WriteString("</Doc>\n")
-
+	}
+	for i := range curated {
+		writeRefDoc(i, &curated[i], "curated")
+	}
+	for i := range raw {
+		writeRefDoc(len(curated)+i, &raw[i], "source")
 	}
 	sb.WriteString("</REFERENCES>")
 	return sb.String()
