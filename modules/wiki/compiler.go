@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
@@ -532,4 +533,75 @@ func truncateCompile(s string, n int) string {
 		return s
 	}
 	return string(runes[:n])
+}
+
+/* ---------------- incremental trigger (W9) ---------------- */
+
+// dirtyKBs accumulates KB ids whose sources changed since the last sweep.
+// The debounce is coarse (5 min trailing edge) — compilation is expensive
+// (LLM MAP per chunk batch) and document bursts should coalesce into one run.
+var (
+	compileMu       sync.Mutex
+	compileDirty    = map[string]bool{}
+	compileTimerSet bool
+	compileTimer    *time.Timer
+)
+
+const compileDebounce = 5 * time.Minute
+
+// MarkKBForCompile notes that a KB's source corpus changed and schedules a
+// debounced compile run. Safe for concurrent callers; the first mark starts
+// the timer, later marks before it fires just stay dirty.
+func MarkKBForCompile(kbID string) {
+	if kbID == "" {
+		return
+	}
+	compileMu.Lock()
+	compileDirty[kbID] = true
+	needTimer := !compileTimerSet
+	compileTimerSet = true
+	compileMu.Unlock()
+
+	if needTimer {
+		time.AfterFunc(compileDebounce, func() {
+			compileMu.Lock()
+			dirty := compileDirty
+			compileDirty = map[string]bool{}
+			compileTimerSet = false
+			compileMu.Unlock()
+
+			for id := range dirty {
+				runDebouncedCompile(id)
+			}
+		})
+	}
+}
+
+// runDebouncedCompile runs the pipeline for one KB (best-effort, logged).
+func runDebouncedCompile(kbID string) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Errorf("wiki compiler: debounced run panicked for kb [%s]: %v", kbID, r)
+		}
+	}()
+	kb := core.WikiKnowledgeBase{}
+	kb.ID = kbID
+	ctx := orm.NewContext()
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	exists, err := orm.GetV2(ctx, &kb)
+	if err != nil || !exists {
+		return
+	}
+	model := llmmodule.ResolveModel(core.LLMTypeLanguage, nil)
+	if model == nil {
+		log.Debugf("wiki compiler: debounced run skipped for [%s], no language model", kbID)
+		return
+	}
+	summary, err := runCompilePipeline(ctx, &kb, model)
+	if err != nil {
+		log.Warnf("wiki compiler: debounced run failed for [%s]: %v", kbID, err)
+		return
+	}
+	log.Infof("wiki compiler: debounced run for [%s] — %d extracts, %d reduced, %d proposals",
+		kb.Name, summary.Extracts, summary.Reduced, summary.Proposals)
 }

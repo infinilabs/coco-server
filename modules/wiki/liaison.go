@@ -67,6 +67,9 @@ func onDocumentProcessed(docID, freshHash string) {
 		if kb == nil {
 			continue
 		}
+		// W9 incremental trigger: the KB's source corpus changed — mark it
+		// for a debounced compile (coalesces document bursts)
+		MarkKBForCompile(kb.ID)
 		fileProposal(kb, &a, core.WikiGovernanceArticleRefresh,
 			"cited document changed (re-ingested with new content fingerprint)",
 			util.MapStr{
@@ -79,6 +82,9 @@ func onDocumentProcessed(docID, freshHash string) {
 
 // onDocumentDeleted marks the articles that cited the deleted document as
 // stale — the human gate decides what happens to evidence-less pages.
+// Entities whose Sources cite the doc are covered indirectly: their curated
+// article gets the stale proposal, and the entity card's source count
+// reflects the loss on next read (Sources stay intact as history).
 func onDocumentDeleted(docID string) {
 	articles := articlesCitingDocument(docID)
 	if len(articles) == 0 {
