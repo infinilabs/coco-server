@@ -119,6 +119,20 @@ func (p *ProcessDocumentsProcessor) processMessage(msg queue.Message) error {
 		}
 	}
 
+	// Idempotent retry gate: a queued message for a document that is already
+	// indexed, enriched, and content-identical is a stale backlog message
+	// (crashed slice, re-collect) — drop it instead of paying the LLM chain
+	// again. Changed content re-enters with a new hash and enriches normally.
+	if doc.ID != "" && doc.ContentHash != "" {
+		done, err := alreadyEnriched(&doc)
+		if err != nil {
+			log.Debugf("processor [%s] enriched-state check failed for [%s] (%v), enriching anyway", p.Name(), doc.ID, err)
+		} else if done {
+			log.Debugf("processor [%s] dropping stale message for enriched document [%s/%s]", p.Name(), doc.Title, doc.ID)
+			return nil
+		}
+	}
+
 	// No datasource reference — nothing to look up.
 	if doc.Source.ID == "" {
 		return p.pushPassthrough(msg.Data, "no-datasource")
@@ -331,10 +345,37 @@ func ingestDedupGateEnabled() bool {
 	return true
 }
 
+// alreadyEnriched reports whether the indexed copy of this document is
+// already enriched (Processed) with the same content hash — meaning the
+// queued message is a stale retry. Errors (missing index, store trouble)
+// are returned so the caller can fall through to normal enrichment.
+func alreadyEnriched(doc *core.Document) (bool, error) {
+	ormCtx := orm.NewContext()
+	ormCtx.DirectReadAccess()
+	ormCtx.PermissionScope(security.PermissionScopePlatform)
+	orm.WithModel(ormCtx, &core.Document{})
+
+	existing := core.Document{}
+	existing.ID = doc.ID
+	exists, err := orm.GetV2(ormCtx, &existing)
+	if err != nil {
+		if exists == false && strings.Contains(err.Error(), "record not found") {
+			return false, nil
+		}
+		return false, err
+	}
+	if !exists {
+		return false, nil
+	}
+	// Processed is the strict signal; a stored summary with a matching hash
+	// also counts — an attempt that crashed mid-chain (flag still false)
+	// must not force the whole backlog through the LLM chain again.
+	return (existing.Processed || existing.Summary != "") && existing.ContentHash == doc.ContentHash, nil
+}
+
 // findDuplicateByFingerprint looks for another document in the same
 // datasource carrying the same content hash.
-func findDuplicateByFingerprint(doc *core.Document) (string, bool) {
-	ormCtx := orm.NewContext()
+func findDuplicateByFingerprint(doc *core.Document) (string, bool) {	ormCtx := orm.NewContext()
 	ormCtx.DirectReadAccess()
 	ormCtx.PermissionScope(security.PermissionScopePlatform)
 
