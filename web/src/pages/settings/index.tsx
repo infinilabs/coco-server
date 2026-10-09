@@ -5,6 +5,8 @@ import AppearanceSettings from './modules/Appearance';
 import AppSettings from './modules/AppSettings';
 import ConnectorSettings from './modules/Connector';
 import SearchSettings from './modules/SearchSettings';
+import WikiSettings from './modules/WikiSettings';
+import MemorySettings from './modules/MemorySettings';
 import DefaultModel from './modules/DefaultModel';
 import DocProcessing from './modules/DocProcessing';
 import DataSecurity from './modules/DataSecurity';
@@ -52,6 +54,17 @@ export function Component() {
       component: SearchSettings,
       key: 'search_settings',
       label: t(`page.settings.search_settings.title`),
+    })
+    items.push({
+      component: WikiSettings,
+      key: 'wiki_settings',
+      label: t(`page.settings.wiki_settings.title`),
+    })
+    // long-term memory (W6): the owner confirms what the distiller learned
+    items.push({
+      component: MemorySettings,
+      key: 'memory_settings',
+      label: t(`page.settings.memory_settings.title`),
     })
     items.push({
       component: DefaultModel,

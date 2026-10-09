@@ -1,5 +1,5 @@
-import { BookOutlined, MessageOutlined, SearchOutlined } from '@ant-design/icons';
-import { Segmented } from 'antd';
+import { BookOutlined, MessageOutlined, SearchOutlined, SettingOutlined } from '@ant-design/icons';
+import { Button, Segmented, Tooltip } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { I18nextProvider, useTranslation } from 'react-i18next';
@@ -7,6 +7,7 @@ import { useResponsive } from 'ahooks';
 import { debounce } from 'lodash';
 
 import cocoIcon from '@/assets/svg-icon/coco.svg';
+import { getIsLogin } from '@/store/slice/auth';
 import { getApplicationSetting, getAppearance } from '@/store/slice/server';
 import { getLocale } from '@/store/slice/app';
 import { fetchIntegration } from '@/service/api/integration';
@@ -26,6 +27,7 @@ export function Component() {
   const { t } = useTranslation();
   const location = useLocation();
   const responsive = useResponsive();
+  const isLogin = useAppSelector(getIsLogin);
 
   // one 48px row cannot hold a labeled segmented + console/lang/theme/login
   // below md: icon-only segmented, and the console entry moves into the avatar
@@ -180,13 +182,26 @@ export function Component() {
           </div>
         )}
         <div className='flex-y-center flex-none justify-end'>
+          {/* the console entry stays a standalone button on the header's right
+              edge — visible once logged in, not folded into the avatar menu */}
+          {isLogin && (
+            <Tooltip title={t('common.console')}>
+              <Button
+                className='mr-4px'
+                icon={<SettingOutlined />}
+                onClick={() => {
+                  window.location.hash = '#/home';
+                }}
+                size='small'
+              >
+                {t('common.console')}
+              </Button>
+            </Tooltip>
+          )}
           <LangSwitch className={compact ? 'px-4px' : 'px-12px'} />
           <ThemeSchemaSwitch className={compact ? 'px-4px' : 'px-12px'} />
-          {/* the console entry lives in this dropdown (logged in + admin only);
-              showConsole replaces the old standalone 管理后台 header button */}
           <UserAvatar
             className='px-8px'
-            showConsole
             showName={false}
           />
         </div>
