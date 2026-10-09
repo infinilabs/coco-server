@@ -1572,6 +1572,11 @@ const page: App.I18n.Schema['translation']['page'] = {
       title: 'Default Model'
     },
     dedup: {
+    confirm: 'Confirm group',
+    confirmTip: 'Once confirmed, this group\'s duplicates fold in search results',
+    unconfirm: 'Un-confirm',
+    groupConfirmed: 'Group confirmed — duplicates will fold in search results',
+    groupUnconfirmed: 'Confirmation removed — the group no longer folds',
       title: 'Content Dedup',
       desc: 'Deterministic fingerprints (sha256 + simhash) group suspected duplicates across all data sources. The system only recommends — every exclusion or deletion is a human decision, and dismissed pairs are never reported again.',
       scan: 'Rescan',

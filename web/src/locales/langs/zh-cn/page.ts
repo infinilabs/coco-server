@@ -1528,6 +1528,11 @@ const page: App.I18n.Schema['translation']['page'] = {
       title: '默认模型'
     },
     dedup: {
+    confirm: '确认分组',
+    confirmTip: '确认后,该组的重复副本将在搜索结果中折叠展示',
+    unconfirm: '取消确认',
+    groupConfirmed: '已确认分组——搜索结果将折叠该组',
+    groupUnconfirmed: '已取消确认——该组不再折叠',
       title: '内容查重',
       desc: '确定性指纹(sha256 + simhash)跨全部数据源分组疑似重复。系统只做推荐——排除或删除全部由人决定,标记过"非重复"的对永不再报。',
       scan: '重新扫描',

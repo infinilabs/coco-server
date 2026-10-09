@@ -35,6 +35,23 @@ export function dismissDedupGroup(ids: string[]) {
 }
 
 /** Apply a reviewer decision to whole documents: exclude (disable) | delete */
+/** confirm a near-duplicate group — its members fold in search results */
+export function confirmDedupGroup(ids: string[], tier: string) {
+  return request({
+    method: 'post',
+    url: '/document/dedup/confirm_group',
+    data: { ids, tier }
+  });
+}
+
+/** remove a confirmed group (un-folds its members) */
+export function removeConfirmedGroup(key: string) {
+  return request({
+    method: 'delete',
+    url: `/document/dedup/confirm_group/${key}`
+  });
+}
+
 export function actDedupGroup(ids: string[], action: 'exclude' | 'delete') {
   return request({
     method: 'post',

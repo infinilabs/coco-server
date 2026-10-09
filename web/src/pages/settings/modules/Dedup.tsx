@@ -1,10 +1,16 @@
-import { DeleteOutlined, EyeInvisibleOutlined, RedoOutlined, ScanOutlined } from '@ant-design/icons';
+import { CheckOutlined, DeleteOutlined, EyeInvisibleOutlined, RedoOutlined, ScanOutlined } from '@ant-design/icons';
 import { Button, Card, Col, Popconfirm, Row, Space, Spin, Statistic, Table, Tag, Tooltip, message } from 'antd';
 import { memo, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import '../index.scss';
-import { actDedupGroup, dismissDedupGroup, fetchDedupReport } from '@/service/api/server';
+import {
+  actDedupGroup,
+  confirmDedupGroup,
+  dismissDedupGroup,
+  fetchDedupReport,
+  removeConfirmedGroup
+} from '@/service/api/server';
 import { useAuth } from '@/hooks/business/auth';
 
 interface DedupMember {
@@ -49,10 +55,12 @@ const Dedup = memo(() => {
     update: hasAuth('coco#document/update'),
     del: hasAuth('coco#document/delete')
   };
+  const canManage = permissions.update;
 
   const [report, setReport] = useState<DedupReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [acting, setActing] = useState<string | null>(null);
+  const [confirmedKeys, setConfirmedKeys] = useState<Set<string>>(new Set());
 
   const load = async (refresh = false) => {
     setLoading(true);
@@ -68,6 +76,33 @@ const Dedup = memo(() => {
       load();
     }
   }, []);
+
+  const confirmGroup = async (group: DedupGroup) => {
+    setActing(`${group.key}:confirm`);
+    const res: any = await confirmDedupGroup(
+      group.members.map((m) => m.id),
+      group.tier_label
+    );
+    if (res?.data && !res.error) {
+      message.success(t('page.settings.dedup.groupConfirmed'));
+      setConfirmedKeys((prev) => new Set(prev).add(group.key));
+    }
+    setActing(null);
+  };
+
+  const unconfirmGroup = async (group: DedupGroup) => {
+    setActing(`${group.key}:unconfirm`);
+    const res: any = await removeConfirmedGroup(group.key);
+    if (res?.data && !res.error) {
+      message.success(t('page.settings.dedup.groupUnconfirmed'));
+      setConfirmedKeys((prev) => {
+        const next = new Set(prev);
+        next.delete(group.key);
+        return next;
+      });
+    }
+    setActing(null);
+  };
 
   const memberAction = (group: DedupGroup, member: DedupMember, action: 'exclude' | 'delete') => {
     return async () => {
@@ -163,16 +198,42 @@ const Dedup = memo(() => {
               </Space>
             }
             extra={
-              <Tooltip title={t('page.settings.dedup.dismissTip')}>
-                <Button
-                  loading={acting === `${g.key}:dismiss`}
-                  onClick={() => dismissGroup(g)}
-                  size="small"
-                  type="text"
-                >
-                  {t('page.settings.dedup.dismiss')}
-                </Button>
-              </Tooltip>
+              <Space>
+                {g.tier !== 1 && canManage ? (
+                  confirmedKeys.has(g.key) ? (
+                    <Button
+                      loading={acting === `${g.key}:unconfirm`}
+                      onClick={() => unconfirmGroup(g)}
+                      size="small"
+                      type="text"
+                    >
+                      {t('page.settings.dedup.unconfirm')}
+                    </Button>
+                  ) : (
+                    <Tooltip title={t('page.settings.dedup.confirmTip')}>
+                      <Button
+                        icon={<CheckOutlined />}
+                        loading={acting === `${g.key}:confirm`}
+                        onClick={() => confirmGroup(g)}
+                        size="small"
+                        type="text"
+                      >
+                        {t('page.settings.dedup.confirm')}
+                      </Button>
+                    </Tooltip>
+                  )
+                ) : null}
+                <Tooltip title={t('page.settings.dedup.dismissTip')}>
+                  <Button
+                    loading={acting === `${g.key}:dismiss`}
+                    onClick={() => dismissGroup(g)}
+                    size="small"
+                    type="text"
+                  >
+                    {t('page.settings.dedup.dismiss')}
+                  </Button>
+                </Tooltip>
+              </Space>
             }
           >
             <Table
