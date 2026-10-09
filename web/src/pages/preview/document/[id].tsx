@@ -49,6 +49,7 @@ export function Component() {
   // landing, tier 2); ?q= carries the query terms (term marks, tier 3)
   const highlightQuery = searchParams.get('q') ?? '';
   const highlightQuote = searchParams.get('quote') ?? '';
+  const highlightPage = Number(searchParams.get('page')) || 0;
   const contentRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -118,10 +119,13 @@ export function Component() {
       // for images, tag the blob URL with the filename as a fragment: the URL
       // keeps resolving, but a copied address / save-as now carries a real
       // name with an extension instead of the bare blob UUID
-      const blobUrl =
-        content_type === 'image'
-          ? `${URL.createObjectURL(blob)}#${encodeURIComponent(filename)}`
-          : URL.createObjectURL(blob);
+      let blobUrl = URL.createObjectURL(blob);
+      if (content_type === 'image') {
+        blobUrl = `${blobUrl}#${encodeURIComponent(filename)}`;
+      } else if (content_type === 'pdf' && highlightPage > 0) {
+        // browser PDF viewers honor #page=N — the W17 tier-1 page jump
+        blobUrl = `${blobUrl}#page=${highlightPage}`;
+      }
       setContentBlobUrl(blobUrl);
       setDownloadFilename(filename);
 
