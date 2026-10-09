@@ -1,6 +1,6 @@
 import { Button, Drawer, Result } from 'antd';
 import { useParams } from 'react-router-dom';
-import { highlightTerms } from './highlight';
+import { highlightPhrase, highlightTerms } from './highlight';
 import { ArrowLeft, Wrench } from 'lucide-react';
 
 import { request } from '@/service/request';
@@ -45,8 +45,10 @@ export function Component() {
   const [downloadFilename, setDownloadFilename] = useState<string>();
   const [rawContentError, setRawContentError] = useState<string>();
   const [processingOpen, setProcessingOpen] = useState(false);
-  // W17 terms-only highlight: ?q= carries the originating search terms
+  // W17 highlight: ?quote= is the cited chunk's exact excerpt (precise
+  // landing, tier 2); ?q= carries the query terms (term marks, tier 3)
   const highlightQuery = searchParams.get('q') ?? '';
+  const highlightQuote = searchParams.get('quote') ?? '';
   const contentRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -189,17 +191,24 @@ export function Component() {
     };
   }, [contentBlobUrl]);
 
-  // highlight after the content renders (blob load + paint settle)
+  // highlight after the content renders (blob load + paint settle).
+  // quote landing takes priority: one precise passage beats scattered terms.
   useEffect(() => {
-    if (loading || error || !highlightQuery || !contentRef.current) return;
+    if (loading || error || !contentRef.current) return;
+    if (!highlightQuote && !highlightQuery) return;
     const timer = setTimeout(() => {
-      const { marks, firstElement } = highlightTerms(contentRef.current, highlightQuery);
-      if (marks > 0 && firstElement) {
-        firstElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      let first: HTMLElement | undefined;
+      if (highlightQuote) {
+        first = highlightPhrase(contentRef.current, highlightQuote);
       }
+      if (!first && highlightQuery) {
+        const result = highlightTerms(contentRef.current, highlightQuery);
+        first = result.firstElement;
+      }
+      first?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 400);
     return () => clearTimeout(timer);
-  }, [loading, error, highlightQuery, contentBlobUrl, data]);
+  }, [loading, error, highlightQuery, highlightQuote, contentBlobUrl, data]);
 
   const renderContent = () => {
     if (loading) {

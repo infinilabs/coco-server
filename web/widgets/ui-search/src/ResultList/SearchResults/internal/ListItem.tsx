@@ -86,7 +86,7 @@ export function ListItem({
                       e.stopPropagation();
                       // W17: in-app preview links carry the live query so
                       // the preview can land on and highlight the terms
-                      window.open(withHighlightQuery(item.href), "_blank");
+                      window.open(withHighlightQuery(item.href, item), "_blank");
                     }}
                   >
                     <SquareArrowOutUpRight size={12}/>
@@ -127,16 +127,21 @@ export function ListItem({
 
 // withHighlightQuery appends ?q=<current search> to in-app preview URLs
 // (term highlight in the preview, W17); external links pass untouched.
-export function withHighlightQuery(href: string): string {
+export function withHighlightQuery(href: string, item?: { metadata?: { semantic_chunk?: { quote?: string } } }): string {
   try {
     if (!href.includes("/#/preview/")) return href;
+    const params = new URLSearchParams();
     // the app search page mirrors the live query into the URL
     // (enableQueryParams) — reading it survives rerenders and needs no
     // DOM probing
     const q = new URLSearchParams(window.location.search).get("query")?.trim();
-    if (!q) return href;
+    if (q) params.set("q", q);
+    // the cited chunk's exact excerpt — the preview lands on this passage
+    const quote = item?.metadata?.semantic_chunk?.quote?.trim();
+    if (quote) params.set("quote", quote.slice(0, 300));
+    if (params.toString() === "") return href;
     const sep = href.includes("?") ? "&" : "?";
-    return href + sep + "q=" + encodeURIComponent(q);
+    return href + sep + params.toString();
   } catch {
     return href;
   }
