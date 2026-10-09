@@ -15,10 +15,10 @@ const WORKSPACE_MENU_KEYS: readonly string[] = ['home', 'search', 'chat', 'wiki'
  * in a trailing "others" group, so a new page never disappears from the menu.
  */
 const ADMIN_MENU_GROUPS: { key: string; labelKey: string; routeKeys: readonly string[] }[] = [
-  { key: 'menu-group-chat', labelKey: 'menu.group.chat', routeKeys: ['ai-assistant', 'skill'] },
-  { key: 'menu-group-data', labelKey: 'menu.group.data', routeKeys: ['data-source', 'mcp-server'] },
+  { key: 'menu-group-chat', labelKey: 'menu.group.chat', routeKeys: ['ai-assistant', 'skill', 'integration'] },
+  { key: 'menu-group-data', labelKey: 'menu.group.data', routeKeys: ['data-source', 'webhook'] },
   { key: 'menu-group-processing', labelKey: 'menu.group.processing', routeKeys: ['pipeline'] },
-  { key: 'menu-group-search', labelKey: 'menu.group.search', routeKeys: ['search-studio', 'search-ops', 'integration'] },
+  { key: 'menu-group-search', labelKey: 'menu.group.search', routeKeys: ['search-studio', 'search-ops'] },
   { key: 'menu-group-kb', labelKey: 'menu.group.kb', routeKeys: ['ontology'] },
   {
     key: 'menu-group-system',

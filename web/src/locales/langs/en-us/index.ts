@@ -35,13 +35,13 @@ const local: App.I18n.Schema['translation'] = {
   menu: {
     administration: 'Administration',
     group: {
-      chat: 'Chat',
-      data: 'Data Sources',
-      kb: 'Knowledge Base',
+      chat: 'AI',
+      data: 'Data',
+      kb: 'Knowledge',
       others: 'Others',
-      processing: 'Data Processing',
+      processing: 'Processing',
       search: 'Search',
-      system: 'System Settings'
+      system: 'System'
     }
   },
   page,
