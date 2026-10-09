@@ -35,12 +35,26 @@ export function recordToListItem(
 
   const rawTitle = hl?.title?.[0] ?? record.title;
 
+  // chunk-level landing info (W3 方案 c / W17): when the hit carries the
+  // semantic_chunk payload, prefix the summary with the section breadcrumb
+  // and page range so the reader knows where in the document this hit lands
+  let chunkPrefix = "";
+  const sc = record.metadata?.semantic_chunk as
+    | { breadcrumb?: string; pages?: { start?: number; end?: number }; quote?: string }
+    | undefined;
+  if (sc) {
+    const parts: string[] = [];
+    if (sc.breadcrumb) parts.push(sc.breadcrumb);
+    if (sc.pages?.start) parts.push(sc.pages.end && sc.pages.end !== sc.pages.start ? `p${sc.pages.start}-${sc.pages.end}` : `p${sc.pages.start}`);
+    if (parts.length) chunkPrefix = `[${parts.join(" · ")}] `;
+  }
+
   return {
     type: "result",
     id: `${record.source?.id ?? record.url ?? record.title}-${index}`,
     title: rawTitle,
     href: record.url,
-    summary,
+    summary: chunkPrefix + summary,
     cover,
     fileType,
     typeIcon,
