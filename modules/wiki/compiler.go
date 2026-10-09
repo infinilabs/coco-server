@@ -21,6 +21,7 @@ import (
 	llmmodule "infini.sh/coco/modules/llm"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
+	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 
@@ -70,11 +71,49 @@ type compileBatchResult struct {
 }
 
 // compileMapCache: batch fingerprint → cached result (zero LLM on
-// recompile). In-memory v1; persistence follows when compiles get long.
+// recompile). Written through to badger so a restart (or a crashed
+// compile hours into its MAP) resumes warm instead of re-paying the LLM;
+// the in-memory map stays as the hot read path.
 var (
-	compileCacheMu sync.RWMutex
-	compileCache   = map[string][]CompileExtract{}
+	compileCacheMu    sync.RWMutex
+	compileCache      = map[string][]CompileExtract{}
+	compileCacheKVKey = "wiki-compile-map-cache"
 )
+
+// compileCacheGet looks the batch fingerprint up in memory, then in the
+// persistent cache. Store trouble degrades to a miss — the compile pays
+// the LLM again rather than failing.
+func compileCacheGet(fp string) ([]CompileExtract, bool) {
+	compileCacheMu.RLock()
+	extracts, hit := compileCache[fp]
+	compileCacheMu.RUnlock()
+	if hit {
+		return extracts, true
+	}
+	buf, err := kv.GetValue(compileCacheKVKey, []byte(fp))
+	if err != nil || buf == nil {
+		return nil, false
+	}
+	if err := util.FromJSONBytes(buf, &extracts); err != nil {
+		log.Debugf("wiki compiler: decode cached MAP batch [%s] failed: %v", fp, err)
+		return nil, false
+	}
+	compileCacheMu.Lock()
+	compileCache[fp] = extracts
+	compileCacheMu.Unlock()
+	return extracts, true
+}
+
+// compileCachePut writes the batch result through to the store. A failed
+// persist only costs a recompute after restart, so it logs and moves on.
+func compileCachePut(fp string, extracts []CompileExtract) {
+	compileCacheMu.Lock()
+	compileCache[fp] = extracts
+	compileCacheMu.Unlock()
+	if err := kv.AddValueCompress(compileCacheKVKey, []byte(fp), util.MustToJSONBytes(extracts)); err != nil {
+		log.Debugf("wiki compiler: persist MAP batch [%s] failed: %v", fp, err)
+	}
+}
 
 const mapExtractPrompt = `You extract knowledge from document chunks for a wiki compiler.
 Return ONLY a JSON array of extracts, each:
@@ -334,13 +373,10 @@ func runCompilePipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *
 			if !okFp {
 				continue
 			}
-			cacheKey := fp
-			compileCacheMu.RLock()
-			cached, hit := compileCache[cacheKey]
-			compileCacheMu.RUnlock()
+			extracts, hit := compileCacheGet(fp)
 			if hit {
 				summary.CachedBatches++
-				allExtracts = append(allExtracts, cached...)
+				allExtracts = append(allExtracts, extracts...)
 				continue
 			}
 			extracts, err := compileMAPFn(context.WithoutCancel(ctx), model, batch)
@@ -352,9 +388,7 @@ func runCompilePipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *
 				extracts[i].DocID = doc.ID
 				extracts[i].ChunkHint = truncateCompile(batch, 200)
 			}
-			compileCacheMu.Lock()
-			compileCache[cacheKey] = extracts
-			compileCacheMu.Unlock()
+			compileCachePut(fp, extracts)
 			allExtracts = append(allExtracts, extracts...)
 		}
 	}
