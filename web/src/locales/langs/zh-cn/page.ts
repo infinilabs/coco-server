@@ -1487,6 +1487,11 @@ const page: App.I18n.Schema['translation']['page'] = {
     search_settings: {
       title: '搜索设置',
       labels: {
+        wiki_projection: 'Wiki 腿切文档索引',
+        wiki_projection_desc: '开启后 wiki 检索腿从文档索引的投影行读取(需先运行 /wiki/_backfill_projection);关闭走 wiki_article 索引。',
+        chunk_route: '块级检索路(RRF 第七路)',
+        chunk_route_desc: '开启后独立块索引作为额外 RRF 路参与融合(需先 _reprocess 投影足量文档);命中携带面包屑与引用链。',
+
         banner_height: '横幅最大高度',
         banner_height_hint: '搜索首页横幅的最大高度(宽度按原图比例自适应);默认 64px',
         builtin_widget: 'AI 搜索组件(内置)',

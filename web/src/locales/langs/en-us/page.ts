@@ -1528,6 +1528,11 @@ const page: App.I18n.Schema['translation']['page'] = {
     search_settings: {
       title: 'Search Settings',
       labels: {
+        wiki_projection: 'Wiki leg from document index',
+        wiki_projection_desc: 'When on, the wiki retrieval leg reads projected rows from the document index (run /wiki/_backfill_projection first); off reads the wiki_article index.',
+        chunk_route: 'Chunk-level RRF leg',
+        chunk_route_desc: 'When on, the standalone chunk index joins the fusion as an extra RRF leg (_reprocess enough documents first); hits carry breadcrumbs and citation chains.',
+
         banner_height: 'Banner max height',
         banner_height_hint: 'Max height of the search home banner (width adapts to the image ratio); default 64px',
         builtin_widget: 'AI Search Widget (Built-in)',

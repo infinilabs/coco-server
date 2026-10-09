@@ -62,6 +62,8 @@ const SearchSettings = memo(() => {
     startLoading();
     const search_settings = {
       enabled,
+      wiki_projection: form.getFieldValue('wiki_projection') ?? false,
+      chunk_route: form.getFieldValue('chunk_route') ?? false,
       search_type: search_type || 'keyword'
     }
     const result = await updateSettings({
@@ -139,6 +141,23 @@ const SearchSettings = memo(() => {
                 label: t(`page.settings.search_settings.options.${value}`)
               }))}
             />
+          </Form.Item>
+
+          <Form.Item
+            label={t('page.settings.search_settings.labels.wiki_projection')}
+            name={['wiki_projection']}
+            valuePropName="checked"
+            tooltip={t('page.settings.search_settings.labels.wiki_projection_desc')}
+          >
+            <Switch size="small" />
+          </Form.Item>
+          <Form.Item
+            label={t('page.settings.search_settings.labels.chunk_route')}
+            name={['chunk_route']}
+            valuePropName="checked"
+            tooltip={t('page.settings.search_settings.labels.chunk_route_desc')}
+          >
+            <Switch size="small" />
           </Form.Item>
 
           <Divider />
