@@ -149,8 +149,16 @@ func (doc *OntologySchemaDoc) typeDef(name string) *OntologyEntityTypeDef {
 	if doc == nil {
 		return nil
 	}
+	// exact match first, then case-insensitive: LLM extraction produces
+	// capitalized type names ("Organization") while the schema declares
+	// the canonical casing ("organization") — the declared casing wins
 	for i := range doc.EntityTypes {
 		if doc.EntityTypes[i].Name == name {
+			return &doc.EntityTypes[i]
+		}
+	}
+	for i := range doc.EntityTypes {
+		if strings.EqualFold(doc.EntityTypes[i].Name, name) {
 			return &doc.EntityTypes[i]
 		}
 	}
@@ -294,6 +302,11 @@ func validateEntityWithDoc(ctx context.Context, entity *core.WikiEntity, doc *On
 func findRelationDef(typeDef *OntologyEntityTypeDef, name string) *OntologyRelationDef {
 	for i := range typeDef.Relations {
 		if typeDef.Relations[i].Name == name {
+			return &typeDef.Relations[i]
+		}
+	}
+	for i := range typeDef.Relations {
+		if strings.EqualFold(typeDef.Relations[i].Name, name) {
 			return &typeDef.Relations[i]
 		}
 	}

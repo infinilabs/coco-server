@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/wiki"
 )
@@ -101,4 +102,27 @@ func TestBuildExtractionPromptWithSchema(t *testing.T) {
 	if !strings.Contains(prompt, "[\"legacy\"]") {
 		t.Errorf("flat fallback missing: %s", prompt)
 	}
+}
+
+func TestEntityTypeCanonicalization(t *testing.T) {
+	// LLM emits "Organization" (capitalized), schema declares "organization"
+	// (lowercase) — the stored type must use the DECLARED casing
+	schema := &wiki.OntologySchemaDoc{
+		EntityTypes: []wiki.OntologyEntityTypeDef{
+			{Name: "organization"},
+			{Name: "person"},
+		},
+	}
+	allowed := make([]string, 0, len(schema.EntityTypes))
+	for i := range schema.EntityTypes {
+		allowed = append(allowed, schema.EntityTypes[i].Name)
+	}
+
+	// LLM emits "Organization" (capitalized) — stored as the DECLARED casing
+	assert.Equal(t, "organization", canonicalizeEntityType("Organization", allowed, schema))
+	assert.Equal(t, "person", canonicalizeEntityType("PERSON", allowed, schema))
+
+	// unknown types degrade to concept
+	assert.Equal(t, "concept", canonicalizeEntityType("Spaceship", allowed, schema))
+	assert.Equal(t, "concept", canonicalizeEntityType("", allowed, schema))
 }

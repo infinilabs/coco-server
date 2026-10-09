@@ -336,10 +336,7 @@ func resolveOrCreateEntity(ctx *orm.Context, extracted *extractedEntity, doc *co
 			allowedTypes = append(allowedTypes, schema.EntityTypes[i].Name)
 		}
 	}
-	entityType := extractedType
-	if !util.AnyInArrayEquals(lowerAll(allowedTypes), entityType) || entityType == "" {
-		entityType = "concept" // unknown vocabulary: degrade instead of dropping
-	}
+	entityType := canonicalizeEntityType(extractedType, allowedTypes, schema)
 
 	entity := &core.WikiEntity{
 		Type:       entityType,
@@ -363,6 +360,22 @@ func resolveOrCreateEntity(ctx *orm.Context, extracted *extractedEntity, doc *co
 		return nil, false, err
 	}
 	return entity, true, nil
+}
+
+// canonicalizeEntityType matches the LLM-extracted type against the
+// allowed vocabulary case-insensitively and returns the DECLARED casing
+// ("Organization" from the model → "organization" from the schema).
+// Unknown types degrade to "concept" instead of dropping.
+func canonicalizeEntityType(extracted string, allowedTypes []string, schema *wiki.OntologySchemaDoc) string {
+	if extracted == "" {
+		return "concept"
+	}
+	for _, allowed := range allowedTypes {
+		if strings.EqualFold(allowed, extracted) {
+			return allowed // declared casing wins
+		}
+	}
+	return "concept" // unknown vocabulary: degrade instead of dropping
 }
 
 func lowerAll(in []string) []string {
