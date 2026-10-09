@@ -50,6 +50,7 @@ func ProjectDocumentChunks(ctx context.Context, doc *core.Document) error {
 	// clear this document's previous projection
 	delCtx := orm.NewContextWithParent(ctx)
 	delCtx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	orm.WithModel(delCtx, &core.KnowledgeChunk{})
 	if _, err := orm.DeleteByQuery(delCtx, orm.NewQuery().Size(10000).
 		Filter(orm.TermQuery("doc_id", doc.ID))); err != nil {
 		log.Warnf("chunk index: clearing old rows for [%s] failed: %v", doc.ID, err)
