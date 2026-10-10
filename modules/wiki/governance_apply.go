@@ -81,7 +81,11 @@ func (h *APIHandler) applyGovernanceProposal(w http.ResponseWriter, req *http.Re
 	case core.WikiGovernanceEntityConflict:
 		applied, err = applyEntityConflictProposal(ctx, &proposal)
 	case core.WikiGovernanceKnowledgeCompile:
-		applied, err = applyCompileProposal(ctx, &proposal)
+		var targetArticle string
+		applied, targetArticle, err = applyCompileProposal(ctx, &proposal)
+		if err == nil && targetArticle != "" {
+			proposal.Evidence["generated_article_id"] = targetArticle
+		}
 	case core.WikiGovernanceTreeOrganize:
 		appliedTree, terr := applyTreeProposal(ctx, proposal.KbID, proposal.Evidence)
 		if terr != nil {
@@ -118,7 +122,11 @@ func (h *APIHandler) applyGovernanceProposal(w http.ResponseWriter, req *http.Re
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	h.WriteOKJSON(w, util.MapStr{"applied": applied, "result": "ok"})
+	resp := util.MapStr{"applied": applied, "result": "ok"}
+	if aid, ok := proposal.Evidence["generated_article_id"]; ok {
+		resp["article_id"] = aid
+	}
+	h.WriteOKJSON(w, resp)
 }
 
 /* ---------------- per-type fixes ---------------- */
@@ -345,13 +353,13 @@ func applyEntityConflictProposal(ctx *orm.Context, p *core.WikiGovernanceProposa
 // applyCompileProposal materializes the compiled draft: every statement in
 // the evidence becomes a cited section of a draft page — create if the page
 // does not exist, append a supplement section if it does.
-func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (string, error) {
+func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (string, string, error) {
 	if p.ArticleTitle == "" {
-		return "", nil
+		return "", "", nil
 	}
 	raw, ok := p.Evidence["statements"]
 	if !ok {
-		return "", nil
+		return "", "", nil
 	}
 	type stmt struct {
 		DocID   string `json:"doc_id"`
@@ -360,7 +368,7 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 	}
 	var statements []stmt
 	if err := util.FromJSONBytes(util.MustToJSONBytes(raw), &statements); err != nil || len(statements) == 0 {
-		return "", nil
+		return "", "", nil
 	}
 
 	kind, _ := p.Evidence["kind"].(string)
@@ -397,9 +405,9 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 		if ok, err := orm.GetV2(ctx, &article); err == nil && ok {
 			article.Content = strings.TrimSpace(article.Content) + "\n\n## 编译补充\n\n" + content
 			if err := orm.Update(ctx, &article); err != nil {
-				return "", err
+				return "", "", err
 			}
-			return fmt.Sprintf("「%s」已追加编译补充(%d 条主张)", article.Title, len(statements)), nil
+			return fmt.Sprintf("「%s」已追加编译补充(%d 条主张)", article.Title, len(statements)), article.ID, nil
 		}
 	}
 
@@ -421,7 +429,7 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 		}
 	}
 	if err := orm.Create(ctx, &article); err != nil {
-		return "", err
+		return "", "", err
 	}
-	return fmt.Sprintf("已生成草稿页「%s」(%d 条主张)", article.Title, len(statements)), nil
+	return fmt.Sprintf("已生成草稿页「%s」(%d 条主张)", article.Title, len(statements)), article.ID, nil
 }

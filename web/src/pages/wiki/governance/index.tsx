@@ -70,6 +70,12 @@ export function Component() {
       .then((res: any) => {
         const action = res?.applied || '';
         window.$message?.success(t('page.wiki.governance.applied', { action }));
+        // a generated page is the visible outcome — land on it so the fix
+        // is inspectable; other fixes stay in the queue
+        if (proposal.type === 'knowledge_compile' && res?.article_id) {
+          nav(`/wiki/article/${res.article_id}?kb=${proposal.kb_id || ''}`);
+          return;
+        }
         fetchData();
       })
       .catch(() => {
@@ -139,6 +145,7 @@ export function Component() {
                       >
                         <Button
                           icon={<ThunderboltOutlined />}
+                          onClick={e => e.stopPropagation()}
                           loading={applying === proposal.id}
                           size='small'
                           type='primary'
@@ -155,6 +162,7 @@ export function Component() {
                       <Button
                         ghost
                         icon={<CheckOutlined />}
+                        onClick={e => e.stopPropagation()}
                         size='small'
                         type='primary'
                       >
@@ -168,6 +176,7 @@ export function Component() {
                     >
                       <Button
                         icon={<CloseOutlined />}
+                        onClick={e => e.stopPropagation()}
                         size='small'
                       >
                         {t('page.wiki.governance.dismiss')}
