@@ -24,6 +24,7 @@ const swatches: { color: string; name: string }[] = [
 ];
 
 interface Props {
+  disabled?: boolean;
   index: number;
   isInfoFollowPrimary: boolean;
   label: string;
@@ -31,7 +32,7 @@ interface Props {
   value: string;
 }
 
-const CustomPicker: FC<Props> = memo(({ index, isInfoFollowPrimary, label, theme, value }) => {
+const CustomPicker: FC<Props> = memo(({ disabled = false, index, isInfoFollowPrimary, label, theme, value }) => {
   const { t } = useTranslation();
 
   const dispatch = useAppDispatch();
@@ -96,7 +97,7 @@ const CustomPicker: FC<Props> = memo(({ index, isInfoFollowPrimary, label, theme
       }
     >
       <AColorPicker
-        disabled={label === 'info' && isInfoFollowPrimary}
+        disabled={disabled || (label === 'info' && isInfoFollowPrimary)}
         panelRender={customPanelRender}
         value={value}
         onChange={(_, hex) => handleUpdateColor(hex, label as App.Theme.ThemeColorKey)}

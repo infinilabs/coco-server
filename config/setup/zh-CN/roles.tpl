@@ -49,8 +49,8 @@ POST $[[SETUP_INDEX_PREFIX]]app-roles/$[[SETUP_DOC_TYPE]]/d47m83v3edbo74oibfc0
      "_system": {
                 "owner_id": "$[[SETUP_OWNER_ID]]"
               },
-          "name": "All",
-          "description": "",
+          "name": "管理员",
+          "description": "系统管理员角色,拥有全部权限",
           "grants": {
             "permissions": [
               "coco#assistant/ask",

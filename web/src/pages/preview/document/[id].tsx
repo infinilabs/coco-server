@@ -1,8 +1,11 @@
-import { Button, Result, Spin } from 'antd';
+import { Button, Drawer, Result } from 'antd';
 import { useParams } from 'react-router-dom';
+import { highlightPhrase, highlightTerms } from './highlight';
+import { ArrowLeft, Wrench } from 'lucide-react';
 
 import { request } from '@/service/request';
 import { fetchEntityUser } from '@/service/api/entity';
+import loadingIcon from '@/assets/svg-icon/file-loading.svg';
 import logoLight from '@/assets/imgs/coco-logo-text-light.svg';
 import logoDark from '@/assets/imgs/coco-logo-text-dark.svg';
 import { getDarkMode } from '@/store/slice/theme';
@@ -10,6 +13,8 @@ import { useAppSelector } from '@/hooks/business/useStore';
 import classNames from 'classnames';
 
 import PreviewContent from './components/PreviewContent';
+import ProcessingPanel from './components/ProcessingPanel';
+import { ensureFilenameExtension, extensionFromMime } from 'ui-search/source';
 
 // Helper function to extract a filename from a Content-Disposition header.
 // Supported forms include:
@@ -39,7 +44,31 @@ export function Component() {
   const [contentBlobUrl, setContentBlobUrl] = useState<string>();
   const [downloadFilename, setDownloadFilename] = useState<string>();
   const [rawContentError, setRawContentError] = useState<string>();
+  const [processingOpen, setProcessingOpen] = useState(false);
+  // W17 highlight: ?quote= is the cited chunk's exact excerpt (precise
+  // landing, tier 2); ?q= carries the query terms (term marks, tier 3)
+  const highlightQuery = searchParams.get('q') ?? '';
+  const highlightQuote = searchParams.get('quote') ?? '';
+  const highlightPage = Number(searchParams.get('page')) || 0;
+  const contentRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  // Search results open this page with window.open, so the tab usually has no
+  // history to go back to. Close the tab when an opener exists (returning the
+  // user to the results they came from), use in-tab history when present, and
+  // fall back to home for direct links.
+  const handleBack = () => {
+    if ((history.state?.idx ?? 0) > 0) {
+      navigate(-1);
+      return;
+    }
+    if (window.opener) {
+      window.close();
+      return;
+    }
+    navigate('/');
+  };
 
   // requestHeaders is used by the Preview sub-components when fetching the
   // raw_content URL. We pass the app-integration-id header so embedded/widget
@@ -73,12 +102,30 @@ export function Component() {
       }
 
       const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const filename = parseFilenameFromContentDisposition(
-        res.headers.get('Content-Disposition'),
-        docData.title || 'download'
+      // the Content-Disposition name (or the title fallback) often carries no
+      // extension — a file saved that way can't be opened, so derive one from
+      // the document metadata or the blob's own content type
+      const { file_extension, mime_type, content_type } = docData?.metadata ?? {};
+      const extension =
+        file_extension?.replace(/^\./, '') ||
+        extensionFromMime(mime_type) ||
+        extensionFromMime(blob.type) ||
+        '';
+      const filename = ensureFilenameExtension(
+        parseFilenameFromContentDisposition(res.headers.get('Content-Disposition'), docData.title || 'download'),
+        extension
       );
 
+      // for images, tag the blob URL with the filename as a fragment: the URL
+      // keeps resolving, but a copied address / save-as now carries a real
+      // name with an extension instead of the bare blob UUID
+      let blobUrl = URL.createObjectURL(blob);
+      if (content_type === 'image') {
+        blobUrl = `${blobUrl}#${encodeURIComponent(filename)}`;
+      } else if (content_type === 'pdf' && highlightPage > 0) {
+        // browser PDF viewers honor #page=N — the W17 tier-1 page jump
+        blobUrl = `${blobUrl}#page=${highlightPage}`;
+      }
       setContentBlobUrl(blobUrl);
       setDownloadFilename(filename);
 
@@ -148,14 +195,31 @@ export function Component() {
     };
   }, [contentBlobUrl]);
 
+  // highlight after the content renders (blob load + paint settle).
+  // quote landing takes priority: one precise passage beats scattered terms.
+  useEffect(() => {
+    if (loading || error || !contentRef.current) return;
+    if (!highlightQuote && !highlightQuery) return;
+    const timer = setTimeout(() => {
+      let first: HTMLElement | undefined;
+      if (highlightQuote) {
+        first = highlightPhrase(contentRef.current, highlightQuote);
+      }
+      if (!first && highlightQuery) {
+        const result = highlightTerms(contentRef.current, highlightQuery);
+        first = result.firstElement;
+      }
+      first?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [loading, error, highlightQuery, highlightQuote, contentBlobUrl, data]);
+
   const renderContent = () => {
     if (loading) {
       return (
-        <Spin
-          fullscreen
-          percent='auto'
-          spinning={loading}
-        />
+        <div className='fixed-center'>
+          <img className='h-64px w-64px' src={loadingIcon} alt='' />
+        </div>
       );
     }
 
@@ -222,7 +286,14 @@ export function Component() {
     <div className='h-screen bg-white dark:bg-black'>
       <div className={classNames('h-full flex flex-col', [embedded ? 'p-6' : 'px-16px max-w-240 m-auto'])}>
         {!embedded && (
-          <div className='h-20 flex items-center border-b border-border-secondary'>
+          <div className='h-20 flex items-center gap-12px border-b border-border-secondary'>
+            <Button
+              aria-label={t('page.preview.buttons.back')}
+              icon={<ArrowLeft size={18} />}
+              title={t('page.preview.buttons.back')}
+              type='text'
+              onClick={handleBack}
+            />
             <div className='children:h-10'>
               <img
                 className='dark:hidden'
@@ -238,12 +309,36 @@ export function Component() {
         )}
 
         <div
+          ref={contentRef}
           className={classNames('flex-1 overflow-hidden', {
             'mt-8': !embedded
           })}
         >
           {renderContent()}
         </div>
+
+        {/* processing panel (W13): lifecycle + chunks for this document —
+            hidden in embedded/widget mode, ops actions stay on the ops page */}
+        {!embedded && !loading && !error ? (
+          <>
+            <Button
+              type="primary"
+              shape="circle"
+              icon={<Wrench size={18} />}
+              title={t('page.preview.processing.open')}
+              className="fixed bottom-24px right-24px z-10"
+              onClick={() => setProcessingOpen(true)}
+            />
+            <Drawer
+              title={t('page.preview.processing.title')}
+              width={560}
+              open={processingOpen}
+              onClose={() => setProcessingOpen(false)}
+            >
+              <ProcessingPanel docId={id} headers={requestHeaders} />
+            </Drawer>
+          </>
+        ) : null}
       </div>
     </div>
   );

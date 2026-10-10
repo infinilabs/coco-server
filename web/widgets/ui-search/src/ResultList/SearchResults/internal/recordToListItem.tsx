@@ -2,7 +2,7 @@ import { AuthImage } from "./AuthImage";
 import { normalizeFileType } from "./normalizeFileType";
 
 import type { SearchResultListItem, SearchResultsRecord } from "../types";
-import { formatDateWithRelative } from "../../../utils/date";
+import { cleanHighlightFragment, cleanSummary, decodeHtmlEntities } from "../../../utils/utils"
 
 export function recordToListItem(
   record: SearchResultsRecord,
@@ -10,27 +10,51 @@ export function recordToListItem(
   onClick?: () => void
 ): SearchResultListItem {
   const cover = record.thumbnail ?? record.cover ?? record.metadata?.thumbnail_link;
-  const summary = record.summary ?? record.content;
+  // prefer the ES highlight fragments (they carry <em> markers around the
+  // matched terms); the fragment path strips heading debris in a marker-aware
+  // way, the raw-field path is decoded and tidied as plain text
+  const hl = record.highlight as Record<string, string[]> | undefined;
+  const summary = hl?.content?.[0] ?? hl?.summary?.[0]
+    ? cleanHighlightFragment(hl?.content?.[0] ?? hl?.summary?.[0])
+    : cleanSummary(decodeHtmlEntities(record.summary ?? record.content));
   const fileType = normalizeFileType(record.metadata?.file_extension ?? record.type);
 
   const sourceName = record.source?.name;
-  const categoryText = record.category ?? record.categories?.join(" / ") ?? "Categories";
+  const categoryText = record.category ?? record.categories?.join(" / ");
   const breadcrumbs = [sourceName, categoryText].filter(Boolean) as string[];
 
   const author = record.owner?.title ?? record.owner?.username ?? record.owner?.name ?? record.last_updated_by?.user?.username;
-  const date = formatDateWithRelative(record.last_updated_by?.timestamp ?? record.metadata?.last_reviewed ?? record.updated ?? record.created);
+  // raw timestamp — AuthorDate renders the short relative time and keeps the
+  // exact time on hover, so no pre-formatting here
+  const date = record.last_updated_by?.timestamp ?? record.metadata?.last_reviewed ?? record.updated ?? record.created;
 
   const typeIconUrl = record.metadata?.icon_link ?? record.icon;
   const typeIcon = typeIconUrl ? (
     <AuthImage src={typeIconUrl} alt="" className="h-5 w-5 rounded-sm object-contain" />
   ) : undefined;
 
+  const rawTitle = hl?.title?.[0] ?? record.title;
+
+  // chunk-level landing info (W3 方案 c / W17): when the hit carries the
+  // semantic_chunk payload, prefix the summary with the section breadcrumb
+  // and page range so the reader knows where in the document this hit lands
+  let chunkPrefix = "";
+  const sc = record.metadata?.semantic_chunk as
+    | { breadcrumb?: string; pages?: { start?: number; end?: number }; quote?: string }
+    | undefined;
+  if (sc) {
+    const parts: string[] = [];
+    if (sc.breadcrumb) parts.push(sc.breadcrumb);
+    if (sc.pages?.start) parts.push(sc.pages.end && sc.pages.end !== sc.pages.start ? `p${sc.pages.start}-${sc.pages.end}` : `p${sc.pages.start}`);
+    if (parts.length) chunkPrefix = `[${parts.join(" · ")}] `;
+  }
+
   return {
     type: "result",
     id: `${record.source?.id ?? record.url ?? record.title}-${index}`,
-    title: record.title,
+    title: rawTitle,
     href: record.url,
-    summary,
+    summary: chunkPrefix + summary,
     cover,
     fileType,
     typeIcon,

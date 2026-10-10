@@ -1,23 +1,53 @@
 import { Spin } from 'antd';
-
-import UserAvatar from '@/layouts/modules/global-header/components/UserAvatar';
-import { getDarkMode } from '@/store/slice/theme';
-import { configResponsive } from 'ahooks';
+import dayjs from 'dayjs';
+import { useRef, useState } from 'react';
 import { fetchIntegration } from '@/service/api/integration';
-import { useRequest } from '@sa/hooks';
 import useQueryParams from '@/hooks/common/queryParams';
-import { FullscreenPage } from 'ui-search/source';
+import { FullscreenPage, OWNER_FILTER_FIELD, TIME_FILTER_FIELD } from 'ui-search/source';
 import { querySearch, fetchSuggestions, fetchRecommends, fetchFieldsMeta, uploadAttachment } from '@/service/api/ai-search';
-import { getApiBaseUrl } from '@/service/request';
+import { getApiBaseUrl, request } from '@/service/request';
+import { consumePendingSearch } from '@/utils/search-handoff';
 import queryString from 'query-string';
+import { getDarkMode } from '@/store/slice/theme';
 import { getLocale } from '@/store/slice/app';
 import { getApplicationSetting } from '@/store/slice/server';
 import { searchAssistant } from '@/service/api/assistant';
 import { fetchBatchEntityLabels } from '@/service/api/entity';
+import { CorrectionModal, type CorrectionPayload } from './components/CorrectionModal';
+import { SaveToWikiModal, type SaveToWikiPayload } from './components/SaveToWikiModal';
 
-configResponsive({ sm: 640 });
+// creator facet: buckets carry user ids — display names are resolved client-side
+// via getUserEntities (same as the result list's owner names). The agg is named
+// after the filter field so facet clicks produce `filter=_system.owner_id:any()`;
+// it aggregates on the .keyword subfield because the engine's dynamic mapping
+// types the bare field as text, which rejects terms aggregations outright.
+const OWNER_AGG = {
+  "terms": { "field": "_system.owner_id.keyword", "size": 10 }
+};
 
-const AGGS_DEFAULT = {
+// relative time buckets on `updated`, keyed by the URL date_range param values
+// the widget already understands ('7d'/'90d'/'1y') — selecting a bucket applies
+// that param, so boundaries must match the widget's getDateRangeParams
+const timeRangeBuckets = () => {
+  const now = dayjs();
+  return [
+    { key: '7d', from: now.subtract(7, 'day').startOf('day').valueOf() },
+    { key: '90d', from: now.subtract(90, 'day').startOf('day').valueOf() },
+    { key: '1y', from: now.subtract(1, 'year').startOf('day').valueOf() }
+  ];
+};
+
+const TIME_AGG = () => ({
+  "date_range": {
+    "field": "updated",
+    // explicit epoch millis (not date math) keep the DSL engine-portable;
+    // ranges nest (7d ⊂ 90d ⊂ 1y), so counts read like the toolbar presets
+    "ranges": timeRangeBuckets()
+  }
+});
+
+// built per aggregation request so the time buckets always anchor to now
+const buildAggsDefault = () => ({
   "aggs": {
     "category": { "terms": { "field": "category" } },
     "source.id": {
@@ -35,10 +65,15 @@ const AGGS_DEFAULT = {
     },
     "type": { "terms": { "field": "type" } },
     "tags": { "terms": { "field": "tags" } },
+    [OWNER_FILTER_FIELD]: OWNER_AGG,
+    [TIME_FILTER_FIELD]: TIME_AGG(),
+    // drives the result tabs' visibility (image/doc only when such results
+    // exist for the query) — the widget consumes it and hides empty tabs
+    "content_category": { "terms": { "field": "metadata.content_category" } },
   }
-}
+});
 
-const AGGS_IMAGE = {
+const buildAggsImage = () => ({
   "aggs": {
     "category": { "terms": { "field": "category" } },
     "source.id": {
@@ -57,32 +92,41 @@ const AGGS_IMAGE = {
     "type": { "terms": { "field": "type" } },
     "tag": { "terms": { "field": "tags" } },
     "color": { "terms": { "field": "metadata.colors" } },
+    [OWNER_FILTER_FIELD]: OWNER_AGG,
+    [TIME_FILTER_FIELD]: TIME_AGG(),
+    "content_category": { "terms": { "field": "metadata.content_category" } },
   }
-}
-
-const AGGS: any = {
-  'all': AGGS_DEFAULT,
-  'image': AGGS_IMAGE
-}
+});
 
 export function Component() {
-  const topActionsRef = useRef<HTMLDivElement | null>(null)
-
-  const responsive = useResponsive();
 
   const [queryParams, setQueryParams] = useQueryParams({ mode: 'search' });
+
+  // a search started in the app shell header (chat mode, with attachments)
+  // parks its pending conversation in the one-shot handoff — consume it at
+  // first render and seed the widget's chat mode with it
+  const handoffRef = useRef<any>(undefined);
+  if (handoffRef.current === undefined) {
+    handoffRef.current = consumePendingSearch();
+  }
+  const initialChatParams = handoffRef.current || undefined;
 
   const darkMode = useAppSelector(getDarkMode);
 
   const locale = useAppSelector(getLocale);
 
-  const [rightMenuWidth, setRightMenuWidth] = useState(0);
+  // the app shell header owns the top-right controls (lang/theme/avatar/console)
+  const rightMenuWidth = 0;
+
+  // knowledge execution: answer -> knowledge-base draft (D1 server-side)
+  const [saveToWikiPayload, setSaveToWikiPayload] = useState<SaveToWikiPayload | null>(null);
+
+  // correction loop (D7): answer -> governance proposal, human gate stays
+  const [correctionPayload, setCorrectionPayload] = useState<CorrectionPayload | null>(null);
 
   const applicationSetting = useAppSelector(getApplicationSetting);
 
   const { search_settings } = applicationSetting || {};
-
-  const isMobile = !responsive.sm;
 
   const [integration, setIntegration] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -121,31 +165,6 @@ export function Component() {
     setLoading(false)
   }
 
-  useEffect(() => {
-    const element = topActionsRef.current;
-
-    if (!element) {
-      return;
-    }
-
-    const updateRightMenuWidth = () => {
-      const width = Math.ceil(element.getBoundingClientRect().width);
-      setRightMenuWidth(width > 0 ? width : 0);
-    };
-
-    updateRightMenuWidth();
-
-    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateRightMenuWidth) : null;
-
-    observer?.observe(element);
-    window.addEventListener('resize', updateRightMenuWidth);
-
-    return () => {
-      observer?.disconnect();
-      window.removeEventListener('resize', updateRightMenuWidth);
-    };
-  }, [isMobile, integration]);
-
   const onSearch = async (queryParams: { [key: string]: any }, body: any = {}, callback: (data: any) => void, setLoading: (loading: boolean) => void) => {
     if (setLoading) setLoading(true)
     const { filter = {}, start, end, ...rest } = queryParams
@@ -163,16 +182,52 @@ export function Component() {
 
   const onAggregation = async (queryParams: { [key: string]: any }, callback: (data: any) => void, setLoading: (loading: boolean) => void) => {
     if (setLoading) setLoading(true)
-    const { query, filter, search_type, fuzziness, start, end } = queryParams
-    const filterStr = Object.keys(filter).filter((key) => !!filter[key]).map((key) => `filter=${key}:any(${Array.isArray(filter[key]) ? filter[key].join(',') : filter[key]})`).join('&')
+    const { query, filter = {}, search_type, fuzziness, start, end, attachments } = queryParams
+    // the content_category aggregation must see the full category distribution
+    // for the current query — strip the active tab's category filter, or the
+    // image/doc counts would collapse to the open tab and empty the other tabs
+    const { 'metadata.content_category': _activeCategory, ...categoryAgnosticFilter } = filter
+    const filterStr = Object.keys(categoryAgnosticFilter).filter((key) => Boolean(categoryAgnosticFilter[key])).map((key) => `filter=${key}:any(${Array.isArray(categoryAgnosticFilter[key]) ? categoryAgnosticFilter[key].join(',') : categoryAgnosticFilter[key]})`).join('&')
     const dateFilterStr = [
       start ? `filter=updated>=${start}` : '',
       end ? `filter=updated<=${end}` : '',
     ].filter(Boolean).join('&')
-    const searchStr = [filterStr, dateFilterStr, queryString.stringify({ query, search_type, fuzziness })].filter(Boolean).join('&')
-    const body = JSON.stringify(AGGS[queryParams['metadata.content_category']] || AGGS['all'])
+    // multimodal attachments shape the facet counts like they shape the results
+    const searchStr = [filterStr, dateFilterStr, queryString.stringify({ query, search_type, fuzziness, ...(attachments ? { attachments } : {}) })].filter(Boolean).join('&')
+    const aggs = queryParams['metadata.content_category'] === 'image' ? buildAggsImage() : buildAggsDefault();
+    const body = JSON.stringify(aggs)
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
     const res = await querySearch(body, searchStr, { headers, ignoreError: true })
+
+    // W15: the per-leg aggregation describes one recall leg, not the
+    // fusion — the fused counts for the three main facets (source/type/
+    // tags) come from /query/_aggregations, which runs the same hybrid
+    // pipeline. Merge them over the leg-local buckets; content_category
+    // (the image/doc tabs) keeps its own aggregation untouched.
+    try {
+      const fusedStr = queryString.stringify({ query, search_type, fuzziness })
+      const fusedRes = await request({
+        method: 'get',
+        url: `/query/_aggregations?${fusedStr}`,
+        headers,
+        ignoreError: true
+      })
+      const fused = fusedRes?.data
+      if (fused && res?.data?.aggregations) {
+        const mergeFacet = (fieldName: string, buckets: { value: string; count: number }[] | undefined) => {
+          if (!buckets) return
+          res.data.aggregations[fieldName] = {
+            buckets: buckets.map(b => ({ key: b.value, doc_count: b.count }))
+          }
+        }
+        mergeFacet('source.id', fused.datasources)
+        mergeFacet('type', fused.types)
+        mergeFacet('tags', fused.tags)
+      }
+    } catch {
+      // fused facets are an enhancement — leg-local buckets stand on failure
+    }
+
     if (callback) callback(res.data)
     if (setLoading) setLoading(false)
   }
@@ -299,17 +354,38 @@ export function Component() {
 
   const { payload = {}, enabled_module = {} } = integration || {}
 
+  // search-home branding comes from the built-in integration (edited in
+  // search settings): the banner logo above the search box and the page
+  // background. When no banner logo is configured, pass null so the widget
+  // hides its own logo instead of falling back to the bundled one
+  const integrationLogo = payload?.logo
+  const hasIntegrationLogo = Boolean(integrationLogo && Object.values(integrationLogo).some(Boolean))
+  const searchLogo = hasIntegrationLogo
+    ? {
+        dark: integrationLogo?.dark || integrationLogo?.light,
+        dark_mobile: integrationLogo?.dark || integrationLogo?.light,
+        light: integrationLogo?.light || integrationLogo?.dark,
+        light_mobile: integrationLogo?.light || integrationLogo?.dark
+      }
+    : null
+  const searchBackground = payload?.background
+
   const componentProps = {
     settings: integration,
     id: search_settings?.integration,
     theme: darkMode ? 'dark' : 'light',
     language: locale,
-    "logo": {
-      "light": payload?.logo?.light,
-      "light_mobile": payload?.logo?.light_mobile,
-      "dark": payload?.logo?.dark,
-      "dark_mobile": payload?.logo?.dark_mobile,
-    },
+    "logo": searchLogo,
+    // the app shell already brands the chat page (sider "站点标题") — no
+    // widget branding in the chat sidebar
+    "chatLogo": null,
+    // ditto for the search results header — the banner only belongs on the
+    // search home
+    "searchLogo": null,
+    "background": searchBackground,
+    "logoMaxHeight": payload?.banner_height,
+    "welcomeFontSize": payload?.welcome_font_size,
+    "welcomeGradient": payload?.welcome_gradient !== false,
     "placeholder": enabled_module?.search?.placeholder,
     "welcome": payload?.welcome || "",
     rightMenuWidth,
@@ -318,36 +394,34 @@ export function Component() {
       "showActions": true,
     },
     "onSearch": onSearch,
+    "onSaveToWiki": (payload: SaveToWikiPayload) => setSaveToWikiPayload(payload),
+    "onCorrectAnswer": (payload: CorrectionPayload) => setCorrectionPayload(payload),
     "onAggregation": onAggregation,
     "onAsk": onAsk,
     "onSuggestion": onSuggestion,
     "onRecommend": onRecommend,
     "config": {
+      // labels are resolved by the widget's i18n (labels.source / labels.type / …);
+      // only the widget-specific render type is configured here
       "aggregations": {
         "source.id": {
-          "label": "source",
           "payload": { field_name: 'source.id', field_data_type: 'keyword', support_multi_select: true }
         },
         "lang": {
-          "label": "language",
           "payload": { field_name: 'lang', field_data_type: 'keyword', support_multi_select: true }
         },
         "color": {
-          'label': 'color',
           'type': 'color',
           "payload": { field_name: 'color', field_data_type: 'keyword', support_multi_select: true }
         },
         "tags": {
-          'label': 'tag',
           'type': 'tag',
           "payload": { field_name: 'tags', field_data_type: 'keyword', support_multi_select: true }
         },
         "category": {
-          'label': 'category',
           "payload": { field_name: 'category', field_data_type: 'keyword', support_multi_select: true }
         },
         "type": {
-          'label': 'type',
           "payload": { field_name: 'type', field_data_type: 'keyword', support_multi_select: true }
         },
       }
@@ -383,14 +457,20 @@ export function Component() {
       <FullscreenPage
         {...componentProps}
         enableQueryParams={true}
+        initialChatParams={initialChatParams}
         queryParams={queryParams}
         setQueryParams={setQueryParams}
       />
-      <div ref={topActionsRef} style={{ top: (queryParams as any).mode === 'chat' ? 8 : 16 }} className="absolute right-8px h-48px z-999 flex-y-center justify-end">
-        <LangSwitch className="px-12px" />
-        <ThemeSchemaSwitch className="px-12px" />
-        <UserAvatar className="px-8px" showHome showName={!isMobile} />
-      </div>
+      <SaveToWikiModal
+        payload={saveToWikiPayload}
+        onClose={() => setSaveToWikiPayload(null)}
+        onSaved={(articleId, kbId) => {
+          // jump straight into the draft for a human review pass (D1)
+          setQueryParams({ ...queryParams, mode: 'search' });
+          window.location.hash = `#/wiki/article/${articleId}?kb=${kbId}`;
+        }}
+      />
+      <CorrectionModal payload={correctionPayload} onClose={() => setCorrectionPayload(null)} />
     </>
   );
 }

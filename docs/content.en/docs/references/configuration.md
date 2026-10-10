@@ -220,6 +220,7 @@ pipeline:
 | `file_extraction`        | Extracts text content from files using Apache Tika.                                          |
 | `document_summarization` | Generates AI-powered summaries of document content.                                          |
 | `extract_tags`           | Extracts relevant tags from documents using AI.                                              |
+| `extract_entities`       | Extracts ontology entities and relations using AI, links documents to entities.              |
 | `document_embedding`     | Generates vector embeddings for semantic search.                                             |
 
 ### Document Merge Pipeline

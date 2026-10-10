@@ -5,6 +5,7 @@
 package common
 
 import (
+	"strings"
 	"sync"
 	"time"
 
@@ -46,10 +47,16 @@ func AppConfig() core.Config {
 	}
 	retCfg := *config
 
-	if retCfg.ServerInfo.AuthProvider.SSO.URL == "" || util.PrefixStr(retCfg.ServerInfo.AuthProvider.SSO.URL, "/") {
-		retCfg.ServerInfo.AuthProvider.SSO.URL = util.JoinPath(retCfg.ServerInfo.Endpoint, "/#/login")
-	} else if !util.PrefixStr(retCfg.ServerInfo.AuthProvider.SSO.URL, retCfg.ServerInfo.Endpoint) {
-		retCfg.ServerInfo.AuthProvider.SSO.URL = util.JoinPath(retCfg.ServerInfo.Endpoint, "/#/login")
+	endpoint := strings.TrimSpace(retCfg.ServerInfo.Endpoint)
+	if endpoint == "" {
+		// No endpoint configured: expose the login link as a relative path so
+		// clients resolve it against the address they actually reach us on,
+		// instead of a stale absolute URL pinned by an earlier endpoint.
+		retCfg.ServerInfo.AuthProvider.SSO.URL = "/#/login"
+	} else if retCfg.ServerInfo.AuthProvider.SSO.URL == "" ||
+		util.PrefixStr(retCfg.ServerInfo.AuthProvider.SSO.URL, "/") ||
+		!util.PrefixStr(retCfg.ServerInfo.AuthProvider.SSO.URL, endpoint) {
+		retCfg.ServerInfo.AuthProvider.SSO.URL = util.JoinPath(endpoint, "/#/login")
 	}
 
 	return *config
@@ -107,6 +114,32 @@ func reloadConfig() {
 				config.DocumentProcessing = docProcessing
 			}
 		}
+		buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultDataSecurityKey))
+		if buf != nil {
+			dataSecurity := &core.DataSecurity{}
+			err := util.FromJSONBytes(buf, dataSecurity)
+			if err == nil {
+				config.DataSecurity = dataSecurity
+			}
+		}
+
+		buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultEngineAIKey))
+		if buf != nil {
+			engineAI := &core.EngineAI{}
+			err := util.FromJSONBytes(buf, engineAI)
+			if err == nil {
+				config.EngineAI = engineAI
+			}
+		}
+
+		buf, _ = kv.GetValue(core.DefaultSettingBucketKey, []byte(core.DefaultAppearanceSettingsKey))
+		if buf != nil {
+			appearance := &core.AppearanceSettings{}
+			err := util.FromJSONBytes(buf, appearance)
+			if err == nil {
+				config.Appearance = appearance
+			}
+		}
 
 		filebasedConfig, _ := AppConfigFromFile()
 		if filebasedConfig != nil {
@@ -153,6 +186,17 @@ func SetAppConfig(c *core.Config) {
 	}
 	//save document-processing config
 	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultDocumentProcessingKey), util.MustToJSONBytes(c.DocumentProcessing))
+	if err != nil {
+		panic(err)
+	}
+	//save data-security config
+	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultDataSecurityKey), util.MustToJSONBytes(c.DataSecurity))
+	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultEngineAIKey), util.MustToJSONBytes(c.EngineAI))
+	if err != nil {
+		panic(err)
+	}
+	//save appearance config
+	err = kv.AddValue(core.DefaultSettingBucketKey, []byte(core.DefaultAppearanceSettingsKey), util.MustToJSONBytes(c.Appearance))
 	if err != nil {
 		panic(err)
 	}

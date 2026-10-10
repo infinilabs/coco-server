@@ -48,16 +48,12 @@ POST $[[SETUP_INDEX_PREFIX]]pipelineconfigv2/$[[SETUP_DOC_TYPE]]/enrich_document
       },
       {
         "document_text_attachment_extraction": {
-          "tika_endpoint": "http://127.0.0.1:9998",
-          "tika_timeout_in_seconds": 360,
           "chunk_size": 7000,
           "extract_attachments": true
         }
       },
       {
         "face_extraction": {
-          "tika_endpoint": "http://127.0.0.1:9998",
-          "tika_timeout_in_seconds": 360,
           "pigo_facefinder_path": "./config/ai/facefinder"
         }
       },
@@ -75,6 +71,11 @@ POST $[[SETUP_INDEX_PREFIX]]pipelineconfigv2/$[[SETUP_DOC_TYPE]]/enrich_document
       {
         "document_embedding": {
         }
+      },
+      {
+        "extract_entities": {
+          "model_context_length": 128000
+        }
       }
   ]
 }
@@ -90,8 +91,6 @@ POST $[[SETUP_INDEX_PREFIX]]pipelineconfigv2/$[[SETUP_DOC_TYPE]]/enrich_attachme
   "processor": [
       {
         "attachment_text_extraction": {
-          "tika_endpoint": "http://127.0.0.1:9998",
-          "tika_timeout_in_seconds": 360
         }
       }
   ]

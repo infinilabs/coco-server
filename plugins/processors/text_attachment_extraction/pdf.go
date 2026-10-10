@@ -19,7 +19,7 @@ import (
 )
 
 func (p *DocumentTextAttachmentExtractionProcessor) processPdf(ctx context.Context, doc *core.Document, localPath string) (fileproc.Extraction, error) {
-	htmlReader, err := fileproc.TikaGetTextHtml(ctx, p.config.TikaEndpoint, p.config.TikaTimeoutInSeconds, localPath)
+	htmlReader, err := fileproc.TikaGetTextHtml(ctx, resolveTikaEndpoint(p.config.TikaEndpoint), resolveTikaTimeout(p.config.TikaTimeoutInSeconds), localPath)
 	if err != nil {
 		return fileproc.Extraction{}, fmt.Errorf("failed to extract text for [%s] using tika: %w", localPath, err)
 	}
@@ -44,7 +44,7 @@ func (p *DocumentTextAttachmentExtractionProcessor) processPdf(ctx context.Conte
 		}
 		defer os.RemoveAll(attachmentDirPath)
 
-		if err := fileproc.TikaUnpackAllTo(ctx, p.config.TikaEndpoint, localPath, attachmentDirPath, p.config.TikaTimeoutInSeconds); err != nil {
+		if err := fileproc.TikaUnpackAllTo(ctx, resolveTikaEndpoint(p.config.TikaEndpoint), localPath, attachmentDirPath, resolveTikaTimeout(p.config.TikaTimeoutInSeconds)); err != nil {
 			return fileproc.Extraction{}, fmt.Errorf("failed to extract document attachments: %w", err)
 		}
 
@@ -64,7 +64,7 @@ func (p *DocumentTextAttachmentExtractionProcessor) processPdf(ctx context.Conte
 			nameToId[name] = util.GetUUID()
 			if fileproc.IsImage(name) {
 				fullPath := filepath.Join(attachmentDirPath, name)
-				text, err := fileproc.OCR(ctx, p.config.TikaEndpoint, p.config.TikaTimeoutInSeconds, fullPath)
+				text, err := fileproc.OCR(ctx, resolveTikaEndpoint(p.config.TikaEndpoint), resolveTikaTimeout(p.config.TikaTimeoutInSeconds), fullPath)
 				if err != nil {
 					log.Warnf("failed to perform OCR for image [%s]: %v", name, err)
 				} else {
@@ -103,6 +103,9 @@ func (p *DocumentTextAttachmentExtractionProcessor) processPdf(ctx context.Conte
 // appendPage processes a goquery page selection and appends its text (with image
 // markers) to pages.  Images are replaced with [[Image(UUID\tOCRText)]] tags.
 // When attachment extraction is disabled (nameToId is empty), img tags are simply removed.
+// The text keeps structure markers (W2 XHTML route): Tika's XHTML already
+// carries h1-h6 and table markup — rendering them as markdown headings and
+// one-line rows is the cheapest breadcrumb signal the chunker (W3) gets.
 func (p *DocumentTextAttachmentExtractionProcessor) appendPage(s *goquery.Selection, pageNum int, nameToId map[string]string, nameToText map[string]string, nameToPageNums map[string][]int, pages *[]string) {
 	s.Find("img").Each(func(i int, img *goquery.Selection) {
 		imageName, exists := img.Attr("src")
@@ -119,5 +122,5 @@ func (p *DocumentTextAttachmentExtractionProcessor) appendPage(s *goquery.Select
 			img.ReplaceWithHtml(fmt.Sprintf("[[Image(%s\t%s)]]", uuid, text))
 		}
 	})
-	*pages = append(*pages, strings.TrimSpace(s.Text()))
+	*pages = append(*pages, selectionToStructuredText(s))
 }

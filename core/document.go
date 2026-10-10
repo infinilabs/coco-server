@@ -21,6 +21,15 @@ type DataSourceReference struct {
 	Name string `json:"name,omitempty" elastic_mapping:"name:{type:keyword}"`  // Name of the datasource (e.g., "My Github", "My Google Drive", "My Dropbox")
 	ID   string `json:"id,omitempty" elastic_mapping:"id:{type:keyword}"`      // ID of this the datasource, eg: 8ca2fe8cf5027b0f1b5f932b429e38c3
 	Icon string `json:"icon,omitempty" elastic_mapping:"icon:{enabled:false}"` // Icon Key, need work with datasource's assets to get the icon url, if it is a full url, then use it directly
+	// Connector behind the datasource (eg: github, yuque). Not stamped at
+	// ingestion — RefineDocument resolves it from the datasource/connector
+	// configs at read time, so existing documents carry it too. A connector
+	// facet filters on connector_id; the search API translates that into
+	// datasource terms before querying (documents hold no indexed connector
+	// field).
+	ConnectorID   string `json:"connector_id,omitempty" elastic_mapping:"connector_id:{type:keyword}"`
+	ConnectorName string `json:"connector_name,omitempty" elastic_mapping:"connector_name:{type:keyword}"`
+	ConnectorIcon string `json:"connector_icon,omitempty" elastic_mapping:"connector_icon:{enabled:false}"`
 }
 
 type Document struct {
@@ -44,10 +53,17 @@ type Document struct {
 
 	Summary string `json:"summary,omitempty" elastic_mapping:"summary:{type:text,copy_to:combined_fulltext}"` // Brief summary or description of the document
 
-	Lang        string          `json:"lang,omitempty" elastic_mapping:"lang:{type:keyword,copy_to:combined_fulltext}"`    // Language code (e.g., "en", "fr")
-	Content     string          `json:"content,omitempty" elastic_mapping:"content:{type:text,copy_to:combined_fulltext}"` // Document content for full-text indexing
-	Chunks      []DocumentChunk `json:"document_chunk,omitempty" elastic_mapping:"document_chunk:{type:nested}"`
-	Attachments []string        `json:"attachments,omitempty" elastic_mapping:"attachments:{type:keyword}"` // IDs of core.Attachment objects associated with this document
+	Lang    string `json:"lang,omitempty" elastic_mapping:"lang:{type:keyword,copy_to:combined_fulltext}"`    // Language code (e.g., "en", "fr")
+	Content string `json:"content,omitempty" elastic_mapping:"content:{type:text,copy_to:combined_fulltext}"` // Document content for full-text indexing
+	// content fingerprint written at every save (D1.5): the dedup engine
+	// and retrieval-time duplicate folding key on it
+	ContentHash string `json:"content_hash,omitempty" elastic_mapping:"content_hash:{type:keyword}"`
+	// ContentSimhash reinterprets the 64-bit simhash as signed: the engine's
+	// long field is signed and rejects values with the high bit set — the
+	// bit pattern is what matters for candidate matching, not the sign.
+	ContentSimhash int64           `json:"content_simhash,omitempty" elastic_mapping:"content_simhash:{type:long}"`
+	Chunks         []DocumentChunk `json:"document_chunk,omitempty" elastic_mapping:"document_chunk:{type:nested}"`
+	Attachments    []string        `json:"attachments,omitempty" elastic_mapping:"attachments:{type:keyword}"` // IDs of core.Attachment objects associated with this document
 
 	Icon      string `json:"icon,omitempty" elastic_mapping:"icon:{enabled:false}"`           // Icon Key, need work with datasource's assets to get the icon url, if it is a full url, then use it directly
 	Thumbnail string `json:"thumbnail,omitempty" elastic_mapping:"thumbnail:{enabled:false}"` // Thumbnail image URL, for preview purposes
@@ -56,13 +72,41 @@ type Document struct {
 	Owner *UserInfo `json:"owner,omitempty" elastic_mapping:"owner:{type:object}"` // Document author or owner
 
 	Tags []string `json:"tags,omitempty" elastic_mapping:"tags:{type:keyword,copy_to:combined_fulltext}"` // Tags or keywords associated with the document, for easier retrieval
-	URL  string   `json:"url,omitempty" elastic_mapping:"url:{enabled:false}"`                            // Direct link to the document, if available
-	Size int      `json:"size,omitempty" elastic_mapping:"size:{type:long}"`                              // File size in bytes, if applicable
+	// Ontology entities this document mentions, resolved by the
+	// extract_entities processor (design doc B2); enables entity-scoped
+	// document filtering
+	EntityIDs []string `json:"entity_ids,omitempty" elastic_mapping:"entity_ids:{type:keyword}"` // Linked wiki entity ids
+	URL       string   `json:"url,omitempty" elastic_mapping:"url:{enabled:false}"`              // Direct link to the document, if available
+	Size      int      `json:"size,omitempty" elastic_mapping:"size:{type:long}"`                // File size in bytes, if applicable
+
+	// FolderPath is the virtual folder tree position (W4): normalized
+	// "/a/b" form, empty = root. The tree is an aggregation over this
+	// field; moves update it without reparsing.
+	FolderPath string `json:"folder_path,omitempty" elastic_mapping:"folder_path:{type:keyword}"`
 
 	LastUpdatedBy *EditorInfo `json:"last_updated_by,omitempty" elastic_mapping:"last_updated_by:{type:object}"` // Struct containing last update information
 	Disabled      bool        `json:"disabled,omitempty" elastic_mapping:"disabled:{type:boolean}"`              // Whether the document is disabled or not
 	Processed     bool        `json:"processed" elastic_mapping:"processed:{type:boolean}"`                      // Whether the document was successfully processed by a pipeline
+
+	// Processing lifecycle (W1): terminal state is stamped by the
+	// indexing consumer when the enrichment pipeline finishes, run
+	// history rides in Metadata["pipeline_runs"] (capped, newest first).
+	// Empty status = legacy document written before W1.
+	Status       string `json:"status,omitempty" elastic_mapping:"status:{type:keyword}"`            // indexing | completed | failed
+	ErrorMessage string `json:"error_message,omitempty" elastic_mapping:"error_message:{type:text}"` // Last pipeline failure reason
+
+	// Embedding model identity ("provider/model") that produced this
+	// document's vectors — stamped by the embedding processor so a model
+	// change can detect and batch-reprocess stale vectors (W1).
+	EmbeddingModel string `json:"embedding_model,omitempty" elastic_mapping:"embedding_model:{type:keyword}"`
 }
+
+// Document processing lifecycle states (Document.Status).
+const (
+	DocumentStatusIndexing  = "indexing"  // queued / enrichment in flight
+	DocumentStatusCompleted = "completed" // enrichment pipeline finished
+	DocumentStatusFailed    = "failed"    // enrichment pipeline returned an error
+)
 
 func (document *Document) GetAllCategories() string {
 	// Initialize a slice to hold all category strings
@@ -124,10 +168,18 @@ type DocumentChunk struct {
 	Range     ChunkRange `json:"range" elastic_mapping:"range:{type:object}"`
 	Text      string     `json:"text" elastic_mapping:"text:{type:text}"`
 	Embedding Embedding  `json:"embedding" elastic_mapping:"embedding:{type:object}"`
+	// Breadcrumb is the accumulated heading path of the section this chunk
+	// belongs to ("年报 > 财务 > 营收"), cut by the structure-aware
+	// splitter (W3/D10). Empty on legacy chunks. It is the cheapest
+	// section-level locator and feeds the embedding input.
+	Breadcrumb string `json:"breadcrumb,omitempty" elastic_mapping:"breadcrumb:{type:text}"`
 }
 
 type AiInsights struct {
-	Text      string    `json:"text" elastic_mapping:"text:{type:text}"`
+	// Text participates in combined_fulltext like Summary/Content do, so
+	// keyword search recalls documents by their AI-generated interpretation
+	// (e.g. Chinese insights on an English-language source document).
+	Text      string    `json:"text" elastic_mapping:"text:{type:text,copy_to:combined_fulltext}"`
 	Embedding Embedding `json:"embedding" elastic_mapping:"embedding:{type:object}"`
 }
 

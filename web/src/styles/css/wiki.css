@@ -1,0 +1,632 @@
+/* ===================================================================
+ * Wiki design system — mrdoc-style surface kit.
+ * Scoped to the wiki routes (everything under WikiShell renders inside
+ * .wiki-page). Colors derive from the app's antd theme tokens so the
+ * wiki always matches the Coco AI brand (light + dark) — layout and
+ * components are wiki-specific, colors are not.
+ * Tokens live on .wiki-page (NOT :root): antd's css-var scope only
+ * defines --ant-* inside the themed subtree, so the mapping must sit
+ * where those variables actually resolve.
+ * =================================================================== */
+
+.wiki-page {
+  --wiki-accent: var(--ant-color-primary);
+  --wiki-accent-hover: var(--ant-color-primary-hover);
+  --wiki-accent-bright: var(--ant-color-primary-active);
+  --wiki-accent-soft: color-mix(in srgb, var(--ant-color-primary) 10%, transparent);
+  --wiki-accent-softer: color-mix(in srgb, var(--ant-color-primary) 6%, transparent);
+  --wiki-accent-glow: color-mix(in srgb, var(--ant-color-primary) 55%, transparent);
+  --wiki-grad-accent: linear-gradient(112deg, var(--ant-color-primary-active), var(--ant-color-primary) 60%, var(--ant-color-primary-hover));
+  --wiki-grad-title: linear-gradient(112deg, var(--ant-color-text) 20%, var(--ant-color-primary) 72%, var(--ant-color-primary-hover) 96%);
+  --wiki-panel: var(--ant-color-bg-container);
+  --wiki-panel-2: var(--ant-color-fill-quaternary);
+  --wiki-panel-3: var(--ant-color-fill-tertiary);
+  --wiki-border: var(--ant-color-border-secondary);
+  --wiki-border-soft: color-mix(in srgb, var(--ant-color-border-secondary) 55%, transparent);
+  --wiki-text: var(--ant-color-text);
+  --wiki-text-2: var(--ant-color-text-secondary);
+  --wiki-text-3: var(--ant-color-text-tertiary);
+  --wiki-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.05);
+  --wiki-shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.05), 0 16px 40px color-mix(in srgb, var(--ant-color-primary) 16%, transparent);
+  --wiki-glow-a: color-mix(in srgb, var(--ant-color-primary) 10%, transparent);
+  --wiki-glow-b: color-mix(in srgb, var(--ant-color-primary) 8%, transparent);
+  --wiki-grid-line: rgba(16, 17, 20, 0.032);
+}
+
+.dark .wiki-page {
+  --wiki-accent-soft: color-mix(in srgb, var(--ant-color-primary) 24%, transparent);
+  --wiki-accent-softer: color-mix(in srgb, var(--ant-color-primary) 14%, transparent);
+  --wiki-accent-glow: color-mix(in srgb, var(--ant-color-primary) 60%, transparent);
+  --wiki-grad-title: linear-gradient(112deg, var(--ant-color-text) 22%, var(--ant-color-primary-hover) 68%, var(--ant-color-primary) 96%);
+  --wiki-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.35);
+  --wiki-shadow-lift: 0 2px 6px rgba(0, 0, 0, 0.4), 0 18px 48px color-mix(in srgb, var(--ant-color-primary) 32%, transparent);
+  --wiki-glow-a: color-mix(in srgb, var(--ant-color-primary) 17%, transparent);
+  --wiki-glow-b: color-mix(in srgb, var(--ant-color-primary) 12%, transparent);
+  --wiki-grid-line: rgba(247, 248, 248, 0.04);
+}
+
+/* ------------------------------------------------------------------
+ * Page canvas: layered indigo glows + a faint blueprint grid, exactly
+ * the mrdoc hero treatment, kept quiet enough for a working app
+ * ------------------------------------------------------------------ */
+.wiki-page {
+  background: radial-gradient(1100px 520px at 50% -10%, var(--wiki-glow-a), transparent 62%),
+    radial-gradient(820px 480px at 100% 4%, var(--wiki-glow-b), transparent 64%),
+    linear-gradient(var(--wiki-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--wiki-grid-line) 1px, transparent 1px);
+  background-position:
+    center top,
+    center top,
+    0 0,
+    0 0;
+  background-size:
+    auto,
+    auto,
+    72px 72px,
+    72px 72px;
+  background-repeat: no-repeat, no-repeat, repeat, repeat;
+  /* no background-attachment: fixed — fixed-attachment layers force main-thread
+   * compositing and leave the theme-switch view-transition painting a stale
+   * half-light/half-dark frame (the "messy light mode" bug) */
+}
+
+/* ------------------------------------------------------------------
+ * Hero (hub header)
+ * ------------------------------------------------------------------ */
+.wiki-hero {
+  position: relative;
+  padding: 40px 8px 28px;
+  text-align: center;
+}
+.wiki-hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  border: 1px solid var(--wiki-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--wiki-panel) 55%, transparent);
+  color: var(--wiki-text-2);
+  font-size: 12.5px;
+  line-height: 18px;
+  backdrop-filter: blur(6px);
+}
+.wiki-hero-eyebrow::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--wiki-accent);
+  box-shadow: 0 0 8px 1px var(--wiki-accent-soft);
+}
+.wiki-hero-title {
+  margin: 18px 0 10px;
+  font-size: clamp(30px, 4.5vw, 44px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  background: var(--wiki-grad-title);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.wiki-hero-subtitle {
+  max-width: 640px;
+  margin: 0 auto;
+  color: var(--wiki-text-2);
+  font-size: 15px;
+  line-height: 1.65;
+}
+.wiki-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+/* ------------------------------------------------------------------
+ * Panels & cards
+ * ------------------------------------------------------------------ */
+.wiki-panel {
+  border: 1px solid var(--wiki-border);
+  border-radius: 12px;
+  background: var(--wiki-panel);
+  box-shadow: var(--wiki-shadow-card);
+}
+.wiki-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 18px;
+  border-bottom: 1px solid var(--wiki-border-soft);
+}
+.wiki-panel-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--wiki-text);
+}
+
+/* knowledge base card (hub grid) */
+.wiki-kb-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 18px 0;
+  border: 1px solid var(--wiki-border);
+  border-radius: 12px;
+  background: var(--wiki-panel);
+  box-shadow: var(--wiki-shadow-card);
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+.wiki-kb-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--wiki-accent) 45%, var(--wiki-border));
+  box-shadow: var(--wiki-shadow-lift);
+}
+.wiki-kb-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.wiki-kb-icon-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  font-size: 20px;
+  border-radius: 10px;
+  background: var(--wiki-accent-soft);
+  border: 1px solid color-mix(in srgb, var(--wiki-accent) 22%, transparent);
+}
+.wiki-kb-card-desc {
+  margin-top: 12px;
+  min-height: 40px;
+  color: var(--wiki-text-2);
+  font-size: 13px;
+  line-height: 20px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.wiki-kb-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 14px;
+  padding: 10px 2px;
+  border-top: 1px solid var(--wiki-border-soft);
+  color: var(--wiki-text-3);
+  font-size: 12.5px;
+}
+/* stat items wrap as whole units — never break mid-phrase on narrow cards */
+.wiki-kb-card-foot > span {
+  white-space: nowrap;
+}
+.wiki-kb-card-foot .spacer {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------------
+ * Stat band (mrdoc-style divided numbers)
+ * ------------------------------------------------------------------ */
+.wiki-statband {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--wiki-border);
+  border-radius: 12px;
+  background: var(--wiki-panel);
+  box-shadow: var(--wiki-shadow-card);
+  overflow: hidden;
+}
+@media (max-width: 640px) {
+  .wiki-statband {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.wiki-statband > .wiki-stat {
+  padding: 18px 20px 16px;
+  border-inline-end: 1px solid var(--wiki-border-soft);
+}
+.wiki-statband > .wiki-stat:last-child {
+  border-inline-end: none;
+}
+.wiki-stat-value {
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--wiki-text);
+  font-variant-numeric: tabular-nums;
+}
+.wiki-stat-label {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--wiki-text-3);
+}
+
+/* ------------------------------------------------------------------
+ * Pills & chips
+ * ------------------------------------------------------------------ */
+.wiki-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--wiki-border);
+  border-radius: 999px;
+  background: var(--wiki-panel-2);
+  color: var(--wiki-text-2);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+.wiki-pill-accent {
+  border-color: color-mix(in srgb, var(--wiki-accent) 30%, transparent);
+  background: var(--wiki-accent-softer);
+  color: var(--wiki-accent);
+}
+.wiki-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.75;
+}
+.wiki-pill-clickable {
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.wiki-pill-clickable:hover {
+  border-color: color-mix(in srgb, var(--wiki-accent) 40%, var(--wiki-border));
+  background: var(--wiki-accent-softer);
+  color: var(--wiki-accent);
+}
+
+/* ------------------------------------------------------------------
+ * Window chrome (document surface with traffic lights)
+ * ------------------------------------------------------------------ */
+.wiki-window {
+  border: 1px solid var(--wiki-border);
+  border-radius: 12px;
+  background: var(--wiki-panel);
+  box-shadow: var(--wiki-shadow-card);
+  overflow: hidden;
+}
+.wiki-window-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--wiki-border-soft);
+  background: var(--wiki-panel-2);
+}
+.wiki-window-dots {
+  display: inline-flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.wiki-window-dots::before,
+.wiki-window-dots::after {
+  content: '';
+}
+.wiki-window-dots i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--wiki-border);
+}
+.wiki-window-dots i:nth-child(1) {
+  background: #ec6a6a;
+  opacity: 0.75;
+}
+.wiki-window-dots i:nth-child(2) {
+  background: #f2c94c;
+  opacity: 0.75;
+}
+.wiki-window-dots i:nth-child(3) {
+  background: #27a644;
+  opacity: 0.75;
+}
+.wiki-window-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--wiki-text-3);
+  font-size: 12.5px;
+}
+
+/* ------------------------------------------------------------------
+ * Article reading surface & long-form typography
+ * ------------------------------------------------------------------ */
+.wiki-doc-surface {
+  padding: 8px 28px 28px;
+}
+@media (min-width: 1280px) {
+  .wiki-doc-surface {
+    padding: 8px 44px 36px;
+  }
+}
+.wiki-section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--wiki-text-3);
+}
+.wiki-section-label::before {
+  content: '';
+  width: 14px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--wiki-grad-accent);
+}
+.wiki-article-body .markdown-body h2 {
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--wiki-border-soft);
+}
+.wiki-article-body .markdown-body a {
+  color: var(--wiki-accent);
+}
+.wiki-article-body .markdown-body a:hover {
+  color: var(--wiki-accent-hover);
+}
+.wiki-article-body .markdown-body blockquote {
+  border-inline-start: 3px solid var(--wiki-accent);
+  background: var(--wiki-accent-softer);
+  border-radius: 0 8px 8px 0;
+}
+.wiki-article-body .markdown-body code {
+  background: var(--wiki-panel-3);
+  border: 1px solid var(--wiki-border-soft);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+.wiki-article-body .markdown-body table th {
+  background: var(--wiki-panel-2);
+}
+
+/* citation card (sources section) */
+.wiki-citation {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--wiki-border-soft);
+  border-radius: 10px;
+  background: var(--wiki-panel-2);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+.wiki-citation:hover {
+  border-color: color-mix(in srgb, var(--wiki-accent) 35%, var(--wiki-border));
+  background: var(--wiki-panel);
+}
+.wiki-citation-index {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 7px;
+  background: var(--wiki-accent-soft);
+  color: var(--wiki-accent);
+  font-size: 12px;
+  font-weight: 650;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+/* ------------------------------------------------------------------
+ * Sidebar (WikiShell TOC)
+ * ------------------------------------------------------------------ */
+.wiki-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  flex-shrink: 0;
+  border: 1px solid var(--wiki-border);
+  border-radius: 12px;
+  background: var(--wiki-panel);
+  box-shadow: var(--wiki-shadow-card);
+  overflow: hidden;
+}
+@media (min-width: 1024px) {
+  .wiki-sidebar {
+    width: 268px;
+    height: 100%;
+  }
+}
+.wiki-sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 48px;
+  padding: 6px 10px 6px 16px;
+  border-bottom: 1px solid var(--wiki-border-soft);
+}
+.wiki-sidebar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--wiki-text);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.wiki-sidebar-brand .anticon {
+  color: var(--wiki-accent);
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.wiki-sidebar-tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.wiki-sidebar-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 6px;
+}
+.wiki-sidebar-footer {
+  padding: 8px 12px;
+  border-top: 1px solid var(--wiki-border-soft);
+  color: var(--wiki-text-3);
+  font-size: 11.5px;
+}
+
+/* tree polish: pill-shaped hover/selected rows, indigo selection */
+.wiki-toc-tree.ant-tree {
+  background: transparent;
+}
+.wiki-toc-tree.ant-tree .ant-tree-treenode {
+  padding: 1px 4px;
+  border-radius: 8px;
+  transition: background 0.12s ease;
+}
+.wiki-toc-tree.ant-tree .ant-tree-node-content-wrapper {
+  border-radius: 6px;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+.wiki-toc-tree.ant-tree .ant-tree-node-content-wrapper:hover {
+  background: var(--wiki-panel-2);
+}
+.wiki-toc-tree.ant-tree .ant-tree-node-content-wrapper.ant-tree-node-selected {
+  background: var(--wiki-accent-soft);
+  color: var(--wiki-accent);
+}
+.wiki-toc-tree.ant-tree .ant-tree-treenode .ant-tree-node-content-wrapper.ant-tree-node-selected .wiki-toc-title {
+  color: var(--wiki-accent);
+  font-weight: 550;
+}
+.wiki-toc-tree.ant-tree .wiki-toc-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--wiki-text-2);
+}
+.wiki-toc-tree.ant-tree .ant-tree-treenode:hover .wiki-toc-title {
+  color: var(--wiki-text);
+}
+/* KB roots read as section headers */
+.wiki-toc-tree.ant-tree .ant-tree-treenode.wiki-toc-kb > .ant-tree-node-content-wrapper .wiki-toc-title {
+  font-weight: 600;
+  color: var(--wiki-text);
+}
+
+/* ------------------------------------------------------------------
+ * List rows (recently updated, article lists, governance)
+ * ------------------------------------------------------------------ */
+.wiki-row-list .ant-list-item {
+  padding: 12px 14px;
+  margin-bottom: 6px;
+  border: 1px solid var(--wiki-border-soft);
+  border-radius: 10px;
+  background: var(--wiki-panel);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease;
+  cursor: pointer;
+}
+.wiki-row-list .ant-list-item:hover {
+  border-color: color-mix(in srgb, var(--wiki-accent) 40%, var(--wiki-border));
+  background: var(--wiki-panel-2);
+  transform: translateX(2px);
+}
+.wiki-row-list .ant-list-item .ant-list-item-meta-title {
+  font-size: 14px;
+  font-weight: 550;
+  margin-bottom: 2px;
+}
+.wiki-row-list .ant-list-item .ant-list-item-meta-description {
+  color: var(--wiki-text-3);
+  font-size: 12.5px;
+}
+
+/* ------------------------------------------------------------------
+ * KB page header
+ * ------------------------------------------------------------------ */
+.wiki-kb-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+  border: 1px solid var(--wiki-border);
+  border-radius: 12px;
+  background: var(--wiki-panel);
+  box-shadow: var(--wiki-shadow-card);
+}
+.wiki-kb-header .wiki-kb-icon-tile {
+  width: 46px;
+  height: 46px;
+  font-size: 22px;
+  border-radius: 12px;
+}
+.wiki-kb-title {
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--wiki-text);
+  line-height: 26px;
+}
+.wiki-kb-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  color: var(--wiki-text-3);
+  font-size: 12.5px;
+}
+
+/* ------------------------------------------------------------------
+ * Tabs bar (accent ink bar, panel head strip)
+ * ------------------------------------------------------------------ */
+.wiki-tabs > .ant-tabs-nav {
+  margin-bottom: 14px;
+  padding: 0 20px;
+  border: 1px solid var(--wiki-border);
+  border-radius: 12px;
+  background: var(--wiki-panel);
+  box-shadow: var(--wiki-shadow-card);
+}
+.wiki-tabs > .ant-tabs-nav .ant-tabs-tab {
+  padding: 13px 4px;
+  font-size: 13.5px;
+}

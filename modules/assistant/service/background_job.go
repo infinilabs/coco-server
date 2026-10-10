@@ -247,6 +247,12 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 			params.InputValues["references"] = docs
 		}
 
+		// W6: confirmed long-term memories join the prompt — resident kinds
+		// every turn, fact/task recalled against the current query
+		if section := buildMemorySection(userID, reqMsg.Message); section != "" {
+			params.InputValues["memory_section"] = section
+		}
+
 		err = langchain.GenerateFinalResponse(ctx, reqMsg, replyMsg, params, params.InputValues, sender)
 		log.Info("async reply task done for query:", reqMsg.Message)
 	}

@@ -22,6 +22,7 @@ import (
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
+	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/param"
 	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/queue"
@@ -153,7 +154,8 @@ func (processor *ExtractTagsProcessor) Process(ctx *pipeline.Context) error {
 
 		log.Infof("processor [%s] start extracting tags for document [%s/%s]", processor.Name(), doc.Title, doc.ID)
 		start := time.Now()
-		tags, err := extractTagsFromInsights(llmCtx, aiInsights, processor.config, llm, processor.removeThinkPattern)
+		vocab := tagsVocabForDatasource(llmCtx, doc.Source.ID)
+		tags, err := extractTagsFromInsights(llmCtx, aiInsights, processor.config, llm, processor.removeThinkPattern, vocab)
 		if err != nil {
 			log.Errorf("[%s] failed to extract tags for document [%s/%s], error [%s]", processor.Name(), doc.Title, doc.ID, err)
 			continue
@@ -187,9 +189,14 @@ func (processor *ExtractTagsProcessor) Process(ctx *pipeline.Context) error {
 	return nil
 }
 
-func extractTagsFromInsights(ctx context.Context, aiInsights string, config *Config, llm llms.Model, regexpToRemoveThink *regexp.Regexp) ([]string, error) {
+func extractTagsFromInsights(ctx context.Context, aiInsights string, config *Config, llm llms.Model, regexpToRemoveThink *regexp.Regexp, vocab []string) ([]string, error) {
 	systemPrompt := fmt.Sprintf("You are an expert tag extractor. Analyze document insights and extract relevant tags. Your response MUST be in %s.", config.LLMGenerationLang)
 	userPrompt := buildTagExtractionPrompt(aiInsights, config.LLMGenerationLang)
+	if len(vocab) > 0 {
+		// controlled vocabulary (W4): pick from the list only — bounded
+		// generation, the model proposes but the vocabulary disposes
+		userPrompt = buildConstrainedTagPrompt(aiInsights, config.LLMGenerationLang, vocab)
+	}
 
 	message := []llms.MessageContent{
 		langchain.SystemTextParts(systemPrompt),
@@ -217,7 +224,76 @@ func extractTagsFromInsights(ctx context.Context, aiInsights string, config *Con
 		return nil, fmt.Errorf("failed to parse tags from LLM response: %w", err)
 	}
 
+	if len(vocab) > 0 {
+		kept, dropped := filterTagsByVocab(normalizeTags(tags), vocab)
+		if dropped > 0 {
+			log.Debugf("tag extraction dropped %d out-of-vocabulary tags", dropped)
+		}
+		return kept, nil
+	}
 	return normalizeTags(tags), nil
+}
+
+// filterTagsByVocab keeps only in-vocabulary tags — unknown model output
+// is dropped, never added to the vocabulary. Bounded generation: the
+// vocabulary is the only source of new retrieval facets.
+func filterTagsByVocab(tags, vocab []string) ([]string, int) {
+	if len(vocab) == 0 {
+		return tags, 0 // free-form mode: no vocabulary, no filtering
+	}
+	allowed := make(map[string]bool, len(vocab))
+	for _, v := range vocab {
+		allowed[strings.ToLower(strings.TrimSpace(v))] = true
+	}
+	kept := make([]string, 0, len(tags))
+	dropped := 0
+	for _, t := range tags {
+		if allowed[strings.ToLower(strings.TrimSpace(t))] {
+			kept = append(kept, t)
+		} else {
+			dropped++
+		}
+	}
+	return kept, dropped
+}
+
+// buildConstrainedTagPrompt asks the model to pick from the vocabulary.
+func buildConstrainedTagPrompt(aiInsights string, lang string, vocab []string) string {
+	quoted := make([]string, 0, len(vocab))
+	for _, v := range vocab {
+		quoted = append(quoted, fmt.Sprintf("%q", v))
+	}
+	return fmt.Sprintf(
+		"Pick 3-8 relevant tags for the following document analysis.\n"+
+			"You MUST choose ONLY from this vocabulary (verbatim, no new tags):\n[%s]\n\n"+
+			"Requirements:\n"+
+			"- Return ONLY a valid JSON array of strings, each from the vocabulary\n"+
+			"- Tags MUST be in %s\n"+
+			"- Format: [\"tag1\", \"tag2\"]\n\n"+
+			"Document Analysis:\n%s\n\n"+
+			"Generate the JSON array of tags now.",
+		strings.Join(quoted, ", "),
+		lang,
+		aiInsights,
+	)
+}
+
+// tagsVocabForDatasource loads the datasource's controlled vocabulary;
+// errors fall back to free-form tagging (the historic behavior).
+func tagsVocabForDatasource(ctx context.Context, datasourceID string) []string {
+	if datasourceID == "" {
+		return nil
+	}
+	octx := orm.NewContext()
+	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(octx, &core.DataSource{})
+	ds := core.DataSource{}
+	ds.ID = datasourceID
+	exists, err := orm.GetV2(octx, &ds)
+	if err != nil || !exists {
+		return nil
+	}
+	return ds.TagsVocab
 }
 
 func buildTagExtractionPrompt(aiInsights string, lang string) string {

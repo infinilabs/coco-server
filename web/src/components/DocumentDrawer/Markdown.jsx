@@ -10,6 +10,8 @@ import RehypeRaw from "rehype-raw";
 import mermaid from "mermaid";
 import { useDebouncedCallback } from "use-debounce";
 
+import ProgressiveImage from "../common/ProgressiveImage";
+
 import "./markdown.scss";
 import "./highlight.css";
 
@@ -228,6 +230,10 @@ function _MarkDownContent(props) {
     return tryWrapHtmlCode(escapeBrackets(props.content));
   }, [props.content]);
 
+  // renderLink, when provided, gets first refusal on every link — returning
+  // anything non-undefined replaces the anchor entirely (wiki capsules).
+  const renderLink = props.renderLink;
+
   return (
     <ReactMarkdown
       remarkPlugins={[RemarkMath, RemarkGfm, RemarkBreaks]}
@@ -246,7 +252,17 @@ function _MarkDownContent(props) {
         pre: PreCode,
         code: CustomCode,
         p: (pProps) => <p {...pProps} dir="auto" />,
+        // markdown images arrive without dimensions and without error
+        // handling — route them through the progressive tile so loading and
+        // broken sources both look designed instead of browser-default
+        img: (imgProps) => (
+          <ProgressiveImage {...imgProps} className={imgProps.className} />
+        ),
         a: (aProps) => {
+          if (renderLink) {
+            const replaced = renderLink(aProps.href || "", aProps.children);
+            if (replaced !== undefined) return replaced;
+          }
           const href = aProps.href || "";
           if (/\.(aac|mp3|opus|wav)$/.test(href)) {
             return (
@@ -293,7 +309,7 @@ export default function Markdown(props) {
         onDoubleClickCapture={props.onDoubleClickCapture}
         dir="auto"
       >
-        { props.content ? <MarkdownContent content={props.content} /> : null}
+        { props.content ? <MarkdownContent content={props.content} renderLink={props.renderLink} /> : null}
       </div>
     </div>
   );

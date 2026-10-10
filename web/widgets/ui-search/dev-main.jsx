@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./src/i18n"; // Initialize i18n
 import { createRoot } from "react-dom/client";
-import { FullscreenPage } from "./src/index.jsx";
+import { FullscreenPage } from "./src/index.tsx";
 
 // 导入 UnoCSS 样式
 import "uno.css";
@@ -582,6 +582,34 @@ function DevApp() {
             },
           ],
         },
+        "_system.owner_id": {
+          buckets: [
+            {
+              doc_count: 3,
+              key: "cvv85fk61mdus565iqig",
+            },
+            {
+              doc_count: 1,
+              key: "cvv85fk61mdus565iqzz",
+            },
+          ],
+        },
+        updated_range: {
+          buckets: [
+            {
+              doc_count: 2,
+              key: "7d",
+            },
+            {
+              doc_count: 3,
+              key: "90d",
+            },
+            {
+              doc_count: 4,
+              key: "1y",
+            },
+          ],
+        },
       },
     };
     callback(res);
@@ -847,6 +875,10 @@ function DevApp() {
       },
     },
     onSuggestion: mockSuggestion,
+    // the harness is a standalone host without an app shell, so it opts into
+    // the chat header's back-to-search button; shell-less embeds need this
+    // escape hatch, hosts with their own navigation omit it
+    onBackToSearch: () => setQueryParams({ ...queryParams, mode: "search" }),
   };
 
   const queryParamsProps = enableQueryParams

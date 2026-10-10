@@ -304,3 +304,11 @@ jobs:
             echo Home path is $HOME
             cd $GITHUB_WORKSPACE/$PNAME/web
             pnpm install --registry=https://registry.npmjs.com --quiet && pnpm build -- --silent
+
+        # vite/esbuild strips types without checking them, so runtime-breaking
+        # type errors can ship green; this ratchet fails only when the error
+        # count grows past web/.typecheck-baseline
+        - name: Type check gate
+          run: |
+            cd $GITHUB_WORKSPACE/$PNAME/web
+            pnpm typecheck:gate

@@ -17,7 +17,6 @@ import ModelSelect, { DefaultPromptTemplates } from './ModelSelect';
 import { ToolsConfig } from './ToolsConfig';
 import { getUUID } from '@/utils/common';
 import { Tags } from '@/components/common/tags';
-import { getAssistantCategory } from '@/service/api/assistant';
 import { UploadConfig } from './UploadConfig';
 import classNames from 'classnames';
 import AvailableVariable from './AvailableVariable';
@@ -88,7 +87,6 @@ export const EditForm = memo((props: AssistantFormProps) => {
     onSubmit?.(
       {
         ...values,
-        category: values?.category?.[0] || ''
       },
       startLoading,
       endLoading
@@ -191,21 +189,6 @@ export const EditForm = memo((props: AssistantFormProps) => {
   useEffect(() => {
     setSuggestedChatChecked(initialValues?.chat_settings?.suggested?.enabled || false);
   }, [initialValues?.chat_settings?.suggested?.enabled]);
-
-  const [categories, setCategories] = useState([]);
-  useEffect(() => {
-    getAssistantCategory().then(({ data }) => {
-      if (!data?.error) {
-        const newData = formatESSearchResult(data);
-        const cates = newData?.aggregations?.categories?.buckets
-          ? newData?.aggregations?.categories?.buckets.map((item: any) => {
-              return item.key;
-            })
-          : [];
-        setCategories(cates);
-      }
-    });
-  }, []);
 
   const commonFormItemsClassName = `${showAdvanced || assistantMode === 'deep_think' ? '' : 'h-0px m-0px overflow-hidden'}`;
 
@@ -508,20 +491,6 @@ export const EditForm = memo((props: AssistantFormProps) => {
             className='max-w-600px'
             icons={iconsMeta}
             type='connector'
-          />
-        </Form.Item>
-        <Form.Item
-          label={t('page.assistant.labels.category')}
-          name='category'
-        >
-          <Select
-            className='max-w-600px'
-            maxCount={1}
-            mode='tags'
-            placeholder='Select or input a category'
-            options={categories.map(cate => {
-              return { value: cate };
-            })}
           />
         </Form.Item>
         <Form.Item

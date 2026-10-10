@@ -124,7 +124,7 @@ export function AIAnswer({
       <div
         ref={containerRef}
         className={clsx(
-          "p-6 rounded-xl border border-[#EBEBEB] bg-transparent text-[#333] dark:text-#666 dark:border-slate-700 dark:bg-transparent",
+          "p-6 rounded-xl border border-[#EBEBEB] bg-transparent text-[#333] dark:text-[#666] dark:border-slate-700 dark:bg-transparent",
           containerClass
         )}
         style={containerStyle}

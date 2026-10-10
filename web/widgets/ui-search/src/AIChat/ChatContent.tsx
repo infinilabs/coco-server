@@ -26,6 +26,8 @@ export interface ActiveChatMessageProps {
   theme?: string;
   t?: TFunction;
   onCancel?: () => void;
+  onSaveToWiki?: (payload: { content: string; question: string; id: string }) => void;
+  onCorrectAnswer?: (payload: { content: string; question: string; id: string }) => void;
 }
 
 export const ActiveChatMessage = ({
@@ -41,6 +43,8 @@ export const ActiveChatMessage = ({
   theme,
   t,
   onCancel,
+  onSaveToWiki,
+  onCorrectAnswer,
 }: ActiveChatMessageProps) => {
   const allMessages = activeChat?.messages || [];
   const replyMessage = [...allMessages]
@@ -71,6 +75,8 @@ export const ActiveChatMessage = ({
       currentAssistant={currentAssistant}
       theme={theme as any}
       t={t}
+      onSaveToWiki={onSaveToWiki}
+                onCorrectAnswer={onCorrectAnswer}
     />
   );
 };
@@ -91,6 +97,8 @@ interface ChatContentProps {
   theme?: string;
   isMobile?: boolean;
   onCancel?: () => void;
+  onSaveToWiki?: (payload: { content: string; question: string; id: string }) => void;
+  onCorrectAnswer?: (payload: { content: string; question: string; id: string }) => void;
 }
 
 export const ChatContent = ({
@@ -106,6 +114,8 @@ export const ChatContent = ({
   theme,
   isMobile,
   onCancel,
+  onSaveToWiki,
+  onCorrectAnswer,
 }: ChatContentProps) => {
   const { t: tOriginal } = useTranslation();
   const t = tProp || tOriginal;
@@ -239,6 +249,8 @@ export const ChatContent = ({
                   fetchAttachments={fetchAttachments}
                   theme={theme as any}
                   t={t}
+                  onSaveToWiki={onSaveToWiki}
+                onCorrectAnswer={onCorrectAnswer}
                 />
               );
             }}
@@ -262,6 +274,8 @@ export const ChatContent = ({
                 theme={theme}
                 t={t}
                 onCancel={onCancel}
+                onSaveToWiki={onSaveToWiki}
+                onCorrectAnswer={onCorrectAnswer}
               />
               {/* Bottom spacer: absorbs height jumps from streaming text reflow */}
               <div style={{ height: 80, flexShrink: 0 }} aria-hidden />

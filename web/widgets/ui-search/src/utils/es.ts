@@ -7,7 +7,12 @@ export const formatESResult = (res: Record<string, unknown> = {}) => {
     const hits = {
         took: (res?.took as number) || 0,
         total: ((res?.hits as Record<string, unknown>)?.total as Record<string, unknown>)?.value || 0,
-        hits: (res?.hits as Record<string, unknown>)?.hits ? ((res?.hits as Record<string, unknown>)?.hits as Array<Record<string, unknown>>).map((item) => ({ ...item._source as object })) : []
+        hits: (res?.hits as Record<string, unknown>)?.hits ? ((res?.hits as Record<string, unknown>)?.hits as Array<Record<string, unknown>>).map((item) => ({
+            ...item._source as object,
+            // highlight fragments (plain text with literal <em> wrappers) —
+            // preferred over raw _source fields when rendering title/summary
+            ...(item.highlight ? { highlight: item.highlight as Record<string, string[]> } : {})
+        })) : []
     }
     const aggregations: AggregationItem[] = []
     if (res?.aggregations) {

@@ -166,7 +166,7 @@ const handleConstantOrAuthRoutes =
     } else {
       routes = getAuthRoutes(getState());
       const constantRoutes = getConstantRoutes(getState());
-      dispatch(setSortRoutes(constantRoutes));
+      dispatch(setSortRoutes(sortRoutesByOrder(constantRoutes)));
     }
 
     const sortRoutes = sortRoutesByOrder(routes);

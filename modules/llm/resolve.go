@@ -39,6 +39,8 @@ func defaultModelFor(d *core.DefaultModel, t core.LLMType) *core.ModelId {
 		return d.VisionModel
 	case core.LLMTypeEmbedding:
 		return d.EmbeddingModel
+	case core.LLMTypeRerank:
+		return d.RerankModel
 	}
 	return nil
 }

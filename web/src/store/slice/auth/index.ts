@@ -21,9 +21,12 @@ export const authSlice = createAppSlice({
   reducers: (create) => ({
     login: create.asyncThunk(
       async (params: { password: string; email: string }) => {
-        const { data, error } = await fetchLogin(params);
+        // the framework's /account/login reads the unified `login` field
+        // (username or email); the form collects an email
+        const { data, error } = await fetchLogin({ login: params.email, password: params.password });
         // 1. stored in the localStorage, the later requests need it in headers
         if (!error) {
+          localStg.set("token", data.access_token);
           const { data: userInfo, error: userInfoError } = await fetchGetUserInfo();
 
           if (!userInfoError) {

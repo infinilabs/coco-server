@@ -1,4 +1,446 @@
 const page: App.I18n.Schema['translation']['page'] = {
+  wiki: {
+    overview: {
+      articles: 'Articles',
+      aiGenerated: 'AI Generated',
+      datasources: 'Datasources',
+      recent: 'Recently Updated',
+      search: 'Search Knowledge'
+    },
+    graph: {
+      empty: 'No articles or entities to plot yet',
+      articles: 'Articles',
+      entities: 'Entities',
+      reset: 'Reset zoom',
+      unresolved: 'Unresolved link',
+      viaRelation: 'Expanded by relation',
+      properties: 'Properties',
+      relations: 'Outgoing relations',
+      incoming: 'Incoming relations',
+      noRelations: 'No relations yet',
+      openArticle: 'Open entity page',
+      confidence: 'Confidence',
+      clickArticleHint: 'Click an article node to open it'
+    },
+    settings: {
+      basic: 'Basic Info',
+      agent: 'AI Agent',
+      agentTooltip: 'When bound, AI generation and AI editing for this KB use the model configured on this assistant',
+      danger: 'Danger Zone',
+      deleteKb: 'Delete Knowledge Base',
+      saved: 'Settings saved'
+    },
+    tree: {
+      newFolder: 'New Folder',
+      addFolder: 'New folder in this KB',
+      rename: 'Rename',
+      addSubfolder: 'New subfolder',
+      delete: 'Remove from TOC'
+    },
+    notification: {
+      title: 'Notifications',
+      markAll: 'Mark all read',
+      all: 'All',
+      unread: 'Unread',
+      empty: 'No notifications'
+    },
+    outline: { title: 'On this page' },
+    assistantGroup: { chat: 'Chat assistants', search: 'AI Search', deepThink: 'Deep thinking', deepResearch: 'Deep research', dataProcessing: 'Data processing' },
+    comments: {
+      title: 'Comments',
+      placeholder: 'Add a comment…',
+      submit: 'Comment',
+      empty: 'No comments yet',
+      deleteConfirm: 'Delete this comment?',
+      anonymous: 'Anonymous'
+    },
+    members: {
+      hint: 'Collaboration is managed through shares: grant view / edit / share permissions per user or role.',
+      ownerOnly: 'Only the owner or a share manager can edit collaborators (owner: {{owner}}).'
+    },
+    workspace: {
+      all: 'All Workspaces',
+      create: 'New Workspace',
+      namePlaceholder: 'Workspace name'
+    },
+    bookmarks: { title: 'My Bookmarks' },
+    recent: { title: 'Recently Viewed' },
+    editor: {
+      heading: 'Section heading',
+      bold: 'Bold',
+      list: 'Bullet list',
+      link: 'Link',
+      wikilink: 'Wikilink [[type:name]]',
+      sectionTitle: 'Section title',
+      text: 'text',
+      item: 'item',
+      linkText: 'link text'
+    },
+    articles: {
+      filterPlaceholder: 'Filter by title or summary',
+      allStatuses: 'All statuses',
+      deleteConfirm: 'Delete this article? Versions, comments and its TOC entry are removed too.'
+    },
+    hub: {
+      title: 'Knowledge Hub',
+      eyebrow: 'Knowledge base · AI generated · Citation-backed',
+      subtitle: 'Knowledge bases generated and maintained by AI — every claim traced to its source',
+      newKb: 'New Knowledge Base',
+      search: 'Search articles & knowledge bases',
+      empty: 'No knowledge base yet',
+      articlesUnit: 'articles',
+      membersUnit: 'members',
+      lastUpdated: 'Updated',
+      deleteKbConfirm: 'Delete knowledge base "{{name}}"? Its articles will be removed.'
+    },
+    createKb: {
+      title: 'Create Knowledge Base',
+      name: 'Name',
+      description: 'Description',
+      icon: 'Icon',
+      visibility: 'Visibility',
+      assistant: 'AI Assistant',
+      datasources: 'Datasources',
+      datasourcesPlaceholder: 'Select synced datasources to bind'
+    },
+    createArticle: {
+      title: 'Title',
+      pageType: 'Page Type',
+      summary: 'Summary'
+    },
+    visibility: { public: 'Public', private: 'Private', team: 'Team' },
+    aiStatus: { ready: 'AI Ready', processing: 'AI Processing', queued: 'AI Queued', updating: 'AI Updating' },
+    pageType: { concept: 'Concept', entity: 'Entity', source: 'Source', map: 'Company map' },
+    status: { draft: 'Draft', reviewed: 'Reviewed', published: 'Published', archived: 'Archived' },
+    confidence: { high: 'High', medium: 'Medium', low: 'Low' },
+    role: { owner: 'Owner', editor: 'Editor', viewer: 'Viewer', agent: 'Agent' },
+    changeType: { 'ai-generated': 'AI Generated', 'human-edited': 'Human Edited', 'auto-updated': 'Auto Updated' },
+    generate: {
+      title: 'Generate with AI',
+      hintPlaceholder: 'Focus hint (optional), e.g. supplier policies for Maxim\'s HK stores',
+      start: 'Generate',
+      cancel: 'Stop',
+      phase: {
+        scope: 'Scoping sources',
+        cluster: 'Planning pages',
+        outline: 'Outlining',
+        draft: 'Drafting',
+        deliver: 'Delivering'
+      },
+      generatedArticles: 'Generated drafts',
+      done: '{{count}} page(s) generated as drafts',
+      failed: 'Failed pages (skipped)'
+    },
+    aiEdit: {
+      title: 'AI Edit',
+      start: 'Apply',
+      instruction: 'Instruction',
+      instructionPlaceholder: 'e.g. tighten the wording, keep the citations and wikilinks',
+      selection: 'Selected fragment (optional)',
+      selectionPlaceholder: 'Paste the exact fragment to rewrite; leave empty to rewrite the whole article',
+      stream: 'AI output',
+      done: 'Applied as version v{{version}}'
+    },
+        entity: {
+          properties: 'Properties',
+          relations: 'Relations',
+          forward: '→',
+          inverse: '←',
+          noRelations: 'No relations recorded',
+          backlinks: 'Cited by',
+          noBacklinks: 'No articles reference this entity yet',
+          relationCount: '{{forward}} outgoing · {{inverse}} incoming relations'
+        },
+
+        entityManager: {
+          title: 'Entities',
+          searchPlaceholder: 'Search name or alias…',
+          typeFilter: 'Type',
+          statusFilter: 'Status',
+          columns: { name: 'Name', type: 'Type', status: 'Status', relations: 'Relations' },
+          newTitle: 'New Entity',
+          editTitle: 'Edit Entity — {{name}}',
+          subtype: 'Subtype',
+          aliases: 'Aliases',
+          properties: 'Properties',
+          relations: 'Relations',
+          addRelation: '+ Add relation (pick a relation type)…',
+          pickTarget: 'Pick target entity',
+          noTargets: 'No candidates',
+          advance: 'Mark {{status}}',
+          advanceConfirm: 'Advance the status to {{status}}?'
+        },
+
+    wikiLink: {
+      unresolved: 'Unresolved link — click to propose an entity'
+    },
+    repair: {
+      hint: '{{count}} knowledge link(s) resolve to no entity',
+      action: 'Propose entities',
+      title: 'Propose entities',
+      description: 'Create proposed entities for the unresolved links below, then rebind them automatically. Publishing stays a human review.',
+      confirm: 'Create and relink',
+      success: 'Created {{count}} proposed entities and relinked',
+      failed: 'Failed to create entities — check the ontology vocabulary'
+    },
+    like: { add: 'Like', remove: 'Unlike' },
+    bookmark: { add: 'Bookmark this article', remove: 'Bookmarked' },
+    governance: {
+      title: 'Knowledge Governance',
+      subtitle: 'AI scans the knowledge bases and files proposals: stale, duplicate, conflicting, low-quality or orphaned pages. Every fix stays a human decision.',
+      statusOpen: 'Open',
+      statusResolved: 'Resolved',
+      statusDismissed: 'Dismissed',
+      statusAll: 'All',
+      resolve: 'Mark resolved',
+      dismiss: 'Dismiss',
+      resolveConfirm: 'Mark this proposal resolved? Apply the actual fix on the article page.',
+      dismissConfirm: 'Dismiss this proposal? The scanner will not re-file it unless things change.',
+      duplicateOf: 'Possible duplicate of, click to view',
+      pendingVersion: 'Auto-updated version v{{version}} awaiting review',
+      empty: 'Queue is clean, nothing to review',
+      type: { stale: 'Stale', duplicate: 'Duplicate', conflict: 'Conflict', low_quality: 'Low quality', orphan: 'Orphaned', entity_duplicate: 'Entity duplicate', entity_conflict: 'Entity type conflict', knowledge_gap: 'Knowledge gap', correction: 'Correction' },
+      hint: '{{count}} proposal(s) waiting'
+    },
+    correction: {
+      title: 'Report a correction',
+      ok: 'Submit correction',
+      routeHint: 'What kind of issue',
+      hints: {
+        fact_missing: 'Missing fact (should be covered)',
+        fact_outdated: 'Outdated fact',
+        preference: 'Recurring preference',
+        technique: 'Validated technique',
+        source_conflict: 'Sources disagree'
+      },
+      comment: 'Correction',
+      commentPlaceholder: 'What is correct? Sources welcome.',
+      success: 'Filed to the governance queue; a human review updates the knowledge base',
+      reviewHint: 'Corrections become governance proposals for human review — nothing changes directly.'
+    },
+    saveFromChat: {
+      title: 'Save to knowledge base',
+      ok: 'Save as draft',
+      kb: 'Target knowledge base',
+      kbPlaceholder: 'Pick the knowledge base to land into',
+      articleTitle: 'Article title',
+      summary: 'Summary (optional)',
+      success: 'Saved as a draft — review and publish in the wiki',
+      draftHint: 'The answer lands as an AI draft; publishing stays a human review.'
+    },
+    diff: {
+      view: 'Diff',
+      vsPrev: 'Changes v{{older}} → v{{newer}}',
+      added: '{{count}} lines added',
+      removed: '{{count}} lines removed'
+    },
+    kb: {
+      newArticle: 'New Article',
+      aiGenerate: 'AI Generate',
+      toc: 'Contents',
+      notFound: 'Knowledge base not found',
+      docsUnit: 'docs',
+      lastSynced: 'Synced',
+      human: 'Human',
+      tabs: { articles: 'Articles', datasources: 'Datasources', members: 'Members', overview: 'Overview', graph: 'Graph', entities: 'Entities', settings: 'Settings' },
+      columns: {
+        title: 'Title',
+        status: 'Status',
+        pageType: 'Page Type',
+        tags: 'Tags',
+        ai: 'Origin',
+        updatedAt: 'Updated At'
+      }
+    },
+    article: {
+      notFound: 'Article not found',
+      edit: 'Edit',
+      versions: 'Versions',
+      versionView: 'View',
+      submitReview: 'Submit Review',
+      publish: 'Publish',
+      archive: 'Archive',
+      statusFlowHint: 'Status transition (draft → reviewed → published)',
+      contentEditor: 'Content (structured markdown)',
+      preview: 'Preview',
+      openSource: 'Open Source',
+      copyLink: 'Copy link',
+      linkCopied: 'Link copied',
+      exportMd: 'Export as Markdown',
+      sections: {
+        definition: 'Definition',
+        characteristics: 'Key Characteristics',
+        applications: 'Applications',
+        relatedConcepts: 'Related Concepts',
+        relatedEntities: 'Related Entities',
+        mentions: 'Mentions in Source',
+        sources: 'Source References'
+      }
+    },
+
+    search: {
+      title: 'Search Knowledge',
+      placeholder: 'Search articles and knowledge bases…',
+      empty: 'No results',
+      articles: 'Articles',
+      kbs: 'Knowledge Bases'
+    }
+  },
+  searchStudio: {
+    title: 'Search Lab',
+    subtitle: 'Multi-route recall with live-tunable RRF fusion',
+    queryPlaceholder: 'Enter a query to run text, semantic, wiki and graph recall',
+    queryRequired: 'Please enter a query',
+    run: 'Run',
+    rerun: 'Rerun',
+    runFailed: 'Run failed',
+    datasource: 'Datasource',
+    datasourceAll: 'All accessible datasources',
+    size: 'Size',
+    fuzziness: 'Fuzziness',
+    textWeight: 'BM25 weight',
+    semanticWeight: 'kNN weight',
+    formula: 'score = Σ weight_route/(k+rank_route); ranks are 1-based, a route that missed the doc contributes nothing',
+    docTitle: 'Title',
+    docSource: 'Datasource',
+    rawScore: 'Raw score',
+    contribution: 'Contributions',
+    textRoute: 'BM25 route',
+    semanticRoute: 'kNN route',
+    wikiRoute: 'Curated wiki',
+    graphRoute: 'Graph route',
+    rewriteRoute: 'Rewrite route',
+    rewriteTitle: 'Query rewrite',
+    rewriteApplied: 'rewritten',
+    rewriteOff: 'off',
+    rewriteCached: 'cache hit',
+    evalTitle: 'Evaluation set (golden queries)',
+    evalSubtitle: 'Human-annotated query → expected-doc pairs, scored against the live pipeline — run it before and after any recall-stack change',
+    evalQueryPlaceholder: 'Type a query the way a user would ask it',
+    evalPickPlaceholder: 'Type keywords to search, then pick the documents this query must return',
+    evalPickHint: 'Type keywords to search documents',
+    evalNotePlaceholder: 'Note (optional)',
+    evalAdd: 'Add case',
+    evalSaved: 'Case saved (same query replaces its expectation)',
+    evalSaveFailed: 'Failed to save the case',
+    evalQueryRequired: 'A query is required',
+    evalExpectedRequired: 'Pick at least one expected document',
+    evalLoadFailed: 'Failed to load the evaluation set',
+    evalRun: 'Run eval',
+    evalRunDone: 'Evaluation finished',
+    evalRunFailed: 'Evaluation run failed',
+    evalQueryCol: 'Query',
+    evalExpectedCol: 'Expected docs',
+    evalNoteCol: 'Note',
+    evalCasesCol: 'Cases',
+    evalHitRank: 'Hit rank',
+    evalOutsideTop4: 'outside top-4',
+    evalMiss: 'miss',
+    evalTopReturns: 'Top-4 returned',
+    evalTook: 'Took',
+    evalError: 'Error',
+    evalTop4Col: 'Top-4 hits',
+    evalTop4Rate: 'Top-4 hit rate',
+    evalAvgTook: 'Avg latency',
+    evalRunAt: 'Run at',
+    evalTrend: 'Recent runs',
+    evalEmpty: 'No cases yet — add the first one: a question a user would ask + the documents it must return',
+    evalDeleteConfirm: 'Delete this evaluation case?',
+    evalGapHint: 'Miss cases automatically file a knowledge-gap proposal in the governance queue (recommendation only, human decides).',
+    rerankTitle: 'Rerank',
+    rrfRank: 'RRF rank',
+    rerankRank: 'Rerank rank',
+    relevance: 'Relevance',
+    weightOf: '{{route}} weight',
+    fusedTitle: 'RRF fused results',
+    noResults: 'No results',
+    empty: 'Enter a query and hit Run to see per-route ranks, raw scores and fused scores'
+  },
+  faq: {
+    tabTitle: 'FAQ Entries',
+    title: 'FAQ knowledge entries',
+    hint: 'Index content = standard + similar questions; negative questions never index (an exact negative match knocks the entry out), answers return only on exact hits.',
+    refresh: 'Refresh',
+    newEntry: 'New entry',
+    empty: 'No FAQ entries yet',
+    standard: 'Standard question',
+    standardPlaceholder: 'How would a user ask this?',
+    answerCol: 'Answer',
+    similarCol: 'Similar questions (one per line)',
+    negativeCol: 'Negative questions (one per line)',
+    linesHint: 'One question per line, skip empty lines',
+    linesPlaceholder: 'one question per line',
+    negativeHint: 'An exact negative match removes this entry entirely',
+    actions: 'Actions',
+    delete: 'Delete',
+    deleteConfirm: 'Delete this FAQ entry?',
+    created: 'Created',
+    duplicate: 'Identical question set exists, skipped',
+    deleted: 'Deleted',
+    loadFailed: 'Load failed',
+    createOk: 'Create',
+    testTitle: 'Test search',
+    testPlaceholder: 'Ask a question to verify recall / negatives / direct answer',
+    testRun: 'Test',
+    exactHit: 'Exact hit — standard answer may be adopted',
+    rankedHits: '{{n}} ranked hits',
+    noHit: 'No hit (possibly filtered by a negative)',
+  },
+  searchOps: {
+    title: 'Search Ops',
+    subtitle: 'What people searched, which strategies ran, where recall came up empty and what it cost — the data face of the iteration loop',
+    refresh: 'Refresh',
+    loadFailed: 'Load failed',
+    totalSearches: 'Searches',
+    zeroHitRate: 'Zero-hit rate',
+    avgTook: 'Avg latency',
+    maxTook: 'Max latency',
+    strategies: 'Strategy distribution',
+    strategy: 'Strategy',
+    searches: 'Count',
+    zeroHits: 'Zero hits',
+    rewritten: 'Rewritten',
+    rewriteHint: 'The query-rewrite leg (D8) fired {{total}} times, {{missed}} of them still zero-hit — compare against the overall zero-hit rate to see the rewrite lift.',
+    lowRecall: 'Low-recall board',
+    query: 'Query',
+    misses: 'Misses',
+    lastSeen: 'Last seen',
+    gapFiled: 'gap proposal filed',
+    noData: 'No data',
+    lowRecallHint: 'A query with ≥3 zero-hit searches files a knowledge-gap proposal in the governance queue; a human decides what page to add.',
+    zeroHitCaveat: 'The zero-hit signal family is demo-grade: the pinyin analyzer matches nearly any non-empty query on the text leg, so the zero-hit rate undercounts and the low-recall board and gap backflow rarely fire on organic traffic — do not steer operations by them until the analyzer is tightened.',
+    indexHealth: 'Index health',
+    indexName: 'Store',
+    indexStatus: 'Status',
+    indexDocs: 'Docs',
+    ingestionTitle: 'Ingestion Tasks',
+    ingestionSubtitle: 'Pipeline lifecycle distribution and the failed list — failures retry in one click',
+    statusIndexing: 'Indexing',
+    statusCompleted: 'Completed',
+    statusFailed: 'Failed',
+    statusLegacy: 'Legacy (unstamped)',
+    failedTitle: 'Failed Documents',
+    failedDocTitle: 'Document',
+    failedDatasource: 'Datasource',
+    failedError: 'Error',
+    failedUpdated: 'Updated',
+    retryFailed: 'Retry failed documents',
+    retryConfirm: 'Every failed document will be reset and re-queued for processing. Continue?',
+    retryDone: 'Retried {{retried}} documents, {{still}} could not be retried',
+    syncTitle: 'Sync Status',
+    syncName: 'Datasource',
+    syncType: 'Type',
+    syncEnabled: 'Enabled',
+    syncInterval: 'Interval',
+    syncLastDispatch: 'Last dispatch',
+    syncCursor: 'Increment cursor',
+    syncRunState: 'Last run',
+    syncRunProgress: '{{batches}} batches / {{documents}} docs',
+    syncStale: 'likely stuck',
+    syncSuperseded: 'ended unrecorded',
+    syncRunning: 'running',
+    syncNever: 'never ran',
+  },
   apitoken: {
     columns: {
       expire_in: 'Expire In',
@@ -15,6 +457,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   assistant: {
+    categoryPlaceholder: 'Select or input a category',
     delete: {
       confirm: 'Are you sure you want to delete this ai assistant "{{name}}"?'
     },
@@ -140,6 +583,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       internal_datasource_ids: 'Datasources'
     },
     mode: {
+      data_processing: 'Data Processing',
       deep_think: 'Deep Think',
       deep_research: 'Deep Research',
       simple: 'Simple',
@@ -567,6 +1011,10 @@ const page: App.I18n.Schema['translation']['page'] = {
       title: 'Embedding Model',
       desc: 'Used to convert content into vectors to support semantic search and similarity matching.'
     },
+    rerankModel: {
+      title: 'Rerank Model',
+      desc: 'Re-scores fused hybrid candidates after fusion (OpenAI-compatible /rerank endpoint, e.g. Qwen3-Reranker); falls back to RRF order when unset.'
+    },
     llm: {
       desc: 'Choose the default AI model used for core capabilities such as conversations, image understanding, and semantic search. You can change this later in Settings.',
       title: 'Configure Default Model'
@@ -774,6 +1222,13 @@ const page: App.I18n.Schema['translation']['page'] = {
     title: 'Welcome'
   },
   mcpserver: {
+    server: {
+      title: 'Coco MCP Server',
+      help: 'Connection guide',
+      copyConfig: 'Copy client config',
+      copied: 'MCP client config copied to clipboard'
+    },
+
     delete: {
       confirm: 'Are you sure you want to delete this ai MCP server "{{name}}"?'
     },
@@ -789,6 +1244,159 @@ const page: App.I18n.Schema['translation']['page'] = {
       icon: 'Icon',
       name: 'Name',
       type: 'Type'
+    }
+  },
+  ontology: {
+    viewEntities: 'View entities',
+    title: 'Ontology Vocabulary',
+    subtitle: 'Declared entity types, typed properties and the relation vocabulary entity writes validate against. Tenant schema is the default; a knowledge base may override.',
+    rules: {
+      title: 'Knowledge Compile Rules',
+      desc: 'How the curated layer is compiled and how disputes are decided: the concept source floor feeds the retrieval gate, the source priority recommends a side on duplicate/conflict proposals.',
+      conceptMinSources: 'Concept min sources',
+      conflictStrategy: 'Conflict strategy',
+      strategyMark: 'Mark (file a proposal, both sides stay)',
+      strategyIsolate: 'Isolate (lower-priority side stays out of retrieval)',
+      sourcePriority: 'Source priority (high → low)',
+      sourcePriorityPlaceholder: 'Type a datasource id, Enter to add; order is the priority'
+    },
+    tenantScope: 'Tenant schema (default)',
+    addType: 'Add type',
+    save: 'Save schema',
+    saved: 'Schema saved',
+    typeName: 'Type name',
+    typeLabel: 'Label',
+    removeType: 'Remove type',
+    removeTypeConfirm: 'Remove type {{name}}? Existing entities are untouched, but new ones will be rejected.',
+    properties: 'Properties',
+    relations: 'Relations',
+    propKey: 'Property key',
+    propLabel: 'Label',
+    enumHint: 'Enum values, comma separated',
+    required: 'Required',
+    relName: 'Relation',
+    cardinality: 'Cardinality',
+    inverse: 'Inverse',
+    bareType: 'No properties or relations yet',
+    empty: 'No schema on file — start by adding a type'
+  },
+  pipeline: {
+        templates: {
+          title: 'Start from a common task',
+          use: 'Use this template',
+          'general-enrich': {
+            title: 'Knowledge Processing Chain (8 stages)',
+            description: 'Type detection → metadata → cover → parse & chunk → AI summary → tags → entity extraction → embedding; one write lands the document with both inverted and vector fields'
+          },
+          pdf: {
+            title: 'PDF Processing',
+            description: 'Extract PDF body and embedded attachments; AI summary, tags and embedding'
+          },
+          word: {
+            title: 'Word Processing',
+            description: 'Extract Word document body; AI summary and tags'
+          },
+          image: {
+            title: 'Image Processing',
+            description: 'Image metadata, cover generation, vision-model description with OCR, face detection'
+          },
+          video: {
+            title: 'Video Processing',
+            description: 'Type detection, metadata and AI summary for video files (no transcription/frame extraction processor yet)'
+          },
+          attachment: {
+            title: 'Attachment Processing (2 stages)',
+            description: 'Full-text extraction and cover generation for the attachment pipeline channel'
+          }
+        },
+
+    title: 'Processing Pipelines',
+    deleteConfirm: 'Delete pipeline "{{name}}"?',
+    columns: {
+      name: 'Name',
+      enabled: 'Enabled',
+      processors: 'Processors',
+      description: 'Description'
+    },
+    manageLink: 'Manage pipelines',
+    editor: {
+      newTitle: 'New Pipeline',
+      editTitle: 'Edit Pipeline — {{name}}',
+      back: 'Back',
+      saveFailed: 'Save failed',
+      name: 'Name',
+      nameAsId: 'The name doubles as the pipeline id — datasources and document-processing settings reference pipelines by this name',
+      description: 'Description',
+      advanced: 'Advanced',
+      enabled: 'Enabled',
+      singleton: 'Singleton',
+      autoStart: 'Auto start',
+      keepRunning: 'Keep running',
+      retryDelay: 'Retry delay (ms)',
+      chainTitle: 'Processor Chain',
+      catalog: 'Processor Catalog',
+      cardsView: 'Cards',
+      insertProcessor: '+ Insert processor…',
+      addBranch: '+ Conditional branch',
+      deleteEntryConfirm: 'Remove this entry from the chain?',
+      invalidEntryJSON: 'Invalid entry JSON — must be a single object',
+      invalidChainJSON: 'Invalid chain JSON — must be an array of entries',
+      emptyChain: 'Empty chain — insert from the catalog, use AI, or paste JSON',
+      studioTitle: 'Test & AI',
+      sampleDocuments: 'Sample documents (JSON array)',
+      documentTemplate: 'Document template',
+      attachmentTemplate: 'Attachment template',
+      aiRequirementPlaceholder:
+        'Requirement in natural language, e.g. detect the language and generate a short summary; for refine, describe the change you want',
+      aiGenerate: 'AI Generate',
+      aiRefine: 'AI Refine Current Chain',
+      runTest: 'Run Test (step by step)',
+      stepDebug: 'Step debug',
+      noTestYet: 'Run a test to see per-step field changes',
+      noChanges: 'No changes',
+      messages: '{{count}} messages',
+      testDone: 'Test finished — see the per-step diff below',
+      testFailed: 'Test failed',
+      validationError: 'The AI chain failed to build',
+      aiDone: 'AI updated the chain — auto-tested on your samples',
+      aiFailed: 'AI request failed',
+      refineNeedsChain: 'The chain is empty — use AI Generate first',
+      invalidDocuments: 'Sample documents must be a JSON array of objects',
+      sample: 'Sample',
+      filterProcessors: 'Filter processors…',
+      insert: 'Insert'
+    }
+  },
+  skill: {
+    title: 'Skills',
+    subtitle: 'Managed prompt overlays injected into every assistant when enabled — toggles apply to the next message, no restart needed',
+    search: 'Search skills',
+    empty: 'No skills yet',
+    builtin: 'Built-in',
+    create: 'Create Skill',
+    edit: 'Edit Skill',
+    delete: {
+      confirm: 'Delete this skill?'
+    },
+    export: {
+      copied: 'MCP client config copied to clipboard'
+    },
+    name: {
+      readonly: 'Locked for built-in skills'
+    },
+    instructions: {
+      hint: 'Markdown instructions injected into the system prompt. Describe HOW the assistant should work (persona, method steps, guardrails) — not new tools.'
+    },
+    labels: {
+      title: 'Title',
+      name: 'Name',
+      description: 'Description',
+      category: 'Category',
+      instructions: 'Instructions',
+      enabled: 'Enabled'
+    },
+    toast: {
+      updated: 'Skill updated'
     }
   },
   modelprovider: {
@@ -818,7 +1426,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       chatModel: 'Chat Model',
       languageModel: 'Language Model',
       visionModel: 'Vision Model',
-      embeddingModel: 'Embedding Model'
+      embeddingModel: 'Embedding Model',
+      rerankModel: 'Rerank Model'
     },
     hints: {
       selectOrInputModel: 'Select or input a model',
@@ -826,6 +1435,38 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   settings: {
+    appearance: {
+      app_logo: 'App Icon',
+      brand: 'Brand',
+      labels: {
+        base_text: 'Base text',
+        container_bg: 'Container background',
+        dark: 'Dark',
+        dark_mode: 'Dark mode',
+        error: 'Error',
+        functional: 'Functional colors',
+        image_too_large: 'Image exceeds 1MB, please compress it first',
+        layout_bg: 'Layout background',
+        light: 'Light',
+        light_mode: 'Light mode',
+        logo: 'App Icon',
+        logo_icon: 'App Icon',
+        logo_icon_hint: 'Icon at the left of the AI Search / AI Chat / AI Knowledge tabs; square 128×128 recommended, displayed at ~30px',
+        login_background: 'Background color',
+        login_background_hint: 'Login page left panel background, recommended 560×1090, ≤ 1MB',
+        login_background_image: 'Background image',
+        primary: 'Brand color',
+        success: 'Success',
+        theme_enforced: 'Theme colors are managed by the administrator and enforced for all users (local customizations are overridden)',
+        title: 'Site title',
+        title_hint: 'Appended as the browser tab title suffix and shown next to the logo in the header',
+        warning: 'Warning'
+      },
+      login_page: 'Login Page',
+      search_page: 'Search Page',
+      theme_colors: 'Theme Colors',
+      title: 'Appearance'
+    },
     app_settings: {
       chat_settings: {
         labels: {
@@ -873,10 +1514,45 @@ const page: App.I18n.Schema['translation']['page'] = {
       top_p_desc: `similar to temperature, don't change them simultaneously`,
       type: 'Type'
     },
-    search_settings: {
+    wiki_settings: {
+      title: 'AI Wiki',
       labels: {
+        assistant: 'Curation assistant',
+        assistant_desc: 'The assistant used by AI generation & AI editing by default; a knowledge-base-level binding takes precedence',
+        assistant_placeholder: 'Select the default assistant',
+        default_hint_title: 'How it resolves',
+        default_hint: 'This is the system-wide default; a KB that binds its own assistant (KB settings → AI 智能体) overrides it. The builtin 知识管理助手 works out of the box (citation-backed, drafts only).'
+      }
+    },
+
+    search_settings: {
+      title: 'Search Settings',
+      labels: {
+        wiki_projection: 'Wiki leg from document index',
+        wiki_projection_desc: 'When on, the wiki retrieval leg reads projected rows from the document index (run /wiki/_backfill_projection first); off reads the wiki_article index.',
+        chunk_route: 'Chunk-level RRF leg',
+        chunk_route_desc: 'When on, the standalone chunk index joins the fusion as an extra RRF leg (_reprocess enough documents first); hits carry breadcrumbs and citation chains.',
+
+        banner_height: 'Banner max height',
+        banner_height_hint: 'Max height of the search home banner (width adapts to the image ratio); default 64px',
+        builtin_widget: 'AI Search Widget (Built-in)',
+        builtin_widget_hint: 'The in-app AI search reuses this built-in fullscreen widget; only search-relevant parameters are shown here and changes apply immediately. The built-in integration never appears in the integration list',
         enabled: 'Enabled',
-        integration: 'Integration'
+        integration: 'Integration',
+        search_background: 'Search Background',
+        search_background_dark: 'Background image (dark mode)',
+        search_background_hint: 'Search home background, ≥ 1920×1080 recommended, ≤ 1MB',
+        search_background_light: 'Background image (light mode)',
+        search_type: 'Default search mode',
+        welcome_font_size: 'Welcome font size',
+        welcome_gradient: 'Gradient text (brand-color gradient; off = solid color)',
+        search_type_desc: 'The strategy /query/_search runs when the request does not set one explicitly; hybrid_rrf enables fused retrieval (wiki pages, graph and query rewrite); takes effect for new searches immediately'
+      },
+      options: {
+        keyword: 'Keyword (BM25)',
+        semantic: 'Semantic',
+        hybrid: 'Hybrid',
+        hybrid_rrf: 'Hybrid fusion (hybrid_rrf)'
       },
       title: 'Search Settings'
     },
@@ -895,6 +1571,99 @@ const page: App.I18n.Schema['translation']['page'] = {
       },
       title: 'Default Model'
     },
+    dedup: {
+    confirm: 'Confirm group',
+    confirmTip: 'Once confirmed, this group\'s duplicates fold in search results',
+    unconfirm: 'Un-confirm',
+    groupConfirmed: 'Group confirmed — duplicates will fold in search results',
+    groupUnconfirmed: 'Confirmation removed — the group no longer folds',
+      title: 'Content Dedup',
+      desc: 'Deterministic fingerprints (sha256 + simhash) group suspected duplicates across all data sources. The system only recommends — every exclusion or deletion is a human decision, and dismissed pairs are never reported again.',
+      scan: 'Rescan',
+      similarity: 'similarity',
+      keep: 'recommended keep',
+      keepTag: 'keep',
+      dismiss: 'Not duplicates',
+      dismissTip: 'Mark every pair in this group as not duplicates — never reported again',
+      dismissed: 'Marked as not duplicates',
+      exclude: 'Exclude from search',
+      excluded: 'excluded',
+      delete: 'Delete',
+      deleteConfirm: 'Delete this document permanently?',
+      acted: 'Action applied',
+      clean: 'No suspected duplicates found.',
+      noDeletePermission: 'Document delete permission required',
+      noUpdatePermission: 'Document update permission required',
+      stats: {
+        scanned: 'Scanned',
+        fingerprinted: 'Fingerprinted',
+        groups: 'Suspected groups',
+        dismissed: 'Dismissed pairs'
+      },
+      tiers: {
+        identical_content: 'Identical content',
+        near_identical: 'Near identical',
+        highly_similar: 'Highly similar',
+        suspected_versions: 'Suspected versions'
+      },
+      columns: {
+        title: 'Title',
+        source: 'Source',
+        size: 'Size',
+        updated: 'Updated',
+        actions: 'Actions'
+      }
+    },
+    engine_ai: {
+      title: 'Engine AI',
+      labels: {
+        engine_ai: 'Engine AI capabilities',
+        engine_ai_desc: 'Coco curates the engine\'s AI pipelines: documents are vectorized at ingest time and semantic/hybrid searches are fused by the engine — one model config here, applied on both sides',
+        enabled: 'Enable engine AI',
+        embedding_model: 'Embedding model',
+        embedding_model_desc: 'Used by both engine pipelines; falls back to the default embedding model when empty',
+        batch_size: 'Ingest batch size',
+        batch_size_desc: 'Inputs batched per embedding call at ingest time',
+        rank_constant: 'RRF rank constant',
+        rank_constant_desc: 'The k of the engine-side RRF fusion (score = 1/(k+rank))',
+        text_field: 'Text field',
+        vector_field: 'Vector field'
+      },
+      status: {
+        title: 'Engine sync status',
+        in_sync: 'in sync',
+        out_of_sync: 'out of sync',
+        desired: 'Desired (generated by Coco)',
+        actual: 'Deployed on engine',
+        ingest_pipeline: 'Ingest pipeline',
+        search_pipeline: 'Search pipeline',
+        document_index: 'Document index',
+        callout: 'Engine callout',
+        sync_now: 'Sync to engine now',
+        synced: 'Engine pipelines synced'
+      }
+    },
+    data_security: {
+      title: 'Data Security',
+      maskingTitle: 'Dynamic Masking',
+      maskingEnabled: 'Mask recalled content before models',
+      maskingDesc: 'Content matching a rule is regex-replaced before it is assembled into model context (RAG references, enterprise search tool); rules apply in order — put long-number rules like ID cards before the phone rule',
+      noRules: 'No rules yet',
+      addRule: 'Add rule',
+      addPresets: 'Common presets',
+      tryIt: 'Try it',
+      tryPlaceholder: 'Paste sample text, e.g. call 13812345678 or user@example.com',
+      tryOutput: 'Masked text (live preview)',
+      name: 'Name',
+      pattern: 'Pattern (RE2)',
+      replacement: 'Replacement',
+      enabled: 'Enabled',
+      fieldTitle: 'Field-level Access Control',
+      fieldDesc: 'Narrow returned fields by role, stacked on top of datasource and document permissions; ES _source exclude syntax is supported, e.g. payload.* (empties the object), raw_content (removes it entirely); admin is never restricted',
+      rolePlaceholder: 'Select role',
+      addRestriction: 'Add role restriction'
+    },
+
     document_processing: {
       labels: {
         default_pipeline_for_attachment: 'Chat Attachment',
@@ -906,7 +1675,48 @@ const page: App.I18n.Schema['translation']['page'] = {
       },
       title: 'Document Processing'
     },
+    environment: {
+      title: 'Environment',
+      labels: {
+        tika_service: 'Tika Service',
+        tika_desc:
+          'Tika server used for document parsing and OCR. Leave empty for the default; a pipeline that pins its own address takes precedence over this global setting.',
+        tika_invalid: 'Must be a valid http(s) URL',
+        tika_timeout: 'Timeout',
+        overridden_title: 'Some pipelines pin their own Tika address',
+        overridden_desc:
+          'These pipelines set tika_endpoint explicitly and ignore the global setting: {{pipelines}}. Clear the override in those pipelines to apply the global one.',
+        checks_title: 'Dependency checks',
+        recheck: 'Re-check',
+        install_hint: 'Install'
+      }
+    },
     setupLater: 'Set Up Later'
+  },
+  memory_settings: {
+    title: 'My Memory',
+    hint: 'Distilled memories stay PENDING until you confirm them here — nothing enters a prompt before that. Rejects keep a suppressed record; delete removes it outright. Only you can see these.',
+    kind: 'Kind',
+    content: 'Content',
+    status: 'Status',
+    updated: 'Updated',
+    actions: 'Actions',
+    pending: 'Pending',
+    confirmed: 'Active',
+    rejected: 'Rejected',
+    all: 'All',
+    confirm: 'Confirm',
+    reject: 'Reject',
+    confirmTitle: 'Confirm this memory?',
+    confirmHint: 'Once confirmed it joins your assistant context (resident kinds every turn, facts/tasks recalled per query).',
+    rejectTitle: 'Reject this memory?',
+    rejectHint: 'Rejected memories never inject; the record stays for audit.',
+    settled: 'Done',
+    delete: 'Delete',
+    deleteConfirm: 'Delete this memory permanently?',
+    deleted: 'Deleted',
+    empty: 'No memories yet (distilled conversations or manual entries land here)',
+    loadFailed: 'Load failed',
   },
   webhook: {
     form: {
@@ -1008,13 +1818,39 @@ const page: App.I18n.Schema['translation']['page'] = {
   },
   preview: {
     title: 'Document Preview',
+    processing: {
+      title: 'Processing',
+      open: 'View processing timeline and artifacts',
+      statusIndexing: 'Indexing',
+      statusCompleted: 'Completed',
+      statusFailed: 'Failed',
+      statusLegacy: 'Legacy (unstamped)',
+      model: 'Embedding model',
+      runsTitle: 'Run history (latest 5)',
+      noRuns: 'No runs recorded (legacy document or not yet processed)',
+      chunksTitle: 'Parsing artifacts · chunks ({{total}} total)',
+      breadcrumb: 'Breadcrumb',
+      pages: 'Pages',
+      excerpt: 'Excerpt',
+      vectorized: 'Vector'
+    },
     labels: {
       type: 'Type',
       size: 'Size',
+      format: 'Format',
+      source: 'Source',
+      connector: 'Connector',
       createdBy: 'Created By',
       createdAt: 'Created At',
       updatedAt: 'Updated At',
+      location: 'Location',
+      link: 'Link',
+      tag: 'Tag',
+      noMoreInfo: 'No additional information',
       preview: 'Preview',
+      previewUnavailableTitle: "This document can't be previewed",
+      previewUnavailableDescription: 'The document format may be unsupported or the content is temporarily unavailable',
+      openSourceFromPreview: 'Open Source',
       aiInterpretation: 'AI Interpretation'
     },
     buttons: {
@@ -1022,7 +1858,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       reload: 'Reload',
       continueVisiting: 'Continue Visiting',
       cancel: 'Cancel',
-      download: 'Download'
+      download: 'Download',
+      back: 'Back'
     },
     hints: {
       failed: 'Sorry, something went wrong',

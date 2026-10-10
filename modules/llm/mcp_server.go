@@ -5,12 +5,14 @@
 package llm
 
 import (
+	"net/http"
+
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/modules/common/secretbox"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
-	"net/http"
 )
 
 func (h *APIHandler) createMCPServer(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -53,6 +55,11 @@ func GetMCPServersByID(id []string) ([]core.MCPServer, error) {
 	err, _ = orm.SearchWithJSONMapper(&docs, &q)
 	if err != nil {
 		return nil, err
+	}
+	// S1: stdio env tokens / header credentials are encrypted at rest —
+	// decrypt for the MCP client construction that consumes this choke
+	for i := range docs {
+		docs[i].Config = secretbox.DecryptConfig(docs[i].Config)
 	}
 	return docs, nil
 }

@@ -72,3 +72,4 @@ export function getAssistantCategory() {
     url: '/assistant/_search'
   });
 }
+
