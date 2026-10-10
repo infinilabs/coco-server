@@ -120,6 +120,8 @@ export function WikiShell({ kbId, articleId, children }: Props) {
   };
 
   const storeToc = (id: string, nodes: Api.Wiki.TocNode[], types: Record<string, string>) => {
+    // final guard: an empty result must never blank a tree already on screen
+    if ((!nodes || nodes.length === 0) && (wikiNav.tocs[id] || []).length > 0) return;
     wikiNav.tocs = { ...wikiNav.tocs, [id]: nodes };
     wikiNav.pageTypes = { ...wikiNav.pageTypes, [id]: types };
     wikiNav.tocsAt = { ...wikiNav.tocsAt, [id]: Date.now() };
@@ -129,7 +131,10 @@ export function WikiShell({ kbId, articleId, children }: Props) {
 
   const fetchToc = (id: string) => {
     if (Date.now() - (wikiNav.tocsAt[id] || 0) < CACHE_TTL && wikiNav.tocs[id]) return;
-    getWikiToc(id).then(({ nodes, pageTypes: types }) => storeToc(id, nodes, types));
+    getWikiToc(id).then(({ nodes, pageTypes: types }) => {
+      if (nodes == null) return; // transient failure — keep the tree on screen
+      storeToc(id, nodes, types);
+    });
   };
 
   const fetchUnread = () => {

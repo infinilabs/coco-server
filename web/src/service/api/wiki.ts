@@ -183,10 +183,19 @@ export function getWikiToc(kbId: string) {
   return request<{ _source?: { nodes?: Api.Wiki.TocNode[]; page_types?: Record<string, string> } }>({
     method: 'get',
     url: `/wiki/kb/${kbId}/toc`
-  }).then(res => ({
-    nodes: (res?.data?._source?.nodes ?? []) as Api.Wiki.TocNode[],
-    pageTypes: res?.data?._source?.page_types ?? {}
-  }));
+  }).then(res => {
+    // a failed/aborted fetch must NOT wipe the current tree — report null
+    // nodes so the caller keeps what it already has
+    const nodes = res?.data?._source?.nodes;
+    // an EMPTY node list is either a genuinely new KB or a lookup miss —
+    // report null either way so the caller never trades a populated tree
+    // for a blank one
+    const usable = Array.isArray(nodes) && nodes.length > 0;
+    return {
+      nodes: (usable ? nodes : null) as Api.Wiki.TocNode[] | null,
+      pageTypes: res?.data?._source?.page_types ?? {}
+    };
+  });
 }
 
 export function updateWikiToc(kbId: string, toc: Api.Wiki.TocNode[]) {
