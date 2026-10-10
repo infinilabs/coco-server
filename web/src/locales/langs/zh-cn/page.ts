@@ -20,7 +20,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       noRelations: '暂无关系',
       openArticle: '打开实体页面',
       confidence: '置信度',
-      clickArticleHint: '点击文章节点可跳转'
+      clickArticleHint: '点击文章节点可跳转',
+      dragHint3d: '拖拽旋转 · 滚轮缩放 · 点击文章节点跳转,点击实体节点查看卡片'
     },
     settings: {
       basic: '基本信息',
@@ -35,7 +36,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       addFolder: '在当前知识库新建文件夹',
       rename: '重命名',
       addSubfolder: '新建子文件夹',
-      delete: '从目录移除'
+      delete: '从目录移除',
     },
     notification: {
       title: '消息中心',
@@ -204,7 +205,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       pendingVersion: '有待审的自动更新版本 v{{version}}',
       empty: '队列干净,没有待处理的提议',
       type: { stale: '内容过期', duplicate: '疑似重复', conflict: '内容冲突', low_quality: '低质量', orphan: '未入目录树', entity_duplicate: '实体疑似重复', entity_conflict: '实体类型冲突', knowledge_gap: '知识缺口', correction: '答案纠正', knowledge_compile: '知识编译', tree_organize: '目录组织建议', drift: '本体漂移', article_refresh: '引用更新', document_amendment: '文档修订' },
-      hint: '{{count}} 条提议等待处理'
+      hint: '{{count}} 条提议等待处理',
     },
     correction: {
       title: '报告纠正',

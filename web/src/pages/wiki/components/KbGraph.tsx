@@ -1,4 +1,5 @@
 import { AimOutlined, CloseOutlined, ExportOutlined, ZoomInOutlined, ZoomOutOutlined } from '@ant-design/icons';
+import ForceGraph3D from '3d-force-graph';
 import { Button, Empty, Spin, Tag, Tooltip } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -9,10 +10,6 @@ interface GNode {
   id: string;
   label: string;
   kind: 'article' | 'entity' | 'unresolved';
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
   color: string;
   articleId?: string;
   type?: string;
@@ -34,11 +31,6 @@ interface GEdge {
   inverseLabel?: string;
 }
 
-const W = 880;
-const H = 560;
-const ITERATIONS = 420;
-const MIN_NODE_GAP = 58;
-
 const ARTICLE_COLOR = '#1677ff';
 const UNRESOLVED_COLOR = '#bfbfbf';
 const TYPE_PALETTE = ['#722ed1', '#13c2c2', '#fa8c16', '#52c41a', '#eb2f96', '#2f54eb', '#faad14', '#a0d911'];
@@ -57,11 +49,13 @@ const STATUS_COLOR: Record<string, string> = {
   draft: 'orange'
 };
 
+const GRAPH_HEIGHT = 560;
+
 /**
- * Knowledge graph for one KB (ontology phase O3): the backend assembles the
- * subgraph — articles, wikilink-resolved entities, one-hop relation
- * expansion with schema-resolved labels and inverse relation names.
- * Clicking an entity opens its card; article nodes navigate.
+ * Knowledge graph for one KB (ontology phase O3), rendered as an interactive
+ * 3D force graph: articles, wikilink-resolved entities and one-hop typed
+ * relations in a self-organizing layout — drag to orbit, wheel to zoom,
+ * click an article to navigate, click an entity to open its card.
  */
 export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?: string }) {
   const { t } = useTranslation();
@@ -69,112 +63,48 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
   const [loading, setLoading] = useState(true);
   const [nodes, setNodes] = useState<GNode[]>([]);
   const [edges, setEdges] = useState<GEdge[]>([]);
-  const [scale, setScale] = useState(1);
   const [selected, setSelected] = useState<string | null>(null);
   const [cardOpen, setCardOpen] = useState(false);
-  const dragging = useRef<string | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const graphRef = useRef<any>(null);
+  // accessors read this ref — selection changes repaint without rebuilding
+  const selectedRef = useRef<string | null>(null);
 
+  const toGNode = (n: Api.Wiki.GraphNode): GNode => ({
+    id: n.id,
+    label: n.label,
+    kind: n.kind,
+    color:
+      n.kind === 'article'
+        ? ARTICLE_COLOR
+        : n.kind === 'unresolved'
+          ? UNRESOLVED_COLOR
+          : typeColor(n.type),
+    articleId: n.article_id,
+    type: n.type,
+    typeLabel: n.type_label,
+    status: n.status,
+    confidence: n.confidence,
+    aliases: n.aliases,
+    properties: n.properties,
+    viaRelation: n.via_relation
+  });
+
+  // fetch the subgraph once per KB
   useEffect(() => {
     if (!kbId) return;
     setLoading(true);
     setSelected(null);
+    selectedRef.current = null;
     setCardOpen(false);
+    setNodes([]);
+    setEdges([]);
+
     fetchWikiKbGraph(kbId)
       .then(({ nodes: gNodes, edges: gEdges }) => {
-        // seed positions in two halves — articles on the left, entities and
-        // unresolved links on the right — so the two families start apart
-        // and the relaxation keeps them apart
-        const articleSeeds = gNodes.filter(n => n.kind === 'article');
-        const otherSeeds = gNodes.filter(n => n.kind !== 'article');
-        let ai = 0;
-        let ei = 0;
-        const seedPos = (n: Api.Wiki.GraphNode) => {
-          if (n.kind === 'article') {
-            const a = Math.PI / 2 + (ai++ / Math.max(articleSeeds.length, 1)) * Math.PI;
-            return { x: W / 2 + Math.cos(a) * 250, y: H / 2 + Math.sin(a) * 190 };
-          }
-          const a = -Math.PI / 2 + (ei++ / Math.max(otherSeeds.length, 1)) * Math.PI;
-          return { x: W / 2 + Math.cos(a) * 250, y: H / 2 + Math.sin(a) * 190 };
-        };
-        const laid: GNode[] = gNodes.map(n => {
-          const { x, y } = seedPos(n);
-          return {
-            id: n.id,
-            label: n.label,
-            kind: n.kind,
-            x,
-            y,
-            vx: 0,
-            vy: 0,
-            color: n.kind === 'article' ? ARTICLE_COLOR : n.kind === 'unresolved' ? UNRESOLVED_COLOR : typeColor(n.type),
-            articleId: n.article_id,
-            type: n.type,
-            typeLabel: n.type_label,
-            status: n.status,
-            confidence: n.confidence,
-            aliases: n.aliases,
-            properties: n.properties,
-            viaRelation: n.via_relation
-          };
-        });
-        const byId = new Map(laid.map(n => [n.id, n]));
-        const kept = gEdges.filter(e => byId.has(e.source) && byId.has(e.target));
-
-        // force relaxation
-        for (let step = 0; step < ITERATIONS; step++) {
-          for (let i = 0; i < laid.length; i++) {
-            for (let j = i + 1; j < laid.length; j++) {
-              const a = laid[i];
-              const b = laid[j];
-              let dx = b.x - a.x;
-              let dy = b.y - a.y;
-              let d2 = dx * dx + dy * dy;
-              if (d2 < 1) {
-                dx = Math.random() - 0.5;
-                dy = Math.random() - 0.5;
-                d2 = 1;
-              }
-              const d = Math.sqrt(d2);
-              // weak repulsion + strong springs + real centering settle
-              // into connected clusters (calibrated by simulation: pairs
-              // land ~130px apart, nothing pinned against the walls)
-              let f = 5000 / d2;
-              if (d < MIN_NODE_GAP) f += (MIN_NODE_GAP - d) * 0.4;
-              a.vx -= (dx / d) * f;
-              a.vy -= (dy / d) * f;
-              b.vx += (dx / d) * f;
-              b.vy += (dy / d) * f;
-            }
-          }
-          kept.forEach(e => {
-            const a = byId.get(e.source);
-            const b = byId.get(e.target);
-            if (!a || !b) return;
-            const dx = b.x - a.x;
-            const dy = b.y - a.y;
-            const d = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
-            const target = a.kind === 'article' && b.kind === 'article' ? 240 : 140;
-            const f = (d - target) * 0.05;
-            a.vx += (dx / d) * f;
-            a.vy += (dy / d) * f;
-            b.vx -= (dx / d) * f;
-            b.vy -= (dy / d) * f;
-          });
-          laid.forEach(n => {
-            n.vx += (W / 2 - n.x) * 0.004;
-            n.vy += (H / 2 - n.y) * 0.004;
-            n.vx *= 0.85;
-            n.vy *= 0.85;
-            n.x += Math.max(-10, Math.min(10, n.vx));
-            n.y += Math.max(-10, Math.min(10, n.vy));
-            n.x = Math.max(56, Math.min(W - 56, n.x));
-            n.y = Math.max(40, Math.min(H - 36, n.y));
-          });
-        }
-
-        setNodes(laid);
+        setNodes(gNodes.map(toGNode));
         setEdges(
-          kept.map(e => ({
+          gEdges.map(e => ({
             source: e.source,
             target: e.target,
             kind: e.kind,
@@ -188,19 +118,7 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
       .finally(() => setLoading(false));
   }, [kbId]);
 
-  const nodeById = useMemo(() => new Map(nodes.map(n => [n.id, n])), [nodes]);
-
-  // deep link from an article capsule: select the requested entity and open
-  // its card once the graph has loaded (ignored when the id is not on canvas)
-  useEffect(() => {
-    if (!focusEntityId || loading || selected) return;
-    if (nodeById.has(focusEntityId)) {
-      setSelected(focusEntityId);
-      setCardOpen(true);
-    }
-  }, [focusEntityId, loading, nodeById, selected]);
-
-  // neighbours of the selected node stay bright, everything else dims
+  // neighbors of the selected node stay bright, everything else dims
   const neighbors = useMemo(() => {
     if (!selected) return null;
     const set = new Set<string>([selected]);
@@ -211,6 +129,117 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
     return set;
   }, [selected, edges]);
 
+  const hasNeighbor = (a: string, b: string) =>
+    edges.some(e => (e.source === a && e.target === b) || (e.source === b && e.target === a));
+
+  // build the 3D scene once data is in and the container is on screen
+  useEffect(() => {
+    if (loading || nodes.length === 0 || !containerRef.current || graphRef.current) return;
+
+    let disposed = false;
+    const nodeIds = new Set(nodes.map(n => n.id));
+    const links = edges.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
+
+    const graph = new ForceGraph3D(containerRef.current)
+      .backgroundColor('rgba(0,0,0,0)')
+      .width(containerRef.current.clientWidth)
+      .height(GRAPH_HEIGHT)
+      .graphData({ nodes, links })
+      .nodeColor((n: any) => {
+        const sel = selectedRef.current;
+        if (sel && sel !== n.id && !hasNeighbor(sel, n.id)) return 'rgba(140,140,140,0.25)';
+        return n.color;
+      })
+      .nodeOpacity(0.92)
+      .nodeLabel((n: any) => {
+        const bits = [n.label];
+        if (n.typeLabel || n.type) bits.push(`<i>${n.typeLabel || n.type}</i>`);
+        if (n.status) bits.push(n.status);
+        return `<span style="font-size:13px">${bits.join(' · ')}</span>`;
+      })
+      .nodeRelSize(4.2)
+      .linkColor((l: any) => {
+        const sel = selectedRef.current;
+        if (sel && sel !== l.source && sel !== l.target) return 'rgba(140,140,140,0.12)';
+        return l.kind === 'relation' ? 'rgba(22,119,255,0.55)' : 'rgba(160,160,160,0.3)';
+      })
+      .linkWidth((l: any) =>
+        selectedRef.current && (selectedRef.current === l.source || selectedRef.current === l.target)
+          ? 1.6
+          : l.kind === 'relation'
+            ? 0.9
+            : 0.5
+      )
+      .linkOpacity(0.5)
+      .linkDirectionalParticles((l: any) =>
+        selectedRef.current && (selectedRef.current === l.source || selectedRef.current === l.target) ? 2 : 0
+      )
+      .linkDirectionalParticleWidth(1.4)
+      .onNodeClick((n: any) => {
+        selectedRef.current = n.id;
+        setSelected(n.id);
+        setCardOpen(true);
+        graphRef.current?.refresh();
+        // keep the clicked node in view
+        const distance = 140;
+        const distRatio = 1 + distance / Math.max(Math.hypot(n.x, n.y, n.z), 1);
+        graphRef.current?.cameraPosition(
+          { x: n.x * distRatio, y: n.y * distRatio, z: n.z * distRatio },
+          n,
+          800
+        );
+      })
+      .onBackgroundClick(() => {
+        selectedRef.current = null;
+        setSelected(null);
+        setCardOpen(false);
+        graphRef.current?.refresh();
+      });
+
+    // spread the two families apart in 3D for a cleaner initial settle
+    graph.d3Force('charge')?.strength(-160);
+    graph.d3Force('link')?.distance((l: any) => {
+      const s = typeof l.source === 'object' ? l.source.id : l.source;
+      const t = typeof l.target === 'object' ? l.target.id : l.target;
+      return s?.startsWith('article:') && t?.startsWith('article:') ? 120 : 60;
+    });
+    graphRef.current = graph;
+    graph.onEngineStop(() => {
+      if (!disposed) graph.zoomToFit(600, 40);
+    });
+
+    const onResize = () => {
+      if (containerRef.current && graphRef.current) {
+        graphRef.current.width(containerRef.current.clientWidth).height(GRAPH_HEIGHT);
+      }
+    };
+    window.addEventListener('resize', onResize);
+    return () => {
+      disposed = true;
+      window.removeEventListener('resize', onResize);
+      if (graph && graph._destructor) graph._destructor();
+      graphRef.current = null;
+    };
+  }, [loading, nodes, edges]);
+
+  // repaint accessors when the selection changes
+  useEffect(() => {
+    selectedRef.current = selected;
+    graphRef.current?.refresh();
+  }, [selected]);
+
+  // deep link from an article capsule: select the requested entity once the
+  // graph has loaded (ignored when the id is not on canvas)
+  useEffect(() => {
+    if (!focusEntityId || loading || selected) return;
+    if (nodes.some(n => n.id === focusEntityId)) {
+      setSelected(focusEntityId);
+      selectedRef.current = focusEntityId;
+      setCardOpen(true);
+    }
+  }, [focusEntityId, loading, nodes, selected]);
+
+  const nodeById = useMemo(() => new Map(nodes.map(n => [n.id, n])), [nodes]);
   const cardNode = cardOpen && selected ? nodeById.get(selected) : null;
   const cardOutgoing = useMemo(
     () => (cardNode ? edges.filter(e => e.kind === 'relation' && e.source === cardNode.id) : []),
@@ -221,31 +250,40 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
     [cardNode, edges]
   );
 
-  const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
-    if (!dragging.current) return;
-    const n = nodeById.get(dragging.current);
-    if (!n) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    n.x = ((e.clientX - rect.left) / rect.width) * W;
-    n.y = ((e.clientY - rect.top) / rect.height) * H;
-    setNodes([...nodes]);
-  };
-
   const focusNode = (id: string) => {
     setSelected(id);
+    selectedRef.current = id;
     setCardOpen(true);
-  };
-
-  const onNodeClick = (n: GNode) => {
-    if (n.kind === 'article') {
-      nav(`/wiki/article/${n.articleId ?? n.id.replace(/^article:/, '')}?kb=${kbId}`);
-      return;
+    const n = nodeById.get(id) as (GNode & { x?: number; y?: number; z?: number }) | undefined;
+    if (n && graphRef.current) {
+      const x = n.x || 0;
+      const y = n.y || 0;
+      const z = n.z || 0;
+      const distRatio = 1 + 140 / Math.max(Math.hypot(x, y, z), 1);
+      graphRef.current.cameraPosition({ x: x * distRatio, y: y * distRatio, z: z * distRatio }, n, 800);
     }
-    focusNode(n.id);
+    graphRef.current?.refresh();
   };
 
-  if (loading) return <div className="flex h-360px items-center justify-center"><Spin /></div>;
-  if (nodes.length === 0) return <Empty description={t('page.wiki.graph.empty')} image={Empty.PRESENTED_IMAGE_SIMPLE} />;
+  const zoomBy = (factor: number) => {
+    const g = graphRef.current;
+    if (!g) return;
+    const pos = g.cameraPosition();
+    const dist = Math.max(Math.hypot(pos.x, pos.y, pos.z), 1);
+    const next = Math.max(60, Math.min(2400, dist / factor));
+    g.cameraPosition({ x: (pos.x / dist) * next, y: (pos.y / dist) * next, z: (pos.z / dist) * next });
+  };
+
+  const fitAll = () => graphRef.current?.zoomToFit(700, 40);
+
+  if (loading && nodes.length === 0)
+    return (
+      <div className="flex h-560px items-center justify-center">
+        <Spin />
+      </div>
+    );
+  if (nodes.length === 0)
+    return <Empty description={t('page.wiki.graph.empty')} image={Empty.PRESENTED_IMAGE_SIMPLE} />;
 
   const propertyEntries = cardNode?.properties ? Object.entries(cardNode.properties).slice(0, 8) : [];
 
@@ -265,120 +303,25 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
             <span className="inline-block h-8px w-8px rounded-full border-1px" style={{ borderColor: UNRESOLVED_COLOR }} />{' '}
             {t('page.wiki.graph.unresolved')}
           </span>
-          <span className="hidden md:inline">{t('page.wiki.graph.clickArticleHint')}</span>
+          <span className="hidden md:inline">{t('page.wiki.graph.dragHint3d')}</span>
         </div>
         <div className="flex gap-4px">
-          <Button icon={<ZoomOutOutlined />} onClick={() => setScale(s => Math.max(0.4, s - 0.2))} size="small" />
-          <Button icon={<ZoomInOutlined />} onClick={() => setScale(s => Math.min(2.5, s + 0.2))} size="small" />
+          <Button icon={<ZoomOutOutlined />} onClick={() => zoomBy(1.4)} size="small" />
+          <Button icon={<ZoomInOutlined />} onClick={() => zoomBy(1 / 1.4)} size="small" />
           <Tooltip title={t('page.wiki.graph.reset')}>
-            <Button icon={<AimOutlined />} onClick={() => setScale(1)} size="small" />
+            <Button icon={<AimOutlined />} onClick={fitAll} size="small" />
           </Tooltip>
         </div>
       </div>
-      <svg
-        className="w-full touch-none"
-        viewBox={`0 0 ${W} ${H}`}
-        style={{ height: 560, cursor: dragging.current ? 'grabbing' : 'default' }}
-        onPointerMove={onPointerMove}
-        onPointerUp={() => {
-          dragging.current = null;
-        }}
-        onPointerLeave={() => {
-          dragging.current = null;
-        }}
-      >
-        <defs>
-          <marker id="kg-arrow" markerHeight="6" markerWidth="6" orient="auto" refX="8" refY="3">
-            <path d="M0,0 L0,6 L7,3 z" fill="var(--ant-color-border)" />
-          </marker>
-        </defs>
-        <g transform={`scale(${scale}) translate(${(W * (1 - scale)) / (2 * scale)}, ${(H * (1 - scale)) / (2 * scale)})`}>
-          {edges.map((e, i) => {
-            const a = nodeById.get(e.source);
-            const b = nodeById.get(e.target);
-            if (!a || !b) return null;
-            const dimmed = neighbors && !(neighbors.has(e.source) && neighbors.has(e.target));
-            const isRelation = e.kind === 'relation';
-            // labels only when zoomed in or when the edge touches the
-            // selection — at fit zoom they pile up into noise
-            const touchesSelected = selected === e.source || selected === e.target;
-            const showLabel = scale > 1.4 || (touchesSelected && scale > 1);
-            return (
-              <g key={i} opacity={dimmed ? 0.18 : 1}>
-                <line
-                  markerEnd={isRelation ? 'url(#kg-arrow)' : undefined}
-                  stroke={isRelation ? 'var(--ant-color-primary-4)' : 'var(--ant-color-border)'}
-                  strokeDasharray={isRelation ? undefined : '4 3'}
-                  strokeWidth={isRelation ? 1.4 : 1}
-                  x1={a.x}
-                  y1={a.y}
-                  x2={b.x}
-                  y2={b.y}
-                />
-                {showLabel && (
-                  <text
-                    fill="var(--ant-color-text-secondary)"
-                    fontSize={9}
-                    paintOrder="stroke"
-                    stroke="var(--ant-color-bg-container)"
-                    strokeWidth={3}
-                    textAnchor="middle"
-                    x={(a.x + b.x) / 2}
-                    y={(a.y + b.y) / 2 - 3}
-                  >
-                    {e.label || e.relation}
-                  </text>
-                )}
-              </g>
-            );
-          })}
-          {nodes.map(n => {
-            const dimmed = neighbors ? !neighbors.has(n.id) : selected && selected !== n.id;
-            return (
-              <g
-                key={n.id}
-                opacity={dimmed ? 0.3 : 1}
-                style={{ cursor: n.kind === 'article' ? 'pointer' : 'grab' }}
-                onPointerDown={e => {
-                  e.stopPropagation();
-                  dragging.current = n.id;
-                }}
-                onClick={() => onNodeClick(n)}
-              >
-                {n.kind === 'unresolved' ? (
-                  <circle cx={n.x} cy={n.y} fill="transparent" r={6} stroke={n.color} strokeDasharray="2 2" strokeWidth={1.5} />
-                ) : (
-                  <circle
-                    cx={n.x}
-                    cy={n.y}
-                    fill={n.color}
-                    r={n.kind === 'article' ? 9 : 6.5}
-                    stroke={selected === n.id ? 'var(--ant-color-text)' : 'none'}
-                    strokeWidth={2}
-                  />
-                )}
-                <text
-                  dy={n.kind === 'article' ? 22 : 17}
-                  fill="var(--ant-color-text)"
-                  fontSize={11}
-                  paintOrder="stroke"
-                  stroke="var(--ant-color-bg-container)"
-                  strokeWidth={3}
-                  textAnchor="middle"
-                  x={n.x}
-                  y={n.y}
-                >
-                  {n.label.length > 14 ? `${n.label.slice(0, 13)}…` : n.label}
-                </text>
-              </g>
-            );
-          })}
-        </g>
-      </svg>
+      <div
+        ref={containerRef}
+        className="w-full touch-none overflow-hidden rounded-4px"
+        style={{ height: GRAPH_HEIGHT }}
+      />
 
       {cardNode && (
         <div
-          className="absolute top-40px right-0 z-10 w-280px rounded-6px border-1px border-[var(--ant-color-border-secondary)] bg-[var(--ant-color-bg-container)] p-12px shadow-md"
+          className="absolute top-0 right-0 z-10 w-280px rounded-6px border-1px border-[var(--ant-color-border-secondary)] bg-[var(--ant-color-bg-container)] p-12px shadow-md"
           onClick={e => e.stopPropagation()}
         >
           <div className="mb-4px flex items-start justify-between gap-8px">

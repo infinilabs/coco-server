@@ -20,7 +20,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       noRelations: 'No relations yet',
       openArticle: 'Open entity page',
       confidence: 'Confidence',
-      clickArticleHint: 'Click an article node to open it'
+      clickArticleHint: 'Click an article node to open it',
+      dragHint3d: 'Drag to orbit · scroll to zoom · click an article node to navigate, an entity node for its card'
     },
     settings: {
       basic: 'Basic Info',
@@ -35,7 +36,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       addFolder: 'New folder in this KB',
       rename: 'Rename',
       addSubfolder: 'New subfolder',
-      delete: 'Remove from TOC'
+      delete: 'Remove from TOC',
     },
     notification: {
       title: 'Notifications',
@@ -204,7 +205,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       pendingVersion: 'Auto-updated version v{{version}} awaiting review',
       empty: 'Queue is clean, nothing to review',
       type: { stale: 'Stale', duplicate: 'Duplicate', conflict: 'Conflict', low_quality: 'Low quality', orphan: 'Orphaned', entity_duplicate: 'Entity duplicate', entity_conflict: 'Entity type conflict', knowledge_gap: 'Knowledge gap', correction: 'Correction' },
-      hint: '{{count}} proposal(s) waiting'
+      hint: '{{count}} proposal(s) waiting',
     },
     correction: {
       title: 'Report a correction',
