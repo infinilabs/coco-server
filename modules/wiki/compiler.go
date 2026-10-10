@@ -539,8 +539,10 @@ func proposeTreeOrganization(ctx *orm.Context, kb *core.WikiKnowledgeBase, exist
 		for _, a := range existing {
 			// the tree is for navigable knowledge, not every extraction
 			// stub: single-source drafts live in the 实体 tab (the same
-			// rule the governance orphan sweep enforces)
-			if a.Status == core.WikiArticleDraft && len(a.Sources) < 2 {
+			// rule the governance orphan sweep enforces) — dimension
+			// overview pages (…概览) are aggregate hubs and always stay
+			if a.Status == core.WikiArticleDraft && len(a.Sources) < 2 &&
+				!strings.HasSuffix(a.Title, "概览") {
 				continue
 			}
 			t := articleType[a.ID]
@@ -578,6 +580,21 @@ func proposeTreeOrganization(ctx *orm.Context, kb *core.WikiKnowledgeBase, exist
 	// day overwrite the suggestion in place instead of stacking twins
 	proposal.ID = core.AnchoredProposalID("tree:"+kb.ID, core.WikiGovernanceTreeOrganize, int(time.Now().Unix()/86400))
 	proposal.Evidence = util.MapStr{"cascade": "tree-organize", "tree": json.RawMessage(util.MustToJSON(nodes))}
+	// a same-day dismissed twin occupies the anchored id — refresh it back
+	// to open with the fresh tree instead of letting the Create conflict
+	twin := core.WikiGovernanceProposal{}
+	twin.SetID(proposal.ID)
+	if found, err := orm.GetV2(ctx, &twin); err == nil && found {
+		twin.Status = core.WikiGovernanceOpen
+		twin.Reason = proposal.Reason
+		twin.Evidence = proposal.Evidence
+		twin.ResolvedAt = nil
+		twin.ResolvedBy = ""
+		if err := orm.Update(ctx, &twin); err != nil {
+			log.Debugf("wiki compiler: tree proposal refresh failed for [%s]: %v", kb.Name, err)
+		}
+		return
+	}
 	if err := orm.Create(ctx, proposal); err != nil {
 		log.Debugf("wiki compiler: tree proposal create failed for [%s]: %v", kb.Name, err)
 		return
