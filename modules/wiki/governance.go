@@ -665,7 +665,8 @@ func sweepDraftOrphans(ctx *orm.Context, kbID string, articles []core.WikiArticl
 	}
 }
 
-func governanceTypeLabel(pType string) string {	switch pType {
+func governanceTypeLabel(pType string) string {
+	switch pType {
 	case core.WikiGovernanceStale:
 		return "stale page"
 	case core.WikiGovernanceDuplicate:

@@ -375,7 +375,8 @@ func alreadyEnriched(doc *core.Document) (bool, error) {
 
 // findDuplicateByFingerprint looks for another document in the same
 // datasource carrying the same content hash.
-func findDuplicateByFingerprint(doc *core.Document) (string, bool) {	ormCtx := orm.NewContext()
+func findDuplicateByFingerprint(doc *core.Document) (string, bool) {
+	ormCtx := orm.NewContext()
 	ormCtx.DirectReadAccess()
 	ormCtx.PermissionScope(security.PermissionScopePlatform)
 

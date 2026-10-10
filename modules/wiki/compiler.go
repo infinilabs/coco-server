@@ -537,6 +537,12 @@ func proposeTreeOrganization(ctx *orm.Context, kb *core.WikiKnowledgeBase, exist
 	for _, f := range folders {
 		children := make([]core.WikiTocNode, 0, len(existing))
 		for _, a := range existing {
+			// the tree is for navigable knowledge, not every extraction
+			// stub: single-source drafts live in the 实体 tab (the same
+			// rule the governance orphan sweep enforces)
+			if a.Status == core.WikiArticleDraft && len(a.Sources) < 2 {
+				continue
+			}
 			t := articleType[a.ID]
 			matched := f.types == nil
 			for _, want := range f.types {
