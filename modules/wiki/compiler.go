@@ -50,7 +50,7 @@ import (
 const (
 	compileChunkBatchRunes = 2000
 	compileMaxDocs         = 200
-	compileProposalType    = "knowledge_compile"
+	compileProposalType    = core.WikiGovernanceKnowledgeCompile
 	compileFenceRe         = "(?s)```[a-zA-Z]*\\n?(.*?)```"
 )
 

@@ -1,9 +1,9 @@
-import { CheckOutlined, CloseOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { CheckOutlined, CloseOutlined, SafetyCertificateOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { Badge, Button, Empty, List, Popconfirm, Segmented, Space, Tag, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { type GovernanceProposal, searchWikiGovernance, updateWikiGovernanceStatus } from '@/service/api';
+import { type GovernanceProposal, applyWikiGovernanceProposal, searchWikiGovernance, updateWikiGovernanceStatus } from '@/service/api';
 import { WikiShell } from '../components/WikiShell';
 
 const TYPE_COLOR: Record<string, string> = {
@@ -13,8 +13,24 @@ const TYPE_COLOR: Record<string, string> = {
   low_quality: 'default',
   orphan: 'cyan',
   knowledge_gap: 'volcano',
-  correction: 'geekblue'
+  correction: 'geekblue',
+  entity_conflict: 'error',
+  entity_duplicate: 'purple',
+  knowledge_compile: 'geekblue',
+  tree_organize: 'cyan'
 };
+
+// proposal types whose fix the queue can execute itself — these render the
+// primary 执行修复 button; the rest keep the record-only resolve/dismiss
+const APPLICABLE = new Set([
+  'orphan',
+  'duplicate',
+  'stale',
+  'article_refresh',
+  'entity_conflict',
+  'knowledge_compile',
+  'tree_organize'
+]);
 
 /**
  * Knowledge-governance queue: the background scanner files proposals (stale pages, duplicates, conflicts, low quality,
@@ -45,6 +61,21 @@ export function Component() {
       window.$message?.success(t('common.updateSuccess'));
       fetchData();
     });
+  };
+
+  const [applying, setApplying] = useState<string>('');
+  const apply = (proposal: GovernanceProposal) => {
+    setApplying(proposal.id);
+    applyWikiGovernanceProposal(proposal.id)
+      .then((res: any) => {
+        const action = res?.applied || '';
+        window.$message?.success(t('page.wiki.governance.applied', { action }));
+        fetchData();
+      })
+      .catch(() => {
+        window.$message?.error(t('page.wiki.governance.applyFailed'));
+      })
+      .finally(() => setApplying(''));
   };
 
   const goArticle = (proposal: GovernanceProposal) => {
@@ -100,6 +131,22 @@ export function Component() {
                 <List.Item
                   className='cursor-pointer'
                   actions={[
+                    APPLICABLE.has(proposal.type) && (
+                      <Popconfirm
+                        key='apply'
+                        title={t('page.wiki.governance.applyConfirm')}
+                        onConfirm={() => apply(proposal)}
+                      >
+                        <Button
+                          icon={<ThunderboltOutlined />}
+                          loading={applying === proposal.id}
+                          size='small'
+                          type='primary'
+                        >
+                          {t('page.wiki.governance.apply')}
+                        </Button>
+                      </Popconfirm>
+                    ),
                     <Popconfirm
                       key='resolve'
                       title={t('page.wiki.governance.resolveConfirm')}
@@ -126,7 +173,7 @@ export function Component() {
                         {t('page.wiki.governance.dismiss')}
                       </Button>
                     </Popconfirm>
-                  ]}
+                  ].filter(Boolean)}
                   onClick={() => goArticle(proposal)}
                 >
                   <List.Item.Meta

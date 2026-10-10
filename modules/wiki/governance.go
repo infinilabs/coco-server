@@ -108,6 +108,11 @@ func governanceSweep(ctx context.Context, llm llms.Model) governanceStats {
 		}
 		inTree := tocArticleSet(ctx, kb.ID)
 
+		// retroactive cleanup: orphan proposals anchored on DRAFT pages are
+		// noise (drafts await human review; the tree is for published
+		// knowledge) — retire them so the queue stays actionable
+		sweepDraftOrphans(orm.NewContextWithParent(ctx), kb.ID, articles)
+
 		file := func(article *core.WikiArticle, pType, reason string, evidence util.MapStr) {
 			if stats.filed >= governanceMaxProposalsPerRun {
 				return
@@ -151,8 +156,10 @@ func governanceSweep(ctx context.Context, llm llms.Model) governanceStats {
 					util.MapStr{"confidence": article.Confidence, "sources": len(article.Sources)})
 			}
 
-			// not reachable through the KB tree
-			if !inTree[article.ID] {
+			// not reachable through the KB tree — published/reviewed pages
+			// only: drafts await human review anyway, filing an orphan for
+			// every pipeline stub floods the queue with non-actions
+			if !inTree[article.ID] && article.Status != core.WikiArticleDraft {
 				file(article, core.WikiGovernanceOrphan,
 					"article is not referenced by any node of the knowledge-base tree",
 					nil)
@@ -611,8 +618,54 @@ func fileProposal(kb *core.WikiKnowledgeBase, article *core.WikiArticle, pType, 
 	return true
 }
 
-func governanceTypeLabel(pType string) string {
-	switch pType {
+// sweepDraftOrphans retires open orphan proposals whose article has since
+// become (or always was) a draft — the queue must not nag about pages that
+// are still awaiting their human review.
+func sweepDraftOrphans(ctx *orm.Context, kbID string, articles []core.WikiArticle) {
+	draftByID := map[string]bool{}
+	for i := range articles {
+		if articles[i].Status == core.WikiArticleDraft {
+			draftByID[articles[i].ID] = true
+		}
+	}
+	if len(draftByID) == 0 {
+		return
+	}
+	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1000).
+		Filter(orm.TermQuery("kb_id", kbID),
+			orm.TermQuery("type", core.WikiGovernanceOrphan),
+			orm.TermQuery("status", core.WikiGovernanceOpen)))
+	if err != nil || res == nil {
+		return
+	}
+	open, _, derr := elastic.DecodeHits[core.WikiGovernanceProposal](res)
+	if derr != nil {
+		return
+	}
+	now := time.Now()
+	retired := 0
+	for i := range open {
+		if !draftByID[open[i].ArticleID] {
+			continue
+		}
+		open[i].Status = core.WikiGovernanceDismissed
+		open[i].ResolvedAt = &now
+		if open[i].Evidence == nil {
+			open[i].Evidence = util.MapStr{}
+		}
+		open[i].Evidence["dismissed_reason"] = "draft pages are exempt from the tree requirement"
+		if err := orm.Update(ctx, &open[i]); err != nil {
+			log.Debugf("wiki: draft orphan dismiss failed for [%s]: %v", open[i].ID, err)
+			continue
+		}
+		retired++
+	}
+	if retired > 0 {
+		log.Infof("wiki: governance sweep dismissed %d draft-page orphan proposals for kb [%s]", retired, kbID)
+	}
+}
+
+func governanceTypeLabel(pType string) string {	switch pType {
 	case core.WikiGovernanceStale:
 		return "stale page"
 	case core.WikiGovernanceDuplicate:
@@ -719,6 +772,8 @@ func (h *APIHandler) updateGovernanceStatus(w http.ResponseWriter, req *http.Req
 
 // applyTreeProposal writes the confirmed tree from the proposal's evidence
 // into the KB's TOC. Returns false when the evidence carries no tree.
+// After the tree lands, every open orphan proposal of the KB retires as
+// resolved — the confirmation IS the fix for the whole orphan batch.
 func applyTreeProposal(ctx *orm.Context, kbID string, evidence util.MapStr) (bool, error) {
 	raw, ok := evidence["tree"]
 	if !ok {
@@ -738,9 +793,42 @@ func applyTreeProposal(ctx *orm.Context, kbID string, evidence util.MapStr) (boo
 	toc.KbID = kbID
 	toc.Nodes = nodes
 	if found {
-		return true, orm.Update(ctx, toc)
+		if err := orm.Update(ctx, toc); err != nil {
+			return false, err
+		}
+	} else if err := orm.Create(ctx, toc); err != nil {
+		return false, err
 	}
-	return true, orm.Create(ctx, toc)
+	resolveOpenOrphans(ctx, kbID)
+	return true, nil
+}
+
+// resolveOpenOrphans retires a KB's open orphan proposals (after a tree
+// organization landed, "not in the tree" no longer describes reality).
+func resolveOpenOrphans(ctx *orm.Context, kbID string) {
+	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1000).
+		Filter(orm.TermQuery("kb_id", kbID),
+			orm.TermQuery("type", core.WikiGovernanceOrphan),
+			orm.TermQuery("status", core.WikiGovernanceOpen)))
+	if err != nil || res == nil {
+		return
+	}
+	orphans, _, derr := elastic.DecodeHits[core.WikiGovernanceProposal](res)
+	if derr != nil {
+		return
+	}
+	now := time.Now()
+	for i := range orphans {
+		orphans[i].Status = core.WikiGovernanceResolved
+		orphans[i].ResolvedAt = &now
+		orphans[i].Evidence["applied"] = "目录已应用"
+		if err := orm.Update(ctx, &orphans[i]); err != nil {
+			log.Debugf("wiki: orphan auto-resolve failed for [%s]: %v", orphans[i].ID, err)
+		}
+	}
+	if len(orphans) > 0 {
+		log.Infof("wiki: tree organization resolved %d orphan proposals for kb [%s]", len(orphans), kbID)
+	}
 }
 
 // duplicatePriorityHint recommends which side of a duplicate pair to keep

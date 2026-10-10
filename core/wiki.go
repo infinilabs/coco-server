@@ -81,6 +81,10 @@ const (
 	// 产品与服务, 专题与概念). Confirming the proposal in the governance queue
 	// applies the tree; dismissing drops it.
 	WikiGovernanceTreeOrganize = "tree_organize"
+
+	// the compiler's page proposals: REDUCE'd statements awaiting a draft
+	// page (apply generates it from the evidence)
+	WikiGovernanceKnowledgeCompile = "knowledge_compile"
 )
 
 // WikiWorkspace groups knowledge bases per team or tenant.

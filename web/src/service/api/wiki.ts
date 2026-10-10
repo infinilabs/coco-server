@@ -279,6 +279,13 @@ export function updateWikiGovernanceStatus(id: string, status: string) {
   return request({ method: 'put', data: { status }, url: `/wiki/governance/${id}/status` }).then(res => res?.data);
 }
 
+// the queue's closed loop: run the fix the proposal implies (tree the
+// orphan, merge the duplicate, rebuild the stale page, ...) — the backend
+// retires the proposal as resolved once the fix lands
+export function applyWikiGovernanceProposal(id: string) {
+  return request({ method: 'post', url: `/wiki/governance/${id}/_apply` }).then(res => res?.data);
+}
+
 /* ---------------- ontology vocabulary (phase O1) ---------------- */
 
 export interface OntologyPropertyDef {

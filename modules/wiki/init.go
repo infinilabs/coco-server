@@ -135,6 +135,13 @@ func init() {
 	api.HandleUIMethod(api.PUT, "/wiki/governance/:id/status", handler.updateGovernanceStatus,
 		api.RequireLogin(), api.RequirePermission(security.GetSimplePermission(Category, governanceResource, string(security.Update))))
 
+	// the queue's closed loop: execute the fix a proposal implies (tree the
+	// orphan, merge the duplicate, rebuild the stale page, adopt the type,
+	// materialize the compiled draft, apply the suggested TOC), then retire
+	// it as resolved — one click instead of a note that changes nothing
+	api.HandleUIMethod(api.POST, "/wiki/governance/:id/_apply", handler.applyGovernanceProposal,
+		api.RequireLogin(), api.RequirePermission(security.GetSimplePermission(Category, governanceResource, string(security.Update))))
+
 	// ontology vocabulary (phase O1): the declared entity types, typed
 	// properties and relation vocabulary entity writes validate against;
 	// one schema per scope (tenant default, kb:<id> override)
