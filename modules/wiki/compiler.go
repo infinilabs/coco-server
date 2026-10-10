@@ -134,25 +134,73 @@ func compileMAP(ctx context.Context, model *core.ModelId, batchText string) ([]C
 		langchain.SystemTextParts(mapExtractPrompt),
 		llms.TextParts(llms.ChatMessageTypeHuman, batchText),
 	}
-	resp, err := llm.GenerateContent(ctx, messages, llms.WithMaxTokens(1200))
+	// the upstream occasionally answers 200 with a zero-byte completion
+	// (observed under concurrent enrichment pressure) — retry: the batches
+	// are idempotent reads, a flaky empty must not drop a document's
+	// knowledge out of the compile
+	var lastErr error
+	for attempt := 0; attempt < 3; attempt++ {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(time.Duration(attempt) * 2 * time.Second):
+			}
+		}
+		extracts, err := compileMAPOnce(ctx, llm, messages)
+		if err == nil {
+			return extracts, nil
+		}
+		lastErr = err
+	}
+	return nil, lastErr
+}
+
+func compileMAPOnce(ctx context.Context, llm llms.Model, messages []llms.MessageContent) ([]CompileExtract, error) {
+	// no token cap and stream like the enrich processors do: reasoning
+	// models burn hundreds of tokens thinking before the JSON, a tight cap
+	// leaves nothing but the thinking and the parse sees no array at all
+	var out strings.Builder
+	resp, err := llm.GenerateContent(ctx, messages,
+		llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
+			out.Write(chunk)
+			return nil
+		}))
 	if err != nil {
 		return nil, err
 	}
 	if resp == nil || len(resp.Choices) == 0 {
 		return nil, fmt.Errorf("empty MAP response")
 	}
-	return parseCompileExtracts(resp.Choices[0].Content)
+	content := resp.Choices[0].Content
+	if strings.TrimSpace(content) == "" {
+		content = out.String()
+	}
+	if strings.TrimSpace(content) == "" {
+		return nil, fmt.Errorf("empty MAP response (finish_reason=%v, choices=%d, stream_bytes=%d)",
+			resp.Choices[0].StopReason, len(resp.Choices), out.Len())
+	}
+	return parseCompileExtracts(content)
 }
 
 var compileFencePattern = regexp.MustCompile(compileFenceRe)
 
 func parseCompileExtracts(s string) ([]CompileExtract, error) {
+	// reasoning models may inline their thinking — it must not leak into
+	// the bracket slice (a stray "[" inside the think block breaks it)
+	if i := strings.Index(s, "</think>"); i >= 0 {
+		s = s[i+len("</think>"):]
+	}
 	if m := compileFencePattern.FindStringSubmatch(s); len(m) > 1 {
 		s = m[1]
 	}
 	start, end := strings.Index(s, "["), strings.LastIndex(s, "]")
 	if start < 0 || end <= start {
-		return nil, fmt.Errorf("no JSON array in MAP output")
+		preview := strings.TrimSpace(s)
+		if len(preview) > 300 {
+			preview = preview[:300] + "…"
+		}
+		return nil, fmt.Errorf("no JSON array in MAP output, got: %q", preview)
 	}
 	var out []CompileExtract
 	if err := json.Unmarshal([]byte(s[start:end+1]), &out); err != nil {
@@ -336,8 +384,8 @@ func (h *APIHandler) compileKBHandler(w http.ResponseWriter, req *http.Request, 
 			log.Warnf("wiki compiler: kb [%s] run failed: %v", kbID, err)
 			return
 		}
-		log.Infof("wiki compiler: kb [%s] done — %d extracts, %d reduced, %d proposals (%d cached batches)",
-			kb.Name, summary.Extracts, summary.Reduced, summary.Proposals, summary.CachedBatches)
+		log.Infof("wiki compiler: kb [%s] done — %d docs, %d batches, %d extracts, %d reduced, %d proposals (%d cached, %d failed batches)",
+			kb.Name, summary.Docs, summary.Batches, summary.Extracts, summary.Reduced, summary.Proposals, summary.CachedBatches, summary.FailedBatches)
 	}()
 
 	h.WriteOKJSON(w, util.MapStr{
@@ -348,10 +396,13 @@ func (h *APIHandler) compileKBHandler(w http.ResponseWriter, req *http.Request, 
 }
 
 type compileSummary struct {
+	Docs          int
+	Batches       int
 	Extracts      int
 	Reduced       int
 	Proposals     int
 	CachedBatches int
+	FailedBatches int
 }
 
 // runCompilePipeline: MAP (cached) → REDUCE → PLAN → REFINE → propose.
@@ -363,11 +414,13 @@ func runCompilePipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *
 	if err != nil {
 		return nil, err
 	}
+	summary.Docs = len(docs)
 
 	// MAP over chunk batches with fingerprint cache
 	var allExtracts []CompileExtract
 	for _, doc := range docs {
 		batches := batchChunkText(doc.Content, compileChunkBatchRunes)
+		summary.Batches += len(batches)
 		for bi, batch := range batches {
 			fp, _, okFp := fingerprint.Compute(fmt.Sprintf("%s|%s/%s|%s", model.ProviderID, model.ID, doc.ID, fingerprint.Normalize(batch)))
 			if !okFp {
@@ -381,7 +434,10 @@ func runCompilePipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *
 			}
 			extracts, err := compileMAPFn(context.WithoutCancel(ctx), model, batch)
 			if err != nil {
-				log.Debugf("wiki compiler: MAP batch %s/%d failed: %v", doc.ID, bi, err)
+				summary.FailedBatches++
+				if summary.FailedBatches <= 3 {
+					log.Warnf("wiki compiler: MAP batch %s/%d failed (model %s/%s): %v", doc.ID, bi, model.ProviderID, model.ID, err)
+				}
 				continue
 			}
 			for i := range extracts {
