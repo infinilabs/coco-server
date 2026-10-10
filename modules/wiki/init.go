@@ -170,4 +170,5 @@ func init() {
 	scheduleSeedOntologySchema()
 	scheduleSeedBuiltinKmAssistant()
 	scheduleBackfillDraftEntityContent()
+	scheduleBackfillLinkedPages()
 }

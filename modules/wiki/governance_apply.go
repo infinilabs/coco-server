@@ -412,6 +412,9 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 		AIGenerated: true,
 		Content:     content,
 	}
+	// the wikilinks inside the compiled text resolve here — without this
+	// the page ships with no LinkedPages and the graph shows it orphaned
+	persistLinkedPages(&article)
 	for _, a := range aliases {
 		if s, ok := a.(string); ok && s != "" && !util.AnyInArrayEquals(article.Aliases, s) {
 			article.Aliases = append(article.Aliases, s)
