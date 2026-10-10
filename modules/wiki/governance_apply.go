@@ -381,17 +381,21 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 		}
 		fmt.Fprintf(&body, "%d. %s", i+1, claim)
 		if s.DocID != "" {
-			fmt.Fprintf(&body, "（来源:%s）", s.DocID)
+			// the citation is a live link to the source document's preview
+			fmt.Fprintf(&body, "（来源:[%s](#/preview/document/%s)）", s.DocID, s.DocID)
 		}
 		body.WriteString("\n")
 	}
+	// known entity names in the compiled text become wikilinks — the page
+	// joins the graph and every mention is a clickable capsule
+	content := LinkEntityMentions(ctx, body.String(), p.ArticleTitle)
 
 	existingID, _ := p.Evidence["existing_id"].(string)
 	if existingID != "" {
 		article := core.WikiArticle{}
 		article.ID = existingID
 		if ok, err := orm.GetV2(ctx, &article); err == nil && ok {
-			article.Content = strings.TrimSpace(article.Content) + "\n\n## 编译补充\n\n" + body.String()
+			article.Content = strings.TrimSpace(article.Content) + "\n\n## 编译补充\n\n" + content
 			if err := orm.Update(ctx, &article); err != nil {
 				return "", err
 			}
@@ -406,7 +410,7 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 		PageType:    pageType,
 		Status:      core.WikiArticleDraft,
 		AIGenerated: true,
-		Content:     body.String(),
+		Content:     content,
 	}
 	for _, a := range aliases {
 		if s, ok := a.(string); ok && s != "" && !util.AnyInArrayEquals(article.Aliases, s) {
