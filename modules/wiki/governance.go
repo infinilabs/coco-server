@@ -625,6 +625,8 @@ func governanceTypeLabel(pType string) string {
 		return "orphaned page"
 	case core.WikiGovernanceArticleRefresh:
 		return "refresh after entity edit"
+	case core.WikiGovernanceTreeOrganize:
+		return "目录组织建议"
 	}
 	return pType
 }
@@ -703,7 +705,42 @@ func (h *APIHandler) updateGovernanceStatus(w http.ResponseWriter, req *http.Req
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	// confirming the compiler's organization suggestion IS the human gate:
+	// resolving a tree_organize proposal applies its proposed tree to the KB
+	if body.Status == core.WikiGovernanceResolved && proposal.Type == core.WikiGovernanceTreeOrganize {
+		if applied, err := applyTreeProposal(ctx, proposal.KbID, proposal.Evidence); err != nil {
+			log.Warnf("wiki: tree proposal [%s] apply failed: %v", proposal.ID, err)
+		} else if applied {
+			log.Infof("wiki: tree proposal [%s] applied to kb [%s]", proposal.ID, proposal.KbID)
+		}
+	}
 	h.WriteUpdatedOKJSON(w, proposal.ID)
+}
+
+// applyTreeProposal writes the confirmed tree from the proposal's evidence
+// into the KB's TOC. Returns false when the evidence carries no tree.
+func applyTreeProposal(ctx *orm.Context, kbID string, evidence util.MapStr) (bool, error) {
+	raw, ok := evidence["tree"]
+	if !ok {
+		return false, nil
+	}
+	var nodes []core.WikiTocNode
+	if err := util.FromJSONBytes(util.MustToJSONBytes(raw), &nodes); err != nil || len(nodes) == 0 {
+		return false, err
+	}
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.Refresh = orm.WaitForRefresh
+	orm.WithModel(ctx, &core.WikiToc{})
+	toc, found, err := findToc(ctx, kbID)
+	if err != nil {
+		return false, err
+	}
+	toc.KbID = kbID
+	toc.Nodes = nodes
+	if found {
+		return true, orm.Update(ctx, toc)
+	}
+	return true, orm.Create(ctx, toc)
 }
 
 // duplicatePriorityHint recommends which side of a duplicate pair to keep

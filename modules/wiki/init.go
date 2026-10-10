@@ -162,4 +162,5 @@ func init() {
 
 	scheduleSeedOntologySchema()
 	scheduleSeedBuiltinKmAssistant()
+	scheduleBackfillDraftEntityContent()
 }

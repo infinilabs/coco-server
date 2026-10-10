@@ -464,7 +464,12 @@ func runCompilePipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *
 	// REFINE → proposals (single-source concepts stay proposals too —
 	// the noise gate applies at PUBLISH time, not compile time)
 	pctx := orm.NewContext()
+	// the write flag passes create/update hooks; the READ flag is what the
+	// search hooks bypass on — compileGeneration searches with this same
+	// context to derive each proposal's generation, and without it the
+	// first proposal filing panicked the whole compile
 	pctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	pctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	for _, item := range plan {
 		if summary.Proposals >= 50 {
 			log.Warnf("wiki compiler: proposal cap 50 reached, truncating")
@@ -474,7 +479,115 @@ func runCompilePipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *
 			summary.Proposals++
 		}
 	}
+
+	// dimension organization: propose a TOC that groups the KB's pages into
+	// 客户与组织 / 产品与服务 / 专题与概念 folders — the human confirms it in
+	// the governance queue, confirming applies the tree
+	proposeTreeOrganization(pctx, kb, existing)
 	return summary, nil
+}
+
+// proposeTreeOrganization files ONE tree_organize proposal carrying the
+// compiler's suggested TOC: every KB page sits in the dimension folder its
+// entity type implies (organization→客户与组织, product→产品与服务, the rest
+// →专题与概念). Idempotent per generation — an open twin short-circuits.
+func proposeTreeOrganization(ctx *orm.Context, kb *core.WikiKnowledgeBase, existing []core.WikiArticle) {
+	if len(existing) == 0 {
+		return
+	}
+	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
+	// idempotency: the anchor here is the KB, not an article — an open
+	// tree_organize twin for this KB short-circuits the re-file
+	if res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1).
+		Filter(orm.TermQuery("kb_id", kb.ID),
+			orm.TermQuery("type", core.WikiGovernanceTreeOrganize),
+			orm.TermQuery("status", core.WikiGovernanceOpen))); err == nil && res != nil {
+		if open, _, derr := elastic.DecodeHits[core.WikiGovernanceProposal](res); derr == nil && len(open) > 0 {
+			return
+		}
+	}
+
+	// article → entity ontology type (entities carry ArticleID once their
+	// page exists); unknown types fall into the concepts folder
+	articleType := map[string]string{}
+	if ids := articleIDsOf(existing); len(ids) > 0 {
+		orm.WithModel(ctx, &core.WikiEntity{})
+		if res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1000).
+			Filter(orm.TermsQuery("article_id", ids))); err == nil && res != nil {
+			if entities, _, derr := elastic.DecodeHits[core.WikiEntity](res); derr == nil {
+				for i := range entities {
+					if entities[i].ArticleID != "" {
+						articleType[entities[i].ArticleID] = entities[i].Type
+					}
+				}
+			}
+		}
+	}
+
+	folders := []struct {
+		key   string
+		title string
+		types []string
+	}{
+		{"org", "客户与组织", []string{"organization", "person"}},
+		{"product", "产品与服务", []string{"product"}},
+		{"topic", "专题与概念", nil}, // everything else
+	}
+	nodes := make([]core.WikiTocNode, 0, len(folders))
+	for _, f := range folders {
+		children := make([]core.WikiTocNode, 0, len(existing))
+		for _, a := range existing {
+			t := articleType[a.ID]
+			matched := f.types == nil
+			for _, want := range f.types {
+				if t == want {
+					matched = true
+					break
+				}
+			}
+			if matched && a.ID != "" {
+				children = append(children, core.WikiTocNode{
+					ID: "toc-" + a.ID, Title: a.Title, Type: "article", ArticleID: a.ID,
+				})
+			}
+		}
+		if len(children) > 0 {
+			nodes = append(nodes, core.WikiTocNode{
+				ID: "folder-" + f.key + "-" + kb.ID, Title: f.title, Type: "folder", Children: children,
+			})
+		}
+	}
+	if len(nodes) == 0 {
+		return
+	}
+
+	proposal := &core.WikiGovernanceProposal{
+		KbID:         kb.ID,
+		Type:         core.WikiGovernanceTreeOrganize,
+		Status:       core.WikiGovernanceOpen,
+		ArticleTitle: "知识目录组织建议",
+		Reason:       fmt.Sprintf("按维度把 %d 篇页面组织进 %d 个目录(客户与组织/产品与服务/专题与概念),确认后生效", len(existing), len(nodes)),
+	}
+	// day-anchored id: one suggestion per KB per day — recompiles the same
+	// day overwrite the suggestion in place instead of stacking twins
+	proposal.ID = core.AnchoredProposalID("tree:"+kb.ID, core.WikiGovernanceTreeOrganize, int(time.Now().Unix()/86400))
+	proposal.Evidence = util.MapStr{"cascade": "tree-organize", "tree": json.RawMessage(util.MustToJSON(nodes))}
+	if err := orm.Create(ctx, proposal); err != nil {
+		log.Debugf("wiki compiler: tree proposal create failed for [%s]: %v", kb.Name, err)
+		return
+	}
+	notifyOwner(kb.GetOwnerID(), "kb", kb.ID, "governance",
+		fmt.Sprintf("知识编译:为「%s」生成了目录组织建议(%d 篇页面),在治理队列确认后生效", kb.Name, len(existing)))
+}
+
+func articleIDsOf(articles []core.WikiArticle) []string {
+	out := make([]string, 0, len(articles))
+	for _, a := range articles {
+		if a.ID != "" {
+			out = append(out, a.ID)
+		}
+	}
+	return out
 }
 
 func compileSourceDocuments(ctx context.Context, kb *core.WikiKnowledgeBase) ([]core.Document, error) {
@@ -564,6 +677,7 @@ func fileCompileProposal(ctx *orm.Context, kb *core.WikiKnowledgeBase, item Comp
 }
 
 func compileGeneration(ctx *orm.Context, kbID, normKey string) int {
+	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(100).
 		Filter(orm.TermQuery("type", compileProposalType)))
 	if err != nil || res == nil {

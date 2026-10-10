@@ -76,6 +76,11 @@ const (
 	// human gate, different subject
 	WikiGovernanceEntityDuplicate = "entity_duplicate" // same name/alias, looks like one entity
 	WikiGovernanceEntityConflict  = "entity_conflict"  // same name/alias but conflicting types
+
+	// the compiler's suggested TOC organization (dimension folders: 客户与组织,
+	// 产品与服务, 专题与概念). Confirming the proposal in the governance queue
+	// applies the tree; dismissing drops it.
+	WikiGovernanceTreeOrganize = "tree_organize"
 )
 
 // WikiWorkspace groups knowledge bases per team or tenant.

@@ -422,6 +422,7 @@ func createDraftEntityPage(ctx *orm.Context, entity *core.WikiEntity, kbID strin
 		EntityID:    entity.ID,
 		Status:      core.WikiArticleDraft,
 		AIGenerated: true, // stub originates from the pipeline; humans curate
+		Content:     wiki.DraftEntityContent(entity),
 	}
 	if err := orm.Create(ctx, article); err != nil {
 		return err
