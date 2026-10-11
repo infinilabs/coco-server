@@ -112,6 +112,9 @@ func governanceSweep(ctx context.Context, llm llms.Model) governanceStats {
 		// noise (drafts await human review; the tree is for published
 		// knowledge) — retire them so the queue stays actionable
 		sweepDraftOrphans(orm.NewContextWithParent(ctx), kb.ID, articles)
+		// toc integrity: drop nodes pointing at articles that no longer
+		// exist, so the left navigation never 404s
+		sweepDeadTocNodes(orm.NewContextWithParent(ctx), kb.ID, articles)
 
 		file := func(article *core.WikiArticle, pType, reason string, evidence util.MapStr) {
 			if stats.filed >= governanceMaxProposalsPerRun {
@@ -663,6 +666,44 @@ func sweepDraftOrphans(ctx *orm.Context, kbID string, articles []core.WikiArticl
 	if retired > 0 {
 		log.Infof("wiki: governance sweep dismissed %d draft-page orphan proposals for kb [%s]", retired, kbID)
 	}
+}
+
+// sweepDeadTocNodes prunes toc nodes whose article was deleted — the left
+// navigation must never hold a link that 404s. Surviving empty folders are
+// dropped too.
+func sweepDeadTocNodes(ctx *orm.Context, kbID string, articles []core.WikiArticle) {
+	alive := map[string]bool{}
+	for i := range articles {
+		alive[articles[i].ID] = true
+	}
+	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	orm.WithModel(ctx, &core.WikiToc{})
+	toc, found, err := findToc(ctx, kbID)
+	if err != nil || !found {
+		return
+	}
+	var prune func(nodes []core.WikiTocNode) []core.WikiTocNode
+	prune = func(nodes []core.WikiTocNode) []core.WikiTocNode {
+		out := make([]core.WikiTocNode, 0, len(nodes))
+		for _, n := range nodes {
+			if n.ArticleID != "" && !alive[n.ArticleID] {
+				continue
+			}
+			n.Children = prune(n.Children)
+			out = append(out, n)
+		}
+		return out
+	}
+	kept := prune(toc.Nodes)
+	if len(kept) == len(toc.Nodes) {
+		return
+	}
+	toc.Nodes = kept
+	if err := orm.Update(ctx, toc); err != nil {
+		log.Warnf("wiki: toc integrity prune failed for kb [%s]: %v", kbID, err)
+		return
+	}
+	log.Infof("wiki: governance sweep pruned %d dead toc nodes for kb [%s]", len(toc.Nodes)-len(kept), kbID)
 }
 
 func governanceTypeLabel(pType string) string {
