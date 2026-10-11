@@ -6,6 +6,7 @@ package wiki
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 
 	log "github.com/cihub/seelog"
@@ -114,7 +115,21 @@ func DraftEntityContent(entity *core.WikiEntity) string {
 			if title == "" {
 				title = s.DocID
 			}
-			fmt.Fprintf(&sb, "%d. **%s** — %s\n", shown+1, title, line)
+			// the citation opens the source document with this exact
+			// excerpt highlighted (W17 quote locator)
+			link := ""
+			if s.DocID != "" {
+				excerpt := strings.TrimSpace(s.Excerpt)
+				if len([]rune(excerpt)) > 120 {
+					excerpt = string([]rune(excerpt)[:120]) + "…"
+				}
+				link = fmt.Sprintf("[原文](#/preview/document/%s?q=%s \"%s\")", s.DocID, url.QueryEscape(excerpt), excerpt)
+			}
+			if link != "" {
+				fmt.Fprintf(&sb, "%d. **%s** — %s %s\n", shown+1, title, line, link)
+			} else {
+				fmt.Fprintf(&sb, "%d. **%s** — %s\n", shown+1, title, line)
+			}
 			shown++
 		}
 		if shown == 0 {
