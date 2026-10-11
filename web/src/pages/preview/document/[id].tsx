@@ -1,7 +1,7 @@
 import { Button, Drawer, Result } from 'antd';
 import { useParams } from 'react-router-dom';
 import { highlightPhrase, highlightTerms } from './highlight';
-import { ArrowLeft, Wrench } from 'lucide-react';
+import { ArrowLeft, Paperclip, Wrench } from 'lucide-react';
 
 import { request } from '@/service/request';
 import { fetchEntityUser } from '@/service/api/entity';
@@ -9,11 +9,13 @@ import loadingIcon from '@/assets/svg-icon/file-loading.svg';
 import logoLight from '@/assets/imgs/coco-logo-text-light.svg';
 import logoDark from '@/assets/imgs/coco-logo-text-dark.svg';
 import { getDarkMode } from '@/store/slice/theme';
+import { getAppearance } from '@/store/slice/server';
 import { useAppSelector } from '@/hooks/business/useStore';
 import classNames from 'classnames';
 
 import PreviewContent from './components/PreviewContent';
-import ProcessingPanel from './components/ProcessingPanel';
+import ProcessingPanel from '@/components/ProcessingPanel';
+import { DocumentAttachmentsPanel } from '@/components/DocumentAttachmentsPanel';
 import { ensureFilenameExtension, extensionFromMime } from 'ui-search/source';
 
 // Helper function to extract a filename from a Content-Disposition header.
@@ -36,6 +38,12 @@ export function Component() {
   const embedded = mode === 'embedded';
   const darkMode = useAppSelector(getDarkMode);
   const theme = darkMode ? 'dark' : 'light';
+  // custom branding (settings → appearance): configured wordmark/icon wins
+  // over the bundled coco logo; icon covers the light/dark wordmark slots so
+  // a square logo alone brands the page
+  const appearance = useAppSelector(getAppearance);
+  const headerLogoDark = appearance?.logo?.dark || appearance?.logo?.icon || logoDark;
+  const headerLogoLight = appearance?.logo?.light || appearance?.logo?.icon || logoLight;
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>();
@@ -45,6 +53,7 @@ export function Component() {
   const [downloadFilename, setDownloadFilename] = useState<string>();
   const [rawContentError, setRawContentError] = useState<string>();
   const [processingOpen, setProcessingOpen] = useState(false);
+  const [attachmentsOpen, setAttachmentsOpen] = useState(false);
   // W17 highlight: ?quote= is the cited chunk's exact excerpt (precise
   // landing, tier 2); ?q= carries the query terms (term marks, tier 3)
   const highlightQuery = searchParams.get('q') ?? '';
@@ -294,16 +303,23 @@ export function Component() {
               type='text'
               onClick={handleBack}
             />
-            <div className='children:h-10'>
+            <div className='children:h-10 flex items-center gap-8px'>
               <img
                 className='dark:hidden'
-                src={logoLight}
+                src={headerLogoLight}
               />
 
               <img
                 className='hidden dark:block'
-                src={logoDark}
+                src={headerLogoDark}
               />
+              {/* a configured square icon has no brand text — pair it with the
+                  site title like the main layout does */}
+              {appearance?.logo?.icon && !appearance?.logo?.light && !appearance?.logo?.dark && (
+                <span className='text-15px font-550 color-[var(--ant-color-text)]'>
+                  {appearance?.title}
+                </span>
+              )}
             </div>
           </div>
         )}
@@ -329,6 +345,21 @@ export function Component() {
               className="fixed bottom-24px right-24px z-10"
               onClick={() => setProcessingOpen(true)}
             />
+            <Button
+              shape="circle"
+              icon={<Paperclip size={18} />}
+              title={t('page.preview.attachments.open')}
+              className="fixed bottom-76px right-24px z-10"
+              onClick={() => setAttachmentsOpen(true)}
+            />
+            <Drawer
+              title={t('page.preview.attachments.title')}
+              width={420}
+              open={attachmentsOpen}
+              onClose={() => setAttachmentsOpen(false)}
+            >
+              <DocumentAttachmentsPanel docId={id || ''} headers={requestHeaders} />
+            </Drawer>
             <Drawer
               title={t('page.preview.processing.title')}
               width={560}
