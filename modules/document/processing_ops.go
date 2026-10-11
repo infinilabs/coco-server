@@ -17,6 +17,7 @@ import (
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/util"
 )
 
@@ -30,6 +31,11 @@ const (
 	processingFailedListSize = 50
 	dispatcherLastAccessKV   = "/datasource/lastAccessTime"
 	connectorCursorKV        = "/datasource/increment/lastModifiedTime"
+
+	// outputQueueName is the enriched-documents queue the process_documents
+	// pipeline drains into (coco.yml merge_documents input). No Go constant
+	// exists for it — the pipeline config owns the name.
+	outputQueueName = "documents_processed"
 )
 
 // processingOverviewHandler reports the lifecycle distribution plus the
@@ -78,7 +84,62 @@ func (h *APIHandler) processingOverviewHandler(w http.ResponseWriter, req *http.
 		"statuses":   statuses,
 		"failed":     failedList,
 		"failed_top": len(failedList),
+		"live":       liveIngestionSignals(ctx),
 	})
+}
+
+// liveIngestionSignals is the real-time half of the overview: how much work
+// is sitting in the ingestion queues right now, and how long the oldest
+// in-flight document has been waiting (a stuck-pipeline indicator).
+func liveIngestionSignals(ctx context.Context) util.MapStr {
+	return util.MapStr{
+		"queues": util.MapStr{
+			"indexing_documents":    queueDepth(connectorcommon.IndexingQueueName),
+			"documents_processed":   queueDepth(outputQueueName),
+			"attachment_processing": queueDepth(core.AttachmentProcessingQueue),
+		},
+		"oldest_indexing": oldestIndexingUpdated(ctx),
+	}
+}
+
+// queueDepth is best-effort: a queue whose config or handler isn't up yet
+// (fresh boot, unit tests) reads as empty instead of failing the overview —
+// the framework lookup and Depth both panic on unregistered queues.
+func queueDepth(name string) (depth int64) {
+	defer func() {
+		if recover() != nil {
+			depth = 0
+		}
+	}()
+	cfg, ok := queue.SmartGetConfig(name)
+	if !ok || cfg == nil {
+		return 0
+	}
+	return queue.Depth(cfg)
+}
+
+// oldestIndexingUpdated returns the `updated` stamp of the earliest indexing
+// document — a backlog draining normally keeps this fresh; a timestamp hours
+// old means something is stuck. Empty when nothing is in flight.
+func oldestIndexingUpdated(ctx context.Context) string {
+	octx := orm.NewContextWithParent(ctx)
+	octx.DirectReadAccess()
+	orm.WithModel(octx, &core.Document{})
+	builder := orm.NewQuery().From(0).Size(1).
+		Filter(orm.TermQuery("status", core.DocumentStatusIndexing)).
+		SortBy(orm.Sort{Field: "updated", SortType: orm.ASC})
+	res, err := orm.SearchV2(octx, builder)
+	if err != nil {
+		return ""
+	}
+	hits, _, err := elastic.DecodeHits[core.Document](res)
+	if err != nil || len(hits) == 0 {
+		return ""
+	}
+	if hits[0].Updated == nil {
+		return ""
+	}
+	return hits[0].Updated.Format(time.RFC3339)
 }
 
 // documentStatusDistribution aggregates the status field (empty bucket
@@ -97,6 +158,32 @@ func documentStatusDistribution(ctx context.Context, datasource string) map[stri
 	}
 	out := map[string]int64{}
 	if node := res.Aggs["status"]; node != nil {
+		for _, b := range node.Buckets {
+			out[b.Key] = b.DocCount
+		}
+	}
+	return out
+}
+
+// DatasourceDocCounts returns document counts per datasource id (one terms
+// aggregation over the whole document index). Exported for the datasource
+// search API, which stamps each row with its live document_count. Best
+// effort: any aggregation failure returns nil (callers render zero).
+func DatasourceDocCounts(ctx context.Context) map[string]int64 {
+	octx := orm.NewContextWithParent(ctx)
+	octx.DirectReadAccess()
+	orm.WithModel(octx, &core.Document{})
+	builder := orm.NewQuery().Size(0).AddAgg("by_source", &orm.TermsAggregation{Field: "source.id", Size: 1000})
+	res, err := orm.Aggregate(octx, builder)
+	if err != nil {
+		log.Warnf("failed to aggregate datasource document counts: %v", err)
+		return nil
+	}
+	if res == nil {
+		return nil
+	}
+	out := map[string]int64{}
+	if node := res.Aggs["by_source"]; node != nil {
 		for _, b := range node.Buckets {
 			out[b.Key] = b.DocCount
 		}

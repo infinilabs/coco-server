@@ -567,9 +567,10 @@ export function listWikiDatasources() {
         id: ds?.id ?? '',
         name: ds?.name ?? '',
         type: ds?.type ?? '',
-        status: 'connected',
+        status: ds?.enabled === false ? 'disconnected' : 'connected',
         last_synced: fmtDate(ds?.updated),
-        document_count: 0
+        // stamped by the backend: live per-datasource document aggregation
+        document_count: ds?.document_count ?? 0
       })
     );
   });

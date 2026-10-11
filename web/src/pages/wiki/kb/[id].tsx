@@ -133,11 +133,17 @@ export function Component() {
   const [artStatus, setArtStatus] = useState<string>('all');
   const [dsList, setDsList] = useState<Api.Wiki.DatasourceInfo[]>([]);
   // deep link from an article capsule: /wiki/kb/:id?tab=graph&entity=<id>
-  // selects the entity and opens its card on the canvas
-  const [searchParams] = useSearchParams();
-  const deepTab = searchParams.get('tab') || 'overview';
+  // selects the entity and opens its card on the canvas. The tab lives in
+  // the URL (not component state) so refresh and shared links keep it.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'overview';
   const focusEntityId = searchParams.get('entity') || undefined;
-  const [activeTab, setActiveTab] = useState(deepTab);
+  const handleTabChange = (key: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('tab', key);
+    if (key !== 'graph') next.delete('entity');
+    setSearchParams(next, { replace: true });
+  };
 
   const { addSharesToData } = useResource();
   const userInfo = useAppSelector(selectUserInfo);
@@ -446,7 +452,7 @@ export function Component() {
               )
             }
           ]}
-          onChange={setActiveTab}
+          onChange={handleTabChange}
         />
         )}
 

@@ -265,6 +265,35 @@ func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
+	// Per-datasource document counts, one terms aggregation over the
+	// document index. The wiki KB datasources tab renders the count per
+	// row; best-effort — a failed aggregation returns counts of zero
+	// rather than failing the whole search.
+	if counts := document.DatasourceDocCounts(ctx); len(counts) > 0 {
+		var raw map[string]interface{}
+		if err := util.FromJSONBytes(res.Raw, &raw); err == nil && raw != nil {
+			if hits, ok := raw["hits"].(map[string]interface{}); ok {
+				if items, ok := hits["hits"].([]interface{}); ok {
+					for _, item := range items {
+						hit, ok := item.(map[string]interface{})
+						if !ok {
+							continue
+						}
+						src, ok := hit["_source"].(map[string]interface{})
+						if !ok {
+							continue
+						}
+						if id, ok := src["id"].(string); ok {
+							src["document_count"] = counts[id]
+						}
+					}
+				}
+			}
+			h.WriteJSON(w, raw, http.StatusOK)
+			return
+		}
+	}
+
 	_, err = h.Write(w, res.Raw)
 	if err != nil {
 		h.Error(w, err)
