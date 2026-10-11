@@ -43,6 +43,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Markdown from '@/components/DocumentDrawer/Markdown';
+import { uploadAttachment } from '@/service/api/ai-search';
 import {
   createWikiBookmark,
   createWikiEntity,
@@ -150,11 +151,19 @@ export function Component() {
   const contentRef = useRef<any>(null);
   // entity picker options for the wikilink tool (loaded once per edit session)
   const [entityOptions, setEntityOptions] = useState<{ value: string; type: string }[]>([]);
+  // history stack: programmatic insertions break the textarea's native undo,
+  // so the editor keeps its own snapshots (Ctrl+Z / Ctrl+Y)
+  const undoStack = useRef<{ content: string; caret: number }[]>([]);
+  const undoIdx = useRef(-1);
+  // [[ wikilink autocomplete state: where the bracket opened and the query
+  // typed so far
+  const [wlAc, setWlAc] = useState<{ start: number; caret: number; query: string } | null>(null);
+  const [wlIdx, setWlIdx] = useState(0);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   // paste an image from the clipboard: upload it and drop a markdown
   // image at the cursor — the round trip (upload → insert → render) is
   // one seamless paste
-  const [uploadingImages, setUploadingImages] = useState(false);
   const uploadAndInsertImages = async (files: File[], caret: number) => {
     if (!files.length) return;
     setUploadingImages(true);
@@ -180,7 +189,9 @@ export function Component() {
 
   const onContentPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const files: File[] = [];
-    for (const item of e.clipboardData?.items || []) {
+    const items = e.clipboardData?.items;
+    for (let i = 0; items && i < items.length; i++) {
+      const item = items[i];
       if (item.kind === 'file' && item.type.startsWith('image/')) {
         const f = item.getAsFile();
         if (f) files.push(f);
@@ -207,6 +218,153 @@ export function Component() {
       const caret = start + before.length + (selected || placeholder).length;
       el.setSelectionRange(caret, caret);
     });
+  };
+
+  // history stack maintenance — programmatic insertions call this too
+  const pushHistory = (content: string, caret: number) => {
+    const stack = undoStack.current;
+    if (stack[undoIdx.current]?.content === content) return;
+    stack.splice(undoIdx.current + 1);
+    stack.push({ content, caret });
+    if (stack.length > 80) stack.shift();
+    undoIdx.current = stack.length - 1;
+  };
+
+  const applyHistory = (entry: { content: string; caret: number }) => {
+    setDraft(d => ({ ...d, content: entry.content }));
+    requestAnimationFrame(() => {
+      const el = contentRef.current?.resizableTextArea?.textArea as HTMLTextAreaElement | undefined;
+      if (el) {
+        el.focus();
+        el.setSelectionRange(entry.caret, entry.caret);
+      }
+    });
+  };
+
+  const undo = () => {
+    if (undoIdx.current <= 0) return;
+    undoIdx.current -= 1;
+    applyHistory(undoStack.current[undoIdx.current]);
+  };
+
+  const redo = () => {
+    if (undoIdx.current >= undoStack.current.length - 1) return;
+    undoIdx.current += 1;
+    applyHistory(undoStack.current[undoIdx.current]);
+  };
+
+  // content edits: push history + track [[ autocomplete state
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    const caret = e.target.selectionStart ?? value.length;
+    setDraft(d => ({ ...d, content: value }));
+    pushHistory(value, caret);
+    const upto = value.slice(0, caret);
+    const open = upto.lastIndexOf('[[');
+    if (open >= 0 && upto.indexOf(']]', open) === -1) {
+      setWlAc({ start: open, caret, query: upto.slice(open + 2) });
+      setWlIdx(0);
+    } else {
+      setWlAc(null);
+    }
+  };
+
+  const wlMatches = useMemo(() => {
+    if (!wlAc) return [];
+    const q = wlAc.query.toLowerCase();
+    return entityOptions.filter(o => o.value.toLowerCase().includes(q)).slice(0, 8);
+  }, [wlAc, entityOptions]);
+
+  const pickWikilink = (ent: { value: string; type: string }) => {
+    if (!wlAc) return;
+    const content = draft.content ?? '';
+    const before = content.slice(0, wlAc.start);
+    const after = content.slice(wlAc.caret);
+    const link = `[[${ent.type || 'concept'}:${ent.value}]]`;
+    const next = `${before}${link}${after}`;
+    const caret = wlAc.start + link.length;
+    setDraft(d => ({ ...d, content: next }));
+    pushHistory(next, caret);
+    setWlAc(null);
+    requestAnimationFrame(() => {
+      const el = contentRef.current?.resizableTextArea?.textArea as HTMLTextAreaElement | undefined;
+      if (el) {
+        el.focus();
+        el.setSelectionRange(caret, caret);
+      }
+    });
+  };
+
+  // editor keymap: autocomplete navigation, Ctrl+S/B/I, undo/redo, list
+  // continuation
+  const onEditorKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const el = e.currentTarget;
+    if (wlAc && wlMatches.length) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setWlIdx(i => (i + 1) % wlMatches.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setWlIdx(i => (i - 1 + wlMatches.length) % wlMatches.length);
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        pickWikilink(wlMatches[wlIdx % wlMatches.length]);
+        return;
+      }
+    }
+    if (e.key === 'Escape') {
+      setWlAc(null);
+      return;
+    }
+    const meta = e.ctrlKey || e.metaKey;
+    if (meta && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      if (!saving) save();
+      return;
+    }
+    if (meta && e.key.toLowerCase() === 'b') {
+      e.preventDefault();
+      insertAround('**', '**', t('page.wiki.editor.text'));
+      return;
+    }
+    if (meta && e.key.toLowerCase() === 'i') {
+      e.preventDefault();
+      insertAround('*', '*', t('page.wiki.editor.text'));
+      return;
+    }
+    if (meta && !e.shiftKey && e.key.toLowerCase() === 'z') {
+      e.preventDefault();
+      undo();
+      return;
+    }
+    if (meta && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) {
+      e.preventDefault();
+      redo();
+      return;
+    }
+    // list continuation: Enter at the end of a list item opens the next one
+    if (e.key === 'Enter' && !e.shiftKey && !meta) {
+      const caret = el.selectionStart ?? 0;
+      const content = draft.content ?? '';
+      const upto = content.slice(0, caret);
+      const line = upto.slice(upto.lastIndexOf('\n') + 1);
+      const m = line.match(/^(\s*)([-*]|\d+\.)\s+(.+)$/);
+      if (m) {
+        e.preventDefault();
+        const marker = /^\d+\./.test(m[2]) ? `${parseInt(m[2], 10) + 1}. ` : `${m[2]} `;
+        const insert = `\n${m[1]}${marker}`;
+        const next = `${content.slice(0, caret)}${insert}${content.slice(caret)}`;
+        setDraft(d => ({ ...d, content: next }));
+        pushHistory(next, caret + insert.length);
+        requestAnimationFrame(() => {
+          el.setSelectionRange(caret + insert.length, caret + insert.length);
+        });
+      }
+    }
   };
 
   const onExportMarkdown = () => {
@@ -414,10 +572,11 @@ export function Component() {
     setDraft({ title: article.title, summary: article.summary, tags: article.tags, content: article.content });
     setEditing(true);
     setPreview(true);
-    searchWikiEntities().then(res => {
-      setEntityOptions((res?.data || []).map((e: Api.Wiki.EntityInfo) => ({ value: e.name || '', type: e.type || '' })));
-    }).catch(() => {});
-    setPreview(false);
+    searchWikiEntities()
+      .then(res => {
+        setEntityOptions(((res as any)?.data || []).map((e: Api.Wiki.EntityInfo) => ({ value: e.name || '', type: e.type || '' })));
+      })
+      .catch(() => {});
   };
 
   const save = () => {
@@ -761,13 +920,36 @@ export function Component() {
                 </Button>
               </div>
               <div className={preview ? 'flex flex-col gap-8px xl:!flex-row' : ''}>
+                {wlAc && (
+                  <div className='z-20 -mt-2 max-h-200px w-full overflow-auto rounded-4px border border-solid border-[var(--ant-color-border-secondary)] bg-[var(--ant-color-bg-container)] shadow-md'>
+                    {wlMatches.length === 0 && (
+                      <div className='px-10px py-6px text-xs text-[var(--ant-color-text-tertiary)]'>
+                        {t('page.wiki.editor.noMatchingEntity')}
+                      </div>
+                    )}
+                    {wlMatches.map((o, i) => (
+                      <div
+                        className={`flex cursor-pointer items-center justify-between gap-8px px-10px py-6px text-xs ${i === wlIdx % Math.max(wlMatches.length, 1) ? 'bg-[var(--ant-color-fill-tertiary)]' : ''}`}
+                        key={`${o.type}-${o.value}-${i}`}
+                        onMouseDown={e => {
+                          e.preventDefault();
+                          pickWikilink(o);
+                        }}
+                      >
+                        <span className='truncate'>{o.value}</span>
+                        <span className='flex-shrink-0 text-[var(--ant-color-text-tertiary)]'>{o.type}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <Input.TextArea
                   autoSize={{ minRows: 18, maxRows: 36 }}
                   className={`font-mono ${preview ? 'min-w-0 flex-1' : ''}`}
                   ref={contentRef}
                   value={draft.content}
+                  onChange={handleContentChange}
+                  onKeyDown={onEditorKeyDown}
                   onPaste={onContentPaste}
-                  onChange={e => setDraft(d => ({ ...d, content: e.target.value }))}
                 />
                 {preview && (
                   <div
@@ -777,6 +959,11 @@ export function Component() {
                     <Markdown content={draft.content || ''} renderLink={renderWikiLink} />
                   </div>
                 )}
+              </div>
+              <div className='-mt-2 flex justify-end text-xs text-[var(--ant-color-text-tertiary)]'>
+                {t('page.wiki.editor.wordcount', {
+                  count: (draft.content || '').replace(/\s/g, '').length
+                })}
               </div>
               <Space>
                 <Button
