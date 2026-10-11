@@ -942,112 +942,127 @@ export function Component() {
                           />
                         </>
                       )}
-                      {materials.length > 0 && (
-                        <>
-                          <Divider />
-                          <Section title={t('page.wiki.article.sections.materials')}>
-                            <div className='flex flex-col gap-10px'>
-                              {materials.map(m => (
-                                <div
-                                  className='rounded-6px border border-solid p-10px'
-                                  key={m.doc_id || m.title}
-                                  style={{ borderColor: 'var(--ant-color-border-secondary)' }}
-                                >
-                                  <div className='flex flex-wrap items-center justify-between gap-8px'>
-                                    {m.doc_id ? (
-                                      <a
-                                        className='text-13.5px font-550'
-                                        href={`#/preview/document/${m.doc_id}`}
-                                      >
-                                        {m.title || m.doc_id}
-                                      </a>
-                                    ) : (
-                                      <span className='text-13.5px font-550'>{m.title}</span>
-                                    )}
-                                    {m.source_name && <span className='wiki-pill'>{m.source_name}</span>}
-                                    {m.updated && (
-                                      <span className='ml-auto text-11px color-[var(--wiki-text-3)]'>
-                                        {m.updated}
-                                      </span>
-                                    )}
-                                  </div>
-                                  {m.excerpt && (
-                                    <div className='mt-4px text-12.5px color-[var(--wiki-text-3)] leading-5'>
-                                      {m.excerpt}
-                                    </div>
-                                  )}
-                                  {!!m.attachments?.length && (
-                                    <div className='mt-6px flex flex-col gap-2px'>
-                                      {m.attachments.map(att => (
-                                        <a
-                                          className='flex items-center gap-6px text-xs text-[var(--ant-color-link)]'
-                                          href={`/attachment/${att.id}`}
-                                          key={att.id}
-                                          rel='noreferrer'
-                                          target='_blank'
-                                        >
-                                          <PaperClipOutlined />
-                                          {att.name}
-                                          {att.size ? ` (${(att.size / 1024).toFixed(0)} KB)` : ''}
-                                          {att.created ? ` · ${att.created}` : ''}
-                                        </a>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </Section>
-                        </>
-                      )}
-                      {article.sources.length > 0 && (
+                      {/* unified source cards — 来源与附件 and 来源文献 used to
+                          render the same documents twice; one list now carries
+                          citation metadata, doc freshness and attachments */}
+                      {(article.sources.length > 0 || materials.length > 0) && (
                         <>
                           <Divider />
                           <Section title={t('page.wiki.article.sections.sources')}>
-                            {/* grounded-answer citation cards: numbered mono badge,
-                            source chip + locator, excerpt */}
                             <div className='flex flex-col gap-8px'>
-                              {article.sources.map((src, i) => {
-                                // web citations open directly; local-file
-                                // paths (connector docs) have no browser-
-                                // reachable URL — open the in-app preview
-                                const isWeb = /^https?:\/\//i.test(src.url || '');
-                                const href = isWeb ? src.url : src.doc_id ? `#/preview/document/${src.doc_id}` : '';
-                                return (
-                                <div
-                                  className='wiki-citation'
-                                  key={`${src.doc_id}-${i}`}
-                                >
-                                  <span className='wiki-citation-index'>{i + 1}</span>
-                                  <div className='min-w-0 flex-1'>
-                                    <div className='flex flex-wrap items-center gap-8px'>
-                                      <span className='text-13.5px color-[var(--wiki-text)] font-550'>{src.title}</span>
-                                      <span className='wiki-pill'>{src.source_name}</span>
-                                      {src.locator && (
-                                        <span className='text-11px color-[var(--wiki-text-3)] font-mono'>
-                                          {src.locator}
-                                        </span>
-                                      )}
-                                      {href && (
-                                        <a
-                                          className='ml-auto text-12px'
-                                          href={href}
-                                          rel='noreferrer'
-                                          target={isWeb ? '_blank' : undefined}
-                                        >
-                                          {t('page.wiki.article.openSource')}
-                                        </a>
-                                      )}
-                                    </div>
-                                    {src.excerpt && (
-                                      <div className='mt-4px text-12.5px color-[var(--wiki-text-3)] leading-5'>
-                                        {src.excerpt}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
+                              {(() => {
+                                const byDoc = new Map(
+                                  materials.filter(m => m.doc_id).map(m => [m.doc_id, m])
                                 );
-                              })}
+                                const used = new Set<string>();
+                                // web citations open directly; local-file paths
+                                // (connector docs) have no browser-reachable URL —
+                                // open the in-app preview
+                                const linkFor = (docId?: string, url?: string) => {
+                                  if (url && /^https?:\/\//i.test(url)) return { href: url, web: true };
+                                  if (docId) return { href: `#/preview/document/${docId}`, web: false };
+                                  return { href: '', web: false };
+                                };
+                                const cards = article.sources.map((src, i) => {
+                                  if (src.doc_id) used.add(src.doc_id);
+                                  const mat = src.doc_id ? byDoc.get(src.doc_id) : undefined;
+                                  const { href, web } = linkFor(src.doc_id, src.url);
+                                  const title = src.title || mat?.title || src.doc_id;
+                                  return (
+                                    <div className='wiki-citation' key={`${src.doc_id}-${i}`}>
+                                      <span className='wiki-citation-index'>{i + 1}</span>
+                                      <div className='min-w-0 flex-1'>
+                                        <div className='flex flex-wrap items-center gap-8px'>
+                                          {href ? (
+                                            <a
+                                              className='text-13.5px color-[var(--wiki-text)] font-550'
+                                              href={href}
+                                              rel='noreferrer'
+                                              target={web ? '_blank' : undefined}
+                                            >
+                                              {title}
+                                            </a>
+                                          ) : (
+                                            <span className='text-13.5px color-[var(--wiki-text)] font-550'>{title}</span>
+                                          )}
+                                          {(src.source_name || mat?.source_name) && (
+                                            <span className='wiki-pill'>{src.source_name || mat?.source_name}</span>
+                                          )}
+                                          {src.locator && (
+                                            <span className='text-11px color-[var(--wiki-text-3)] font-mono'>
+                                              {src.locator}
+                                            </span>
+                                          )}
+                                          {mat?.updated && (
+                                            <span className='ml-auto text-11px color-[var(--wiki-text-3)]'>
+                                              {mat.updated}
+                                            </span>
+                                          )}
+                                        </div>
+                                        {(src.excerpt || mat?.excerpt) && (
+                                          <div className='mt-4px text-12.5px color-[var(--wiki-text-3)] leading-5'>
+                                            {src.excerpt || mat?.excerpt}
+                                          </div>
+                                        )}
+                                        {!!mat?.attachments?.length && (
+                                          <div className='mt-6px flex flex-col gap-2px'>
+                                            {mat.attachments.map(att => (
+                                              <a
+                                                className='flex items-center gap-6px text-xs text-[var(--ant-color-link)]'
+                                                href={`/attachment/${att.id}`}
+                                                key={att.id}
+                                                rel='noreferrer'
+                                                target='_blank'
+                                              >
+                                                <PaperClipOutlined />
+                                                {att.name}
+                                                {att.size ? ` (${(att.size / 1024).toFixed(0)} KB)` : ''}
+                                                {att.created ? ` · ${att.created}` : ''}
+                                              </a>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                });
+                                // materials not covered by stored sources still
+                                // deserve a row (missing doc_id etc.)
+                                for (const m of materials) {
+                                  if (!m.doc_id || used.has(m.doc_id)) continue;
+                                  used.add(m.doc_id);
+                                  const { href, web } = linkFor(m.doc_id);
+                                  cards.push(
+                                    <div className='wiki-citation' key={`mat-${m.doc_id}`}>
+                                      <span className='wiki-citation-index'>{cards.length + 1}</span>
+                                      <div className='min-w-0 flex-1'>
+                                        <div className='flex flex-wrap items-center gap-8px'>
+                                          {href ? (
+                                            <a
+                                              className='text-13.5px color-[var(--wiki-text)] font-550'
+                                              href={href}
+                                              rel='noreferrer'
+                                              target={web ? '_blank' : undefined}
+                                            >
+                                              {m.title || m.doc_id}
+                                            </a>
+                                          ) : (
+                                            <span className='text-13.5px color-[var(--wiki-text)] font-550'>{m.title || m.doc_id}</span>
+                                          )}
+                                          {m.source_name && <span className='wiki-pill'>{m.source_name}</span>}
+                                          {m.updated && (
+                                            <span className='ml-auto text-11px color-[var(--wiki-text-3)]'>{m.updated}</span>
+                                          )}
+                                        </div>
+                                        {m.excerpt && (
+                                          <div className='mt-4px text-12.5px color-[var(--wiki-text-3)] leading-5'>{m.excerpt}</div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                return cards;
+                              })()}
                             </div>
                           </Section>
                         </>
