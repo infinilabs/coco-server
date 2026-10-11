@@ -72,6 +72,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       list: '无序列表',
       link: '链接',
       wikilink: '维基链接 [[type:name]]',
+      italic: '斜体', strike: '删除线', quote: '引用', code: '代码块', table: '表格', entityPicker: '插入实体链接',
       sectionTitle: '章节标题',
       text: '文本',
       item: '条目',

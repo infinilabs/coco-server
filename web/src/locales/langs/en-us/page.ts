@@ -72,6 +72,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       list: 'Bullet list',
       link: 'Link',
       wikilink: 'Wikilink [[type:name]]',
+      italic: 'Italic', strike: 'Strikethrough', quote: 'Quote', code: 'Code block', table: 'Table', entityPicker: 'Insert entity link',
       sectionTitle: 'Section title',
       text: 'text',
       item: 'item',

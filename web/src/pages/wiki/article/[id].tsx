@@ -17,8 +17,12 @@ import {
   StarFilled,
   StarOutlined,
   TagsOutlined,
-  UnorderedListOutlined
-} from '@ant-design/icons';
+  UnorderedListOutlined,
+  ItalicOutlined,
+  StrikethroughOutlined,
+  CodeOutlined,
+  TableOutlined,
+  FileTextOutlined} from '@ant-design/icons';
 import {
   Avatar,
   Button,
@@ -50,6 +54,7 @@ import {
   getWikiEntity,
   relinkWikiArticle,
   searchWikiBookmarks,
+  searchWikiEntities,
   searchWikiLikes,
   updateWikiArticle,
   updateWikiArticleStatus
@@ -143,6 +148,8 @@ export function Component() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const contentRef = useRef<any>(null);
+  // entity picker options for the wikilink tool (loaded once per edit session)
+  const [entityOptions, setEntityOptions] = useState<{ value: string; type: string }[]>([]);
 
   // wrap the selection (or drop a placeholder at the cursor) in the given markers
   const insertAround = (before: string, after: string, placeholder: string) => {
@@ -365,6 +372,10 @@ export function Component() {
     if (!article) return;
     setDraft({ title: article.title, summary: article.summary, tags: article.tags, content: article.content });
     setEditing(true);
+    setPreview(true);
+    searchWikiEntities().then(res => {
+      setEntityOptions((res?.data || []).map((e: Api.Wiki.EntityInfo) => ({ value: e.name || '', type: e.type || '' })));
+    }).catch(() => {});
     setPreview(false);
   };
 
@@ -611,12 +622,58 @@ export function Component() {
                       onClick={() => insertAround('**', '**', t('page.wiki.editor.text'))}
                     />
                   </Tooltip>
+                  <Tooltip title={t('page.wiki.editor.italic')}>
+                    <Button
+                      icon={<ItalicOutlined />}
+                      size='small'
+                      type='text'
+                      onClick={() => insertAround('*', '*', t('page.wiki.editor.text'))}
+                    />
+                  </Tooltip>
+                  <Tooltip title={t('page.wiki.editor.strike')}>
+                    <Button
+                      icon={<StrikethroughOutlined />}
+                      size='small'
+                      type='text'
+                      onClick={() => insertAround('~~', '~~', t('page.wiki.editor.text'))}
+                    />
+                  </Tooltip>
                   <Tooltip title={t('page.wiki.editor.list')}>
                     <Button
                       icon={<UnorderedListOutlined />}
                       size='small'
                       type='text'
                       onClick={() => insertAround('\n- ', '', t('page.wiki.editor.item'))}
+                    />
+                  </Tooltip>
+                  <Tooltip title={t('page.wiki.editor.quote')}>
+                    <Button
+                      icon={<FileTextOutlined />}
+                      size='small'
+                      type='text'
+                      onClick={() => insertAround('\n> ', '', t('page.wiki.editor.text'))}
+                    />
+                  </Tooltip>
+                  <Tooltip title={t('page.wiki.editor.code')}>
+                    <Button
+                      icon={<CodeOutlined />}
+                      size='small'
+                      type='text'
+                      onClick={() => insertAround('\n```\n', '\n```\n', t('page.wiki.editor.text'))}
+                    />
+                  </Tooltip>
+                  <Tooltip title={t('page.wiki.editor.table')}>
+                    <Button
+                      icon={<TableOutlined />}
+                      size='small'
+                      type='text'
+                      onClick={() =>
+                        insertAround(
+                          '\n| 列一 | 列二 |\n| --- | --- |\n| | |\n',
+                          '',
+                          t('page.wiki.editor.text')
+                        )
+                      }
                     />
                   </Tooltip>
                   <Tooltip title={t('page.wiki.editor.link')}>
@@ -627,14 +684,26 @@ export function Component() {
                       onClick={() => insertAround('[', '](url)', t('page.wiki.editor.linkText'))}
                     />
                   </Tooltip>
-                  <Tooltip title={t('page.wiki.editor.wikilink')}>
-                    <Button
-                      icon={<ClusterOutlined />}
-                      size='small'
-                      type='text'
-                      onClick={() => insertAround('[[', ']]', 'type:name')}
-                    />
-                  </Tooltip>
+                  <Select
+                    showSearch
+                    size='small'
+                    style={{ minWidth: 150 }}
+                    placeholder={t('page.wiki.editor.entityPicker')}
+                    filterOption={(input, option) =>
+                      String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
+                    }
+                    value={null}
+                    onChange={(value: string) => {
+                      const opt = entityOptions.find(o => o.value === value);
+                      insertAround(`[[${opt?.type || 'concept'}:`, ']]', value);
+                    }}
+                  >
+                    {entityOptions.map(o => (
+                      <Select.Option key={o.value} value={o.value}>
+                        {o.type ? `${o.type} · ${o.value}` : o.value}
+                      </Select.Option>
+                    ))}
+                  </Select>
                 </div>
                 <Button
                   icon={<EyeOutlined />}
@@ -658,7 +727,7 @@ export function Component() {
                     className='min-h-300px min-w-0 flex-1 overflow-auto border rounded border-solid p-4'
                     style={{ borderColor: 'var(--ant-color-border)' }}
                   >
-                    <Markdown content={draft.content || ''} />
+                    <Markdown content={draft.content || ''} renderLink={renderWikiLink} />
                   </div>
                 )}
               </div>
