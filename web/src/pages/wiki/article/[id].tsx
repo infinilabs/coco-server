@@ -176,7 +176,7 @@ export function Component() {
     setUploadingImages(true);
     try {
       const res: any = await uploadAttachment(files);
-      const ids: string[] = res?.attachments || [];
+      const ids: string[] = res?.data?.attachments || res?.attachments || [];
       if (!ids.length) throw new Error('no attachment ids');
       const snippets = ids.map((id, i) => {
         const name = files[i]?.name?.replace(/\.[^.]+$/, '') || `image-${i + 1}`;
@@ -993,7 +993,13 @@ export function Component() {
                             {/* grounded-answer citation cards: numbered mono badge,
                             source chip + locator, excerpt */}
                             <div className='flex flex-col gap-8px'>
-                              {article.sources.map((src, i) => (
+                              {article.sources.map((src, i) => {
+                                // web citations open directly; local-file
+                                // paths (connector docs) have no browser-
+                                // reachable URL — open the in-app preview
+                                const isWeb = /^https?:\/\//i.test(src.url || '');
+                                const href = isWeb ? src.url : src.doc_id ? `#/preview/document/${src.doc_id}` : '';
+                                return (
                                 <div
                                   className='wiki-citation'
                                   key={`${src.doc_id}-${i}`}
@@ -1008,12 +1014,12 @@ export function Component() {
                                           {src.locator}
                                         </span>
                                       )}
-                                      {src.url && (
+                                      {href && (
                                         <a
                                           className='ml-auto text-12px'
-                                          href={src.url}
+                                          href={href}
                                           rel='noreferrer'
-                                          target='_blank'
+                                          target={isWeb ? '_blank' : undefined}
                                         >
                                           {t('page.wiki.article.openSource')}
                                         </a>
@@ -1026,7 +1032,8 @@ export function Component() {
                                     )}
                                   </div>
                                 </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           </Section>
                         </>
