@@ -255,9 +255,12 @@ function _MarkDownContent(props) {
         // markdown images arrive without dimensions and without error
         // handling — route them through the progressive tile so loading and
         // broken sources both look designed instead of browser-default
-        img: (imgProps) => (
-          <ProgressiveImage {...imgProps} className={imgProps.className} />
-        ),
+        img: (imgProps) => {
+          // wiki 约定:alt 尾部 "|像素" 指定显示宽度(编辑器尺寸工具条写入)
+          const widthFromAlt = (imgProps.alt || '').match(/\|(\d{2,4})$/);
+          const style = widthFromAlt ? { width: `${widthFromAlt[1]}px`, maxWidth: '100%', height: 'auto' } : undefined;
+          return <ProgressiveImage {...imgProps} className={imgProps.className} style={style} />;
+        },
         a: (aProps) => {
           if (renderLink) {
             const replaced = renderLink(aProps.href || "", aProps.children);
