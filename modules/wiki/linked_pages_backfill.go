@@ -78,8 +78,9 @@ func backfillLinkedPages() {
 		changed := false
 
 		// entity page citation upgrade: regenerate the body so every claim
-		// carries a link back to its source block
-		if a.EntityID != "" && needsCitationUpgrade(a) {
+		// carries a link back to its source block — also fills structured
+		// sources for pages regenerated before provenance was persisted
+		if a.EntityID != "" && (needsCitationUpgrade(a) || (len(a.Sources) == 0 && strings.Contains(a.Content, "[原文]("))) {
 			if entity, ok := entityByID[a.EntityID]; ok {
 				a.Content = DraftEntityContent(&entity)
 				if len(a.Sources) == 0 {

@@ -158,9 +158,11 @@ func init() {
 
 	// knowledge compiler (W9): four-stage pipeline over the KB's source
 	// documents — every output is a governance proposal
-		api.HandleUIMethod(api.POST, "/wiki/kb/:id/_consolidate", handler.consolidateKB,
+	api.HandleUIMethod(api.GET, "/wiki/article/:id/_materials", handler.articleMaterials,
+		api.RequireLogin(), api.RequirePermission(readArticlePermission))
+	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_consolidate", handler.consolidateKB,
 		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
-api.HandleUIMethod(api.POST, "/wiki/kb/:id/_compile", handler.compileKBHandler,
+	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_compile", handler.compileKBHandler,
 		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
 
 	// one-off published-article projection backfill (W16a): run before
