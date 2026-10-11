@@ -282,7 +282,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         relatedConcepts: '关联概念',
         relatedEntities: '关联实体',
         mentions: '来源引用',
-        sources: '来源文献'
+        sources: '来源文献',
+        materials: '来源与附件',
       }
     },
 

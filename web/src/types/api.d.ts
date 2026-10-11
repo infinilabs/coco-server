@@ -480,6 +480,26 @@ declare namespace Api {
       entity_id?: string;
     }
 
+    /** cited source doc behind a wiki page, with its enrichment attachments */
+    interface ArticleMaterial {
+      doc_id: string;
+      title: string;
+      source_name?: string;
+      source_type?: string;
+      excerpt?: string;
+      locator?: string;
+      updated?: string;
+      created?: string;
+      missing?: boolean;
+      attachments?: {
+        id: string;
+        name: string;
+        size?: number;
+        mime_type?: string;
+        created?: string;
+      }[];
+    }
+
     interface Comment {
       id: string;
       article_id: string;

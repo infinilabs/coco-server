@@ -22,7 +22,8 @@ import {
   StrikethroughOutlined,
   CodeOutlined,
   TableOutlined,
-  FileTextOutlined} from '@ant-design/icons';
+  FileTextOutlined,
+  PaperClipOutlined} from '@ant-design/icons';
 import {
   Avatar,
   Button,
@@ -52,6 +53,7 @@ import {
   deleteWikiLike,
   getWikiArticle,
   getWikiArticleVersions,
+  getWikiArticleMaterials,
   getWikiEntity,
   relinkWikiArticle,
   searchWikiBookmarks,
@@ -146,6 +148,7 @@ export function Component() {
   const canEditArticle = useAuth().hasAuth('coco#wiki_article/update');
 
   const [article, setArticle] = useState<Api.Wiki.Article | null>(null);
+  const [materials, setMaterials] = useState<Api.Wiki.ArticleMaterial[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const contentRef = useRef<any>(null);
@@ -399,6 +402,9 @@ export function Component() {
       setArticle(a);
       setLoading(false);
     });
+    getWikiArticleMaterials(id)
+      .then(m => setMaterials(m as Api.Wiki.ArticleMaterial[]))
+      .catch(() => {});
   };
 
   useEffect(fetchArticle, [id]);
@@ -1072,6 +1078,64 @@ export function Component() {
                             content={mainContent}
                             renderLink={renderWikiLink}
                           />
+                        </>
+                      )}
+                      {materials.length > 0 && (
+                        <>
+                          <Divider />
+                          <Section title={t('page.wiki.article.sections.materials')}>
+                            <div className='flex flex-col gap-10px'>
+                              {materials.map(m => (
+                                <div
+                                  className='rounded-6px border border-solid p-10px'
+                                  key={m.doc_id || m.title}
+                                  style={{ borderColor: 'var(--ant-color-border-secondary)' }}
+                                >
+                                  <div className='flex flex-wrap items-center justify-between gap-8px'>
+                                    {m.doc_id ? (
+                                      <a
+                                        className='text-13.5px font-550'
+                                        href={`#/preview/document/${m.doc_id}`}
+                                      >
+                                        {m.title || m.doc_id}
+                                      </a>
+                                    ) : (
+                                      <span className='text-13.5px font-550'>{m.title}</span>
+                                    )}
+                                    {m.source_name && <span className='wiki-pill'>{m.source_name}</span>}
+                                    {m.updated && (
+                                      <span className='ml-auto text-11px color-[var(--wiki-text-3)]'>
+                                        {m.updated}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {m.excerpt && (
+                                    <div className='mt-4px text-12.5px color-[var(--wiki-text-3)] leading-5'>
+                                      {m.excerpt}
+                                    </div>
+                                  )}
+                                  {!!m.attachments?.length && (
+                                    <div className='mt-6px flex flex-col gap-2px'>
+                                      {m.attachments.map(att => (
+                                        <a
+                                          className='flex items-center gap-6px text-xs text-[var(--ant-color-link)]'
+                                          href={`/attachment/${att.id}`}
+                                          key={att.id}
+                                          rel='noreferrer'
+                                          target='_blank'
+                                        >
+                                          <PaperClipOutlined />
+                                          {att.name}
+                                          {att.size ? ` (${(att.size / 1024).toFixed(0)} KB)` : ''}
+                                          {att.created ? ` · ${att.created}` : ''}
+                                        </a>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </Section>
                         </>
                       )}
                       {article.sources.length > 0 && (

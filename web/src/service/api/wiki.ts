@@ -689,3 +689,10 @@ export function editWikiArticleAI(
     signal
   );
 }
+
+export function getWikiArticleMaterials(id: string) {
+  return request<{ sources: Api.Wiki.ArticleMaterial[] }>({
+    method: 'get',
+    url: `/wiki/article/${id}/_materials`
+  }).then(res => (res as any)?.data?.sources ?? []);
+}

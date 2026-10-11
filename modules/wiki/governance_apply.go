@@ -427,6 +427,19 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 		AIGenerated: true,
 		Content:     content,
 	}
+	// provenance: every cited source doc becomes a structured source entry
+	seenSrc := map[string]bool{}
+	for _, s := range statements {
+		if s.DocID == "" || seenSrc[s.DocID] {
+			continue
+		}
+		seenSrc[s.DocID] = true
+		article.Sources = append(article.Sources, core.WikiSourceReference{
+			DocID:   s.DocID,
+			Title:   s.DocID,
+			Excerpt: s.Excerpt,
+		})
+	}
 	// the wikilinks inside the compiled text resolve here — without this
 	// the page ships with no LinkedPages and the graph shows it orphaned
 	persistLinkedPages(&article)

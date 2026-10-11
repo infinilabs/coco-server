@@ -82,6 +82,9 @@ func backfillLinkedPages() {
 		if a.EntityID != "" && needsCitationUpgrade(a) {
 			if entity, ok := entityByID[a.EntityID]; ok {
 				a.Content = DraftEntityContent(&entity)
+				if len(a.Sources) == 0 {
+					a.Sources = entity.Sources
+				}
 				changed = true
 			}
 		}

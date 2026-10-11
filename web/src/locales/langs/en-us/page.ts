@@ -282,7 +282,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         relatedConcepts: 'Related Concepts',
         relatedEntities: 'Related Entities',
         mentions: 'Mentions in Source',
-        sources: 'Source References'
+        sources: 'Source References',
+        materials: 'Sources & attachments',
       }
     },
 
