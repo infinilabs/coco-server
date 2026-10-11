@@ -65,12 +65,15 @@ import {
 import { parseStructuredContent, parseWikiLink } from '../shared/content';
 import { WikiLinkTag, renderInlineWikiLinks } from '../shared/WikiLinkTag';
 import { EntityArticleSections } from '../components/EntityArticleSections';
+import { WikiVditorEditor } from '../components/WikiVditorEditor';
 import { diffLines } from '../shared/diff';
 import { AIEditModal } from '../components/AIEditModal';
 import { ArticleComments } from '../components/ArticleComments';
 import { recordRecentArticle } from '../shared/recent';
 import { ArticleOutline } from '../components/ArticleOutline';
+import { useAppSelector } from '@/hooks/business/useStore';
 import { selectUserInfo } from '@/store/slice/auth';
+import { getDarkMode } from '@/store/slice/theme';
 import { useAuth } from '@/hooks/business/auth';
 import { WikiShell } from '../components/WikiShell';
 
@@ -145,6 +148,7 @@ export function Component() {
   const [searchParams] = useSearchParams();
   const kbId = searchParams.get('kb') || '';
   const userInfo = useAppSelector(selectUserInfo);
+  const darkMode = useAppSelector(getDarkMode);
   const canEditArticle = useAuth().hasAuth('coco#wiki_article/update');
 
   const [article, setArticle] = useState<Api.Wiki.Article | null>(null);
@@ -784,7 +788,7 @@ export function Component() {
           </div>
         )}
         <Spin spinning={loading}>
-          {!article ? null : editing ? (
+          {!article || editing ? (
             <div className='wiki-window mx-auto max-w-1200px w-full flex flex-col gap-4 px-24px py-20px xl:px-32px xl:py-24px'>
               <Input
                 placeholder={t('page.wiki.createArticle.title')}
@@ -809,168 +813,12 @@ export function Component() {
                 value={draft.tags || []}
                 onChange={tags => setDraft(d => ({ ...d, tags }))}
               />
-              <div className='flex flex-wrap items-center justify-between gap-8px'>
-                <div className='flex items-center gap-4px'>
-                  <span className='font-medium'>{t('page.wiki.article.contentEditor')}</span>
-                  <Tooltip title={t('page.wiki.editor.heading')}>
-                    <Button
-                      icon={<LineOutlined />}
-                      size='small'
-                      type='text'
-                      onClick={() => insertAround('\n## ', '', t('page.wiki.editor.sectionTitle'))}
-                    />
-                  </Tooltip>
-                  <Tooltip title={t('page.wiki.editor.bold')}>
-                    <Button
-                      icon={<BoldOutlined />}
-                      size='small'
-                      type='text'
-                      onClick={() => insertAround('**', '**', t('page.wiki.editor.text'))}
-                    />
-                  </Tooltip>
-                  <Tooltip title={t('page.wiki.editor.italic')}>
-                    <Button
-                      icon={<ItalicOutlined />}
-                      size='small'
-                      type='text'
-                      onClick={() => insertAround('*', '*', t('page.wiki.editor.text'))}
-                    />
-                  </Tooltip>
-                  <Tooltip title={t('page.wiki.editor.strike')}>
-                    <Button
-                      icon={<StrikethroughOutlined />}
-                      size='small'
-                      type='text'
-                      onClick={() => insertAround('~~', '~~', t('page.wiki.editor.text'))}
-                    />
-                  </Tooltip>
-                  <Tooltip title={t('page.wiki.editor.list')}>
-                    <Button
-                      icon={<UnorderedListOutlined />}
-                      size='small'
-                      type='text'
-                      onClick={() => insertAround('\n- ', '', t('page.wiki.editor.item'))}
-                    />
-                  </Tooltip>
-                  <Tooltip title={t('page.wiki.editor.quote')}>
-                    <Button
-                      icon={<FileTextOutlined />}
-                      size='small'
-                      type='text'
-                      onClick={() => insertAround('\n> ', '', t('page.wiki.editor.text'))}
-                    />
-                  </Tooltip>
-                  <Tooltip title={t('page.wiki.editor.code')}>
-                    <Button
-                      icon={<CodeOutlined />}
-                      size='small'
-                      type='text'
-                      onClick={() => insertAround('\n```\n', '\n```\n', t('page.wiki.editor.text'))}
-                    />
-                  </Tooltip>
-                  <Tooltip title={t('page.wiki.editor.table')}>
-                    <Button
-                      icon={<TableOutlined />}
-                      size='small'
-                      type='text'
-                      onClick={() =>
-                        insertAround(
-                          '\n| 列一 | 列二 |\n| --- | --- |\n| | |\n',
-                          '',
-                          t('page.wiki.editor.text')
-                        )
-                      }
-                    />
-                  </Tooltip>
-                  <Tooltip title={t('page.wiki.editor.link')}>
-                    <Button
-                      icon={<LinkOutlined />}
-                      size='small'
-                      type='text'
-                      onClick={() => insertAround('[', '](url)', t('page.wiki.editor.linkText'))}
-                    />
-                  </Tooltip>
-                  <Select
-                    showSearch
-                    size='small'
-                    style={{ minWidth: 150 }}
-                    placeholder={t('page.wiki.editor.entityPicker')}
-                    filterOption={(input, option) =>
-                      String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
-                    }
-                    value={null}
-                    onChange={(value: string) => {
-                      const opt = entityOptions.find(o => o.value === value);
-                      insertAround(`[[${opt?.type || 'concept'}:`, ']]', value);
-                    }}
-                  >
-                    {entityOptions.map(o => (
-                      <Select.Option key={o.value} value={o.value}>
-                        {o.type ? `${o.type} · ${o.value}` : o.value}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </div>
-                {uploadingImages && (
-                  <Spin size='small'>
-                    <Tag bordered={false}>{t('page.wiki.editor.uploading')}</Tag>
-                  </Spin>
-                )}
-                <Button
-                  icon={<EyeOutlined />}
-                  size='small'
-                  type={preview ? 'primary' : 'default'}
-                  onClick={() => setPreview(p => !p)}
-                >
-                  {t('page.wiki.article.preview')}
-                </Button>
-              </div>
-              <div className={preview ? 'flex flex-col gap-8px xl:!flex-row' : ''}>
-                {wlAc && (
-                  <div className='z-20 -mt-2 max-h-200px w-full overflow-auto rounded-4px border border-solid border-[var(--ant-color-border-secondary)] bg-[var(--ant-color-bg-container)] shadow-md'>
-                    {wlMatches.length === 0 && (
-                      <div className='px-10px py-6px text-xs text-[var(--ant-color-text-tertiary)]'>
-                        {t('page.wiki.editor.noMatchingEntity')}
-                      </div>
-                    )}
-                    {wlMatches.map((o, i) => (
-                      <div
-                        className={`flex cursor-pointer items-center justify-between gap-8px px-10px py-6px text-xs ${i === wlIdx % Math.max(wlMatches.length, 1) ? 'bg-[var(--ant-color-fill-tertiary)]' : ''}`}
-                        key={`${o.type}-${o.value}-${i}`}
-                        onMouseDown={e => {
-                          e.preventDefault();
-                          pickWikilink(o);
-                        }}
-                      >
-                        <span className='truncate'>{o.value}</span>
-                        <span className='flex-shrink-0 text-[var(--ant-color-text-tertiary)]'>{o.type}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <Input.TextArea
-                  autoSize={{ minRows: 18, maxRows: 36 }}
-                  className={`font-mono ${preview ? 'min-w-0 flex-1' : ''}`}
-                  ref={contentRef}
-                  value={draft.content}
-                  onChange={handleContentChange}
-                  onKeyDown={onEditorKeyDown}
-                  onPaste={onContentPaste}
-                />
-                {preview && (
-                  <div
-                    className='min-h-300px min-w-0 flex-1 overflow-auto border rounded border-solid p-4'
-                    style={{ borderColor: 'var(--ant-color-border)' }}
-                  >
-                    <Markdown content={draft.content || ''} renderLink={renderWikiLink} />
-                  </div>
-                )}
-              </div>
-              <div className='-mt-2 flex justify-end text-xs text-[var(--ant-color-text-tertiary)]'>
-                {t('page.wiki.editor.wordcount', {
-                  count: (draft.content || '').replace(/\s/g, '').length
-                })}
-              </div>
+              <WikiVditorEditor
+                darkMode={darkMode}
+                entityOptions={entityOptions}
+                value={draft.content || ''}
+                onChange={content => setDraft(d => ({ ...d, content }))}
+              />
               <Space>
                 <Button
                   icon={<CheckOutlined />}
