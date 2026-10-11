@@ -91,14 +91,14 @@ export function WikiVditorEditor({
       toolbarConfig: { pin: true },
       upload: {
         accept: 'image/*',
-        // 粘贴/选择图片 → /attachment/_upload → 返回的字符串会被 vditor
-        // 原样插入光标处，因此直接返回 markdown 图片语法
+        // 粘贴/选择图片 → /attachment/_upload → 成功后自行 insertValue 插入
+        // markdown(vditor 契约:handler 的返回值会显示为提示气泡而非插入)
         handler(files: File[]): Promise<string> {
           return uploadAttachment(Array.from(files))
             .then((res: any) => {
               const ids: string[] = res?.data?.attachments || res?.attachments || [];
               if (!ids.length) throw new Error('upload failed: no attachment ids');
-              return files
+              const md = files
                 .map((f, i) => {
                   const id = ids[i];
                   if (!id) return '';
@@ -107,6 +107,8 @@ export function WikiVditorEditor({
                 })
                 .filter(Boolean)
                 .join('\n');
+              if (md) vd.insertValue(md);
+              return '';
             })
             .catch((err: unknown) => {
               window.$message?.error(String(err).slice(0, 80));
