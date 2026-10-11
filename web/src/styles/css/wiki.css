@@ -630,3 +630,16 @@
   padding: 13px 4px;
   font-size: 13.5px;
 }
+
+/* lead paragraph(s) before the first section header — the draft preamble
+   rendered above 定义; slightly muted so it reads as a preface */
+.wiki-article-lead {
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--wiki-border);
+  color: var(--wiki-text-2);
+  font-size: 14.5px;
+}
+.wiki-article-lead p {
+  margin-bottom: 0;
+}

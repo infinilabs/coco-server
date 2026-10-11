@@ -10,12 +10,15 @@ export interface WikiLink {
 }
 
 export interface StructuredContent {
+  /** plain content before the first section header — the page lead paragraph */
+  intro: string;
   definition: string;
   keyCharacteristics: string[];
   applications: string[];
   relatedConcepts: string[];
   relatedEntities: string[];
   mentions: string[];
+  /** 正文内容 body plus any unrecognized sections — rendered as markdown */
   mainContent: string;
 }
 
@@ -38,6 +41,7 @@ function matchHeader(line: string): string | null {
 
 export function parseStructuredContent(content: string): StructuredContent {
   const result: StructuredContent = {
+    intro: '',
     definition: '',
     keyCharacteristics: [],
     applications: [],
@@ -48,20 +52,30 @@ export function parseStructuredContent(content: string): StructuredContent {
   };
 
   const lines = content.split('\n');
-  let currentSection = '';
-  let mainContentStart = 0;
+  const firstHeaderIdx = lines.findIndex(line => line.trim().startsWith('## '));
+  if (firstHeaderIdx === -1) {
+    // free-form content with no sections at all — render as-is
+    return result;
+  }
 
-  for (let i = 0; i < lines.length; i += 1) {
+  // everything before the first header is the lead paragraph; the structured
+  // sections render themselves, so the markdown body only carries the
+  // 正文内容 section and any unrecognized sections (dropping them here — or
+  // re-rendering the known ones — is what made raw and rendered views drift)
+  result.intro = lines
+    .slice(0, firstHeaderIdx)
+    .join('\n')
+    .trim();
+  result.mainContent = '';
+
+  let currentSection = '';
+  const body: string[] = [];
+  for (let i = firstHeaderIdx; i < lines.length; i += 1) {
     const line = lines[i].trim();
     const matched = line.startsWith('## ') ? matchHeader(line) : null;
 
     if (matched) {
       currentSection = matched;
-      if (matched === 'mainContent') {
-        mainContentStart = i + 2; // skip the header and the blank line
-      } else if (mainContentStart === 0) {
-        mainContentStart = i;
-      }
       continue;
     }
     if (line.startsWith('## ')) {
@@ -80,14 +94,15 @@ export function parseStructuredContent(content: string): StructuredContent {
       case 'mentions':
         if (line.startsWith('- ')) result[currentSection].push(line.slice(2).trim());
         break;
+      case 'mainContent':
+      case 'other':
+        body.push(lines[i]);
+        break;
       default:
         break;
     }
   }
-
-  if (mainContentStart > 0 && mainContentStart < lines.length) {
-    result.mainContent = lines.slice(mainContentStart).join('\n');
-  }
+  result.mainContent = body.join('\n').trim();
   return result;
 }
 

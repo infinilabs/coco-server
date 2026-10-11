@@ -539,14 +539,14 @@ export function Component() {
 
   // rewrite wikilinks into #wikilink anchors so they survive the markdown
   // pipeline; renderLink turns them back into capsules at render time
-  const mainContent = useMemo(() => {
-    const raw = structured?.mainContent ?? '';
+  const rewriteWikiLinks = useCallback((raw: string) => {
     return raw.replace(/\[\[([^:\[\]]+):([^\[\]]+)]]/g, (_m, t: string, n: string) => {
       const type = String(t).trim();
       const label = String(n).trim();
       return `[${label}](#wikilink?t=${encodeURIComponent(type)}&n=${encodeURIComponent(label)})`;
     });
-  }, [structured?.mainContent]);
+  }, []);
+  const mainContent = useMemo(() => rewriteWikiLinks(structured?.mainContent ?? ''), [structured?.mainContent, rewriteWikiLinks]);
 
   const renderWikiLink = useCallback(
     (href: string) => {
@@ -856,6 +856,16 @@ export function Component() {
                 <div className='wiki-doc-surface'>
                   {structured && (
                     <>
+                      {structured.intro.trim() && (
+                        // the lead paragraph(s) before the first section header —
+                        // markdown so bold/citations in the draft preamble survive
+                        <div className='wiki-article-lead'>
+                          <Markdown
+                            content={rewriteWikiLinks(structured.intro)}
+                            renderLink={renderWikiLink}
+                          />
+                        </div>
+                      )}
                       {structured.definition && (
                         <Section title={t('page.wiki.article.sections.definition')}>
                           <Typography.Paragraph className='text-15px leading-7 !mb-0'>

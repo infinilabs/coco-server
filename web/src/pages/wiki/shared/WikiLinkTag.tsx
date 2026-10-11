@@ -64,8 +64,10 @@ export function WikiLinkTag({ type, label, resolved = false, onClick }: WikiLink
 
 /**
  * Splits text on `[[type:name]]` wikilinks and renders each hit as a
- * capsule; everything between stays plain. Powers the article's
- * non-markdown sections (definition, lists, mentions).
+ * capsule; markdown links in the remaining text render as real anchors
+ * (citation entries carry `[file](#/preview/...)` links — leaving them
+ * literal is what made the raw and rendered views drift). Powers the
+ * article's non-markdown sections (definition, lists, mentions).
  */
 export function renderInlineWikiLinks(
   text: string,
@@ -78,7 +80,7 @@ export function renderInlineWikiLinks(
   let m: RegExpExecArray | null;
   let key = 0;
   while ((m = re.exec(text)) !== null) {
-    if (m.index > last) out.push(text.slice(last, m.index));
+    if (m.index > last) renderMarkdownLinks(text.slice(last, m.index), `md-${key++}`, out);
     const type = m[1].trim();
     const label = m[2].trim();
     out.push(
@@ -92,6 +94,31 @@ export function renderInlineWikiLinks(
     );
     last = re.lastIndex;
   }
-  if (last < text.length) out.push(text.slice(last));
+  if (last < text.length) renderMarkdownLinks(text.slice(last), `md-${key++}`, out);
   return out;
+}
+
+/** render `[label](href)` markdown links inside a plain-text segment */
+function renderMarkdownLinks(segment: string, keyPrefix: string, out: ReactNode[]) {
+  // href may carry a markdown title: [label](href "title")
+  const re = /\[([^\]\[]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let key = 0;
+  while ((m = re.exec(segment)) !== null) {
+    if (m.index > last) out.push(segment.slice(last, m.index));
+    const href = m[2];
+    out.push(
+      <a
+        key={`${keyPrefix}-${key++}`}
+        href={href}
+        rel='noreferrer'
+        target={/^https?:/i.test(href) ? '_blank' : undefined}
+      >
+        {m[1]}
+      </a>
+    );
+    last = re.lastIndex;
+  }
+  if (last < segment.length) out.push(segment.slice(last));
 }
