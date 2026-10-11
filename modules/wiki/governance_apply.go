@@ -6,6 +6,7 @@ package wiki
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	log "github.com/cihub/seelog"
@@ -389,8 +390,14 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 		}
 		fmt.Fprintf(&body, "%d. %s", i+1, claim)
 		if s.DocID != "" {
-			// the citation is a live link to the source document's preview
-			fmt.Fprintf(&body, "（来源:[%s](#/preview/document/%s)）", s.DocID, s.DocID)
+			// the citation carries the supporting excerpt: hover shows the
+			// exact backing text, clicking opens the source document with
+			// that excerpt highlighted (W17 quote locator)
+			excerpt := strings.TrimSpace(s.Excerpt)
+			if len([]rune(excerpt)) > 120 {
+				excerpt = string([]rune(excerpt)[:120]) + "…"
+			}
+			fmt.Fprintf(&body, " [源](#/preview/document/%s?q=%s \"%s\")", s.DocID, url.QueryEscape(excerpt), excerpt)
 		}
 		body.WriteString("\n")
 	}
