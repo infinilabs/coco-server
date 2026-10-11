@@ -332,7 +332,7 @@ export function WikiShell({ kbId, articleId, children }: Props) {
     if (!key.startsWith('kb:')) return Promise.resolve();
     const id = key.slice(3);
     if (tocs[id]) return Promise.resolve();
-    return getWikiToc(id).then(({ nodes, pageTypes: types }) => storeToc(id, nodes, types));
+    return getWikiToc(id).then(({ nodes, pageTypes: types }) => storeToc(id, nodes ?? [], types));
   };
 
   const onExpand = (keys: React.Key[]) => {
