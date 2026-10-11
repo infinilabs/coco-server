@@ -911,7 +911,11 @@ export function Component() {
                           />
                         </Section>
                       )}
-                      {structured.mentions.length > 0 && (
+                      {/* the sources section below renders the same citations
+                          as richer cards (locator + excerpt + open-source link);
+                          the raw mention blockquotes are only a fallback for
+                          articles that carry no stored sources */}
+                      {structured.mentions.length > 0 && article.sources.length === 0 && (
                         <Section title={t('page.wiki.article.sections.mentions')}>
                           <div className='flex flex-col gap-8px'>
                             {structured.mentions.map(mention => (
