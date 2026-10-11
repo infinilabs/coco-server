@@ -1,6 +1,6 @@
 import Vditor from 'vditor';
 import 'vditor/dist/index.css';
-import { Select } from 'antd';
+import { Button, Select } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { uploadAttachment } from '@/service/api/ai-search';
 
@@ -35,6 +35,20 @@ export function WikiVditorEditor({
   const readyRef = useRef(false);
   const pickImageRef = useRef<(() => void) | null>(null);
   const onChangeRef = useRef(onChange);
+  // 选中图片后浮出的宽度工具条
+  const [imgTool, setImgTool] = useState<{ x: number; y: number; img: HTMLImageElement } | null>(null);
+
+  // 尺寸工具条:按百分比设定宽度,写入 alt(名称|像素)持久化
+  const applyImgWidth = (pct: number) => {
+    if (!imgTool) return;
+    const img = imgTool.img;
+    const px = Math.round((containerRef.current?.clientWidth || 800) * pct);
+    img.style.width = px + 'px';
+    img.style.height = 'auto';
+    const base = (img.alt || '图片').split('|')[0];
+    img.alt = `${base}|${px}`;
+    setImgTool(null);
+  };
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -108,6 +122,18 @@ export function WikiVditorEditor({
     });
     vdRef.current = vd;
 
+    // 点击 wysiwyg 里的图片 → 浮出尺寸工具条
+    const onEditorClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName !== 'IMG') {
+        setImgTool(null);
+        return;
+      }
+      const b = target.getBoundingClientRect();
+      setImgTool({ x: b.left + window.scrollX, y: b.top + window.scrollY - 44, img: target as HTMLImageElement });
+    };
+    containerRef.current.addEventListener('click', onEditorClick);
+
     // 隐藏文件选择器:工具栏图片按钮/编辑器内图片上传共用
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -141,6 +167,7 @@ export function WikiVditorEditor({
     };
     window.addEventListener('resize', onResize);
     return () => {
+      containerRef.current?.removeEventListener('click', onEditorClick);
       window.removeEventListener('resize', onResize);
       readyRef.current = false;
       try {
@@ -171,6 +198,21 @@ export function WikiVditorEditor({
 
   return (
     <div className='w-full'>
+      {imgTool && (
+        <div
+          className='fixed z-50 flex items-center gap-4px rounded-4px border border-solid border-[var(--ant-color-border-secondary)] bg-[var(--ant-color-bg-container)] px-6px py-4px shadow-md'
+          style={{ left: imgTool.x, top: Math.max(imgTool.y, 60) }}
+        >
+          {[0.25, 0.5, 0.75, 1].map(p => (
+            <Button key={p} onClick={() => applyImgWidth(p)} size='small'>
+              {p * 100}%
+            </Button>
+          ))}
+          <Button onClick={() => setImgTool(null)} size='small' type='text'>
+            ✕
+          </Button>
+        </div>
+      )}
       <div className='mb-4px flex items-center gap-8px'>
         <Select
           showSearch
