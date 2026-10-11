@@ -151,6 +151,47 @@ export function Component() {
   // entity picker options for the wikilink tool (loaded once per edit session)
   const [entityOptions, setEntityOptions] = useState<{ value: string; type: string }[]>([]);
 
+  // paste an image from the clipboard: upload it and drop a markdown
+  // image at the cursor — the round trip (upload → insert → render) is
+  // one seamless paste
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const uploadAndInsertImages = async (files: File[], caret: number) => {
+    if (!files.length) return;
+    setUploadingImages(true);
+    try {
+      const res: any = await uploadAttachment(files);
+      const ids: string[] = res?.attachments || [];
+      if (!ids.length) throw new Error('no attachment ids');
+      const snippets = ids.map((id, i) => {
+        const name = files[i]?.name?.replace(/\.[^.]+$/, '') || `image-${i + 1}`;
+        return `![${name}](/attachment/${id})`;
+      });
+      const base = draft.content?.slice(0, caret) ?? '';
+      const tail = draft.content?.slice(caret) ?? '';
+      const next = `${base}\n${snippets.join('\n')}\n${tail}`;
+      setDraft(d => ({ ...d, content: next }));
+      window.$message?.success(t('page.wiki.editor.imageUploaded', { count: ids.length }));
+    } catch (err) {
+      window.$message?.error(t('page.wiki.editor.imageFailed'));
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const onContentPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const files: File[] = [];
+    for (const item of e.clipboardData?.items || []) {
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        const f = item.getAsFile();
+        if (f) files.push(f);
+      }
+    }
+    if (!files.length) return;
+    e.preventDefault();
+    const caret = (e.currentTarget as HTMLTextAreaElement).selectionStart ?? draft.content?.length ?? 0;
+    uploadAndInsertImages(files, caret);
+  };
+
   // wrap the selection (or drop a placeholder at the cursor) in the given markers
   const insertAround = (before: string, after: string, placeholder: string) => {
     const el = contentRef.current?.resizableTextArea?.textArea as HTMLTextAreaElement | undefined;
@@ -705,6 +746,11 @@ export function Component() {
                     ))}
                   </Select>
                 </div>
+                {uploadingImages && (
+                  <Spin size='small'>
+                    <Tag bordered={false}>{t('page.wiki.editor.uploading')}</Tag>
+                  </Spin>
+                )}
                 <Button
                   icon={<EyeOutlined />}
                   size='small'
@@ -720,6 +766,7 @@ export function Component() {
                   className={`font-mono ${preview ? 'min-w-0 flex-1' : ''}`}
                   ref={contentRef}
                   value={draft.content}
+                  onPaste={onContentPaste}
                   onChange={e => setDraft(d => ({ ...d, content: e.target.value }))}
                 />
                 {preview && (

@@ -513,8 +513,12 @@ func proposeTreeOrganization(ctx *orm.Context, kb *core.WikiKnowledgeBase, exist
 	if ids := articleIDsOf(existing); len(ids) > 0 {
 		orm.WithModel(ctx, &core.WikiEntity{})
 		if res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1000).
-			Filter(orm.TermsQuery("article_id", ids))); err == nil && res != nil {
-			if entities, _, derr := elastic.DecodeHits[core.WikiEntity](res); derr == nil {
+			Filter(orm.TermsQuery("article_id", ids))); err != nil {
+			log.Warnf("wiki compiler: tree entity lookup failed (%d ids): %v", len(ids), err)
+		} else if res != nil {
+			if entities, _, derr := elastic.DecodeHits[core.WikiEntity](res); derr != nil {
+				log.Warnf("wiki compiler: tree entity decode failed: %v", derr)
+			} else {
 				for i := range entities {
 					if entities[i].ArticleID != "" {
 						articleType[entities[i].ArticleID] = entities[i].Type
@@ -522,6 +526,7 @@ func proposeTreeOrganization(ctx *orm.Context, kb *core.WikiKnowledgeBase, exist
 				}
 			}
 		}
+		log.Infof("wiki compiler: tree grouping looked up %d articles, matched %d entity types", len(ids), len(articleType))
 	}
 
 	folders := []struct {

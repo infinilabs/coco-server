@@ -73,6 +73,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       link: 'Link',
       wikilink: 'Wikilink [[type:name]]',
       italic: 'Italic', strike: 'Strikethrough', quote: 'Quote', code: 'Code block', table: 'Table', entityPicker: 'Insert entity link',
+      imageUploaded: 'Uploaded and inserted {{count}} image(s)', imageFailed: 'Image upload failed', uploading: 'Uploading image',
       sectionTitle: 'Section title',
       text: 'text',
       item: 'item',

@@ -73,6 +73,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       link: '链接',
       wikilink: '维基链接 [[type:name]]',
       italic: '斜体', strike: '删除线', quote: '引用', code: '代码块', table: '表格', entityPicker: '插入实体链接',
+      imageUploaded: '已上传并插入 {{count}} 张图片', imageFailed: '图片上传失败', uploading: '图片上传中',
       sectionTitle: '章节标题',
       text: '文本',
       item: '条目',
