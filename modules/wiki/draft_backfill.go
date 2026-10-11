@@ -95,47 +95,49 @@ func backfillDraftEntityContent() {
 // title. Shared by the extraction pipeline (new drafts) and the startup
 // backfill (legacy stubs).
 func DraftEntityContent(entity *core.WikiEntity) string {
-	var sb strings.Builder
-	fmt.Fprintf(&sb, "> 本页由知识管道依据 %d 条来源自动起草，内容以来源原文为准，等待人工审阅完善。\n\n", len(entity.Sources))
-	if entity.Type != "" {
-		fmt.Fprintf(&sb, "**%s** 是管道识别出的「%s」类实体。\n\n", entity.Name, entity.Type)
+	name := entity.Name
+	typeLabel := entity.Type
+	if typeLabel == "" {
+		typeLabel = "实体"
 	}
+
+	var sb strings.Builder
+	// 首段定义:结构与百科词条一致(无标题导语)
+	sb.WriteString(fmt.Sprintf("**%s** 是知识管道从 %d 份来源资料中识别出的「%s」类实体，以下主张均附来源出处，等待人工审阅完善。\n\n",
+		name, len(entity.Sources), typeLabel))
+
+	// 来源引用:每条引用 = 来源文档 + 支撑原文摘录 + 跳转高亮链接
 	if len(entity.Sources) > 0 {
-		sb.WriteString("## 来源主张\n\n")
+		sb.WriteString("## 来源引用\n\n")
 		shown := 0
-		for _, s := range entity.Sources {
-			line := strings.TrimSpace(s.Excerpt)
-			if line == "" {
-				line = strings.TrimSpace(s.Title)
+		for _, s2 := range entity.Sources {
+			claim := strings.TrimSpace(s2.Excerpt)
+			if claim == "" {
+				claim = strings.TrimSpace(s2.Title)
 			}
-			if line == "" {
+			if claim == "" {
 				continue
 			}
-			title := strings.TrimSpace(s.Title)
+			title := strings.TrimSpace(s2.Title)
 			if title == "" {
-				title = s.DocID
+				title = s2.DocID
 			}
-			// the citation opens the source document with this exact
-			// excerpt highlighted (W17 quote locator)
-			link := ""
-			if s.DocID != "" {
-				excerpt := strings.TrimSpace(s.Excerpt)
+			cite := title
+			if s2.DocID != "" {
+				excerpt := strings.TrimSpace(s2.Excerpt)
 				if len([]rune(excerpt)) > 120 {
 					excerpt = string([]rune(excerpt)[:120]) + "…"
 				}
-				link = fmt.Sprintf("[原文](#/preview/document/%s?q=%s \"%s\")", s.DocID, url.QueryEscape(excerpt), excerpt)
+				cite = fmt.Sprintf("[%s](#/preview/document/%s?q=%s \"%s\")", title, s2.DocID, url.QueryEscape(excerpt), excerpt)
 			}
-			if link != "" {
-				fmt.Fprintf(&sb, "%d. **%s** — %s %s\n", shown+1, title, line, link)
-			} else {
-				fmt.Fprintf(&sb, "%d. **%s** — %s\n", shown+1, title, line)
-			}
+			fmt.Fprintf(&sb, "- %s（来源：%s）\n", claim, cite)
 			shown++
 		}
 		if shown == 0 {
-			sb.WriteString("（来源摘录为空，等待补充）\n")
+			sb.WriteString("-（来源摘录为空，等待补充）\n")
 		}
 	}
+
 	if len(entity.Aliases) > 0 {
 		sb.WriteString("\n## 别名\n\n" + strings.Join(entity.Aliases, "、") + "\n")
 	}

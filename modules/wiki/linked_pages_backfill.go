@@ -122,20 +122,19 @@ func backfillLinkedPages() {
 	}
 }
 
-// needsCitationUpgrade reports whether the page body predates the linked
-// 原文 citation (or has no body worth keeping).
+// needsCitationUpgrade reports whether the page body predates the canonical
+// wiki format (来源引用 section with linked 原文 citations).
 func needsCitationUpgrade(a *core.WikiArticle) bool {
-	if strings.Contains(a.Content, "[原文](") {
-		return false
-	}
-	// regenerate anything entity-backed whose body is missing, thin, or
-	// written by an older citation format
 	if strings.TrimSpace(a.Content) == "" {
 		return true
 	}
 	if legacyCitationPattern.MatchString(a.Content) {
 		return true
 	}
-	// old DraftEntityContent bodies: 来源主张 claims without links
-	return strings.Contains(a.Content, "## 来源主张") && !strings.Contains(a.Content, "[原文](")
+	// canonical pages carry the 来源引用 section; anything entity-backed
+	// without it was written by an older format
+	if a.EntityID != "" && !strings.Contains(a.Content, "## 来源引用") {
+		return true
+	}
+	return false
 }
