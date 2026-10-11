@@ -79,7 +79,11 @@ export function parseStructuredContent(content: string): StructuredContent {
       continue;
     }
     if (line.startsWith('## ')) {
+      // unrecognized section: keep the heading in the rendered markdown so
+      // the section still shows its title (dropping it made raw and rendered
+      // views disagree — content floated out with no header)
       currentSection = 'other';
+      body.push(lines[i]);
       continue;
     }
 
