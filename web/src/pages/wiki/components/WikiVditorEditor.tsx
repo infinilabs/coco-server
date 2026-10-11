@@ -33,6 +33,7 @@ export function WikiVditorEditor({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const vdRef = useRef<Vditor | null>(null);
   const readyRef = useRef(false);
+  const pickImageRef = useRef<(() => void) | null>(null);
   const onChangeRef = useRef(onChange);
 
   useEffect(() => {
@@ -45,6 +46,7 @@ export function WikiVditorEditor({
       value: value ?? '',
       height,
       mode: 'wysiwyg',
+      lang: 'zh_CN',
       theme: darkMode ? 'dark' : 'classic',
       cache: { enable: false },
       counter: { enable: true },
@@ -63,6 +65,7 @@ export function WikiVditorEditor({
         'inline-code',
         'table',
         'link',
+        { name: 'insert-image', tipPosition: 'n', tip: '上传图片', className: 'wiki-vditor-image', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>', click: () => pickImageRef.current?.() },
         '|',
         'undo',
         'redo',
@@ -74,27 +77,27 @@ export function WikiVditorEditor({
       toolbarConfig: { pin: true },
       upload: {
         accept: 'image/*',
-        // 粘贴/选择图片 → /attachment/_upload → 以 markdown 图片插回光标处
+        // 粘贴/选择图片 → /attachment/_upload → 返回的字符串会被 vditor
+        // 原样插入光标处，因此直接返回 markdown 图片语法
         handler(files: File[]): Promise<string> {
           return uploadAttachment(Array.from(files))
             .then((res: any) => {
-              const ids: string[] = res?.attachments || [];
-              if (!ids.length) throw new Error('upload failed');
-              const succMap: Record<string, string> = {};
-              files.forEach((f, i) => {
-                const id = ids[i];
-                if (id) succMap[f.name] = `/attachment/${id}`;
-              });
-              // vditor 约定的响应格式:自动在光标处插入 succMap 里的 markdown
-              return JSON.stringify({
-                msg: '',
-                code: 0,
-                data: { errFiles: [], succMap }
-              });
+              const ids: string[] = res?.data?.attachments || res?.attachments || [];
+              if (!ids.length) throw new Error('upload failed: no attachment ids');
+              return files
+                .map((f, i) => {
+                  const id = ids[i];
+                  if (!id) return '';
+                  const name = f.name.replace(/\.[^.]+$/, '') || `image-${i + 1}`;
+                  return `![${name}](/attachment/${id})`;
+                })
+                .filter(Boolean)
+                .join('\n');
             })
-            .catch((err: unknown) =>
-              JSON.stringify({ msg: String(err).slice(0, 80), code: -1, data: {} })
-            );
+            .catch((err: unknown) => {
+              window.$message?.error(String(err).slice(0, 80));
+              return '';
+            });
         }
       },
       after() {
@@ -104,6 +107,31 @@ export function WikiVditorEditor({
       input: (v: string) => onChangeRef.current?.(v)
     });
     vdRef.current = vd;
+
+    // 隐藏文件选择器:工具栏图片按钮/编辑器内图片上传共用
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.multiple = true;
+    fileInput.style.display = 'none';
+    fileInput.onchange = () => {
+      const files = Array.from(fileInput.files || []);
+      if (!files.length) return;
+      uploadAttachment(files)
+        .then((res: any) => {
+          const ids: string[] = res?.data?.attachments || res?.attachments || [];
+          ids.forEach((id, i) => {
+            const name = files[i]?.name?.replace(/\.[^.]+$/, '') || `image-${i + 1}`;
+            vd.insertValue(`\n![${name}](/attachment/${id})\n`);
+          });
+        })
+        .catch((err: unknown) => console.error('image upload failed', err))
+        .finally(() => {
+          fileInput.value = '';
+        });
+    };
+    containerRef.current.parentElement?.appendChild(fileInput);
+    pickImageRef.current = () => fileInput.click();
 
     const onResize = () => {
       if (containerRef.current && vdRef.current) {
