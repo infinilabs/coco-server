@@ -124,7 +124,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     visibility: { public: 'Public', private: 'Private', team: 'Team' },
     aiStatus: { ready: 'AI Ready', processing: 'AI Processing', queued: 'AI Queued', updating: 'AI Updating' },
     pageType: { concept: 'Concept', entity: 'Entity', source: 'Source', map: 'Company map' },
-    status: { draft: 'Draft', reviewed: 'Reviewed', published: 'Published', archived: 'Archived' },
+    status: { draft: 'Draft', reviewed: 'Reviewed', published: 'Published', archived: 'Archived', proposed: 'Proposed', retired: 'Retired' },
     confidence: { high: 'High', medium: 'Medium', low: 'Low' },
     role: { owner: 'Owner', editor: 'Editor', viewer: 'Viewer', agent: 'Agent' },
     changeType: { 'ai-generated': 'AI Generated', 'human-edited': 'Human Edited', 'auto-updated': 'Auto Updated' },
@@ -155,6 +155,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       done: 'Applied as version v{{version}}'
     },
         entity: {
+          hoverDetails: 'View details',
           properties: 'Properties',
           relations: 'Relations',
           forward: '→',

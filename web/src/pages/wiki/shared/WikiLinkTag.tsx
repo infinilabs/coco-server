@@ -1,4 +1,4 @@
-import { Tag, Tooltip } from 'antd';
+import { Popover, Tag, Tooltip } from 'antd';
 import type { CSSProperties, MouseEvent, ReactNode } from 'react';
 import { useMemo } from 'react';
 
@@ -22,10 +22,14 @@ interface WikiLinkTagProps {
   resolved?: boolean;
   onClick?: (e: MouseEvent<HTMLSpanElement>) => void;
   children?: ReactNode;
+  /** resolved links may carry a hover card (entity preview) — the type
+   * itself never renders inline: the capsule color codes it and the card
+   * spells it out */
+  popover?: ReactNode;
 }
 
 /** An inline entity capsule for a `[[type:name]]` wikilink (ontology O4). */
-export function WikiLinkTag({ type, label, resolved = false, onClick }: WikiLinkTagProps) {
+export function WikiLinkTag({ type, label, resolved = false, onClick, popover }: WikiLinkTagProps) {
   const { t } = useTranslation();
   const style = useMemo<CSSProperties>(() => {
     if (!resolved) {
@@ -47,17 +51,19 @@ export function WikiLinkTag({ type, label, resolved = false, onClick }: WikiLink
 
   const tag = (
     <Tag className="m-0 inline-flex items-center gap-2px" style={style} onClick={onClick}>
-      {type ? (
-        <span className="font-mono text-11px opacity-70" title={type}>
-          {type}
-        </span>
-      ) : null}
       <span>{label}</span>
     </Tag>
   );
 
   if (!resolved) {
     return <Tooltip title={t('page.wiki.wikiLink.unresolved')}>{tag}</Tooltip>;
+  }
+  if (popover) {
+    return (
+      <Popover content={popover} mouseEnterDelay={0.35} placement="top" trigger="hover">
+        {tag}
+      </Popover>
+    );
   }
   return tag;
 }

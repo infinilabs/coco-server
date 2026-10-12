@@ -69,6 +69,7 @@ import {
 } from '@/service/api';
 import { parseStructuredContent, parseWikiLink } from '../shared/content';
 import { WikiLinkTag, renderInlineWikiLinks } from '../shared/WikiLinkTag';
+import { EntityHoverCard } from '../shared/EntityHoverCard';
 import { EntityArticleSections } from '../components/EntityArticleSections';
 import { WikiVditorEditor } from '../components/WikiVditorEditor';
 import { diffLines } from '../shared/diff';
@@ -598,6 +599,23 @@ export function Component() {
     [linkIndex, kbId, article?.kb_id, nav]
   );
 
+  // hover card for resolved wikilink capsules: type/status/aliases at a
+  // glance plus the jump — fetched lazily on first hover, cached per id
+  const entityHoverCard = useCallback(
+    (entityId: string, type: string, onOpen: () => void) => {
+      const statusLabel: Record<string, string> = {
+        proposed: t('page.wiki.status.proposed'),
+        reviewed: t('page.wiki.status.reviewed'),
+        published: t('page.wiki.status.published'),
+        retired: 'retired'
+      };
+      return (
+        <EntityHoverCard entityId={entityId} type={type} statusLabel={statusLabel} detailsLabel={t('page.wiki.entity.hoverDetails')} onOpen={onOpen} />
+      );
+    },
+    [t]
+  );
+
   // rewrite wikilinks into #wikilink anchors so they survive the markdown
   // pipeline; renderLink turns them back into capsules at render time
   const rewriteWikiLinks = useCallback((raw: string) => {
@@ -615,16 +633,18 @@ export function Component() {
       const params = new URLSearchParams(href.slice('#wikilink?'.length));
       const type = params.get('t') || '';
       const label = params.get('n') || '';
+      const lp = linkIndex.get(`${type}:${label}`);
       return (
         <WikiLinkTag
           label={label}
           resolved={resolveWikiLink(type, label)}
           type={type}
           onClick={() => openWikiLink(type, label)}
+          popover={lp?.entity_id ? entityHoverCard(lp.entity_id, type, () => openWikiLink(type, label)) : undefined}
         />
       );
     },
-    [resolveWikiLink, openWikiLink]
+    [resolveWikiLink, openWikiLink, entityHoverCard, linkIndex]
   );
 
   const currentDiff = useMemo(

@@ -124,7 +124,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     visibility: { public: '公开', private: '私有', team: '团队' },
     aiStatus: { ready: 'AI 就绪', processing: 'AI 处理中', queued: 'AI 排队中', updating: 'AI 更新中' },
     pageType: { concept: '概念', entity: '实体', source: '来源', map: '公司地图' },
-    status: { draft: '草稿', reviewed: '已审核', published: '已发布', archived: '已归档' },
+    status: { draft: '草稿', reviewed: '已审核', published: '已发布', archived: '已归档', proposed: '待审', retired: '已下线' },
     confidence: { high: '高', medium: '中', low: '低' },
     role: { owner: '所有者', editor: '编辑者', viewer: '查看者', agent: '智能体' },
     changeType: { 'ai-generated': 'AI 生成', 'human-edited': '人工编辑', 'auto-updated': '自动更新' },
@@ -155,6 +155,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       done: '已应用为版本 v{{version}}'
     },
         entity: {
+          hoverDetails: '查看详情',
           properties: '属性',
           relations: '关系',
           forward: '→',
