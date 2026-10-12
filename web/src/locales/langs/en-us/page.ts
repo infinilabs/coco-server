@@ -258,6 +258,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       aiGenerate: 'AI Generate',
       toc: 'Contents',
       notFound: 'Knowledge base not found',
+      notFoundHint: 'This article was deleted, or the link points at a page that no longer exists',
       docsUnit: 'docs',
       lastSynced: 'Synced',
       human: 'Human',

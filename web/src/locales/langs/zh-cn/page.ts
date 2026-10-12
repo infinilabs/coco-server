@@ -258,6 +258,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       aiGenerate: 'AI 生成',
       toc: '目录',
       notFound: '知识库不存在',
+      notFoundHint: '这篇文章已被删除，或链接指向了不存在的页面',
       docsUnit: '篇文档',
       lastSynced: '同步于',
       human: '人工',

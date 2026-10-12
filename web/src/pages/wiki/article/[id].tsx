@@ -35,6 +35,7 @@ import {
   Modal,
   Select,
   Space,
+  Result,
   Spin,
   Tag,
   Tooltip,
@@ -154,6 +155,7 @@ export function Component() {
   const [article, setArticle] = useState<Api.Wiki.Article | null>(null);
   const [materials, setMaterials] = useState<Api.Wiki.ArticleMaterial[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [editing, setEditing] = useState(false);
   const contentRef = useRef<any>(null);
   // entity picker options for the wikilink tool (loaded once per edit session)
@@ -401,11 +403,18 @@ export function Component() {
   const fetchArticle = () => {
     if (!id) return;
     setLoading(true);
-    getWikiArticle(id).then(res => {
-      const a = res as any as Api.Wiki.Article | null;
-      setArticle(a);
-      setLoading(false);
-    });
+    getWikiArticle(id)
+      .then(res => {
+        const a = res as any as Api.Wiki.Article | null;
+        setArticle(a);
+        setNotFound(!a);
+        setLoading(false);
+      })
+      .catch(() => {
+        setArticle(null);
+        setNotFound(true);
+        setLoading(false);
+      });
     getWikiArticleMaterials(id)
       .then(m => setMaterials(m as Api.Wiki.ArticleMaterial[]))
       .catch(() => {});
@@ -611,7 +620,27 @@ export function Component() {
   };
 
   if (!loading && !article) {
-    return <Empty description={t('page.wiki.article.notFound')} />;
+    // the article is gone (deleted, or a stale link from a tree/entity) —
+    // a friendly landing with a way back instead of a bare empty icon
+    return (
+      <WikiShell articleId={id} kbId={kbId}>
+        <div className='wiki-article-page min-h-500px flex items-center justify-center'>
+          <Result
+            status='404'
+            title={t('page.wiki.article.notFound')}
+            subTitle={t('page.wiki.article.notFoundHint')}
+            extra={
+              <Button
+                type='primary'
+                onClick={() => nav(kbId ? `/wiki/kb/${kbId}` : '/wiki/list')}
+              >
+                {t('common.backToPrev')}
+              </Button>
+            }
+          />
+        </div>
+      </WikiShell>
+    );
   }
 
   const backTo = () => nav(kbId ? `/wiki/kb/${kbId}` : '/wiki/list');
