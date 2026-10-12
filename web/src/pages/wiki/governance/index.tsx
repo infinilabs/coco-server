@@ -206,12 +206,8 @@ export function Component() {
       .then((res: any) => {
         const action = res?.applied || '';
         window.$message?.success(t('page.wiki.governance.applied', { action }));
-        // a generated page is the visible outcome — land on it so the fix
-        // is inspectable; other fixes stay in the queue
-        if (proposal.type === 'knowledge_compile' && res?.article_id) {
-          nav(`/wiki/article/${res.article_id}?kb=${proposal.kb_id || ''}`);
-          return;
-        }
+        // stay on the queue — the review work is batch work; the outcome is
+        // visible via the refreshed list and the generated page via its row
         fetchData();
       })
       .catch(() => {
@@ -271,7 +267,6 @@ export function Component() {
               const dupOf = proposal.evidence?.duplicate_of;
               return (
                 <List.Item
-                  className='cursor-pointer'
                   actions={[
                     APPLICABLE.has(proposal.type) && (
                       <Popconfirm
@@ -319,7 +314,6 @@ export function Component() {
                       </Button>
                     </Popconfirm>
                   ].filter(Boolean)}
-                  onClick={() => goArticle(proposal)}
                 >
                   <List.Item.Meta
                     description={
@@ -379,7 +373,17 @@ export function Component() {
                             {t(`page.wiki.governance.type.${proposal.type}`)}
                           </Tag>
                         </Badge>
-                        <a>{proposal.article_title || proposal.article_id}</a>
+                        {/* the only row-jump affordance: an explicit title link —
+                            confirm/dismiss actions must never navigate away */}
+                        <a
+                          className='cursor-pointer'
+                          onClick={e => {
+                            e.stopPropagation();
+                            goArticle(proposal);
+                          }}
+                        >
+                          {proposal.article_title || proposal.article_id}
+                        </a>
                       </Space>
                     }
                   />
