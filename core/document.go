@@ -58,6 +58,11 @@ type Document struct {
 	// content fingerprint written at every save (D1.5): the dedup engine
 	// and retrieval-time duplicate folding key on it
 	ContentHash string `json:"content_hash,omitempty" elastic_mapping:"content_hash:{type:keyword}"`
+	// SourceFingerprint is the collect-time change detector (size/mtime of
+	// the source): the sync skip gate compares it against the indexed copy
+	// and drops re-collected messages for unchanged sources before they
+	// reach the enrichment queue
+	SourceFingerprint string `json:"source_fingerprint,omitempty" elastic_mapping:"source_fingerprint:{type:keyword}"`
 	// ContentSimhash reinterprets the 64-bit simhash as signed: the engine's
 	// long field is signed and rejects values with the high bit set — the
 	// bit pattern is what matters for candidate matching, not the sign.

@@ -14,7 +14,9 @@ package fingerprint
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"hash/fnv"
+	"os"
 	"strings"
 	"unicode"
 
@@ -80,4 +82,17 @@ func Compute(text string) (hashHex string, sim uint64, ok bool) {
 		}
 	}
 	return hashHex, sim, true
+}
+
+// SourceFS builds the cheap change fingerprint of a filesystem entry:
+// size plus nanosecond mtime catches edits, appends and touch-renames
+// without reading the file. Empty when the info is missing — those
+// sources always re-enrich.
+func SourceFS(info os.FileInfo) string {
+	if info == nil {
+		return ""
+	}
+	h := sha256.New()
+	fmt.Fprintf(h, "fs:%d|%d", info.Size(), info.ModTime().UnixNano())
+	return hex.EncodeToString(h.Sum(nil))
 }

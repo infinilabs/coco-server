@@ -15,6 +15,7 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/modules/document"
+	"infini.sh/coco/plugins/connectors"
 	fwconfig "infini.sh/framework/core/config"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/param"
@@ -133,6 +134,14 @@ func (p *ProcessDocumentsProcessor) processMessage(msg queue.Message) error {
 		}
 	}
 
+	// Folder documents carry no content to enrich: exempt them from the
+	// enrichment chain entirely — the tree aggregation keys on folder_path,
+	// not enrichment fields, and every chain processor would otherwise
+	// wake up per folder per sync just to no-op.
+	if doc.Type == connectors.TypeFolder {
+		return p.pushPassthrough(msg.Data, "folder-doc")
+	}
+
 	// No datasource reference — nothing to look up.
 	if doc.Source.ID == "" {
 		return p.pushPassthrough(msg.Data, "no-datasource")
@@ -206,6 +215,9 @@ func (p *ProcessDocumentsProcessor) processMessage(msg queue.Message) error {
 		pipelineErr = err.Error()
 	}
 	tookMs := time.Since(started).Milliseconds()
+	// The framework records every processor the sub-chain executed; carried
+	// into the run record so the timeline can show which stages ran.
+	processors := subCtx.GetFlowProcess()
 
 	// Retrieve the (possibly processed) messages from the sub-context.
 	enriched, ok := subCtx.Get(p.config.MessageField).([]queue.Message)
@@ -219,7 +231,7 @@ func (p *ProcessDocumentsProcessor) processMessage(msg queue.Message) error {
 	// expand one input document into multiple output documents, so we iterate
 	// over the full slice rather than assuming a 1-to-1 mapping.
 	for _, em := range enriched {
-		if err := p.pushEnriched(em.Data, pipelineSucceeded, pipelineName, tookMs, pipelineErr); err != nil {
+		if err := p.pushEnriched(em.Data, pipelineSucceeded, pipelineName, tookMs, pipelineErr, processors); err != nil {
 			log.Errorf("processor [%s] failed to push enriched document to output queue: %v", p.Name(), err)
 		}
 	}
@@ -240,7 +252,7 @@ func (p *ProcessDocumentsProcessor) passthrough(msg queue.Message) error {
 // pushEnriched stamps the terminal lifecycle outcome of an enrichment run
 // (W1) and pushes to the output queue. Falls back to the raw bytes if
 // (de)serialization fails.
-func (p *ProcessDocumentsProcessor) pushEnriched(data []byte, success bool, pipelineName string, tookMs int64, errMsg string) error {
+func (p *ProcessDocumentsProcessor) pushEnriched(data []byte, success bool, pipelineName string, tookMs int64, errMsg string, processors []string) error {
 	if p.outputQueue == nil {
 		return nil
 	}
@@ -248,7 +260,7 @@ func (p *ProcessDocumentsProcessor) pushEnriched(data []byte, success bool, pipe
 	if err := util.FromJSONBytes(data, &doc); err != nil {
 		return queue.Push(p.outputQueue, data)
 	}
-	applyProcessingOutcome(&doc, success, pipelineName, tookMs, errMsg)
+	applyProcessingOutcome(&doc, success, pipelineName, tookMs, errMsg, processors)
 	// W3 方案 c: mirror the (re-)chunked document into the standalone
 	// KnowledgeChunk index — the retrieval face for chunk-level legs
 	if len(doc.Chunks) > 0 {
@@ -279,7 +291,7 @@ func (p *ProcessDocumentsProcessor) pushPassthrough(data []byte, reason string) 
 
 // applyProcessingOutcome stamps the enrichment terminal state and prepends
 // a run record to Metadata["pipeline_runs"] (capped, newest first).
-func applyProcessingOutcome(doc *core.Document, success bool, pipelineName string, tookMs int64, errMsg string) {
+func applyProcessingOutcome(doc *core.Document, success bool, pipelineName string, tookMs int64, errMsg string, processors []string) {
 	if success {
 		doc.Status = core.DocumentStatusCompleted
 		doc.ErrorMessage = ""
@@ -289,13 +301,17 @@ func applyProcessingOutcome(doc *core.Document, success bool, pipelineName strin
 		doc.ErrorMessage = truncateRunError(errMsg)
 		doc.Processed = false
 	}
-	prependRunRecord(doc, util.MapStr{
+	rec := util.MapStr{
 		"pipeline": pipelineName,
 		"took_ms":  tookMs,
 		"success":  success,
 		"at":       time.Now().UTC().Format(time.RFC3339),
 		"error":    truncateRunError(errMsg),
-	})
+	}
+	if len(processors) > 0 {
+		rec["processors"] = processors
+	}
+	prependRunRecord(doc, rec)
 }
 
 // applyPassthroughOutcome marks the lifecycle terminal without claiming
