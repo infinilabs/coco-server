@@ -21,7 +21,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       openArticle: '打开实体页面',
       confidence: '置信度',
       clickArticleHint: '点击文章节点可跳转',
-      dragHint3d: '拖拽旋转 · 滚轮缩放 · 点击文章节点跳转,点击实体节点查看卡片'
+      dragHint3d: '拖拽旋转 · 滚轮缩放 · 放大后显示聚焦区域名称 · 点击实体显示关系与相邻实体'
     },
     settings: {
       basic: '基本信息',
@@ -1733,6 +1733,10 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   ontology: {
+    pageSections: '页面结构 (page_sections)',
+    pageSectionsHint: '生成页面遵循的区块顺序:key 可填 sources(来源引用)/aliases(别名)/properties(类型化属性)/relations:<关系名>(按关系列出关联实体),或自定义 key 渲染为待补充空区块。不配置则使用默认结构',
+    sectionKey: '区块 key,如 relations:contact',
+    sectionTitle: '显示标题,如 关键联系人',
     viewEntities: '查看实体',
     title: '本体词表',
     subtitle: '声明实体类型、类型化属性与关系词表;实体写入按此校验。全局词表为默认,知识库可覆盖。',

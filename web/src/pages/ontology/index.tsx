@@ -1,5 +1,5 @@
 import { DeleteOutlined, PlusOutlined, SaveOutlined, ClusterOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Empty, Input, InputNumber, Modal, Row, Select, Space, Switch, Tag, Tooltip, message } from 'antd';
+import { AutoComplete, Button, Card, Col, Empty, Input, InputNumber, Modal, Row, Select, Space, Switch, Tag, Tooltip, message } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -8,6 +8,7 @@ import {
   searchWikiKbs,
   type OntologyCompileRules,
   type OntologyEntityTypeDef,
+  type OntologyPageSection,
   type OntologyPropertyDef,
   type OntologyRelationDef
 } from '@/service/api';
@@ -84,6 +85,29 @@ export function Component() {
         i === typeIdx ? { ...tp, relations: [...(tp.relations || []), { name: '', target_type: '*' }] } : tp
       )
     );
+  };
+
+  const addPageSection = (typeIdx: number) => {
+    setTypes(prev =>
+      prev.map((tp, i) =>
+        i === typeIdx ? { ...tp, page_sections: [...(tp.page_sections || []), { key: '', title: '' }] } : tp
+      )
+    );
+  };
+
+  // key suggestions: the data-driven built-ins plus one entry per declared
+  // relation of THIS type (relations:<name> renders that group as wikilinks)
+  const sectionKeyOptions = (typeIdx: number) => {
+    const tp = types[typeIdx];
+    const base = [
+      { value: 'sources', label: 'sources — 来源引用' },
+      { value: 'aliases', label: 'aliases — 别名' },
+      { value: 'properties', label: 'properties — 类型化属性' }
+    ];
+    const rels = (tp?.relations || [])
+      .filter(r => r.name)
+      .map(r => ({ value: `relations:${r.name}`, label: `relations:${r.name} — ${r.label || r.name}` }));
+    return [...base, ...rels];
   };
 
   const typeNames = ['*', ...types.map(tp => tp.name)];
@@ -355,6 +379,50 @@ export function Component() {
                     </div>
                   ))}
                 </div>
+              </div>
+              {/* page layout: the section list a generated page follows */}
+              <div className='mt-12px'>
+                <div className='mb-2 flex items-center justify-between'>
+                  <span className='font-medium'>{t('page.ontology.pageSections')}</span>
+                  <Button icon={<PlusOutlined />} onClick={() => addPageSection(typeIdx)} size='small' type='text' />
+                </div>
+                <div className='mb-4px text-gray-500'>{t('page.ontology.pageSectionsHint')}</div>
+                {(tp.page_sections || []).map((sec: OntologyPageSection, secIdx) => (
+                  <div className='mb-2 flex items-center gap-4px' key={secIdx}>
+                    <AutoComplete
+                      className='w-220px'
+                      onChange={v => {
+                        const next = [...(tp.page_sections || [])];
+                        next[secIdx] = { ...sec, key: v };
+                        mutateType(typeIdx, { page_sections: next });
+                      }}
+                      options={sectionKeyOptions(typeIdx)}
+                      placeholder={t('page.ontology.sectionKey')}
+                      size='small'
+                      value={sec.key}
+                    />
+                    <Input
+                      className='w-180px'
+                      onChange={e => {
+                        const next = [...(tp.page_sections || [])];
+                        next[secIdx] = { ...sec, title: e.target.value };
+                        mutateType(typeIdx, { page_sections: next });
+                      }}
+                      placeholder={t('page.ontology.sectionTitle')}
+                      size='small'
+                      value={sec.title}
+                    />
+                    <Button
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={() => mutateType(typeIdx, {
+                        page_sections: (tp.page_sections || []).filter((_, i) => i !== secIdx)
+                      })}
+                      size='small'
+                      type='text'
+                    />
+                  </div>
+                ))}
               </div>
               {tp.properties?.length === 0 && tp.relations?.length === 0 && (
                 <Tag>{t('page.ontology.bareType')}</Tag>

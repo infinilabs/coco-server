@@ -378,28 +378,69 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 		pageType = core.WikiPageTypeEntity
 	}
 
-	var body strings.Builder
-	body.WriteString(fmt.Sprintf("> 本页由知识编译依据 %d 条来源主张自动起草，等待人工审阅。\n\n", len(statements)))
-	for i, s := range statements {
-		claim := strings.TrimSpace(s.Claim)
-		if claim == "" {
-			claim = strings.TrimSpace(s.Excerpt)
+	// layout-aware draft (WeKnora templates): the page's ontology type
+	// (existing entity's type, else the compile kind mapped through the
+	// vocabulary) declares the page_sections that organize the draft —
+	// statements render under the citation section, typed properties and
+	// relation groups fill their declared slots
+	var layout []OntologyPageSection
+	var targetNames map[string]string
+	synthetic := core.WikiEntity{Name: p.ArticleTitle, Type: "concept"}
+	if e := wikiEntityByName(ctx, p.ArticleTitle); e != nil {
+		synthetic.Type = e.Type
+		synthetic.Properties = e.Properties
+		synthetic.Relations = e.Relations
+	}
+	if schema := ResolveOntologySchema(ctx.Context, p.KbID); schema != nil {
+		for i := range schema.EntityTypes {
+			if strings.EqualFold(schema.EntityTypes[i].Name, synthetic.Type) {
+				layout = schema.EntityTypes[i].PageSections
+				break
+			}
 		}
-		if claim == "" {
+		if len(layout) > 0 {
+			targetNames = relationTargetNames(ctx, &synthetic)
+		}
+	}
+	for _, st := range statements {
+		if strings.TrimSpace(st.Claim) == "" && strings.TrimSpace(st.Excerpt) == "" {
 			continue
 		}
-		fmt.Fprintf(&body, "%d. %s", i+1, claim)
-		if s.DocID != "" {
-			// the citation carries the supporting excerpt: hover shows the
-			// exact backing text, clicking opens the source document with
-			// that excerpt highlighted (W17 quote locator)
-			excerpt := strings.TrimSpace(s.Excerpt)
-			if len([]rune(excerpt)) > 120 {
-				excerpt = string([]rune(excerpt)[:120]) + "…"
+		synthetic.Sources = append(synthetic.Sources, core.WikiSourceReference{
+			DocID:   st.DocID,
+			Title:   p.ArticleTitle,
+			Excerpt: strings.TrimSpace(st.Claim),
+		})
+	}
+
+	var body strings.Builder
+	if len(layout) > 0 {
+		intro := fmt.Sprintf("> 本页由知识编译依据 %d 条来源主张自动起草，按「%s」类型的页面结构组织，等待人工审阅。\n\n",
+			len(statements), synthetic.Type)
+		body.WriteString(composeEntityContentWithIntro(&synthetic, layout, targetNames, intro))
+	} else {
+		body.WriteString(fmt.Sprintf("> 本页由知识编译依据 %d 条来源主张自动起草，等待人工审阅。\n\n", len(statements)))
+		for i, s := range statements {
+			claim := strings.TrimSpace(s.Claim)
+			if claim == "" {
+				claim = strings.TrimSpace(s.Excerpt)
 			}
-			fmt.Fprintf(&body, " [源](#/preview/document/%s?q=%s \"%s\")", s.DocID, url.QueryEscape(excerpt), excerpt)
+			if claim == "" {
+				continue
+			}
+			fmt.Fprintf(&body, "%d. %s", i+1, claim)
+			if s.DocID != "" {
+				// the citation carries the supporting excerpt: hover shows the
+				// exact backing text, clicking opens the source document with
+				// that excerpt highlighted (W17 quote locator)
+				excerpt := strings.TrimSpace(s.Excerpt)
+				if len([]rune(excerpt)) > 120 {
+					excerpt = string([]rune(excerpt)[:120]) + "…"
+				}
+				fmt.Fprintf(&body, " [源](#/preview/document/%s?q=%s \"%s\")", s.DocID, url.QueryEscape(excerpt), excerpt)
+			}
+			body.WriteString("\n")
 		}
-		body.WriteString("\n")
 	}
 	// known entity names in the compiled text become wikilinks — the page
 	// joins the graph and every mention is a clickable capsule

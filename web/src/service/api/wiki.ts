@@ -314,12 +314,19 @@ export interface OntologyRelationDef {
   inverse?: string;
 }
 
+export interface OntologyPageSection {
+  key: string;
+  title: string;
+}
+
 export interface OntologyEntityTypeDef {
   name: string;
   label?: string;
   icon?: string;
   properties?: OntologyPropertyDef[];
   relations?: OntologyRelationDef[];
+  /** per-type wiki page layout: sources/aliases/properties/relations:<name>/custom */
+  page_sections?: OntologyPageSection[];
 }
 
 /** knowledge compile rules (D6): concept source floor, conflict strategy, source priority */

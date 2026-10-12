@@ -21,7 +21,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       openArticle: 'Open entity page',
       confidence: 'Confidence',
       clickArticleHint: 'Click an article node to open it',
-      dragHint3d: 'Drag to orbit · scroll to zoom · click an article node to navigate, an entity node for its card'
+      dragHint3d: 'Drag to orbit · scroll to zoom · zoom in to reveal names in focus · click an entity for its relations'
     },
     settings: {
       basic: 'Basic Info',
@@ -1277,6 +1277,10 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   ontology: {
+    pageSections: 'Page layout (page_sections)',
+    pageSectionsHint: 'Section order a generated page follows: sources / aliases / properties / relations:<name> (related entities grouped by that relation), or a custom key rendered as a placeholder block. Empty = default structure',
+    sectionKey: 'section key, e.g. relations:contact',
+    sectionTitle: 'display title, e.g. Key Contacts',
     viewEntities: 'View entities',
     title: 'Ontology Vocabulary',
     subtitle: 'Declared entity types, typed properties and the relation vocabulary entity writes validate against. Tenant schema is the default; a knowledge base may override.',

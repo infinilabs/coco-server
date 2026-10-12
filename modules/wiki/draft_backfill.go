@@ -150,16 +150,21 @@ func relationTargetNames(ctx *orm.Context, entity *core.WikiEntity) map[string]s
 // composeEntityContent renders the page: the provenance intro, then the
 // declared sections in order (or the canonical 来源引用/别名 pair).
 func composeEntityContent(entity *core.WikiEntity, layout []OntologyPageSection, targetNames map[string]string) string {
-	name := entity.Name
 	typeLabel := entity.Type
 	if typeLabel == "" {
 		typeLabel = "实体"
 	}
+	intro := fmt.Sprintf("**%s** 是知识管道从 %d 份来源资料中识别出的「%s」类实体，以下主张均附来源出处，等待人工审阅完善。\n\n",
+		entity.Name, len(entity.Sources), typeLabel)
+	return composeEntityContentWithIntro(entity, layout, targetNames, intro)
+}
 
+// composeEntityContentWithIntro renders the declared sections (or the
+// canonical 来源引用/别名 pair) after a caller-supplied intro line — the
+// compile pipeline reuses the same layout with its own preamble.
+func composeEntityContentWithIntro(entity *core.WikiEntity, layout []OntologyPageSection, targetNames map[string]string, intro string) string {
 	var sb strings.Builder
-	// 首段定义:结构与百科词条一致(无标题导语)
-	sb.WriteString(fmt.Sprintf("**%s** 是知识管道从 %d 份来源资料中识别出的「%s」类实体，以下主张均附来源出处，等待人工审阅完善。\n\n",
-		name, len(entity.Sources), typeLabel))
+	sb.WriteString(intro)
 
 	writeSources := func() {
 		if len(entity.Sources) == 0 {
@@ -260,4 +265,24 @@ func composeEntityContent(entity *core.WikiEntity, layout []OntologyPageSection,
 		}
 	}
 	return sb.String()
+}
+
+// wikiEntityByName resolves an entity by its exact name (ontology type for
+// the layout resolution lives on it).
+func wikiEntityByName(ctx *orm.Context, name string) *core.WikiEntity {
+	if strings.TrimSpace(name) == "" {
+		return nil
+	}
+	ctx2 := orm.NewContextWithParent(ctx)
+	ctx2.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(ctx2, &core.WikiEntity{})
+	res, err := orm.SearchV2(ctx2, orm.NewQuery().Size(1).Filter(orm.TermQuery("name", name)))
+	if err != nil {
+		return nil
+	}
+	hits, _, err := elastic.DecodeHits[core.WikiEntity](res)
+	if err != nil || len(hits) == 0 {
+		return nil
+	}
+	return &hits[0]
 }
