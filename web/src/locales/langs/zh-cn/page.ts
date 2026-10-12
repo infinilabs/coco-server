@@ -8,6 +8,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       search: '搜索知识'
     },
     graph: {
+      wikilinkRelation: '关联引用',
       empty: '暂无可绘制的文章与实体',
       articles: '文章',
       entities: '实体',

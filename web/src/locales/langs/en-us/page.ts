@@ -8,6 +8,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       search: 'Search Knowledge'
     },
     graph: {
+      wikilinkRelation: 'Linked',
       empty: 'No articles or entities to plot yet',
       articles: 'Articles',
       entities: 'Entities',

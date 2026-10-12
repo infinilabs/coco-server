@@ -55,13 +55,9 @@ const MAX_GRAPH_HEIGHT = 1200;
 
 // world-space radius of a default node ball (three-forcegraph: cbrt(val) * nodeRelSize)
 const NODE_WORLD_RADIUS = 4.2;
-// label tiers by on-screen node size: entity names appear once nodes look graspable,
-// relation titles only when zoomed closer in (or a node is selected)
-const NODE_LABEL_MIN_BALL_PX = 8;
-const LINK_LABEL_MIN_BALL_PX = 15;
+// caps on the overlay labels painted around a selected node: first-hop
+// bright and nearest-first, second-hop dimmer
 const MAX_VISIBLE_NODE_LABELS = 24;
-const MAX_VISIBLE_LINK_LABELS = 12;
-// second-hop titles around a selected node: shown dimmer, nearest-capped
 const MAX_VISIBLE_SECOND_LABELS = 30;
 
 const makeLabelEl = (text: string, kind: 'link' | 'node') => {
@@ -122,10 +118,10 @@ const projectToScreen = (
  * Knowledge graph for one KB (ontology phase O3), rendered as an interactive
  * 3D force graph: articles, wikilink-resolved entities and one-hop typed
  * relations in a self-organizing layout — drag to orbit, wheel to zoom, click
- * an article to navigate, click an entity to open its card. Node names and
- * relation titles surface on a DOM overlay as the view closes in: names of
- * the focus area first, edge titles when zoomed further in or when a node
- * is selected (together with its one-hop neighborhood).
+ * an article to navigate, click an entity to open its card. The canvas stays
+ * clean by default: hovering a node shows its name via the built-in tooltip,
+ * clicking one paints overlay labels for it, its one-hop neighborhood (bright)
+ * and second hop (dimmer), plus the relation titles on its adjacent edges.
  */
 export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?: string }) {
   const { t } = useTranslation();
@@ -380,7 +376,6 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
       // yields to them so the same name is never drawn twice
       const labeled = new Set<string>();
 
-      const nodeCandidates: (ScreenPoint & { el: HTMLDivElement; centerDist: number; id: string })[] = [];
       nodes.forEach(raw => {
         const el = nodeLabelEls.get(raw.id);
         if (!el) return;
@@ -406,13 +401,14 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
             el.style.fontWeight = '600';
             el.style.borderColor = n.color;
           } else if (nbrs?.has(n.id)) {
+            // first hop: every on-screen neighbor is a candidate — the
+            // nearest-capped render does the decluttering. A hard radius
+            // here left scattered layouts with lines but no labels.
             if (!onScreen(placed)) {
               hideEl(el);
               return;
             }
-            const centerDist = distToFocus(placed);
-            if (centerDist <= focusRadius) firstCandidates.push({ el, id: n.id, ...placed, centerDist, isSel: false });
-            else hideEl(el);
+            firstCandidates.push({ el, id: n.id, ...placed, centerDist: distToFocus(placed), isSel: false });
           } else if (second?.has(n.id)) {
             if (!onScreen(placed)) {
               hideEl(el);
@@ -425,29 +421,12 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
           return;
         }
 
-        if (ballPx >= NODE_LABEL_MIN_BALL_PX) {
-          const centerDist = Math.hypot(placed.sx - halfW, placed.sy - halfH);
-          if (centerDist <= focusRadius) nodeCandidates.push({ el, id: n.id, ...placed, centerDist });
-          else hideEl(el);
-        } else hideEl(el);
+        // nothing selected: no ambient labels in the focus area —
+        // names show on hover (tooltip) or on click (neighborhood labels)
+        hideEl(el);
       });
       firstCandidates.sort((a, b) => a.centerDist - b.centerDist);
       firstCandidates.forEach((c, i) => {
-        if (i >= MAX_VISIBLE_NODE_LABELS) {
-          hideEl(c.el);
-          return;
-        }
-        labeled.add(c.id);
-        c.el.style.display = '';
-        c.el.style.opacity = '';
-        c.el.style.zIndex = String(Math.max(1, Math.round(1000 - c.depth)));
-        c.el.style.transform = `translate(-50%, -50%) translate(${c.sx.toFixed(1)}px, ${(c.sy + ballPx + 5).toFixed(1)}px)`;
-        c.el.style.fontWeight = '400';
-        c.el.style.borderColor = '';
-      });
-
-      nodeCandidates.sort((a, b) => a.centerDist - b.centerDist);
-      nodeCandidates.forEach((c, i) => {
         if (i >= MAX_VISIBLE_NODE_LABELS) {
           hideEl(c.el);
           return;
@@ -476,7 +455,6 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
         c.el.style.borderColor = '';
       });
 
-      const linkCandidates: (ScreenPoint & { el: HTMLDivElement; centerDist: number })[] = [];
       links.forEach((l, i) => {
         const el = linkLabelEls[i];
         if (!el) return;
@@ -511,21 +489,9 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
           return;
         }
 
-        if (ballPx >= LINK_LABEL_MIN_BALL_PX) {
-          const centerDist = Math.hypot(placed.sx - halfW, placed.sy - halfH);
-          if (centerDist <= focusRadius) linkCandidates.push({ el, ...placed, centerDist });
-          else hideEl(el);
-        } else hideEl(el);
-      });
-      linkCandidates.sort((a, b) => a.centerDist - b.centerDist);
-      linkCandidates.forEach((c, i) => {
-        if (i >= MAX_VISIBLE_LINK_LABELS) {
-          hideEl(c.el);
-          return;
-        }
-        c.el.style.display = '';
-        c.el.style.zIndex = String(Math.max(1, Math.round(1000 - c.depth)));
-        c.el.style.transform = `translate(-50%, -50%) translate(${c.sx.toFixed(1)}px, ${c.sy.toFixed(1)}px)`;
+        // nothing selected: relation titles stay hidden too —
+        // a click on either endpoint reveals them
+        hideEl(el);
       });
 
       labeledNodeIdsRef.current = labeled;
@@ -582,12 +548,14 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
 
   const nodeById = useMemo(() => new Map(nodes.map(n => [n.id, n])), [nodes]);
   const cardNode = cardOpen && selected ? nodeById.get(selected) : null;
+  // wikilink edges are relations too (a page linking an entity) — the card
+  // must list every edge the canvas draws, not only typed relations
   const cardOutgoing = useMemo(
-    () => (cardNode ? edges.filter(e => e.kind === 'relation' && e.source === cardNode.id) : []),
+    () => (cardNode ? edges.filter(e => e.source === cardNode.id) : []),
     [cardNode, edges]
   );
   const cardIncoming = useMemo(
-    () => (cardNode ? edges.filter(e => e.kind === 'relation' && e.target === cardNode.id) : []),
+    () => (cardNode ? edges.filter(e => e.target === cardNode.id) : []),
     [cardNode, edges]
   );
 
@@ -728,7 +696,7 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
                     onClick={() => focusNode(e.target)}
                     type="button"
                   >
-                    <span className="text-[var(--ant-color-text-tertiary)]">→ {e.label || e.relation}</span>
+                    <span className="text-[var(--ant-color-text-tertiary)]">→ {e.label || e.relation || t('page.wiki.graph.wikilinkRelation')}</span>
                     <span className="truncate text-[var(--ant-color-link)]">{nodeById.get(e.target)?.label ?? e.target}</span>
                   </button>
                 ))}
@@ -739,7 +707,7 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
                     onClick={() => focusNode(e.source)}
                     type="button"
                   >
-                    <span className="text-[var(--ant-color-text-tertiary)]">← {e.inverseLabel || e.inverse || e.label || e.relation}</span>
+                    <span className="text-[var(--ant-color-text-tertiary)]">← {e.inverseLabel || e.inverse || e.label || e.relation || t('page.wiki.graph.wikilinkRelation')}</span>
                     <span className="truncate text-[var(--ant-color-link)]">{nodeById.get(e.source)?.label ?? e.source}</span>
                   </button>
                 ))}
