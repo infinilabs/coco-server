@@ -1,8 +1,8 @@
 /* Copyright © INFINI LTD. All rights reserved.
  * Web: https://infini.ltd */
 
-import { InboxOutlined, PaperClipOutlined } from '@ant-design/icons';
-import { Button, Card, Progress, Table, Tag, Upload, message } from 'antd';
+import { DatabaseOutlined, InboxOutlined, PaperClipOutlined } from '@ant-design/icons';
+import { Button, Card, List, Progress, Table, Tag, Upload, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -46,7 +46,13 @@ const STATUS_COLOR: Record<string, string> = {
 /** KB-level raw material: every document behind the knowledge (bound
  * datasources + manual uploads), its attachments, and the articles that
  * cite it — plus the upload entry that feeds the pipeline by hand. */
-export function KbFileManager({ kbId }: { kbId: string }) {
+export function KbFileManager({
+  kbId,
+  datasources
+}: {
+  kbId: string;
+  datasources: Api.Wiki.DatasourceInfo[];
+}) {
   const { t } = useTranslation();
   const nav = useNavigate();
   const canUpdate = useAuth().hasAuth('coco#wiki_kb/update');
@@ -264,6 +270,40 @@ export function KbFileManager({ kbId }: { kbId: string }) {
         ) : (
           <div className="text-12.5px text-[var(--ant-color-text-tertiary)]">{t('page.wiki.fileManager.compileIdle')}</div>
         )}
+      </Card>
+      {/* bound datasources: the synced half of the raw material */}
+      <Card
+        className="card-wrapper mb-12px"
+        size="small"
+        title={
+          <span className="flex items-center gap-8px">
+            <DatabaseOutlined />
+            {t('page.wiki.fileManager.datasources')}
+          </span>
+        }
+      >
+        <List
+          className="wiki-row-list"
+          dataSource={datasources}
+          locale={{ emptyText: t('page.wiki.fileManager.noDatasources') }}
+          renderItem={ds => (
+            <List.Item
+              actions={[
+                <Tag
+                  color={ds.status === 'connected' ? 'green' : ds.status === 'syncing' ? 'blue' : ds.status === 'error' ? 'red' : 'default'}
+                  key="status"
+                >
+                  {ds.status}
+                </Tag>
+              ]}
+            >
+              <List.Item.Meta
+                title={ds.name}
+                description={`${ds.document_count} ${t('page.wiki.kb.docsUnit')} · ${t('page.wiki.kb.lastSynced')} ${ds.last_synced}`}
+              />
+            </List.Item>
+          )}
+        />
       </Card>
       {canUpdate && (
         <div

@@ -291,6 +291,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       removed: '删除 {{count}} 行'
     },
     fileManager: {
+      datasources: '数据源',
+      noDatasources: '尚未绑定数据源',
       compileStage: '阶段: {{stage}}',
       compileBatches: '批次 {{done}}/{{total}}（缓存 {{cached}}，失败 {{failed}}）',
       compileCounts: '文档 {{docs}} · 抽取 {{extracts}} · 归并 {{reduced}} · 提案 {{proposals}}',

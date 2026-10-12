@@ -389,37 +389,8 @@ export function Component() {
               label: t('page.wiki.kb.tabs.files'),
               children: (
                 <div className='wiki-panel p-16px'>
-                  <KbFileManager kbId={id || ''} />
+                  <KbFileManager kbId={id || ''} datasources={dsList} />
                 </div>
-              )
-            },
-            {
-              key: 'datasources',
-              label: t('page.wiki.kb.tabs.datasources'),
-              children: (
-                <List
-                  className='wiki-row-list'
-                  dataSource={dsList}
-                  renderItem={ds => (
-                    <List.Item
-                      actions={[
-                        <Tag
-                          color={DS_STATUS_COLOR[ds.status]}
-                          key='status'
-                        >
-                          {ds.status}
-                        </Tag>
-                      ]}
-                    >
-                      <List.Item.Meta
-                        title={ds.name}
-                        description={`${ds.document_count} ${t('page.wiki.kb.docsUnit')} · ${t(
-                          'page.wiki.kb.lastSynced'
-                        )} ${ds.last_synced}`}
-                      />
-                    </List.Item>
-                  )}
-                />
               )
             },
             {

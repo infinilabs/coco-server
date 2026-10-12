@@ -291,6 +291,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       removed: '{{count}} lines removed'
     },
     fileManager: {
+      datasources: 'Data sources',
+      noDatasources: 'No bound data sources',
       compileStage: 'Stage: {{stage}}',
       compileBatches: 'Batches {{done}}/{{total}} (cached {{cached}}, failed {{failed}})',
       compileCounts: 'Docs {{docs}} · Extracts {{extracts}} · Reduced {{reduced}} · Proposals {{proposals}}',
