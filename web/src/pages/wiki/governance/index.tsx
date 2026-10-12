@@ -1,5 +1,12 @@
-import { CheckOutlined, CloseOutlined, SafetyCertificateOutlined, ThunderboltOutlined } from '@ant-design/icons';
-import { Badge, Button, Empty, List, Popconfirm, Segmented, Space, Tag, Tooltip } from 'antd';
+import {
+  CheckOutlined,
+  CloseOutlined,
+  FileTextOutlined,
+  FolderOutlined,
+  SafetyCertificateOutlined,
+  ThunderboltOutlined
+} from '@ant-design/icons';
+import { Badge, Button, Empty, List, Popconfirm, Segmented, Space, Tag, Tooltip, Tree } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -31,6 +38,54 @@ const APPLICABLE = new Set([
   'knowledge_compile',
   'tree_organize'
 ]);
+
+interface RawTocNode {
+  id?: string;
+  title?: string;
+  type?: string;
+  children?: RawTocNode[];
+}
+
+/** Review-before-apply for tree_organize: renders the proposed TOC straight
+ * from evidence.tree — folders with article counts, articles as leaves. */
+function TreeProposalPreview({ tree }: { tree: RawTocNode[] }) {
+  const { t } = useTranslation();
+  const countArticles = (n: RawTocNode): number =>
+    n.type === 'article' ? 1 : (n.children || []).reduce((s, c) => s + countArticles(c), 0);
+  const total = (nodes: RawTocNode[]): number => nodes.reduce((s, n) => s + countArticles(n), 0);
+  const toTreeData = (nodes: RawTocNode[], prefix: string): any[] =>
+    nodes.map((n, i) => ({
+      key: `${prefix}-${i}`,
+      title:
+        n.type === 'article' ? n.title : `${n.title || '?'} (${countArticles(n)})`,
+      icon:
+        n.type === 'article' ? (
+          <FileTextOutlined className='color-[var(--wiki-text-3)]' />
+        ) : (
+          <FolderOutlined className='color-[var(--wiki-accent)]' />
+        ),
+      children: n.children?.length ? toTreeData(n.children, `${prefix}-${i}`) : undefined
+    }));
+  return (
+    <div
+      className='mt-6px rounded-6px border border-solid p-8px'
+      style={{ borderColor: 'var(--ant-color-border-secondary)' }}
+      onClick={e => e.stopPropagation()}
+    >
+      <div className='mb-4px text-11.5px color-[var(--wiki-text-3)]'>
+        {t('page.wiki.governance.treePreview', { count: total(tree), folders: tree.length })}
+      </div>
+      {tree.length > 0 ? (
+        <Tree
+          defaultExpandedKeys={tree.map((_, i) => `r-${i}`)}
+          height={260}
+          showIcon
+          treeData={toTreeData(tree, 'r')}
+        />
+      ) : null}
+    </div>
+  );
+}
 
 /**
  * Knowledge-governance queue: the background scanner files proposals (stale pages, duplicates, conflicts, low quality,
@@ -192,6 +247,9 @@ export function Component() {
                         size={2}
                       >
                         <span>{proposal.reason}</span>
+                        {proposal.type === 'tree_organize' && Array.isArray(proposal.evidence?.tree) && (
+                          <TreeProposalPreview tree={proposal.evidence.tree as RawTocNode[]} />
+                        )}
                         {dupOf && (
                           <Tooltip title={t('page.wiki.governance.duplicateOf')}>
                             <Tag

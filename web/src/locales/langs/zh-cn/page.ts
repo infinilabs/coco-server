@@ -215,6 +215,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       empty: '队列干净,没有待处理的提议',
       type: { stale: '内容过期', duplicate: '疑似重复', conflict: '内容冲突', low_quality: '低质量', orphan: '未入目录树', entity_duplicate: '实体疑似重复', entity_conflict: '实体类型冲突', knowledge_gap: '知识缺口', correction: '答案纠正', knowledge_compile: '知识编译', tree_organize: '目录组织建议', drift: '本体漂移', article_refresh: '引用更新', document_amendment: '文档修订' },
       hint: '{{count}} 条提议等待处理',
+      treePreview: '建议的目录结构:{{count}} 篇页面 · {{folders}} 个部门',
     },
     correction: {
       title: '报告纠正',
