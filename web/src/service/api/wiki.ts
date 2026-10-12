@@ -838,3 +838,13 @@ export function cancelWikiCompile(kbId: string) {
     url: `/wiki/kb/${kbId}/_compile/_cancel`
   }).then(res => (res as any)?.data);
 }
+
+/** merge N same-concept entities into one canonical row: absorbed names
+ * become aliases, sources/relations union, references retarget */
+export function mergeWikiEntities(ids: string[]) {
+  return request<{ merged: number; canonical: string; name: string }>({
+    method: 'post',
+    data: { ids },
+    url: '/wiki/entity/_merge'
+  }).then(res => (res as any)?.data);
+}

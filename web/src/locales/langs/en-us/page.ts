@@ -168,6 +168,9 @@ const page: App.I18n.Schema['translation']['page'] = {
         },
 
         entityManager: {
+          merge: 'Merge selected',
+          mergeConfirm: 'Merge {{count}} entities into one? Absorbed names become aliases; sources and relations are preserved',
+          merged: 'Merged — kept "{{name}}"',
           batchSelected: '{{count}} selected',
           batchSetStatus: 'Set status to',
           batchConfirm: 'Set {{count}} entities to {{status}}?',

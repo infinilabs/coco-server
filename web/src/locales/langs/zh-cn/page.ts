@@ -168,6 +168,9 @@ const page: App.I18n.Schema['translation']['page'] = {
         },
 
         entityManager: {
+          merge: '合并所选',
+          mergeConfirm: '将 {{count}} 个实体合并为一个？被并入的名称转为别名，来源与关系全部保留',
+          merged: '已合并，保留「{{name}}」',
           batchSelected: '已选 {{count}} 项',
           batchSetStatus: '批量设置状态为',
           batchConfirm: '将 {{count}} 个实体状态设为 {{status}}？',

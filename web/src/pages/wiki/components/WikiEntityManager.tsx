@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import {
   batchUpdateWikiEntityStatus,
   createWikiEntity,
+  mergeWikiEntities,
   getOntologySchema,
   getWikiEntity,
   searchWikiEntityPage,
@@ -246,6 +247,19 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
     });
   };
 
+  const runMerge = () => {
+    if (selectedIds.length < 2) return;
+    setBatchLoading(true);
+    mergeWikiEntities(selectedIds.map(String))
+      .then((res: any) => {
+        message.success(t('page.wiki.entityManager.merged', { name: res?.name || '' }));
+        setSelectedIds([]);
+        fetchData();
+      })
+      .catch(() => message.error(t('page.wiki.entityManager.batchFailed')))
+      .finally(() => setBatchLoading(false));
+  };
+
   const runBatchStatus = () => {
     if (!selectedIds.length) return;
     setBatchLoading(true);
@@ -369,6 +383,16 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
               {t('page.wiki.entityManager.batchApply')}
             </Button>
           </Popconfirm>
+          {selectedIds.length >= 2 && (
+            <Popconfirm
+              title={t('page.wiki.entityManager.mergeConfirm', { count: selectedIds.length })}
+              onConfirm={runMerge}
+            >
+              <Button loading={batchLoading} size="small" type="primary" ghost>
+                {t('page.wiki.entityManager.merge')}
+              </Button>
+            </Popconfirm>
+          )}
           <a className="text-12px" onClick={() => setSelectedIds([])}>
             {t('page.wiki.entityManager.batchClear')}
           </a>

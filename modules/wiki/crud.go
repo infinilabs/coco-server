@@ -385,10 +385,36 @@ func (h APIHandler) createEntity(w http.ResponseWriter, req *http.Request, _ htt
 		}
 	}
 
+	// duplicate guard: a same-name or same-alias entity in this KB absorbs
+	// the create — the pool stays one-row-per-concept and the wikilink
+	// repair flow binds to the existing entity instead of stacking a twin
 	ctx := orm.NewContextWithParent(req.Context())
 	ctx.Set(orm.SharingEnabled, true)
 	ctx.Set(orm.SharingResourceType, entityResource)
 	ctx.Refresh = orm.WaitForRefresh
+	candidates := append([]string{obj.Name}, obj.Aliases...)
+	for _, name := range candidates {
+		if existing := findKBEntityByNameOrAlias(ctx, name, kbID); existing != nil {
+			added := false
+			for _, a := range obj.Aliases {
+				if a != "" && !util.AnyInArrayEquals(existing.Aliases, a) {
+					existing.Aliases = append(existing.Aliases, a)
+					added = true
+				}
+			}
+			if obj.Name != existing.Name && !util.AnyInArrayEquals(existing.Aliases, obj.Name) {
+				existing.Aliases = append(existing.Aliases, obj.Name)
+				added = true
+			}
+			_ = added
+			if err := orm.Update(ctx, existing); err != nil {
+				h.WriteError(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			h.WriteOKJSON(w, util.MapStr{"_id": existing.ID, "result": "merged", "merged_into": existing.Name})
+			return
+		}
+	}
 	if err := orm.Create(ctx, obj); err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
