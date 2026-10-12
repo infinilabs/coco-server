@@ -7,10 +7,10 @@ import {
   ThunderboltOutlined
 } from '@ant-design/icons';
 import { Badge, Button, Checkbox, Empty, List, Popconfirm, Segmented, Space, Tag, Tooltip, Tree } from 'antd';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { type GovernanceProposal, applyWikiGovernanceProposal, batchUpdateWikiGovernanceStatus, searchWikiGovernance, updateWikiGovernanceStatus } from '@/service/api';
+import { type GovernanceProposal, applyWikiGovernanceProposal, batchUpdateWikiGovernanceStatus, getBatchApplyProgress, searchWikiGovernance, startBatchApply, updateWikiGovernanceStatus } from '@/service/api';
 import { WikiShell } from '../components/WikiShell';
 
 const TYPE_COLOR: Record<string, string> = {
@@ -223,6 +223,77 @@ export function Component() {
       .finally(() => setBatchLoading(false));
   };
 
+  // batch FIX: the worker runs server-side (a compile apply is an LLM call
+  // per page); the UI only starts it and polls progress — leaving the page
+  // never stops the worker, and a fresh mount re-attaches to a running one
+  const [applyProgress, setApplyProgress] = useState<{ done: number; total: number; current?: string } | null>(null);
+  const applyPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopApplyPolling = () => {
+    if (applyPollRef.current) {
+      clearInterval(applyPollRef.current);
+      applyPollRef.current = null;
+    }
+  };
+
+  const pollApplyProgress = () => {
+    getBatchApplyProgress().then((p: any) => {
+      if (!p || p.status === 'idle') {
+        stopApplyPolling();
+        setApplyProgress(null);
+        setBatchLoading(false);
+        return;
+      }
+      if (p.status === 'running') {
+        setBatchLoading(true);
+        setApplyProgress({ done: p.done + p.failed + p.skipped, total: p.total, current: p.current });
+        return;
+      }
+      stopApplyPolling();
+      setApplyProgress(null);
+      setBatchLoading(false);
+      setSelected([]);
+      fetchData();
+      if (p.failed > 0 || p.skipped > 0) {
+        window.$message?.warning(t('page.wiki.governance.batchApplyDone', { done: p.done, failed: p.failed, skipped: p.skipped }));
+      } else {
+        window.$message?.success(t('page.wiki.governance.batchApplyAllDone', { count: p.done }));
+      }
+    });
+  };
+
+  const startApplyPolling = () => {
+    stopApplyPolling();
+    applyPollRef.current = setInterval(pollApplyProgress, 2500);
+  };
+
+  useEffect(() => {
+    // a running batch survives navigation — re-attach on mount
+    getBatchApplyProgress().then((p: any) => {
+      if (p?.status === 'running') {
+        setBatchLoading(true);
+        setApplyProgress({ done: p.done + p.failed + p.skipped, total: p.total, current: p.current });
+        startApplyPolling();
+      }
+    });
+    return stopApplyPolling;
+  }, []);
+
+  const runBatchApply = () => {
+    if (!selected.length) return;
+    setBatchLoading(true);
+    startBatchApply(selected)
+      .then(() => startApplyPolling())
+      .catch((err: any) => {
+        setBatchLoading(false);
+        if (String(err)?.includes('already running')) {
+          window.$message?.warning(t('page.wiki.governance.batchApplyRunning'));
+        } else {
+          window.$message?.error(t('page.wiki.governance.batchFailed'));
+        }
+      });
+  };
+
   const act = (proposal: GovernanceProposal, to: string) => {
     updateWikiGovernanceStatus(proposal.id, to).then(() => {
       window.$message?.success(t('common.updateSuccess'));
@@ -315,6 +386,28 @@ export function Component() {
                   {t('page.wiki.governance.batchDismiss')}
                 </Button>
               </Popconfirm>
+              <Popconfirm
+                onConfirm={() => runBatchApply()}
+                title={t('page.wiki.governance.batchApplyConfirm', { count: selected.length })}
+              >
+                <Button
+                  disabled={batchLoading || !!applyProgress}
+                  icon={<ThunderboltOutlined />}
+                  size='small'
+                  type='primary'
+                >
+                  {t('page.wiki.governance.batchApply')}
+                </Button>
+              </Popconfirm>
+              {applyProgress ? (
+                <span className='text-12px color-[var(--ant-color-warning)]'>
+                  {t('page.wiki.governance.batchRunning', {
+                    done: applyProgress.done,
+                    total: applyProgress.total,
+                    current: applyProgress.current || ''
+                  })}
+                </span>
+              ) : null}
               <a
                 className='text-12px'
                 onClick={() => setSelected([])}

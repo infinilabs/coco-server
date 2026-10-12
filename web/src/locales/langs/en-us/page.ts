@@ -197,6 +197,12 @@ const page: App.I18n.Schema['translation']['page'] = {
     like: { add: 'Like', remove: 'Unlike' },
     bookmark: { add: 'Bookmark this article', remove: 'Bookmarked' },
     governance: {
+      batchApply: 'Apply fixes',
+      batchApplyConfirm: 'Apply {{count}} fixes one by one — compile items take ~30-60s each; runs in the background, you can leave this page',
+      batchRunning: 'Applying {{done}}/{{total}}{{current}}',
+      batchApplyDone: 'Batch apply finished: {{done}} ok, {{failed}} failed, {{skipped}} skipped',
+      batchApplyAllDone: 'Batch apply finished: all {{count}} succeeded',
+      batchApplyRunning: 'Another batch apply is already running',
       batchSelected: '{{count}} selected',
       batchResolve: 'Mark resolved',
       batchResolveConfirm: 'Mark {{count}} proposals as resolved?',

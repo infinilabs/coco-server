@@ -144,6 +144,11 @@ func init() {
 	// it as resolved — one click instead of a note that changes nothing
 	api.HandleUIMethod(api.POST, "/wiki/governance/:id/_apply", handler.applyGovernanceProposal,
 		api.RequireLogin(), api.RequirePermission(security.GetSimplePermission(Category, governanceResource, string(security.Update))))
+	// batch apply: background worker + polled progress
+	api.HandleUIMethod(api.POST, "/wiki/governance/_batch_apply", handler.startBatchApply,
+		api.RequireLogin(), api.RequirePermission(security.GetSimplePermission(Category, governanceResource, string(security.Update))))
+	api.HandleUIMethod(api.GET, "/wiki/governance/_batch_apply", handler.batchApplyProgressHandler,
+		api.RequireLogin(), api.RequirePermission(security.GetSimplePermission(Category, governanceResource, string(security.Update))))
 
 	// ontology vocabulary (phase O1): the declared entity types, typed
 	// properties and relation vocabulary entity writes validate against;

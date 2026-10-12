@@ -734,3 +734,30 @@ export function batchUpdateWikiGovernanceStatus(ids: string[], status: string) {
     url: '/wiki/governance/_batch_status'
   }).then(res => (res as any)?.data);
 }
+
+/** batch apply: kicks the background fix worker and returns immediately;
+ * poll getBatchApplyProgress for {status,total,done,failed,skipped,current} */
+export function startBatchApply(ids: string[]) {
+  return request<{ started: boolean; total: number }>({
+    method: 'post',
+    data: { ids },
+    url: '/wiki/governance/_batch_apply'
+  }).then(res => (res as any)?.data);
+}
+
+export interface BatchApplyProgress {
+  status: 'idle' | 'running' | 'done';
+  total: number;
+  done: number;
+  failed: number;
+  skipped: number;
+  current?: string;
+  errors?: string[];
+}
+
+export function getBatchApplyProgress() {
+  return request<BatchApplyProgress>({
+    method: 'get',
+    url: '/wiki/governance/_batch_apply'
+  }).then(res => (res as any)?.data);
+}

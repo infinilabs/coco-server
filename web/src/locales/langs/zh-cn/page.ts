@@ -197,6 +197,12 @@ const page: App.I18n.Schema['translation']['page'] = {
     like: { add: '点赞', remove: '取消点赞' },
     bookmark: { add: '收藏该文章', remove: '已收藏' },
     governance: {
+      batchApply: '批量修复',
+      batchApplyConfirm: '将逐条执行 {{count}} 条修复，编译类每条约 30-60 秒；后台执行，可离开本页',
+      batchRunning: '批量修复中 {{done}}/{{total}}{{current}}',
+      batchApplyDone: '批量修复完成：成功 {{done}}，失败 {{failed}}，跳过 {{skipped}}',
+      batchApplyAllDone: '批量修复完成：{{count}} 条全部成功',
+      batchApplyRunning: '已有批量修复在后台执行，请稍候',
       batchSelected: '已选 {{count}} 项',
       batchResolve: '批量标记已处理',
       batchResolveConfirm: '将 {{count}} 条提议标记为已处理？',

@@ -170,63 +170,86 @@ func (h *APIHandler) applyGovernanceProposal(w http.ResponseWriter, req *http.Re
 		return
 	}
 
-	var applied string
-	switch proposal.Type {
-	case core.WikiGovernanceOrphan:
-		applied, err = applyOrphanProposal(ctx, &proposal)
-	case core.WikiGovernanceDuplicate:
-		applied, err = applyDuplicateProposal(ctx, &proposal)
-	case core.WikiGovernanceStale, core.WikiGovernanceArticleRefresh:
-		applied, err = applyRebuildProposal(ctx, &proposal)
-	case core.WikiGovernanceEntityConflict:
-		applied, err = applyEntityConflictProposal(ctx, &proposal)
-	case core.WikiGovernanceKnowledgeCompile:
-		var targetArticle string
-		applied, targetArticle, err = applyCompileProposal(ctx, &proposal)
-		if err == nil && targetArticle != "" {
-			proposal.Evidence["generated_article_id"] = targetArticle
-		}
-	case core.WikiGovernanceTreeOrganize:
-		appliedTree, terr := applyTreeProposal(ctx, proposal.KbID, proposal.Evidence)
-		if terr != nil {
-			log.Warnf("wiki: governance apply [%s/%s] failed: %v", proposal.Type, proposal.ID, terr)
-			h.WriteError(w, terr.Error(), http.StatusInternalServerError)
-			return
-		}
-		if appliedTree {
-			applied = "目录已应用"
-		}
-	default:
-		h.Error400(w, fmt.Sprintf("proposal type %s has no automatic fix", proposal.Type))
-		return
-	}
-	if err != nil {
-		log.Warnf("wiki: governance apply [%s/%s] failed: %v", proposal.Type, proposal.ID, err)
-		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+	applied, articleID, applyErr := applyOneProposal(ctx, &proposal, requestUserID(req))
+	if applyErr != nil {
+		log.Warnf("wiki: governance apply [%s/%s] failed: %v", proposal.Type, proposal.ID, applyErr)
+		h.WriteError(w, applyErr.Error(), http.StatusInternalServerError)
 		return
 	}
 	if applied == "" {
 		h.Error400(w, "nothing to apply: the proposal's evidence is incomplete")
 		return
 	}
+	resp := util.MapStr{"applied": applied, "result": "ok"}
+	if articleID != "" {
+		resp["article_id"] = articleID
+	}
+	h.WriteOKJSON(w, resp)
+}
+
+// requestUserID extracts the acting reviewer for audit stamps; empty when
+// the call carries no user (batch worker context).
+func requestUserID(req *http.Request) string {
+	if user, err := security.GetUserFromRequest(req); err == nil && user != nil {
+		return user.UserID
+	}
+	return ""
+}
+
+// applyOneProposal executes the fix one proposal type implies and retires
+// it as resolved — the shared core of the single-item endpoint and the
+// batch apply worker. Returns the human-readable outcome and, when the fix
+// generated a page, its id.
+func applyOneProposal(ctx *orm.Context, proposal *core.WikiGovernanceProposal, userID string) (string, string, error) {
+	if proposal.Status != core.WikiGovernanceOpen {
+		return "", "", fmt.Errorf("proposal %s is %s, only open proposals can be applied", proposal.ID, proposal.Status)
+	}
+
+	var applied string
+	var articleID string
+	var err error
+	switch proposal.Type {
+	case core.WikiGovernanceOrphan:
+		applied, err = applyOrphanProposal(ctx, proposal)
+	case core.WikiGovernanceDuplicate:
+		applied, err = applyDuplicateProposal(ctx, proposal)
+	case core.WikiGovernanceStale, core.WikiGovernanceArticleRefresh:
+		applied, err = applyRebuildProposal(ctx, proposal)
+	case core.WikiGovernanceEntityConflict:
+		applied, err = applyEntityConflictProposal(ctx, proposal)
+	case core.WikiGovernanceKnowledgeCompile:
+		applied, articleID, err = applyCompileProposal(ctx, proposal)
+		if err == nil && articleID != "" {
+			proposal.Evidence["generated_article_id"] = articleID
+		}
+	case core.WikiGovernanceTreeOrganize:
+		appliedTree, terr := applyTreeProposal(ctx, proposal.KbID, proposal.Evidence)
+		if terr != nil {
+			return "", "", terr
+		}
+		if appliedTree {
+			applied = "目录已应用"
+		}
+	default:
+		return "", "", fmt.Errorf("proposal type %s has no automatic fix", proposal.Type)
+	}
+	if err != nil {
+		return "", "", err
+	}
+	if applied == "" {
+		return "", "", nil
+	}
 
 	proposal.Status = core.WikiGovernanceResolved
-	if user, err := security.GetUserFromRequest(req); err == nil && user != nil && user.UserID != "" {
-		proposal.ResolvedBy = user.UserID
-	}
+	proposal.ResolvedBy = userID
 	if proposal.Evidence == nil {
 		proposal.Evidence = util.MapStr{}
 	}
 	proposal.Evidence["applied"] = applied
-	if err := orm.Update(ctx, &proposal); err != nil {
-		h.WriteError(w, err.Error(), http.StatusInternalServerError)
-		return
+	if err := orm.Update(ctx, proposal); err != nil {
+		return "", "", err
 	}
-	resp := util.MapStr{"applied": applied, "result": "ok"}
-	if aid, ok := proposal.Evidence["generated_article_id"]; ok {
-		resp["article_id"] = aid
-	}
-	h.WriteOKJSON(w, resp)
+	return applied, articleID, nil
 }
 
 /* ---------------- per-type fixes ---------------- */
