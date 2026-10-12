@@ -122,17 +122,32 @@ function NewArticleModal({
 }
 
 export function Component() {
+// hydration cache: the layout's KeepAlive keys on pathname+search, so
+// every tab switch remounts this page — without this snapshot each switch
+// blanked the page behind the initial loading state. A remounted instance
+// hydrates from the cache instantly and refreshes silently in the back.
+type KbPageCache = {
+  kbId: string;
+  kb: Api.Wiki.Kb;
+  articles: Api.Wiki.Article[];
+  dsList: Api.Wiki.DatasourceInfo[];
+};
+let kbPageCache: KbPageCache | null = null;
+const readKbPageCache = (kbId?: string): KbPageCache | null =>
+  kbId && kbPageCache?.kbId === kbId ? kbPageCache : null;
+
   const { t } = useTranslation();
   const { id } = useParams();
   const nav = useNavigate();
-  const [kb, setKb] = useState<Api.Wiki.Kb | null>(null);
-  const [articles, setArticles] = useState<Api.Wiki.Article[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cached = readKbPageCache(id);
+  const [kb, setKb] = useState<Api.Wiki.Kb | null>(cached?.kb || null);
+  const [articles, setArticles] = useState<Api.Wiki.Article[]>(cached?.articles || []);
+  const [loading, setLoading] = useState(!cached);
   const [newOpen, setNewOpen] = useState(false);
   const [generateOpen, setGenerateOpen] = useState(false);
   const [artKeyword, setArtKeyword] = useState('');
   const [artStatus, setArtStatus] = useState<string>('all');
-  const [dsList, setDsList] = useState<Api.Wiki.DatasourceInfo[]>([]);
+  const [dsList, setDsList] = useState<Api.Wiki.DatasourceInfo[]>(cached?.dsList || []);
   // deep link from an article capsule: /wiki/kb/:id?tab=graph&entity=<id>
   // selects the entity and opens its card on the canvas. The tab lives in
   // the URL (not component state) so refresh and shared links keep it.
@@ -156,7 +171,8 @@ export function Component() {
 
   const fetchAll = () => {
     if (!id) return;
-    setLoading(true);
+    // a cache-hydrated mount refreshes silently — no full-page flash
+    if (kbPageCache?.kbId !== id) setLoading(true);
     Promise.all([getWikiKb(id), searchWikiArticles({ kbId: id }), listWikiDatasources()]).then(
       async ([kbRes, artRes, dsRes]) => {
         const all = ((dsRes as any) || []) as Api.Wiki.DatasourceInfo[];
@@ -177,8 +193,22 @@ export function Component() {
             enriched.owner || (enriched._system?.owner_id ? { id: enriched._system.owner_id } : undefined);
           enriched.editor = enriched.editor || (userInfo?.id ? { id: userInfo.id } : undefined);
         }
+        // a transient bad response (the local server occasionally serves
+        // the SPA fallback) must never null out good data or the cache —
+        // that rendered blank frames on every tab switch until a refetch
+        if (!kbObj) {
+          setLoading(false);
+          return;
+        }
         setKb(kbObj);
-        setArticles(((artRes as any)?.data || []) as Api.Wiki.Article[]);
+        const nextArticles = ((artRes as any)?.data || []) as Api.Wiki.Article[];
+        setArticles(nextArticles);
+        kbPageCache = {
+          kbId: id,
+          kb: kbObj,
+          articles: nextArticles,
+          dsList: all.filter(ds => (kbObj as any)?.datasource_ids?.includes(ds.id))
+        };
         setLoading(false);
       }
     );
