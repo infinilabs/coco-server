@@ -47,6 +47,7 @@ const normalizeKb = (src: any): Api.Wiki.Kb => ({
   members: [],
   datasources: [],
   ai_status: src?.ai_status,
+  auto_approve: !!src?.auto_approve,
   toc_layout: src?.toc_layout ?? []
 });
 
@@ -716,7 +717,7 @@ export function getWikiArticleMaterials(id: string) {
 /* ---------------- page-level attachments ---------------- */
 
 export function getWikiArticleAttachments(id: string) {
-  return request<{ attachments: WikiArticleAttachment[] }>({
+  return request<{ attachments: Api.Wiki.WikiArticleAttachment[] }>({
     method: 'get',
     url: `/wiki/article/${id}/_attachments`
   }).then(res => (res as any)?.data?.attachments ?? []);
@@ -725,7 +726,7 @@ export function getWikiArticleAttachments(id: string) {
 /** replaces the page's attachment id list wholesale (upload-append and
  * row-remove both render as a new array client-side) */
 export function updateWikiArticleAttachments(id: string, attachmentIds: string[]) {
-  return request<{ attachments: WikiArticleAttachment[]; dropped: number }>({
+  return request<{ attachments: Api.Wiki.WikiArticleAttachment[]; dropped: number }>({
     method: 'put',
     data: { attachment_ids: attachmentIds },
     url: `/wiki/article/${id}/_attachments`

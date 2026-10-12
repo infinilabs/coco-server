@@ -31,6 +31,24 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
   const canUpdate = hasAuth('coco#wiki_kb/update');
   const canDelete = hasAuth('coco#wiki_kb/delete');
 
+  // the parent refetches after save — re-sync the form with fresh kb data
+  // (initialValues only apply on mount)
+  useEffect(() => {
+    if (!kb) return;
+    form.setFieldsValue({
+      name: kb.name,
+      description: kb.description,
+      icon: kb.icon,
+      visibility: kb.visibility,
+      auto_approve: !!kb.auto_approve,
+      toc_layout: (kb.toc_layout || []).map(f => ({
+        title: f.title,
+        prefixes: (f.path_prefixes || []).join(', '),
+        dimensions: (f.dimensions || []).join(', ')
+      }))
+    });
+  }, [kb, form]);
+
   useEffect(() => {
     listWikiAssistants().then(list => setAssistants((list as KbAssistantOption[]) || []));
     listWikiDatasources().then(list => setDatasources(((list as any) || []) as Api.Wiki.DatasourceInfo[]));
