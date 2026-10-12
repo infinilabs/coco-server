@@ -114,6 +114,11 @@ type WikiKnowledgeBase struct {
 	TocLayout []WikiTocLayoutFolder `json:"toc_layout,omitempty" elastic_mapping:"toc_layout:{type:object}"`
 	// runtime status of the KB agent pipeline, not a query target
 	AIStatus string `json:"ai_status,omitempty" elastic_mapping:"ai_status:{enabled:false}"`
+	// AutoApprove (自动审批): entities extracted for this KB publish
+	// directly and governance proposals auto-apply — the pipeline updates
+	// the KB without a human gate. Opt-in per KB; corrections and
+	// knowledge-gap signals stay manual regardless.
+	AutoApprove bool `json:"auto_approve,omitempty" elastic_mapping:"auto_approve:{type:boolean}"`
 }
 
 // WikiTocLayoutFolder is one top-level department folder of the KB layout.

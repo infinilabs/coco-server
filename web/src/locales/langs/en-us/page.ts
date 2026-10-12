@@ -24,6 +24,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       dragHint3d: 'Drag to orbit · scroll to zoom · zoom in to reveal names in focus · click an entity for its relations'
     },
     settings: {
+      autoApprove: 'Auto-approve',
+      autoApproveHint: 'When on: new entities publish directly, governance proposals (compile/tree/rebuild) apply automatically and generated pages publish — the KB updates without manual review. Corrections and knowledge-gap signals always stay manual',
       basic: 'Basic Info',
       agent: 'AI Agent',
       agentTooltip: 'When bound, AI generation and AI editing for this KB use the model configured on this assistant',

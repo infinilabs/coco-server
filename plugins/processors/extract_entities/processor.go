@@ -358,12 +358,18 @@ func resolveOrCreateEntity(ctx *orm.Context, extracted *extractedEntity, doc *co
 	}
 	entityType := canonicalizeEntityType(extractedType, allowedTypes, schema)
 
+	status := core.WikiEntityProposed // human review required (D1)
+	// auto-approve KB: new extractions publish directly — the opt-in
+	// per-KB toggle replaces the review gate for this source
+	if wiki.KBAutoApprove(ctx, kbID) {
+		status = core.WikiEntityPublished
+	}
 	entity := &core.WikiEntity{
 		Type:       entityType,
 		Name:       extracted.Name,
 		Aliases:    normalizeAliases(extracted.Aliases),
 		Properties: extracted.Properties,
-		Status:     core.WikiEntityProposed, // human review required (D1)
+		Status:     status,
 		Sources:    []core.WikiSourceReference{documentSourceRef(doc, extracted.Evidence)},
 	}
 	if schema != nil {
@@ -652,7 +658,7 @@ func buildExtractionPrompt(material string, config *Config, schema *wiki.Ontolog
 			"- \"aliases\": alternate names/s spellings found in the text (may be empty)\n"+
 			"- \"properties\": up to 5 short factual attributes as {\"key\": \"value\"}\n"+
 			"- \"relations\": links to OTHER entities extracted from the same document as {\"relation\": \"verb_phrase\", \"target\": \"<entity name>\"}\n"+
-			"- \"evidence\": one short sentence quoting the mention (in %s)\n"+
+			"- \"evidence\": a VERBATIM excerpt of 15-80 characters copied character-for-character from the document text where the entity is mentioned - same language as the document, no translation, no paraphrase, no added words (it is matched back against the source text to locate the exact block)\n"+
 			"- Names and aliases MUST be in their original language as they appear\n%s\n"+
 			"Format:\n"+
 			`{"entities":[{"name":"","type":"","aliases":[],"properties":{},"relations":[{"relation":"","target":""}],"evidence":""}]}`+"\n\n"+
@@ -660,7 +666,6 @@ func buildExtractionPrompt(material string, config *Config, schema *wiki.Ontolog
 			"Generate the JSON object now.",
 		vocabulary,
 		config.MaxEntities,
-		config.LLMGenerationLang,
 		constraints,
 		material,
 	)

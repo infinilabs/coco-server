@@ -24,6 +24,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       dragHint3d: '拖拽旋转 · 滚轮缩放 · 放大后显示聚焦区域名称 · 点击实体显示关系与相邻实体'
     },
     settings: {
+      autoApprove: '自动审批',
+      autoApproveHint: '开启后:新抽取的实体直接发布,知识编译/目录/重建等治理提案自动应用,编译页面直接发布——知识库无需人工审核自动更新。纠错与知识缺口信号始终保留人工处理',
       basic: '基本信息',
       agent: 'AI 智能体',
       agentTooltip: '绑定后,该知识库的「AI 生成」与「AI 编辑」将使用此智能体配置的模型',

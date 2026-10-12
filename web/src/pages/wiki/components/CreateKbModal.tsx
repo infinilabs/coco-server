@@ -1,5 +1,5 @@
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
-import { Button, Form, Input, Modal, Select, Space } from 'antd';
+import { Button, Form, Input, Modal, Select, Space, Switch } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -122,6 +122,16 @@ export function CreateKbModal({
             name='icon'
           >
             <Input />
+          </Form.Item>
+          <Form.Item
+            className='flex-1'
+            initialValue={false}
+            label={t('page.wiki.settings.autoApprove')}
+            name='auto_approve'
+            tooltip={t('page.wiki.settings.autoApproveHint')}
+            valuePropName='checked'
+          >
+            <Switch />
           </Form.Item>
           <Form.Item
             className='flex-1'

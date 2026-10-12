@@ -631,11 +631,17 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 		}
 	}
 
+	// auto-approve KBs take the generated page straight to published —
+	// the toggle's whole point is a KB that updates without a review gate
+	createStatus := core.WikiArticleDraft
+	if KBAutoApprove(ctx, p.KbID) {
+		createStatus = core.WikiArticlePublished
+	}
 	article := core.WikiArticle{
 		KbID:        p.KbID,
 		Title:       p.ArticleTitle,
 		PageType:    pageType,
-		Status:      core.WikiArticleDraft,
+		Status:      createStatus,
 		AIGenerated: true,
 		Content:     content,
 	}

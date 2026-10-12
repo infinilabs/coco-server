@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/business/auth';
-import { Button, Card, Form, Input, Modal, Select, Space, message } from 'antd';
+import { Button, Card, Form, Input, Modal, Select, Space, message,
+  Switch
+} from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -91,6 +93,7 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
             description: kb.description,
             icon: kb.icon,
             visibility: kb.visibility,
+            auto_approve: !!kb.auto_approve,
             assistant_id: kb.assistant_id,
             datasource_ids: kb.datasource_ids,
             toc_layout: (kb.toc_layout || []).map(f => ({
@@ -111,6 +114,14 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
           </Form.Item>
           <Form.Item label={t('page.wiki.createKb.icon')} name="icon">
             <Input className="w-80px" />
+          </Form.Item>
+          <Form.Item
+            label={t('page.wiki.settings.autoApprove')}
+            tooltip={t('page.wiki.settings.autoApproveHint')}
+            name="auto_approve"
+            valuePropName="checked"
+          >
+            <Switch />
           </Form.Item>
           <Form.Item label={t('page.wiki.createKb.visibility')} name="visibility">
             <Select
