@@ -798,3 +798,42 @@ export function uploadWikiKbFiles(kbId: string, files: any[]) {
     url: `/wiki/kb/${kbId}/_files/upload`
   }).then(res => (res as any)?.data);
 }
+
+/* ---------------- compile console ---------------- */
+
+export interface WikiCompileJob {
+  status: 'idle' | 'running' | 'done' | 'failed' | 'cancelled';
+  stage?: string;
+  docs?: number;
+  batches?: number;
+  batches_done?: number;
+  batches_cached?: number;
+  batches_failed?: number;
+  extracts?: number;
+  reduced?: number;
+  proposals?: number;
+  current?: string;
+  logs?: string[];
+  started_at?: string;
+}
+
+export function startWikiCompile(kbId: string) {
+  return request<{ result: string }>({
+    method: 'post',
+    url: `/wiki/kb/${kbId}/_compile`
+  }).then(res => (res as any)?.data);
+}
+
+export function getWikiCompileJob(kbId: string) {
+  return request<WikiCompileJob>({
+    method: 'get',
+    url: `/wiki/kb/${kbId}/_compile`
+  }).then(res => (res as any)?.data);
+}
+
+export function cancelWikiCompile(kbId: string) {
+  return request<{ cancelled: boolean }>({
+    method: 'post',
+    url: `/wiki/kb/${kbId}/_compile/_cancel`
+  }).then(res => (res as any)?.data);
+}

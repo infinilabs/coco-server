@@ -6,6 +6,7 @@ package wiki
 import (
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -58,9 +59,9 @@ func ensureUploadDatasource(ctx *orm.Context, kb *core.WikiKnowledgeBase) (*core
 	return &ds, nil
 }
 
-// GET /wiki/kb/:id/_files — every document behind the KB: bound-datasource
-// content plus manual uploads, each with resolved attachments and the
-// articles that cite it.
+// GET /wiki/kb/:id/_files — the KB's attachments in one place: files hung
+// on articles, files attached to documents (bound datasources + manual
+// uploads), each row carrying its owner so one click jumps to it.
 func (h *APIHandler) kbFiles(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	kbID := ps.ByName("id")
 	ctx := orm.NewContextWithParent(req.Context())
@@ -70,7 +71,7 @@ func (h *APIHandler) kbFiles(w http.ResponseWriter, req *http.Request, ps httpro
 	kb.SetID(kbID)
 	orm.WithModel(ctx, &core.WikiKnowledgeBase{})
 	exists, err := orm.GetV2(ctx, &kb)
-	if err != nil && !strings.Contains(err.Error(), "record not found") {
+	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -87,7 +88,49 @@ func (h *APIHandler) kbFiles(w http.ResponseWriter, req *http.Request, ps httpro
 	dsIDs := append([]string{}, kb.DatasourceIDs...)
 	dsIDs = append(dsIDs, upDS.ID)
 
-	// documents of all sources feeding this KB
+	type ownerRef struct {
+		ID         string       `json:"id"`
+		Title      string       `json:"title"`
+		OwnerType  string       `json:"owner_type"` // article | document
+		SourceName string       `json:"source_name,omitempty"`
+		Uploaded   bool         `json:"uploaded,omitempty"`
+		Status     string       `json:"status,omitempty"`
+		Articles   []articleRef `json:"articles,omitempty"`
+	}
+	// attachment id -> owners (an attachment could hang on several owners)
+	owners := map[string][]ownerRef{}
+
+	// article page attachments
+	artRes, err := orm.SearchV2(ctx, orm.NewQuery().Size(1000).
+		Filter(orm.TermQuery("kb_id", kbID)).
+		Include("id", "title", "attachments", "sources"))
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	articlesByDoc := map[string][]articleRef{}
+	if artRes != nil {
+		arts, _, aerr := elastic.DecodeHits[core.WikiArticle](artRes)
+		if aerr != nil {
+			h.WriteError(w, aerr.Error(), http.StatusInternalServerError)
+			return
+		}
+		for _, a := range arts {
+			for _, aid := range a.Attachments {
+				owners[aid] = append(owners[aid], ownerRef{ID: a.ID, Title: a.Title, OwnerType: "article"})
+			}
+			seen := map[string]bool{}
+			for _, sr := range a.Sources {
+				if sr.DocID == "" || seen[sr.DocID] {
+					continue
+				}
+				seen[sr.DocID] = true
+				articlesByDoc[sr.DocID] = append(articlesByDoc[sr.DocID], articleRef{ID: a.ID, Title: a.Title})
+			}
+		}
+	}
+
+	// document attachments (bound datasources + the upload source)
 	dctx := orm.NewContextWithParent(ctx)
 	dctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	orm.WithModel(dctx, &core.Document{})
@@ -103,93 +146,62 @@ func (h *APIHandler) kbFiles(w http.ResponseWriter, req *http.Request, ps httpro
 		h.WriteError(w, derr.Error(), http.StatusInternalServerError)
 		return
 	}
+	attIDs := []string{}
+	for _, d := range docs {
+		attIDs = append(attIDs, d.Attachments...)
+		for _, aid := range d.Attachments {
+			owners[aid] = append(owners[aid], ownerRef{
+				ID: d.ID, Title: d.Title, OwnerType: "document",
+				SourceName: d.Source.Name, Uploaded: d.Source.ID == upDS.ID,
+				Status:   d.Status,
+				Articles: articlesByDoc[d.ID],
+			})
+		}
+	}
 
-	// doc → citing articles: one pass over the KB's articles
-	artRes, err := orm.SearchV2(dctx, orm.NewQuery().Size(1000).
-		Filter(orm.TermQuery("kb_id", kbID)).
-		Include("id", "title", "sources"))
+	// resolve attachment metadata; owners without a surviving blob row drop
+	if len(owners) == 0 {
+		h.WriteOKJSON(w, util.MapStr{"attachments": []interface{}{}, "upload_source_id": upDS.ID})
+		return
+	}
+	for aid := range owners {
+		attIDs = append(attIDs, aid)
+	}
+	orm.WithModel(ctx, &core.Attachment{})
+	ares, err := orm.SearchV2(ctx, orm.NewQuery().Size(1000).
+		Filter(orm.TermsQuery("id", attIDs)))
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	type articleRef struct {
-		ID    string `json:"id"`
-		Title string `json:"title"`
+	atts, _, aerr := elastic.DecodeHits[core.Attachment](ares)
+	if aerr != nil {
+		h.WriteError(w, aerr.Error(), http.StatusInternalServerError)
+		return
 	}
-	articlesByDoc := map[string][]articleRef{}
-	if artRes != nil {
-		arts, _, aerr := elastic.DecodeHits[core.WikiArticle](artRes)
-		if aerr == nil {
-			for _, a := range arts {
-				seen := map[string]bool{}
-				for _, s := range a.Sources {
-					if s.DocID == "" || seen[s.DocID] {
-						continue
-					}
-					seen[s.DocID] = true
-					articlesByDoc[s.DocID] = append(articlesByDoc[s.DocID], articleRef{ID: a.ID, Title: a.Title})
-				}
-			}
-		}
+	type kbAttachmentRow struct {
+		ID       string     `json:"id"`
+		Name     string     `json:"name"`
+		Size     int64      `json:"size,omitempty"`
+		MimeType string     `json:"mime_type,omitempty"`
+		Created  string     `json:"created,omitempty"`
+		Owners   []ownerRef `json:"owners"`
 	}
+	rows := make([]kbAttachmentRow, 0, len(atts))
+	for _, a := range atts {
+		rows = append(rows, kbAttachmentRow{
+			ID: a.ID, Name: a.Name, Size: a.Size, MimeType: a.MimeType,
+			Created: a.Created.Format("2006-01-02"),
+			Owners:  owners[a.ID],
+		})
+	}
+	sort.Slice(rows, func(i, j int) bool { return rows[i].Created > rows[j].Created })
+	h.WriteOKJSON(w, util.MapStr{"attachments": rows, "upload_source_id": upDS.ID})
+}
 
-	// resolve attachment metadata for every doc in one query
-	attIDs := []string{}
-	for _, d := range docs {
-		attIDs = append(attIDs, d.Attachments...)
-	}
-	attMeta := map[string]core.WikiArticleAttachment{}
-	if len(attIDs) > 0 {
-		orm.WithModel(ctx, &core.Attachment{})
-		if ares, err := orm.SearchV2(ctx, orm.NewQuery().Size(1000).
-			Filter(orm.TermsQuery("id", attIDs))); err == nil && ares != nil {
-			if atts, _, aerr := elastic.DecodeHits[core.Attachment](ares); aerr == nil {
-				for _, a := range atts {
-					attMeta[a.ID] = core.WikiArticleAttachment{ID: a.ID, Name: a.Name, Size: a.Size, MimeType: a.MimeType, Created: a.Created.Format("2006-01-02")}
-				}
-			}
-		}
-	}
-
-	type kbFile struct {
-		ID          string                       `json:"id"`
-		Title       string                       `json:"title"`
-		SourceID    string                       `json:"source_id,omitempty"`
-		SourceName  string                       `json:"source_name,omitempty"`
-		Uploaded    bool                         `json:"uploaded,omitempty"`
-		Size        int                          `json:"size,omitempty"`
-		Status      string                       `json:"status,omitempty"`
-		Processed   bool                         `json:"processed"`
-		Updated     string                       `json:"updated,omitempty"`
-		URL         string                       `json:"url,omitempty"`
-		Attachments []core.WikiArticleAttachment `json:"attachments,omitempty"`
-		Articles    []articleRef                 `json:"articles,omitempty"`
-	}
-	files := make([]kbFile, 0, len(docs))
-	for _, d := range docs {
-		f := kbFile{
-			ID:         d.ID,
-			Title:      d.Title,
-			SourceID:   d.Source.ID,
-			SourceName: d.Source.Name,
-			Uploaded:   d.Source.ID == upDS.ID,
-			Size:       d.Size,
-			Status:     d.Status,
-			Processed:  d.Processed,
-			URL:        d.URL,
-		}
-		if d.Updated != nil {
-			f.Updated = d.Updated.Format("2006-01-02 15:04")
-		}
-		for _, aid := range d.Attachments {
-			if m, ok := attMeta[aid]; ok {
-				f.Attachments = append(f.Attachments, m)
-			}
-		}
-		f.Articles = articlesByDoc[d.ID]
-		files = append(files, f)
-	}
-	h.WriteOKJSON(w, util.MapStr{"files": files, "upload_source_id": upDS.ID})
+type articleRef struct {
+	ID    string `json:"id"`
+	Title string `json:"title"`
 }
 
 // textExtensions are the uploads whose bytes go straight into the

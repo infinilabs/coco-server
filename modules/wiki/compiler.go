@@ -373,17 +373,33 @@ func (h *APIHandler) compileKBHandler(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
+	// one job per KB: the console polls its progress; cancel trips the ctx
+	job, jerr := startCompileJob(kbID)
+	if jerr != nil {
+		h.WriteError(w, jerr.Error(), http.StatusConflict)
+		return
+	}
+	cctx, cancel := context.WithCancel(context.Background())
+	job.cancel = cancel
+
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
 				log.Errorf("wiki compiler: run panicked for kb [%s]: %v", kbID, r)
+				job.finish("failed")
 			}
 		}()
-		summary, err := runCompilePipeline(req.Context(), &kb, model)
+		summary, err := runCompilePipeline(cctx, &kb, model, job)
 		if err != nil {
+			if err == context.Canceled {
+				log.Infof("wiki compiler: kb [%s] run cancelled", kbID)
+				return
+			}
 			log.Warnf("wiki compiler: kb [%s] run failed: %v", kbID, err)
+			job.finish("failed")
 			return
 		}
+		job.finish("done")
 		log.Infof("wiki compiler: kb [%s] done — %d docs, %d batches, %d extracts, %d reduced, %d proposals (%d cached, %d failed batches)",
 			kb.Name, summary.Docs, summary.Batches, summary.Extracts, summary.Reduced, summary.Proposals, summary.CachedBatches, summary.FailedBatches)
 	}()
@@ -406,7 +422,10 @@ type compileSummary struct {
 }
 
 // runCompilePipeline: MAP (cached) → REDUCE → PLAN → REFINE → propose.
-func runCompilePipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *core.ModelId) (*compileSummary, error) {
+// job is optional progress/cancel instrumentation (nil for fire-and-forget
+// callers): stages, per-batch counters, log lines and cooperative
+// cancellation between batches.
+func runCompilePipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *core.ModelId, job *CompileJob) (*compileSummary, error) {
 	summary := &compileSummary{}
 
 	// source documents: the KB's bound datasources
@@ -415,13 +434,29 @@ func runCompilePipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *
 		return nil, err
 	}
 	summary.Docs = len(docs)
+	if job != nil {
+		job.Docs = summary.Docs
+		job.log("source documents: %d", summary.Docs)
+	}
 
 	// MAP over chunk batches with fingerprint cache
 	var allExtracts []CompileExtract
 	for _, doc := range docs {
+		if job != nil {
+			if job.cancelled() {
+				return summary, context.Canceled
+			}
+			job.Current = doc.Title
+		}
 		batches := batchChunkText(doc.Content, compileChunkBatchRunes)
 		summary.Batches += len(batches)
+		if job != nil {
+			job.Batches = summary.Batches
+		}
 		for bi, batch := range batches {
+			if job != nil && job.cancelled() {
+				return summary, context.Canceled
+			}
 			fp, _, okFp := fingerprint.Compute(fmt.Sprintf("%s|%s/%s|%s", model.ProviderID, model.ID, doc.ID, fingerprint.Normalize(batch)))
 			if !okFp {
 				continue
@@ -429,16 +464,29 @@ func runCompilePipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *
 			extracts, hit := compileCacheGet(fp)
 			if hit {
 				summary.CachedBatches++
+				if job != nil {
+					job.BatchesDone++
+					job.BatchesCached = summary.CachedBatches
+				}
 				allExtracts = append(allExtracts, extracts...)
 				continue
 			}
 			extracts, err := compileMAPFn(context.WithoutCancel(ctx), model, batch)
 			if err != nil {
 				summary.FailedBatches++
+				if job != nil {
+					job.BatchesDone++
+					job.BatchesFailed = summary.FailedBatches
+					job.log("MAP failed %s/%d: %v", doc.Title, bi, err)
+				}
 				if summary.FailedBatches <= 3 {
 					log.Warnf("wiki compiler: MAP batch %s/%d failed (model %s/%s): %v", doc.ID, bi, model.ProviderID, model.ID, err)
 				}
 				continue
+			}
+			if job != nil {
+				job.BatchesDone++
+				job.log("MAP %s: %d extracts", doc.Title, len(extracts))
 			}
 			for i := range extracts {
 				extracts[i].DocID = doc.ID
@@ -449,17 +497,37 @@ func runCompilePipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *
 		}
 	}
 	summary.Extracts = len(allExtracts)
+	if job != nil {
+		job.Extracts = summary.Extracts
+	}
 	if len(allExtracts) == 0 {
+		if job != nil {
+			job.log("no extracts — nothing to compile")
+			job.finish("done")
+		}
 		return summary, nil
 	}
 
 	// REDUCE
+	if job != nil {
+		job.Stage = "reduce"
+	}
 	reduced := ReduceExtracts(allExtracts)
 	summary.Reduced = len(reduced)
+	if job != nil {
+		job.Reduced = summary.Reduced
+		job.log("reduced to %d keys", summary.Reduced)
+	}
 
 	// PLAN against existing entity pages
+	if job != nil {
+		job.Stage = "plan"
+	}
 	existing := compileExistingArticles(ctx, kb.ID)
 	plan := PlanCompile(reduced, existing)
+	if job != nil {
+		job.log("plan: %d items", len(plan))
+	}
 
 	// REFINE → proposals (single-source concepts stay proposals too —
 	// the noise gate applies at PUBLISH time, not compile time)
@@ -470,14 +538,26 @@ func runCompilePipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *
 	// first proposal filing panicked the whole compile
 	pctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 	pctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	if job != nil {
+		job.Stage = "propose"
+	}
 	for _, item := range plan {
 		if summary.Proposals >= 50 {
 			log.Warnf("wiki compiler: proposal cap 50 reached, truncating")
 			break
 		}
+		if job != nil && job.cancelled() {
+			return summary, context.Canceled
+		}
 		if fileCompileProposal(pctx, kb, item, model) {
 			summary.Proposals++
+			if job != nil {
+				job.Proposals = summary.Proposals
+			}
 		}
+	}
+	if job != nil {
+		job.log("filed %d proposals", summary.Proposals)
 	}
 
 	// dimension organization: propose a TOC that groups the KB's pages into
@@ -1140,11 +1220,19 @@ func runDebouncedCompile(kbID string) {
 		log.Debugf("wiki compiler: debounced run skipped for [%s], no language model", kbID)
 		return
 	}
-	summary, err := runCompilePipeline(ctx, &kb, model)
+	job := getCompileJob(kbID)
+	if job == nil || job.Status != "running" {
+		job = &CompileJob{ID: util.GetUUID(), KbID: kbID, Status: "running", Stage: "map", StartedAt: time.Now()}
+		job.cancel = func() {}
+		compileJobs.Store(kbID, job)
+	}
+	summary, err := runCompilePipeline(ctx, &kb, model, job)
 	if err != nil {
+		job.finish("failed")
 		log.Warnf("wiki compiler: debounced run failed for [%s]: %v", kbID, err)
 		return
 	}
+	job.finish("done")
 	log.Infof("wiki compiler: debounced run for [%s] — %d extracts, %d reduced, %d proposals",
 		kb.Name, summary.Extracts, summary.Reduced, summary.Proposals)
 }

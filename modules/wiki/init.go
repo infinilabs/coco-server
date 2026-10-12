@@ -190,6 +190,11 @@ func init() {
 		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
 	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_compile", handler.compileKBHandler,
 		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
+	// compile console: progress/logs of the current or last run, and cancel
+	api.HandleUIMethod(api.GET, "/wiki/kb/:id/_compile", handler.compileJobStatus,
+		api.RequireLogin(), api.RequirePermission(readArticlePermission))
+	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_compile/_cancel", handler.cancelCompile,
+		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
 
 	// one-off published-article projection backfill (W16a): run before
 	// flipping search_settings.wiki_projection so the unified leg never

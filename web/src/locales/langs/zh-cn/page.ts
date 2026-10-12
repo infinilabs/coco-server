@@ -291,6 +291,18 @@ const page: App.I18n.Schema['translation']['page'] = {
       removed: '删除 {{count}} 行'
     },
     fileManager: {
+      compileStage: '阶段: {{stage}}',
+      compileBatches: '批次 {{done}}/{{total}}（缓存 {{cached}}，失败 {{failed}}）',
+      compileCounts: '文档 {{docs}} · 抽取 {{extracts}} · 归并 {{reduced}} · 提案 {{proposals}}',
+      compileStatus: { running: '编译中', done: '已完成', failed: '失败', cancelled: '已取消', idle: '未运行' },
+      compileCurrent: '正在处理: {{current}}',
+      compileTitle: '知识编译',
+      compileStart: '开始编译',
+      compileCancel: '取消编译',
+      compileIdle: '尚未运行。编译会读取原材料、抽取实体与主张，生成治理提案（自动审批开启时直接应用）',
+      compileAlready: '该知识库已有编译在执行',
+      compileStartFailed: '编译启动失败',
+      compileCancel: '取消编译',
       title: '知识库文件',
       manualUpload: '手动上传',
       upload: '上传文件',
@@ -309,7 +321,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       docsUnit: '篇文档',
       lastSynced: '同步于',
       human: '人工',
-      tabs: { articles: '文章', datasources: '数据源', members: '成员', overview: '概览', graph: '图谱', entities: '实体', settings: '设置', files: '文件' },
+      tabs: { articles: '文章', datasources: '数据源', members: '成员', overview: '概览', graph: '图谱', entities: '实体', settings: '设置', files: '原材料' },
       columns: {
         title: '标题',
         status: '状态',

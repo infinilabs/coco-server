@@ -291,6 +291,18 @@ const page: App.I18n.Schema['translation']['page'] = {
       removed: '{{count}} lines removed'
     },
     fileManager: {
+      compileStage: 'Stage: {{stage}}',
+      compileBatches: 'Batches {{done}}/{{total}} (cached {{cached}}, failed {{failed}})',
+      compileCounts: 'Docs {{docs}} · Extracts {{extracts}} · Reduced {{reduced}} · Proposals {{proposals}}',
+      compileStatus: { running: 'Running', done: 'Done', failed: 'Failed', cancelled: 'Cancelled', idle: 'Idle' },
+      compileCurrent: 'Processing: {{current}}',
+      compileTitle: 'Knowledge compile',
+      compileStart: 'Start compile',
+      compileCancel: 'Cancel compile',
+      compileIdle: 'Not run yet. Compile reads the materials, extracts entities and claims, and files governance proposals (auto-applied when auto-approve is on)',
+      compileAlready: 'A compile is already running for this KB',
+      compileStartFailed: 'Failed to start compile',
+      compileCancel: 'Cancel compile',
       title: 'KB files',
       manualUpload: 'Manual upload',
       upload: 'Upload files',
@@ -309,7 +321,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       docsUnit: 'docs',
       lastSynced: 'Synced',
       human: 'Human',
-      tabs: { articles: 'Articles', datasources: 'Datasources', members: 'Members', overview: 'Overview', graph: 'Graph', entities: 'Entities', settings: 'Settings', files: 'Files' },
+      tabs: { articles: 'Articles', datasources: 'Datasources', members: 'Members', overview: 'Overview', graph: 'Graph', entities: 'Entities', settings: 'Settings', files: 'Materials' },
       columns: {
         title: 'Title',
         status: 'Status',

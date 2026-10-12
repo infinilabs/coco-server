@@ -2,12 +2,19 @@
  * Web: https://infini.ltd */
 
 import { InboxOutlined, PaperClipOutlined } from '@ant-design/icons';
-import { Button, Card, Table, Tag, Upload, message } from 'antd';
-import { useCallback, useEffect, useState } from 'react';
+import { Button, Card, Progress, Table, Tag, Upload, message } from 'antd';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
-import { getWikiKbFiles, uploadWikiKbFiles } from '@/service/api';
+import {
+  cancelWikiCompile,
+  getWikiCompileJob,
+  getWikiKbFiles,
+  startWikiCompile,
+  uploadWikiKbFiles,
+  type WikiCompileJob
+} from '@/service/api';
 import { useAuth } from '@/hooks/business/auth';
 
 interface KbFileAttachment {
@@ -55,9 +62,57 @@ export function KbFileManager({ kbId }: { kbId: string }) {
       .finally(() => setLoading(false));
   }, [kbId]);
 
+  // compile console: one job per KB, polled while running
+  const [job, setJob] = useState<WikiCompileJob | null>(null);
+  const [compileLoading, setCompileLoading] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const stopPoll = () => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  };
+  const poll = useCallback(() => {
+    getWikiCompileJob(kbId).then((p: any) => {
+      if (!p || p.status === 'idle') return;
+      setJob(p);
+      if (p.status === 'running') return;
+      stopPoll();
+      fetchData();
+    }).catch(() => {});
+  }, [kbId, fetchData]);
+  useEffect(() => {
+    // re-attach to a running compile after navigation
+    getWikiCompileJob(kbId).then((p: any) => {
+      if (p?.status === 'running') {
+        setJob(p);
+        pollRef.current = setInterval(poll, 2000);
+      }
+    }).catch(() => {});
+    return stopPoll;
+  }, [kbId]);
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const startCompile = () => {
+    setCompileLoading(true);
+    startWikiCompile(kbId)
+      .then(() => {
+        setCompileLoading(false);
+        pollRef.current = setInterval(poll, 2000);
+        poll();
+      })
+      .catch((err: any) => {
+        setCompileLoading(false);
+        message.error(String(err)?.includes('already running') ? t('page.wiki.fileManager.compileAlready') : t('page.wiki.fileManager.compileStartFailed'));
+      });
+  };
+
+  const cancelCompileRun = () => {
+    cancelWikiCompile(kbId).then(() => poll()).catch(() => {});
+  };
 
   const doUpload = async (fileList: any[]) => {
     if (!fileList.length) return;
@@ -151,6 +206,65 @@ export function KbFileManager({ kbId }: { kbId: string }) {
         </span>
       }
     >
+      {/* compile console: trigger, progress, logs, cancel */}
+      <Card
+        className="card-wrapper mb-12px"
+        size="small"
+        title={t('page.wiki.fileManager.compileTitle')}
+        extra={
+          job?.status === 'running' ? (
+            <Button danger size="small" onClick={cancelCompileRun}>
+              {t('page.wiki.fileManager.compileCancel')}
+            </Button>
+          ) : (
+            <Button loading={compileLoading} size="small" type="primary" onClick={startCompile}>
+              {t('page.wiki.fileManager.compileStart')}
+            </Button>
+          )
+        }
+      >
+        {job && job.status !== 'idle' ? (
+          <div className="flex flex-col gap-6px">
+            <div className="flex flex-wrap items-center gap-10px text-12.5px">
+              <Tag color={job.status === 'running' ? 'processing' : job.status === 'done' ? 'green' : job.status === 'failed' ? 'red' : 'default'}>
+                {t(`page.wiki.fileManager.compileStatus.${job.status}`)}
+              </Tag>
+              <span>{t('page.wiki.fileManager.compileStage', { stage: job.stage || '-' })}</span>
+              <span>
+                {t('page.wiki.fileManager.compileBatches', {
+                  done: job.batches_done || 0,
+                  total: job.batches || 0,
+                  cached: job.batches_cached || 0,
+                  failed: job.batches_failed || 0
+                })}
+              </span>
+              <span>{t('page.wiki.fileManager.compileCounts', { docs: job.docs || 0, extracts: job.extracts || 0, reduced: job.reduced || 0, proposals: job.proposals || 0 })}</span>
+            </div>
+            {job.status === 'running' && (
+              <Progress
+                percent={job.batches ? Math.round(((job.batches_done || 0) / job.batches) * 100) : 0}
+                size="small"
+                status="active"
+              />
+            )}
+            {job.current && job.status === 'running' && (
+              <div className="text-12px text-[var(--ant-color-text-tertiary)]">{t('page.wiki.fileManager.compileCurrent', { current: job.current })}</div>
+            )}
+            {(job.logs || []).length > 0 && (
+              <div
+                className="max-h-160px overflow-auto rounded-4px border border-solid px-8px py-4px font-mono text-11px leading-16px"
+                style={{ borderColor: 'var(--ant-color-border)', background: 'var(--ant-color-bg-layout)' }}
+              >
+                {(job.logs || []).map((l, i) => (
+                  <div key={i}>{l}</div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-12.5px text-[var(--ant-color-text-tertiary)]">{t('page.wiki.fileManager.compileIdle')}</div>
+        )}
+      </Card>
       {canUpdate && (
         <div
           className="mb-12px flex items-center justify-between gap-10px rounded-6px border border-dashed border-solid px-12px py-8px"
