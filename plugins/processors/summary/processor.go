@@ -15,6 +15,7 @@ import (
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/llms"
 	"infini.sh/coco/core"
+	"infini.sh/coco/plugins/connectors"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
 	llmmodule "infini.sh/coco/modules/llm"
@@ -159,6 +160,15 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 			err := util.FromJSONBytes(pop, &doc)
 			if err != nil {
 				log.Error("error on handle document:", i, err)
+				continue
+			}
+
+			// Empty-text guard (WeKnora discipline): folder nodes and
+			// extraction-dead documents carry no summarizable text — without
+			// this the LLM hallucinates a summary from the title alone and
+			// every connector re-sync burns tokens re-hallucinating it
+			if doc.Type == connectors.TypeFolder || strings.TrimSpace(doc.Content) == "" {
+				log.Debugf("[%s] document [%s/%s] has no text content (type=%s), skipping summarization", processor.Name(), doc.Title, doc.ID, doc.Type)
 				continue
 			}
 

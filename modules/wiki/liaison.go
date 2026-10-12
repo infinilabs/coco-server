@@ -82,10 +82,13 @@ func onDocumentProcessed(docID, freshHash string) {
 
 // onDocumentDeleted marks the articles that cited the deleted document as
 // stale — the human gate decides what happens to evidence-less pages.
-// Entities whose Sources cite the doc are covered indirectly: their curated
-// article gets the stale proposal, and the entity card's source count
-// reflects the loss on next read (Sources stay intact as history).
+// Entities are retracted automatically (WeKnora discipline): entity Sources
+// are pipeline-managed provenance, so the ghost citation is stripped at once
+// instead of surviving as a dead reference; an entity left with no sources
+// at all is demoted back to proposed for the queue to re-examine.
 func onDocumentDeleted(docID string) {
+	retractEntitySources(docID)
+
 	articles := articlesCitingDocument(docID)
 	if len(articles) == 0 {
 		return
@@ -105,6 +108,53 @@ func onDocumentDeleted(docID string) {
 				"doc_id":  docID,
 				"cascade": "document-deleted",
 			})
+	}
+}
+
+// retractEntitySources strips the deleted document from every entity's
+// Sources (in-memory scan: sources is stored unmapped, the same trade-off
+// articlesCitingDocument makes). Entities with no remaining sources keep
+// their page but drop back to proposed — their claims no longer trace to
+// any document.
+func retractEntitySources(docID string) {
+	ctx := orm.NewContext()
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(ctx, &core.WikiEntity{})
+
+	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(graphMaxArticles))
+	if err != nil {
+		log.Warnf("wiki: entity retract scan failed for [%s]: %v", docID, err)
+		return
+	}
+	entities, _, err := elastic.DecodeHits[core.WikiEntity](res)
+	if err != nil {
+		return
+	}
+
+	retracted := 0
+	for i := range entities {
+		e := entities[i]
+		kept := e.Sources[:0:0]
+		for _, s := range e.Sources {
+			if s.DocID != docID {
+				kept = append(kept, s)
+			}
+		}
+		if len(kept) == len(e.Sources) {
+			continue
+		}
+		e.Sources = kept
+		if len(kept) == 0 && e.Status == "published" {
+			e.Status = "proposed"
+		}
+		if err := orm.Update(ctx, &e); err != nil {
+			log.Warnf("wiki: failed to retract entity [%s] source [%s]: %v", e.ID, docID, err)
+			continue
+		}
+		retracted++
+	}
+	if retracted > 0 {
+		log.Infof("wiki: retracted deleted document [%s] from %d entities", docID, retracted)
 	}
 }
 

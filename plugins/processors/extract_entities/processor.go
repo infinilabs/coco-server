@@ -19,6 +19,7 @@ import (
 	"infini.sh/coco/modules/common"
 	llmmodule "infini.sh/coco/modules/llm"
 	"infini.sh/coco/modules/wiki"
+	"infini.sh/coco/plugins/connectors"
 	utils "infini.sh/coco/plugins/processors"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/elastic"
@@ -217,7 +218,22 @@ func (processor *ExtractEntitiesProcessor) Process(ctx *pipeline.Context) error 
 
 // buildExtractionMaterial picks the richest text a document carries:
 // AI insights first (summary/insights pipeline products), then the raw body.
+// maxContentForExtraction bounds the document text fed to the LLM (WeKnora's
+// maxContentForWiki discipline): grounding needs real text, not derivatives.
+const maxContentForExtraction = 30000
+
 func buildExtractionMaterial(doc *core.Document) string {
+	// extraction must ground on real document text: title/summary/insights
+	// are derivatives — on a folder node or an extraction-dead document they
+	// are ALL the model sees, and it will happily fabricate entities from a
+	// filename (observed: folder docs minting entities from their path)
+	if doc.Type == connectors.TypeFolder || strings.TrimSpace(doc.Content) == "" {
+		return ""
+	}
+	content := []rune(doc.Content)
+	if len(content) > maxContentForExtraction {
+		content = content[:maxContentForExtraction]
+	}
 	parts := []string{}
 	if doc.Title != "" {
 		parts = append(parts, "Title: "+doc.Title)
@@ -228,6 +244,7 @@ func buildExtractionMaterial(doc *core.Document) string {
 	if doc.AiInsights.Text != "" {
 		parts = append(parts, "Analysis: "+doc.AiInsights.Text)
 	}
+	parts = append(parts, "Content:\n"+string(content))
 	return strings.Join(parts, "\n\n")
 }
 
@@ -527,6 +544,10 @@ func documentSourceRef(doc *core.Document, evidence string) core.WikiSourceRefer
 		DocID:   doc.ID,
 		Title:   doc.Title,
 		Excerpt: evidence,
+		// block-level citation (WeKnora-style): locate the evidence quote
+		// inside the document's chunks so the wiki citation can point at
+		// the exact block, not just the document
+		Locator: chunkLocator(doc, evidence),
 	}
 	if doc.Source.ID != "" {
 		ref.SourceType = doc.Source.Type
@@ -536,6 +557,39 @@ func documentSourceRef(doc *core.Document, evidence string) core.WikiSourceRefer
 		ref.URL = doc.URL
 	}
 	return ref
+}
+
+// chunkLocator matches the LLM's evidence quote against the document's
+// chunks — whitespace-insensitive on the full quote, falling back to its
+// distinctive head fragment (LLMs paraphrase around the edges) — and
+// returns the chunk's breadcrumb, or its ordinal when the chunk carries
+// no breadcrumb. Empty when nothing matches or the doc has no chunks.
+func chunkLocator(doc *core.Document, evidence string) string {
+	if len(doc.Chunks) == 0 || strings.TrimSpace(evidence) == "" {
+		return ""
+	}
+	normalize := func(s string) string { return strings.Join(strings.Fields(s), "") }
+	ev := normalize(evidence)
+	if ev == "" {
+		return ""
+	}
+	head := ev
+	if r := []rune(head); len(r) > 24 {
+		head = string(r[:24])
+	}
+	for i := range doc.Chunks {
+		ct := normalize(doc.Chunks[i].Text)
+		if ct == "" {
+			continue
+		}
+		if strings.Contains(ct, ev) || strings.Contains(ct, normalize(head)) {
+			if doc.Chunks[i].Breadcrumb != "" {
+				return doc.Chunks[i].Breadcrumb
+			}
+			return fmt.Sprintf("块 %d/%d", i+1, len(doc.Chunks))
+		}
+	}
+	return ""
 }
 
 func normalizeAliases(aliases []string) []string {

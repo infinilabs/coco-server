@@ -55,15 +55,33 @@ func TestNormalizeAliases(t *testing.T) {
 }
 
 func TestBuildExtractionMaterial(t *testing.T) {
+	// no real text — folder nodes / extraction-dead docs must not extract
+	empty := core.Document{}
+	empty.Title = "T"
+	empty.Summary = "S"
+	if got := buildExtractionMaterial(&empty); got != "" {
+		t.Errorf("expected empty material without content, got %q", got)
+	}
+	folder := core.Document{}
+	folder.Type = "folder"
+	folder.Content = "some text"
+	if got := buildExtractionMaterial(&folder); got != "" {
+		t.Errorf("folder docs must not extract, got %q", got)
+	}
+	// content-grounded: content is the body, title/summary are context
 	doc := core.Document{}
 	doc.Title = "T"
 	doc.Summary = "S"
-	if got := buildExtractionMaterial(&doc); got != "Title: T\n\nSummary: S" {
+	doc.Content = "C"
+	got := buildExtractionMaterial(&doc)
+	if !strings.Contains(got, "Title: T") || !strings.Contains(got, "Summary: S") || !strings.Contains(got, "Content:\nC") {
 		t.Errorf("unexpected material: %q", got)
 	}
-	empty := core.Document{}
-	if got := buildExtractionMaterial(&empty); got != "" {
-		t.Errorf("expected empty material, got %q", got)
+	// over-limit content is truncated, not rejected
+	long := core.Document{}
+	long.Content = strings.Repeat("x", maxContentForExtraction+100)
+	if got := buildExtractionMaterial(&long); len([]rune(got)) == 0 {
+		t.Errorf("long content should truncate to a material, got empty")
 	}
 }
 
@@ -125,4 +143,26 @@ func TestEntityTypeCanonicalization(t *testing.T) {
 	// unknown types degrade to concept
 	assert.Equal(t, "concept", canonicalizeEntityType("Spaceship", allowed, schema))
 	assert.Equal(t, "concept", canonicalizeEntityType("", allowed, schema))
+}
+
+func TestChunkLocator(t *testing.T) {
+	doc := core.Document{}
+	doc.Chunks = []core.DocumentChunk{
+		{Text: "品牌与营销 首页 介绍"}, {Text: "美心 流心奶黄 月饼 产品目录, Dedicated vouchers for Maxim's Cake"}, {Text: "门店地址"},
+	}
+	if got := chunkLocator(&doc, "Dedicated vouchers for Maxim's Cake and Tohato"); got != "块 2/3" {
+		t.Errorf("expected ordinal locator, got %q", got)
+	}
+	doc.Chunks[0].Breadcrumb = "年报 > 财务"
+	if got := chunkLocator(&doc, "介绍"); got != "年报 > 财务" {
+		t.Errorf("expected breadcrumb locator, got %q", got)
+	}
+	// paraphrased evidence: head fragment still matches
+	if got := chunkLocator(&doc, "Dedicated vouchers for Maxim's"); got != "块 2/3" {
+		t.Errorf("expected head-fragment match, got %q", got)
+	}
+	// no chunks / no evidence → empty
+	if got := chunkLocator(&core.Document{}, "x"); got != "" {
+		t.Errorf("expected empty locator without chunks, got %q", got)
+	}
 }
