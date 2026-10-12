@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/business/auth';
 import { Button, Card, Form, Input, Modal, Select, Space, message } from 'antd';
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -44,7 +45,21 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
   const onSave = () => {
     form.validateFields().then(values => {
       setSaving(true);
-      updateWikiKb(kb.id, values as Partial<Api.Wiki.Kb>).then(res => {
+      // layout rows carry prefixes as a comma string in the form; the API
+      // wants the array form
+      const payload = {
+        ...values,
+        toc_layout: ((values.toc_layout || []) as any[])
+          .filter(row => row?.title?.trim())
+          .map(row => ({
+            title: row.title.trim(),
+            path_prefixes: (row.prefixes || '')
+              .split(/[,，]/)
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+          }))
+      };
+      updateWikiKb(kb.id, payload as Partial<Api.Wiki.Kb>).then(res => {
         setSaving(false);
         if ((res as any)?.id || res !== undefined) {
           message.success(t('page.wiki.settings.saved'));
@@ -73,7 +88,11 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
             icon: kb.icon,
             visibility: kb.visibility,
             assistant_id: kb.assistant_id,
-            datasource_ids: kb.datasource_ids
+            datasource_ids: kb.datasource_ids,
+            toc_layout: (kb.toc_layout || []).map(f => ({
+              title: f.title,
+              prefixes: (f.path_prefixes || []).join(', ')
+            }))
           }}
           labelCol={{ span: 5 }}
           layout="horizontal"
@@ -110,6 +129,51 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
               mode="multiple"
               options={datasources.map(ds => ({ value: ds.id, label: ds.name }))}
             />
+          </Form.Item>
+          <Form.Item
+            label={t('page.wiki.settings.tocLayout')}
+            tooltip={t('page.wiki.settings.tocLayoutHint')}
+          >
+            <Form.List name="toc_layout">
+              {(fields, { add, remove }) => (
+                <div className="flex flex-col gap-6px">
+                  {fields.map(field => (
+                    <Space key={field.key} align="baseline" className="w-full">
+                      <Form.Item
+                        className="mb-0"
+                        name={[field.name, 'title']}
+                        rules={[{ required: true, message: t('page.wiki.settings.tocLayoutTitleRequired') }]}
+                        noStyle
+                      >
+                        <Input
+                          placeholder={t('page.wiki.settings.tocLayoutDeptPlaceholder')}
+                          style={{ width: 160 }}
+                        />
+                      </Form.Item>
+                      <Form.Item className="mb-0" name={[field.name, 'prefixes']} noStyle>
+                        <Input
+                          placeholder={t('page.wiki.settings.tocLayoutPrefixPlaceholder')}
+                          style={{ width: 260 }}
+                        />
+                      </Form.Item>
+                      <Button
+                        icon={<DeleteOutlined />}
+                        onClick={() => remove(field.name)}
+                        type="text"
+                      />
+                    </Space>
+                  ))}
+                  <Button
+                    block={false}
+                    className="w-fit"
+                    icon={<PlusOutlined />}
+                    onClick={() => add({ title: '', prefixes: '' })}
+                  >
+                    {t('page.wiki.settings.tocLayoutAdd')}
+                  </Button>
+                </div>
+              )}
+            </Form.List>
           </Form.Item>
           <Form.Item className="mb-0" wrapperCol={{ offset: 5 }}>
             {canUpdate && (

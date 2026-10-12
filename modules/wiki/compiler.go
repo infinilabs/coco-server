@@ -488,24 +488,17 @@ func runCompilePipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *
 }
 
 // proposeTreeOrganization files ONE tree_organize proposal carrying the
-// compiler's suggested TOC: every KB page sits in the dimension folder its
-// entity type implies (organization→客户与组织, product→产品与服务, the rest
-// →专题与概念). Idempotent per generation — an open twin short-circuits.
+// compiler's suggested TOC: with a KB toc_layout configured, the configured
+// departments are the top level (部门 → 维度 → 页面, department membership
+// from the cited documents' folder path); without one, every KB page sits in
+// the dimension folder its entity type implies (organization→客户与组织,
+// product→产品与服务, the rest →专题与概念). The open twin is the living
+// suggestion: identical trees skip, changed trees refresh it in place.
 func proposeTreeOrganization(ctx *orm.Context, kb *core.WikiKnowledgeBase, existing []core.WikiArticle) {
 	if len(existing) == 0 {
 		return
 	}
 	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
-	// idempotency: the anchor here is the KB, not an article — an open
-	// tree_organize twin for this KB short-circuits the re-file
-	if res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1).
-		Filter(orm.TermQuery("kb_id", kb.ID),
-			orm.TermQuery("type", core.WikiGovernanceTreeOrganize),
-			orm.TermQuery("status", core.WikiGovernanceOpen))); err == nil && res != nil {
-		if open, _, derr := elastic.DecodeHits[core.WikiGovernanceProposal](res); derr == nil && len(open) > 0 {
-			return
-		}
-	}
 
 	// article → entity ontology type (entities carry ArticleID once their
 	// page exists); unknown types fall into the concepts folder
@@ -538,40 +531,128 @@ func proposeTreeOrganization(ctx *orm.Context, kb *core.WikiKnowledgeBase, exist
 		{"product", "产品与服务", []string{"product"}},
 		{"topic", "专题与概念", nil}, // everything else
 	}
-	nodes := make([]core.WikiTocNode, 0, len(folders))
-	for _, f := range folders {
-		children := make([]core.WikiTocNode, 0, len(existing))
-		for _, a := range existing {
-			// the tree is for navigable knowledge, not every extraction
-			// stub: single-source drafts live in the 实体 tab (the same
-			// rule the governance orphan sweep enforces) — dimension
-			// overview pages (…概览) are aggregate hubs and always stay
-			if a.Status == core.WikiArticleDraft && len(a.Sources) < 2 &&
-				!strings.HasSuffix(a.Title, "概览") {
-				continue
+
+	// skip rule shared by every layout shape
+	navigable := func(a core.WikiArticle) bool {
+		// single-source drafts live in the 实体 tab (the same rule the
+		// governance orphan sweep enforces) — dimension overview pages
+		// (…概览) are aggregate hubs and always stay
+		return !(a.Status == core.WikiArticleDraft && len(a.Sources) < 2 &&
+			!strings.HasSuffix(a.Title, "概览"))
+	}
+	dimensionNode := func(key, title string, arts []core.WikiArticle) *core.WikiTocNode {
+		f := folders
+		var def *struct {
+			key   string
+			title string
+			types []string
+		}
+		for i := range f {
+			if f[i].key == key {
+				def = &f[i]
+				break
 			}
+		}
+		if def == nil {
+			return nil
+		}
+		children := make([]core.WikiTocNode, 0, len(arts))
+		for _, a := range arts {
 			t := articleType[a.ID]
-			matched := f.types == nil
-			for _, want := range f.types {
+			matched := def.types == nil
+			for _, want := range def.types {
 				if t == want {
 					matched = true
 					break
 				}
 			}
-			if matched && a.ID != "" {
+			if matched {
 				children = append(children, core.WikiTocNode{
 					ID: "toc-" + a.ID, Title: a.Title, Type: "article", ArticleID: a.ID,
 				})
 			}
 		}
-		if len(children) > 0 {
-			nodes = append(nodes, core.WikiTocNode{
-				ID: "folder-" + f.key + "-" + kb.ID, Title: f.title, Type: "folder", Children: children,
-			})
+		if len(children) == 0 {
+			return nil
+		}
+		return &core.WikiTocNode{ID: "folder-" + key + "-" + kb.ID, Title: title, Type: "folder", Children: children}
+	}
+
+	var nodes []core.WikiTocNode
+	if len(kb.TocLayout) > 0 {
+		// 企业布局:配置的部门各成顶层目录,部门内按实体类型维度再分。
+		// 部门归属来自被引文档的 folder_path 前缀;没有命中的文章归「综合」
+		deptOf := articleDeptByPath(ctx, existing, kb.TocLayout)
+		nav := make([]core.WikiArticle, 0, len(existing))
+		for _, a := range existing {
+			if navigable(a) {
+				nav = append(nav, a)
+			}
+		}
+		for _, dept := range kb.TocLayout {
+			var deptChildren []core.WikiTocNode
+			inDept := make([]core.WikiArticle, 0, len(nav))
+			for _, a := range nav {
+				if deptOf[a.ID] == dept.Title {
+					inDept = append(inDept, a)
+				}
+			}
+			for _, f := range folders {
+				if dim := dimensionNode(f.key, f.title, inDept); dim != nil {
+					deptChildren = append(deptChildren, *dim)
+				}
+			}
+			if len(deptChildren) > 0 {
+				nodes = append(nodes, core.WikiTocNode{
+					ID: "folder-dept-" + dept.Title + "-" + kb.ID, Title: dept.Title, Type: "folder", Children: deptChildren,
+				})
+			}
+		}
+		// unmatched articles → the catch-all department keeps them reachable
+		var rest []core.WikiArticle
+		for _, a := range nav {
+			if deptOf[a.ID] == "" {
+				rest = append(rest, a)
+			}
+		}
+		if len(rest) > 0 {
+			var deptChildren []core.WikiTocNode
+			for _, f := range folders {
+				if dim := dimensionNode(f.key, f.title, rest); dim != nil {
+					deptChildren = append(deptChildren, *dim)
+				}
+			}
+			if len(deptChildren) > 0 {
+				nodes = append(nodes, core.WikiTocNode{
+					ID: "folder-dept-综合-" + kb.ID, Title: "综合", Type: "folder", Children: deptChildren,
+				})
+			}
+		}
+	} else {
+		nodes = make([]core.WikiTocNode, 0, len(folders))
+		for _, f := range folders {
+			arts := make([]core.WikiArticle, 0, len(existing))
+			for _, a := range existing {
+				if navigable(a) {
+					arts = append(arts, a)
+				}
+			}
+			if dim := dimensionNode(f.key, f.title, arts); dim != nil {
+				nodes = append(nodes, *dim)
+			}
 		}
 	}
 	if len(nodes) == 0 {
 		return
+	}
+
+	reason := fmt.Sprintf("按维度把 %d 篇页面组织进 %d 个目录(客户与组织/产品与服务/专题与概念),确认后生效", len(existing), len(nodes))
+	if len(kb.TocLayout) > 0 {
+		titles := make([]string, 0, len(kb.TocLayout))
+		for _, dept := range kb.TocLayout {
+			titles = append(titles, dept.Title)
+		}
+		reason = fmt.Sprintf("按企业目录布局(%s)把 %d 篇页面组织进部门目录,部门内按维度再分,确认后生效", strings.Join(titles, "/"), len(existing))
 	}
 
 	proposal := &core.WikiGovernanceProposal{
@@ -579,12 +660,37 @@ func proposeTreeOrganization(ctx *orm.Context, kb *core.WikiKnowledgeBase, exist
 		Type:         core.WikiGovernanceTreeOrganize,
 		Status:       core.WikiGovernanceOpen,
 		ArticleTitle: "知识目录组织建议",
-		Reason:       fmt.Sprintf("按维度把 %d 篇页面组织进 %d 个目录(客户与组织/产品与服务/专题与概念),确认后生效", len(existing), len(nodes)),
+		Reason:       reason,
 	}
 	// day-anchored id: one suggestion per KB per day — recompiles the same
 	// day overwrite the suggestion in place instead of stacking twins
 	proposal.ID = core.AnchoredProposalID("tree:"+kb.ID, core.WikiGovernanceTreeOrganize, int(time.Now().Unix()/86400))
 	proposal.Evidence = util.MapStr{"cascade": "tree-organize", "tree": json.RawMessage(util.MustToJSON(nodes))}
+
+	// an open twin is the living suggestion: identical trees skip (no queue
+	// churn), changed trees refresh it in place — otherwise a changed layout
+	// would never re-file until the stale proposal was resolved by hand
+	newTree := canonicalTreeJSON(nodes)
+	if res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1).
+		Filter(orm.TermQuery("kb_id", kb.ID),
+			orm.TermQuery("type", core.WikiGovernanceTreeOrganize),
+			orm.TermQuery("status", core.WikiGovernanceOpen))); err == nil && res != nil {
+		if open, _, derr := elastic.DecodeHits[core.WikiGovernanceProposal](res); derr == nil && len(open) > 0 {
+			if canonicalTreeJSON(open[0].Evidence["tree"]) == newTree {
+				return
+			}
+			twin := open[0]
+			twin.Reason = proposal.Reason
+			twin.Evidence = proposal.Evidence
+			if err := orm.Update(ctx, &twin); err != nil {
+				log.Debugf("wiki compiler: tree proposal refresh failed for [%s]: %v", kb.Name, err)
+			}
+			notifyOwner(kb.GetOwnerID(), "kb", kb.ID, "governance",
+				fmt.Sprintf("知识编译:「%s」的目录组织建议已按最新布局更新,在治理队列确认后生效", kb.Name))
+			return
+		}
+	}
+
 	// a same-day dismissed twin occupies the anchored id — refresh it back
 	// to open with the fresh tree instead of letting the Create conflict
 	twin := core.WikiGovernanceProposal{}
@@ -608,6 +714,24 @@ func proposeTreeOrganization(ctx *orm.Context, kb *core.WikiKnowledgeBase, exist
 		fmt.Sprintf("知识编译:为「%s」生成了目录组织建议(%d 篇页面),在治理队列确认后生效", kb.Name, len(existing)))
 }
 
+// canonicalTreeJSON normalizes a stored-or-built tree value to comparable
+// JSON: struct-built nodes marshal in field order, ES-decoded maps sort keys
+// alphabetically — byte comparison alone would call equal trees different.
+func canonicalTreeJSON(tree any) string {
+	if raw, ok := tree.(json.RawMessage); ok {
+		tree = json.RawMessage(raw)
+	}
+	var v any
+	if err := json.Unmarshal([]byte(util.ToString(tree)), &v); err != nil {
+		return ""
+	}
+	out, err := json.Marshal(v)
+	if err != nil {
+		return ""
+	}
+	return string(out)
+}
+
 func articleIDsOf(articles []core.WikiArticle) []string {
 	out := make([]string, 0, len(articles))
 	for _, a := range articles {
@@ -616,6 +740,72 @@ func articleIDsOf(articles []core.WikiArticle) []string {
 		}
 	}
 	return out
+}
+
+// articleDeptByPath resolves each article's department from its cited
+// documents' folder path: a layout folder matches when any path prefix hits
+// a segment of the doc's folder_path (case-insensitive); first match wins.
+// Articles with no hit are absent from the map — the caller files them
+// under the catch-all department.
+func articleDeptByPath(ctx *orm.Context, articles []core.WikiArticle, layout []core.WikiTocLayoutFolder) map[string]string {
+	ids := make([]string, 0)
+	for _, a := range articles {
+		for _, s := range a.Sources {
+			if s.DocID != "" {
+				ids = append(ids, s.DocID)
+			}
+		}
+	}
+	docPath := map[string]string{}
+	if len(ids) > 0 {
+		octx := orm.NewContextWithParent(ctx)
+		octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+		orm.WithModel(octx, &core.Document{})
+		res, err := orm.SearchV2(octx, orm.NewQuery().Size(2000).
+			Filter(orm.TermsQuery("id", ids)).Include("id", "folder_path", "category"))
+		if err != nil {
+			log.Warnf("wiki compiler: dept path lookup failed (%d ids): %v", len(ids), err)
+		} else if res != nil {
+			if docs, _, derr := elastic.DecodeHits[core.Document](res); derr == nil {
+				for i := range docs {
+					p := docs[i].FolderPath
+					if p == "" {
+						p = docs[i].Category
+					}
+					docPath[docs[i].ID] = strings.Trim(p, "/")
+				}
+			}
+		}
+	}
+	deptOf := make(map[string]string, len(articles))
+	for _, a := range articles {
+		for _, s := range a.Sources {
+			p := strings.ToLower(docPath[s.DocID])
+			if p == "" {
+				continue
+			}
+			for _, dept := range layout {
+				for _, prefix := range dept.PathPrefixes {
+					prefix = strings.ToLower(strings.Trim(prefix, "/"))
+					if prefix == "" {
+						continue
+					}
+					if p == prefix || strings.HasPrefix(p, prefix+"/") ||
+						strings.Contains("/"+p+"/", "/"+prefix+"/") {
+						deptOf[a.ID] = dept.Title
+						break
+					}
+				}
+				if deptOf[a.ID] != "" {
+					break
+				}
+			}
+			if deptOf[a.ID] != "" {
+				break
+			}
+		}
+	}
+	return deptOf
 }
 
 func compileSourceDocuments(ctx context.Context, kb *core.WikiKnowledgeBase) ([]core.Document, error) {

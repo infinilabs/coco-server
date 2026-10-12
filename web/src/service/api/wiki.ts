@@ -46,7 +46,8 @@ const normalizeKb = (src: any): Api.Wiki.Kb => ({
   // summaries are not modeled server-side yet; the UI tolerates empty
   members: [],
   datasources: [],
-  ai_status: src?.ai_status
+  ai_status: src?.ai_status,
+  toc_layout: src?.toc_layout ?? []
 });
 
 const normalizeArticle = (src: any): Api.Wiki.Article => ({

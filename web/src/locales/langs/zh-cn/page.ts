@@ -29,7 +29,13 @@ const page: App.I18n.Schema['translation']['page'] = {
       agentTooltip: '绑定后,该知识库的「AI 生成」与「AI 编辑」将使用此智能体配置的模型',
       danger: '危险操作',
       deleteKb: '删除知识库',
-      saved: '设置已保存'
+      saved: '设置已保存',
+      tocLayout: '目录布局(部门)',
+      tocLayoutHint: '企业知识库:研发/销售/售前/市场等部门各成顶层目录,部门内按维度再分。路径前缀按被引文档的目录路径匹配,逗号分隔,如「研发, rd」。留空则由编译器按维度自动组织',
+      tocLayoutAdd: '添加部门',
+      tocLayoutDeptPlaceholder: '部门名称,如 研发',
+      tocLayoutPrefixPlaceholder: '路径前缀,逗号分隔,如 研发, rd',
+      tocLayoutTitleRequired: '请输入部门名称'
     },
     tree: {
       newFolder: '新建文件夹',
@@ -429,6 +435,16 @@ const page: App.I18n.Schema['translation']['page'] = {
     statusFailed: '失败',
     statusLegacy: '存量(未盖章)',
     failedTitle: '失败清单',
+    autoRefresh: '自动刷新',
+    queueIndexing: '待索引队列',
+    queueProcessed: '待入库队列',
+    queueAttachment: '附件队列',
+    oldestIndexing: '最早待处理',
+    liveJustNow: '刚刚',
+    liveMinutesAgo: '{{minutes}} 分钟前',
+    liveHoursAgo: '{{hours}} 小时前',
+    processingDetail: '处理日志',
+    tabContent: '内容',
     failedDocTitle: '文档',
     failedDatasource: '数据源',
     failedError: '失败原因',
@@ -1976,10 +1992,12 @@ const page: App.I18n.Schema['translation']['page'] = {
   },
   setupLater: '稍后设置',
   preview: {
+    attachments: { open: '查看附件列表', title: '附件' },
     title: '文档预览',
     processing: {
       title: '加工',
       open: '查看加工过程与产物',
+
       statusIndexing: '处理中',
       statusCompleted: '已完成',
       statusFailed: '失败',

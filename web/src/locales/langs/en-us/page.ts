@@ -29,7 +29,13 @@ const page: App.I18n.Schema['translation']['page'] = {
       agentTooltip: 'When bound, AI generation and AI editing for this KB use the model configured on this assistant',
       danger: 'Danger Zone',
       deleteKb: 'Delete Knowledge Base',
-      saved: 'Settings saved'
+      saved: 'Settings saved',
+      tocLayout: 'TOC layout (departments)',
+      tocLayoutHint: 'Enterprise layout: departments (R&D, sales, presales, marketing) become top-level folders, organized by dimension inside. Path prefixes match cited documents by folder path, comma-separated. Leave empty for automatic dimension-only organization',
+      tocLayoutAdd: 'Add department',
+      tocLayoutDeptPlaceholder: 'Department, e.g. R&D',
+      tocLayoutPrefixPlaceholder: 'Path prefixes, comma-separated, e.g. rd, eng',
+      tocLayoutTitleRequired: 'Department name is required'
     },
     tree: {
       newFolder: 'New Folder',
@@ -429,6 +435,16 @@ const page: App.I18n.Schema['translation']['page'] = {
     statusFailed: 'Failed',
     statusLegacy: 'Legacy (unstamped)',
     failedTitle: 'Failed Documents',
+    autoRefresh: 'Auto refresh',
+    queueIndexing: 'Pending index',
+    queueProcessed: 'Pending merge',
+    queueAttachment: 'Attachment queue',
+    oldestIndexing: 'Oldest in-flight',
+    liveJustNow: 'just now',
+    liveMinutesAgo: '{{minutes}}m ago',
+    liveHoursAgo: '{{hours}}h ago',
+    processingDetail: 'Processing Log',
+    tabContent: 'Content',
     failedDocTitle: 'Document',
     failedDatasource: 'Datasource',
     failedError: 'Error',
@@ -1562,8 +1578,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         semantic: 'Semantic',
         hybrid: 'Hybrid',
         hybrid_rrf: 'Hybrid fusion (hybrid_rrf)'
-      },
-      title: 'Search Settings'
+      }
     },
     default_model: {
       labels: {
@@ -1826,10 +1841,12 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   preview: {
+    attachments: { open: 'View attachments', title: 'Attachments' },
     title: 'Document Preview',
     processing: {
       title: 'Processing',
       open: 'View processing timeline and artifacts',
+
       statusIndexing: 'Indexing',
       statusCompleted: 'Completed',
       statusFailed: 'Failed',

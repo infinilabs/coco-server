@@ -108,8 +108,21 @@ type WikiKnowledgeBase struct {
 	AssistantID   string   `json:"assistant_id,omitempty" elastic_mapping:"assistant_id:{type:keyword}"`
 	SyncStrategy  string   `json:"sync_strategy,omitempty" elastic_mapping:"sync_strategy:{type:keyword}"` // realtime | scheduled | manual
 	ArticleCount  int      `json:"article_count" elastic_mapping:"article_count:{type:integer}"`
+	// 企业目录布局(可选):研发/销售/售前/市场等部门各成顶层目录,目录内
+	// 编译器按实体类型维度再分。部门归属按被引文档的 folder_path 前缀匹配;
+	// 未配置时编译器退回单层维度目录
+	TocLayout []WikiTocLayoutFolder `json:"toc_layout,omitempty" elastic_mapping:"toc_layout:{type:object}"`
 	// runtime status of the KB agent pipeline, not a query target
 	AIStatus string `json:"ai_status,omitempty" elastic_mapping:"ai_status:{enabled:false}"`
+}
+
+// WikiTocLayoutFolder is one top-level department folder of the KB layout.
+// PathPrefixes match the cited documents' folder path (any-level prefix,
+// case-insensitive) — a doc under "kb/研发/" files its articles under the
+// department whose prefix matches first.
+type WikiTocLayoutFolder struct {
+	Title        string   `json:"title"`                   // 研发部
+	PathPrefixes []string `json:"path_prefixes,omitempty"` // ["研发", "rd"]
 }
 
 // WikiSourceReference points back at the ingested document a statement
