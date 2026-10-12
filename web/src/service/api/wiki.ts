@@ -264,6 +264,10 @@ export function searchWikiGovernance(params?: { status?: string; type?: string; 
   if (params?.type) filters.push(`type:${params.type}`);
   if (params?.kbId) filters.push(`kb_id:${params.kbId}`);
   if (filters.length) searchParams.set('filter', filters.join(' AND '));
+  // the crud default page size is 10 — the review queue paginates
+  // client-side, so pull a full window (the badge may say 99+ while the
+  // list would otherwise show one page and no pager)
+  searchParams.set('size', '1000');
   const qs = searchParams.toString();
   return request<{ hits: any }>({ method: 'get', url: `/wiki/governance/_search${qs ? `?${qs}` : ''}` }).then(res => {
     const es = formatESSearchResult(res?.data);
