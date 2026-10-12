@@ -319,15 +319,28 @@ func (h *APIHandler) uploadKBFiles(w http.ResponseWriter, req *http.Request, ps 
 		// document in place instead of stacking twins
 		existing := core.Document{}
 		existing.SetID(doc.ID)
-		if found, gerr := orm.GetV2(ctx, &existing); gerr == nil && found {
+		found, gerr := orm.GetV2(ctx, &existing)
+		if gerr != nil && !strings.Contains(gerr.Error(), "record not found") {
+			failures = append(failures, uploadErr{File: fh.Filename, Err: gerr.Error()})
+			continue
+		}
+		if found {
 			doc.Created = existing.Created
 		}
 		wctx := orm.NewContextWithParent(ctx)
 		wctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 		wctx.Refresh = orm.WaitForRefresh
 		orm.WithModel(wctx, &core.Document{})
-		if err := orm.Update(wctx, &doc); err != nil {
-			failures = append(failures, uploadErr{File: fh.Filename, Err: err.Error()})
+		// this orm's Update refuses missing rows — first upload creates,
+		// re-upload of the same filename updates in place
+		var werr error
+		if found {
+			werr = orm.Update(wctx, &doc)
+		} else {
+			werr = orm.Create(wctx, &doc)
+		}
+		if werr != nil {
+			failures = append(failures, uploadErr{File: fh.Filename, Err: werr.Error()})
 			continue
 		}
 		if err := common.EnqueueForIndexing(&doc); err != nil {
