@@ -544,36 +544,31 @@ func proposeTreeOrganization(ctx *orm.Context, kb *core.WikiKnowledgeBase, exist
 		return !(a.Status == core.WikiArticleDraft && len(a.Sources) < 2 &&
 			!strings.HasSuffix(a.Title, "概览"))
 	}
-	dimensionNode := func(key, title, idNS string, arts []core.WikiArticle) *core.WikiTocNode {
-		var def *struct {
-			key   string
-			title string
-			types []string
-		}
-		for i := range dimensionSlots {
-			if dimensionSlots[i].key == key {
-				def = &dimensionSlots[i]
-				break
-			}
-		}
-		if def == nil {
-			return nil
-		}
-		children := make([]core.WikiTocNode, 0, len(arts))
-		for _, a := range arts {
-			t := articleType[a.ID]
-			matched := def.types == nil
+	// articleSlot assigns each article exactly ONE dimension slot: the
+	// first typed slot whose entity type matches, else the topic catch-all.
+	// Without exclusivity the catch-all re-files every typed article and
+	// the tree shows each of them twice (customer/product pages appearing
+	// under 专题与概念 as well).
+	articleSlot := func(a core.WikiArticle) string {
+		t := articleType[a.ID]
+		for _, def := range dimensionSlots {
 			for _, want := range def.types {
 				if t == want {
-					matched = true
-					break
+					return def.key
 				}
 			}
-			if matched {
-				children = append(children, core.WikiTocNode{
-					ID: "toc-" + a.ID, Title: a.Title, Type: "article", ArticleID: a.ID,
-				})
+		}
+		return "topic"
+	}
+	dimensionNode := func(key, title, idNS string, arts []core.WikiArticle) *core.WikiTocNode {
+		children := make([]core.WikiTocNode, 0, len(arts))
+		for _, a := range arts {
+			if articleSlot(a) != key {
+				continue
 			}
+			children = append(children, core.WikiTocNode{
+				ID: "toc-" + a.ID, Title: a.Title, Type: "article", ArticleID: a.ID,
+			})
 		}
 		if len(children) == 0 {
 			return nil
