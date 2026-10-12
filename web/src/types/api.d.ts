@@ -502,6 +502,15 @@ declare namespace Api {
       }[];
     }
 
+    /** page-level attachment: a file hung on the wiki page itself */
+    interface WikiArticleAttachment {
+      id: string;
+      name: string;
+      size?: number;
+      mime_type?: string;
+      created?: string;
+    }
+
     interface Comment {
       id: string;
       article_id: string;

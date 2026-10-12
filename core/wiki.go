@@ -161,6 +161,10 @@ type WikiArticle struct {
 	EntityID    string                `json:"entity_id,omitempty" elastic_mapping:"entity_id:{type:keyword}"` // set when page_type=entity
 	// wikilinks parsed from content at save time (design doc B3)
 	LinkedPages []WikiLinkedPage `json:"linked_pages,omitempty" elastic_mapping:"linked_pages:{type:object,enabled:false}"`
+	// page-level attachments (core.Attachment ids): files hung on the wiki
+	// page itself, N per page — a page-level concern, independent of the
+	// cited source documents (a source document IS the file)
+	Attachments []string `json:"attachments,omitempty" elastic_mapping:"attachments:{type:keyword}"`
 }
 
 // WikiTocNode is one node of a KB's table of contents tree.
@@ -193,6 +197,18 @@ type WikiVersion struct {
 	ChangeSummary string `json:"change_summary,omitempty" elastic_mapping:"change_summary:{type:text}"`
 	Content       string `json:"content,omitempty" elastic_mapping:"content:{enabled:false}"`
 	CreatedBy     string `json:"created_by,omitempty" elastic_mapping:"created_by:{type:keyword}"`
+}
+
+// WikiArticleAttachment is the resolved metadata of one file hung on a wiki
+// page. Attachments are a page-level concern: one article carries N files,
+// independent of the cited source documents — a source document IS the file,
+// it has no attachment list of its own in this model.
+type WikiArticleAttachment struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Size     int64  `json:"size,omitempty"`
+	MimeType string `json:"mime_type,omitempty"`
+	Created  string `json:"created,omitempty"`
 }
 
 // WikiBookmark pins an article for a user; owner_id isolates records.

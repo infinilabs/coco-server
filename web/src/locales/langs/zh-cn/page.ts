@@ -298,6 +298,15 @@ const page: App.I18n.Schema['translation']['page'] = {
         mentions: '来源引用',
         sources: '来源文献',
         materials: '来源与附件',
+        attachments: '附件'
+      },
+      attachments: {
+        empty: '暂无附件,可上传文件挂到本页',
+        upload: '上传附件',
+        uploaded: '已上传 {count} 个附件',
+        uploadFailed: '附件上传失败',
+        removeFailed: '附件移除失败',
+        removeConfirm: '从本页移除该附件?'
       }
     },
 

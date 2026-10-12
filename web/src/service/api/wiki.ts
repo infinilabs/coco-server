@@ -705,3 +705,22 @@ export function getWikiArticleMaterials(id: string) {
     url: `/wiki/article/${id}/_materials`
   }).then(res => (res as any)?.data?.sources ?? []);
 }
+
+/* ---------------- page-level attachments ---------------- */
+
+export function getWikiArticleAttachments(id: string) {
+  return request<{ attachments: WikiArticleAttachment[] }>({
+    method: 'get',
+    url: `/wiki/article/${id}/_attachments`
+  }).then(res => (res as any)?.data?.attachments ?? []);
+}
+
+/** replaces the page's attachment id list wholesale (upload-append and
+ * row-remove both render as a new array client-side) */
+export function updateWikiArticleAttachments(id: string, attachmentIds: string[]) {
+  return request<{ attachments: WikiArticleAttachment[]; dropped: number }>({
+    method: 'put',
+    data: { attachment_ids: attachmentIds },
+    url: `/wiki/article/${id}/_attachments`
+  }).then(res => (res as any)?.data);
+}

@@ -33,13 +33,15 @@ import {
   Input,
   List,
   Modal,
+  Popconfirm,
   Select,
   Space,
   Result,
   Spin,
   Tag,
   Tooltip,
-  Typography
+  Typography,
+  Upload
 } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -55,12 +57,14 @@ import {
   getWikiArticle,
   getWikiArticleVersions,
   getWikiArticleMaterials,
+  getWikiArticleAttachments,
   getWikiEntity,
   relinkWikiArticle,
   searchWikiBookmarks,
   searchWikiEntities,
   searchWikiLikes,
   updateWikiArticle,
+  updateWikiArticleAttachments,
   updateWikiArticleStatus
 } from '@/service/api';
 import { parseStructuredContent, parseWikiLink } from '../shared/content';
@@ -154,6 +158,9 @@ export function Component() {
 
   const [article, setArticle] = useState<Api.Wiki.Article | null>(null);
   const [materials, setMaterials] = useState<Api.Wiki.ArticleMaterial[]>([]);
+  // page-level attachments: files hung on the wiki page itself (N per page)
+  const [pageAttachments, setPageAttachments] = useState<Api.Wiki.WikiArticleAttachment[]>([]);
+  const [attUploading, setAttUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -418,9 +425,54 @@ export function Component() {
     getWikiArticleMaterials(id)
       .then(m => setMaterials(m as Api.Wiki.ArticleMaterial[]))
       .catch(() => {});
+    getWikiArticleAttachments(id)
+      .then(a => {
+        const list = (a as Api.Wiki.WikiArticleAttachment[]) || [];
+        pageAttIdsRef.current = list.map(x => x.id);
+        setPageAttachments(list);
+      })
+      .catch(() => {});
   };
 
   useEffect(fetchArticle, [id]);
+
+  // page-level attachments: upload N files at once (ids append to the
+  // page's list) and remove one — both go through the wholesale PUT, so
+  // concurrent uploads serialize on a chain and the current id list rides
+  // in a ref (closures would see stale state mid-chain and overwrite each
+  // other's ids)
+  const pageAttIdsRef = useRef<string[]>([]);
+  const attachChain = useRef<Promise<void>>(Promise.resolve());
+  const applyAttachmentIds = async (ids: string[]) => {
+    if (!article?.id) return;
+    const next = await updateWikiArticleAttachments(article.id, ids);
+    const resolved = (next?.attachments || []) as Api.Wiki.WikiArticleAttachment[];
+    pageAttIdsRef.current = resolved.map(a => a.id);
+    setPageAttachments(resolved);
+  };
+  const attachFiles = (fileList: any[]) => {
+    const files = (fileList || []).filter(Boolean);
+    if (!files.length) return;
+    setAttUploading(true);
+    attachChain.current = attachChain.current
+      .then(async () => {
+        const res: any = await uploadAttachment(files);
+        const ids: string[] = res?.data?.attachments || res?.attachments || [];
+        if (!ids.length) throw new Error('no attachment ids');
+        await applyAttachmentIds([...pageAttIdsRef.current, ...ids]);
+        window.$message?.success(t('page.wiki.article.attachments.uploaded', { count: ids.length }));
+      })
+      .catch(() => {
+        window.$message?.error(t('page.wiki.article.attachments.uploadFailed'));
+      })
+      .finally(() => setAttUploading(false));
+  };
+
+  const detachAttachment = (attId: string) => {
+    applyAttachmentIds(pageAttIdsRef.current.filter(x => x !== attId)).catch(() => {
+      window.$message?.error(t('page.wiki.article.attachments.removeFailed'));
+    });
+  };
 
   useEffect(() => {
     if (article?.id) {
@@ -1096,6 +1148,77 @@ export function Component() {
                           </Section>
                         </>
                       )}
+                  {/* page-level attachments: files hung on this wiki page —
+                      always rendered, even at 0, so the attach point is
+                      discoverable; upload appends, each row removes itself */}
+                  <Divider />
+                  <Section
+                    title={`${t('page.wiki.article.sections.attachments')} (${pageAttachments.length})`}
+                  >
+                    <div className='flex flex-col gap-6px'>
+                      {pageAttachments.length === 0 && (
+                        <div className='text-12.5px color-[var(--wiki-text-3)]'>
+                          {t('page.wiki.article.attachments.empty')}
+                        </div>
+                      )}
+                      {pageAttachments.map(att => (
+                        <div
+                          className='flex items-center gap-8px'
+                          key={att.id}
+                        >
+                          <PaperClipOutlined className='color-[var(--wiki-text-3)]' />
+                          <a
+                            className='text-12.5px text-[var(--ant-color-link)]'
+                            href={`/attachment/${att.id}`}
+                            rel='noreferrer'
+                            target='_blank'
+                          >
+                            {att.name}
+                          </a>
+                          <span className='text-11px color-[var(--wiki-text-3)]'>
+                            {att.size
+                              ? att.size < 1024
+                                ? '<1 KB'
+                                : `${(att.size / 1024).toFixed(0)} KB`
+                              : ''}
+                            {att.created ? ` · ${att.created}` : ''}
+                          </span>
+                          {canEditArticle && (
+                            <Popconfirm
+                              onConfirm={() => detachAttachment(att.id)}
+                              title={t('page.wiki.article.attachments.removeConfirm')}
+                            >
+                              <a className='ml-auto text-11px text-[var(--ant-color-error)]'>
+                                {t('common.delete')}
+                              </a>
+                            </Popconfirm>
+                          )}
+                        </div>
+                      ))}
+                      {canEditArticle && (
+                        <Upload
+                          beforeUpload={() => false}
+                          className='mt-4px'
+                          multiple
+                          showUploadList={false}
+                          onChange={({ fileList }) => {
+                            const pending = fileList
+                              .map(f => f.originFileObj)
+                              .filter(Boolean) as any[];
+                            if (pending.length && !attUploading) attachFiles(pending);
+                          }}
+                        >
+                          <Button
+                            icon={<PaperClipOutlined />}
+                            loading={attUploading}
+                            size='small'
+                          >
+                            {t('page.wiki.article.attachments.upload')}
+                          </Button>
+                        </Upload>
+                      )}
+                    </div>
+                  </Section>
                     </>
                   )}
                   {article.page_type === 'entity' && article.entity_id && (

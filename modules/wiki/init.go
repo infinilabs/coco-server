@@ -160,6 +160,12 @@ func init() {
 	// documents — every output is a governance proposal
 	api.HandleUIMethod(api.GET, "/wiki/article/:id/_materials", handler.articleMaterials,
 		api.RequireLogin(), api.RequirePermission(readArticlePermission))
+	// page-level attachments: files hung on the wiki page itself (N per
+	// page), independent of the cited source documents
+	api.HandleUIMethod(api.GET, "/wiki/article/:id/_attachments", handler.articleAttachments,
+		api.RequireLogin(), api.RequirePermission(readArticlePermission))
+	api.HandleUIMethod(api.PUT, "/wiki/article/:id/_attachments", handler.updateArticleAttachments,
+		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
 	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_consolidate", handler.consolidateKB,
 		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
 	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_compile", handler.compileKBHandler,

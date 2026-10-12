@@ -298,6 +298,15 @@ const page: App.I18n.Schema['translation']['page'] = {
         mentions: 'Mentions in Source',
         sources: 'Source References',
         materials: 'Sources & attachments',
+        attachments: 'Attachments'
+      },
+      attachments: {
+        empty: 'No attachments yet — upload files to hang them on this page',
+        upload: 'Upload attachment',
+        uploaded: 'Uploaded {count} attachment(s)',
+        uploadFailed: 'Attachment upload failed',
+        removeFailed: 'Failed to remove attachment',
+        removeConfirm: 'Remove this attachment from the page?'
       }
     },
 

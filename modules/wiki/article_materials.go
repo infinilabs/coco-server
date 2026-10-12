@@ -4,6 +4,7 @@
 package wiki
 
 import (
+	"io"
 	"net/http"
 	"sort"
 
@@ -160,4 +161,108 @@ func docAttachmentIDs(docID string, attachmentToDoc map[string]string) []string 
 	}
 	sort.Strings(out)
 	return out
+}
+
+/* ---------------- page-level attachments ---------------- */
+
+// resolveArticleAttachments loads metadata for the page's own attachment ids;
+// ids whose blob row vanished are skipped (a pruned attachment must not
+// render as a dead row).
+func resolveArticleAttachments(ctx *orm.Context, ids []string) []core.WikiArticleAttachment {
+	out := make([]core.WikiArticleAttachment, 0, len(ids))
+	if len(ids) == 0 {
+		return out
+	}
+	orm.WithModel(ctx, &core.Attachment{})
+	if res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1000).
+		Filter(orm.TermsQuery("id", ids))); err == nil && res != nil {
+		if atts, _, derr := elastic.DecodeHits[core.Attachment](res); derr == nil {
+			for _, a := range atts {
+				out = append(out, core.WikiArticleAttachment{
+					ID:       a.ID,
+					Name:     a.Name,
+					Size:     a.Size,
+					MimeType: a.MimeType,
+					Created:  a.Created.Format("2006-01-02"),
+				})
+			}
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
+	return out
+}
+
+// GET /wiki/article/:id/_attachments — the page's own files with resolved
+// metadata (name/size/mime/date). Rendered even when empty: the section is
+// the page's attach point, not a conditional extra.
+func (h *APIHandler) articleAttachments(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	articleID := ps.ByName("id")
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(ctx, &core.WikiArticle{})
+
+	article := core.WikiArticle{}
+	article.ID = articleID
+	exists, err := orm.GetV2(ctx, &article)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if !exists {
+		h.WriteOpRecordNotFoundJSON(w, articleID)
+		return
+	}
+	h.WriteOKJSON(w, util.MapStr{"attachments": resolveArticleAttachments(ctx, article.Attachments)})
+}
+
+// PUT /wiki/article/:id/_attachments — replace the page's attachment id
+// list wholesale (the client renders upload-append and row-remove as new
+// arrays). Unknown ids are dropped and reported, never stored.
+func (h *APIHandler) updateArticleAttachments(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	articleID := ps.ByName("id")
+	var body struct {
+		AttachmentIDs []string `json:"attachment_ids"`
+	}
+	raw, err := io.ReadAll(io.LimitReader(req.Body, 1<<20))
+	if err != nil || util.FromJSONBytes(raw, &body) != nil {
+		h.WriteError(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(ctx, &core.WikiArticle{})
+
+	article := core.WikiArticle{}
+	article.ID = articleID
+	exists, err := orm.GetV2(ctx, &article)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if !exists {
+		h.WriteOpRecordNotFoundJSON(w, articleID)
+		return
+	}
+
+	// keep only ids that actually resolve — a stale or forged id would
+	// otherwise render as a dead row forever
+	resolved := resolveArticleAttachments(ctx, body.AttachmentIDs)
+	kept := make([]string, 0, len(resolved))
+	for _, a := range resolved {
+		kept = append(kept, a.ID)
+	}
+
+	writeCtx := orm.NewContextWithParent(req.Context())
+	writeCtx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	orm.WithModel(writeCtx, &core.WikiArticle{})
+	article.Attachments = kept
+	if err := orm.Update(writeCtx, &article); err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	h.WriteOKJSON(w, util.MapStr{
+		"attachments": resolved,
+		"dropped":     len(body.AttachmentIDs) - len(kept),
+	})
 }
