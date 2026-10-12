@@ -362,7 +362,20 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
       const sel = selectedRef.current;
       const nbrs = neighborsRef.current;
       const second = secondNeighborsRef.current;
+      const firstCandidates: (ScreenPoint & { el: HTMLDivElement; centerDist: number; id: string; isSel: boolean })[] = [];
       const secondCandidates: (ScreenPoint & { el: HTMLDivElement; centerDist: number; id: string })[] = [];
+      // labels hug the selected node on screen — near it or not at all;
+      // fall back to screen center when the anchor is behind the camera
+      let focusPt = { sx: halfW, sy: halfH };
+      if (sel) {
+        const sn: any = nodes.find(x => x.id === sel);
+        if (sn && typeof sn.x === 'number' && typeof sn.y === 'number' && typeof sn.z === 'number') {
+          const p = projectToScreen({ x: sn.x, y: sn.y, z: sn.z }, view);
+          if (p) focusPt = { sx: p.sx, sy: p.sy };
+        }
+      }
+      const distToFocus = (pt: ScreenPoint) => Math.hypot(pt.sx - focusPt.sx, pt.sy - focusPt.sy);
+      const onScreen = (pt: ScreenPoint) => pt.sx >= 0 && pt.sx <= w && pt.sy >= 0 && pt.sy <= h;
       // ids whose overlay label is on screen right now; the hover tooltip
       // yields to them so the same name is never drawn twice
       const labeled = new Set<string>();
@@ -382,18 +395,30 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
         }
 
         if (sel) {
-          // clicked: the node and its first hop carry full titles, the
-          // second hop shows dimmer so the area reads two steps out
-          if (n.id === sel || nbrs?.has(n.id)) {
+          // clicked: first-hop titles render bright nearest the anchor,
+          // second-hop dimmer — far-flung neighbors label not at all
+          if (n.id === sel) {
             labeled.add(n.id);
             el.style.display = '';
             el.style.opacity = '';
             el.style.zIndex = String(Math.max(1, Math.round(1000 - placed.depth)));
             el.style.transform = `translate(-50%, -50%) translate(${placed.sx.toFixed(1)}px, ${(placed.sy + ballPx + 5).toFixed(1)}px)`;
-            el.style.fontWeight = n.id === sel ? '600' : '400';
-            el.style.borderColor = n.id === sel ? n.color : '';
+            el.style.fontWeight = '600';
+            el.style.borderColor = n.color;
+          } else if (nbrs?.has(n.id)) {
+            if (!onScreen(placed)) {
+              hideEl(el);
+              return;
+            }
+            const centerDist = distToFocus(placed);
+            if (centerDist <= focusRadius) firstCandidates.push({ el, id: n.id, ...placed, centerDist, isSel: false });
+            else hideEl(el);
           } else if (second?.has(n.id)) {
-            const centerDist = Math.hypot(placed.sx - halfW, placed.sy - halfH);
+            if (!onScreen(placed)) {
+              hideEl(el);
+              return;
+            }
+            const centerDist = distToFocus(placed);
             if (centerDist <= focusRadius * 1.15) secondCandidates.push({ el, id: n.id, ...placed, centerDist });
             else hideEl(el);
           } else hideEl(el);
@@ -406,6 +431,21 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
           else hideEl(el);
         } else hideEl(el);
       });
+      firstCandidates.sort((a, b) => a.centerDist - b.centerDist);
+      firstCandidates.forEach((c, i) => {
+        if (i >= MAX_VISIBLE_NODE_LABELS) {
+          hideEl(c.el);
+          return;
+        }
+        labeled.add(c.id);
+        c.el.style.display = '';
+        c.el.style.opacity = '';
+        c.el.style.zIndex = String(Math.max(1, Math.round(1000 - c.depth)));
+        c.el.style.transform = `translate(-50%, -50%) translate(${c.sx.toFixed(1)}px, ${(c.sy + ballPx + 5).toFixed(1)}px)`;
+        c.el.style.fontWeight = '400';
+        c.el.style.borderColor = '';
+      });
+
       nodeCandidates.sort((a, b) => a.centerDist - b.centerDist);
       nodeCandidates.forEach((c, i) => {
         if (i >= MAX_VISIBLE_NODE_LABELS) {
