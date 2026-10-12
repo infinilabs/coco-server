@@ -65,6 +65,23 @@ type OntologyRelationDef struct {
 	Inverse     string `json:"inverse,omitempty"`     // relation name materialized on the target side
 }
 
+// OntologyPageSection declares one section of the entity type's wiki page
+// layout (per-type page structure, WeKnora-template style): Key picks the
+// data source, Title is the rendered heading. Recognized keys:
+//
+//	sources          — the citation list (来源引用)
+//	aliases          — the alias line (别名)
+//	properties       — the entity's typed properties as key-value lines
+//	relations:<name> — one declared relation rendered as entity wikilinks
+//
+// Unknown keys render as placeholder sections for human editing. Types
+// without a declared layout keep the canonical structure
+// (导语 → 来源引用 → 别名).
+type OntologyPageSection struct {
+	Key   string `json:"key"`
+	Title string `json:"title"`
+}
+
 // OntologyEntityTypeDef declares one entity type.
 type OntologyEntityTypeDef struct {
 	Name       string                `json:"name"`
@@ -72,6 +89,9 @@ type OntologyEntityTypeDef struct {
 	Icon       string                `json:"icon,omitempty"`
 	Properties []OntologyPropertyDef `json:"properties,omitempty"`
 	Relations  []OntologyRelationDef `json:"relations,omitempty"`
+	// PageSections optionally lays out the type's wiki page (客户 pages get
+	// 客户档案/关键联系人/相关文档; contract pages get 条款/期限/相关方 …)
+	PageSections []OntologyPageSection `json:"page_sections,omitempty"`
 }
 
 // OntologySchemaDoc is the stored schema document: the entity/relation
@@ -98,6 +118,22 @@ func (doc *OntologySchemaDoc) normalize() error {
 			return fmt.Errorf("entity type %q declared twice", t.Name)
 		}
 		seen[t.Name] = true
+
+		sections := map[string]bool{}
+		for j := range t.PageSections {
+			sec := &t.PageSections[j]
+			sec.Key = strings.TrimSpace(sec.Key)
+			if sec.Key == "" {
+				return fmt.Errorf("entity type %q: page_sections[%d].key is required", t.Name, j)
+			}
+			if sec.Title == "" {
+				sec.Title = sec.Key
+			}
+			if sections[sec.Key] {
+				return fmt.Errorf("entity type %q: page section %q declared twice", t.Name, sec.Key)
+			}
+			sections[sec.Key] = true
+		}
 
 		props := map[string]bool{}
 		for j := range t.Properties {

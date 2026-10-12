@@ -439,7 +439,7 @@ func createDraftEntityPage(ctx *orm.Context, entity *core.WikiEntity, kbID strin
 		EntityID:    entity.ID,
 		Status:      core.WikiArticleDraft,
 		AIGenerated: true, // stub originates from the pipeline; humans curate
-		Content:     wiki.DraftEntityContent(entity),
+		Content:     wiki.DraftEntityContentFor(ctx, kbID, entity),
 		Sources:     entity.Sources, // provenance: every claim traces to its source doc
 	}
 	if err := orm.Create(ctx, article); err != nil {
@@ -524,8 +524,14 @@ func hasRelationEdge(e *core.WikiEntity, targetID, relation, provenance string) 
 // appendEntitySource back-links the document onto a matched entity without
 // duplicating provenance on re-sync.
 func appendEntitySource(entity *core.WikiEntity, extracted *extractedEntity, doc *core.Document) {
-	for _, s := range entity.Sources {
-		if s.DocID == doc.ID {
+	ref := documentSourceRef(doc, extracted.Evidence)
+	for i := range entity.Sources {
+		if entity.Sources[i].DocID == doc.ID {
+			// re-ingestion: refresh the block locator in place (older refs
+			// predate chunk matching) without stacking a duplicate
+			if entity.Sources[i].Locator == "" && ref.Locator != "" {
+				entity.Sources[i].Locator = ref.Locator
+			}
 			return
 		}
 	}
@@ -536,7 +542,7 @@ func appendEntitySource(entity *core.WikiEntity, extracted *extractedEntity, doc
 			entity.Aliases = append(entity.Aliases, alias)
 		}
 	}
-	entity.Sources = append(entity.Sources, documentSourceRef(doc, extracted.Evidence))
+	entity.Sources = append(entity.Sources, ref)
 }
 
 func documentSourceRef(doc *core.Document, evidence string) core.WikiSourceReference {

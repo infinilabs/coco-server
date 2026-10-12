@@ -15,6 +15,7 @@ import (
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/util"
 )
 
 // draft entity pages created before the pipeline wrote bodies open as bare
@@ -77,7 +78,7 @@ func backfillDraftEntityContent() {
 		if !ok {
 			continue
 		}
-		a.Content = DraftEntityContent(&entity)
+		a.Content = DraftEntityContentFor(ctx, a.KbID, &entity)
 		if err := orm.Update(ctx, a); err != nil {
 			log.Debugf("wiki: draft content backfill update failed for [%s]: %v", a.Title, err)
 			continue
@@ -95,6 +96,60 @@ func backfillDraftEntityContent() {
 // title. Shared by the extraction pipeline (new drafts) and the startup
 // backfill (legacy stubs).
 func DraftEntityContent(entity *core.WikiEntity) string {
+	return composeEntityContent(entity, nil, nil)
+}
+
+// DraftEntityContentFor honors the entity type's declared page layout
+// (ontology schema: kb override → tenant default) — a 客户 type can declare
+// 客户档案/关键联系人/相关文档 sections and every generated page follows.
+// Types without a declared layout fall back to the canonical structure.
+func DraftEntityContentFor(ctx *orm.Context, kbID string, entity *core.WikiEntity) string {
+	var layout []OntologyPageSection
+	if schema := ResolveOntologySchema(ctx.Context, kbID); schema != nil {
+		for i := range schema.EntityTypes {
+			if strings.EqualFold(schema.EntityTypes[i].Name, entity.Type) {
+				layout = schema.EntityTypes[i].PageSections
+				break
+			}
+		}
+	}
+	if len(layout) == 0 {
+		return DraftEntityContent(entity)
+	}
+	// relation sections need target display names — batch-resolve once
+	return composeEntityContent(entity, layout, relationTargetNames(ctx, entity))
+}
+
+// relationTargetNames resolves the display names of every relation target
+// referenced by the entity's layout sections.
+func relationTargetNames(ctx *orm.Context, entity *core.WikiEntity) map[string]string {
+	ids := make([]string, 0, len(entity.Relations))
+	seen := map[string]bool{}
+	for _, r := range entity.Relations {
+		if r.TargetID != "" && !seen[r.TargetID] {
+			seen[r.TargetID] = true
+			ids = append(ids, r.TargetID)
+		}
+	}
+	names := make(map[string]string, len(ids))
+	if len(ids) == 0 {
+		return names
+	}
+	orm.WithModel(ctx, &core.WikiEntity{})
+	if res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1000).
+		Filter(orm.TermsQuery("id", ids))); err == nil && res != nil {
+		if targets, _, derr := elastic.DecodeHits[core.WikiEntity](res); derr == nil {
+			for _, t := range targets {
+				names[t.ID] = t.Name
+			}
+		}
+	}
+	return names
+}
+
+// composeEntityContent renders the page: the provenance intro, then the
+// declared sections in order (or the canonical 来源引用/别名 pair).
+func composeEntityContent(entity *core.WikiEntity, layout []OntologyPageSection, targetNames map[string]string) string {
 	name := entity.Name
 	typeLabel := entity.Type
 	if typeLabel == "" {
@@ -106,8 +161,10 @@ func DraftEntityContent(entity *core.WikiEntity) string {
 	sb.WriteString(fmt.Sprintf("**%s** 是知识管道从 %d 份来源资料中识别出的「%s」类实体，以下主张均附来源出处，等待人工审阅完善。\n\n",
 		name, len(entity.Sources), typeLabel))
 
-	// 来源引用:每条引用 = 来源文档 + 支撑原文摘录 + 跳转高亮链接
-	if len(entity.Sources) > 0 {
+	writeSources := func() {
+		if len(entity.Sources) == 0 {
+			return
+		}
 		sb.WriteString("## 来源引用\n\n")
 		shown := 0
 		for _, s2 := range entity.Sources {
@@ -137,9 +194,70 @@ func DraftEntityContent(entity *core.WikiEntity) string {
 			sb.WriteString("-（来源摘录为空，等待补充）\n")
 		}
 	}
+	writeAliases := func() {
+		if len(entity.Aliases) > 0 {
+			sb.WriteString("\n## 别名\n\n" + strings.Join(entity.Aliases, "、") + "\n")
+		}
+	}
+	writeProperties := func(title string) {
+		sb.WriteString("\n## " + title + "\n\n")
+		written := 0
+		for k, v := range entity.Properties {
+			vs := strings.TrimSpace(util.ToString(v))
+			if vs == "" || vs == "<nil>" {
+				continue
+			}
+			fmt.Fprintf(&sb, "- **%s**: %s\n", k, vs)
+			written++
+		}
+		if written == 0 {
+			sb.WriteString("（暂无属性，等待补充）\n")
+		}
+	}
+	writeRelations := func(title, relName string) {
+		sb.WriteString("\n## " + title + "\n\n")
+		written := 0
+		for _, r := range entity.Relations {
+			if r.Relation != relName {
+				continue
+			}
+			targetName := targetNames[r.TargetID]
+			if targetName == "" {
+				targetName = r.TargetID
+			}
+			targetType := r.TargetType
+			if targetType == "" {
+				targetType = "实体"
+			}
+			fmt.Fprintf(&sb, "- [[%s:%s]]（%s）\n", targetType, targetName, r.Relation)
+			written++
+		}
+		if written == 0 {
+			sb.WriteString("（暂无关联，等待补充）\n")
+		}
+	}
 
-	if len(entity.Aliases) > 0 {
-		sb.WriteString("\n## 别名\n\n" + strings.Join(entity.Aliases, "、") + "\n")
+	if len(layout) == 0 {
+		writeSources()
+		writeAliases()
+		return sb.String()
+	}
+
+	for _, sec := range layout {
+		title := sec.Title
+		switch {
+		case sec.Key == "sources":
+			writeSources()
+		case sec.Key == "aliases":
+			writeAliases()
+		case sec.Key == "properties":
+			writeProperties(title)
+		case strings.HasPrefix(sec.Key, "relations:"):
+			writeRelations(title, strings.TrimPrefix(sec.Key, "relations:"))
+		default:
+			// declared-but-unknown section: an explicit slot for human editing
+			sb.WriteString("\n## " + title + "\n\n（待补充）\n")
+		}
 	}
 	return sb.String()
 }

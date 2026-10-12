@@ -290,7 +290,7 @@ func applyRebuildProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 		entity := core.WikiEntity{}
 		entity.ID = article.EntityID
 		if ok, err := orm.GetV2(ctx, &entity); err == nil && ok {
-			article.Content = DraftEntityContent(&entity)
+			article.Content = DraftEntityContentFor(ctx, article.KbID, &entity)
 			article.Status = core.WikiArticleDraft
 			if err := orm.Update(ctx, &article); err != nil {
 				return "", err

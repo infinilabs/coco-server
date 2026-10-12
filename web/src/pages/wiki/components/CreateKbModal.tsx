@@ -1,4 +1,5 @@
-import { Form, Input, Modal, Select } from 'antd';
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Button, Form, Input, Modal, Select, Space } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -52,7 +53,22 @@ export function CreateKbModal({
   const onOk = () => {
     form.validateFields().then(values => {
       setLoading(true);
-      createWikiKb(values as Partial<Api.Wiki.Kb>).then(res => {
+      // layout rows carry prefixes as a comma string in the form; the API
+      // wants the array form — planning departments at creation time means
+      // the first compile already lands a departmental tree
+      const payload = {
+        ...values,
+        toc_layout: ((values.toc_layout || []) as any[])
+          .filter(row => row?.title?.trim())
+          .map(row => ({
+            title: row.title.trim(),
+            path_prefixes: (row.prefixes || '')
+              .split(/[,，]/)
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+          }))
+      };
+      createWikiKb(payload as Partial<Api.Wiki.Kb>).then(res => {
         setLoading(false);
         // the request layer already surfaced the error toast; a failed
         // create resolves without an _id
@@ -138,6 +154,49 @@ export function CreateKbModal({
             options={datasources.map(ds => ({ value: ds.id, label: ds.name }))}
             placeholder={t('page.wiki.createKb.datasourcesPlaceholder')}
           />
+        </Form.Item>
+        <Form.Item
+          label={t('page.wiki.settings.tocLayout')}
+          tooltip={t('page.wiki.settings.tocLayoutHint')}
+        >
+          <Form.List name='toc_layout' initialValue={[]}>
+            {(fields, { add, remove }) => (
+              <div className='flex flex-col gap-6px'>
+                {fields.map(field => (
+                  <Space key={field.key} align='baseline' className='w-full'>
+                    <Form.Item
+                      className='mb-0'
+                      name={[field.name, 'title']}
+                      noStyle
+                    >
+                      <Input
+                        placeholder={t('page.wiki.settings.tocLayoutDeptPlaceholder')}
+                        style={{ width: 150 }}
+                      />
+                    </Form.Item>
+                    <Form.Item className='mb-0' name={[field.name, 'prefixes']} noStyle>
+                      <Input
+                        placeholder={t('page.wiki.settings.tocLayoutPrefixPlaceholder')}
+                        style={{ width: 230 }}
+                      />
+                    </Form.Item>
+                    <Button
+                      icon={<DeleteOutlined />}
+                      onClick={() => remove(field.name)}
+                      type='text'
+                    />
+                  </Space>
+                ))}
+                <Button
+                  className='w-fit'
+                  icon={<PlusOutlined />}
+                  onClick={() => add({ title: '', prefixes: '' })}
+                >
+                  {t('page.wiki.settings.tocLayoutAdd')}
+                </Button>
+              </div>
+            )}
+          </Form.List>
         </Form.Item>
       </Form>
     </Modal>
