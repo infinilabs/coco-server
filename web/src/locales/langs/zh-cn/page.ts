@@ -186,6 +186,9 @@ const page: App.I18n.Schema['translation']['page'] = {
           columns: { name: '名称', type: '类型', status: '状态', relations: '关系数' },
           newTitle: '新建实体',
           editTitle: '编辑实体 — {{name}}',
+          detailTitle: '实体详情 — {{name}}',
+          viewArticle: '打开文章',
+          viewInGraph: '在图谱中查看',
           subtype: '子类型',
           aliases: '别名',
           properties: '属性',
@@ -286,6 +289,16 @@ const page: App.I18n.Schema['translation']['page'] = {
       added: '新增 {{count}} 行',
       removed: '删除 {{count}} 行'
     },
+    fileManager: {
+      title: '知识库文件',
+      manualUpload: '手动上传',
+      upload: '上传文件',
+      uploadHint: '上传的文件作为知识库原材料进入同一管道：抽取实体/生成摘要/编译更新相关文章与实体',
+      uploadDone: '已上传 {{count}} 个文件，管道处理中将自动更新相关内容',
+      uploadPartial: '已上传 {{created}} 个，{{failed}} 个失败',
+      uploadFailed: '上传失败',
+      columns: { title: '标题', source: '来源', status: '状态', attachments: '附件数', updated: '更新时间', articles: '关联文章' }
+    },
     kb: {
       newArticle: '新建文章',
       aiGenerate: 'AI 生成',
@@ -295,7 +308,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       docsUnit: '篇文档',
       lastSynced: '同步于',
       human: '人工',
-      tabs: { articles: '文章', datasources: '数据源', members: '成员', overview: '概览', graph: '图谱', entities: '实体', settings: '设置' },
+      tabs: { articles: '文章', datasources: '数据源', members: '成员', overview: '概览', graph: '图谱', entities: '实体', settings: '设置', files: '文件' },
       columns: {
         title: '标题',
         status: '状态',

@@ -857,6 +857,25 @@ func fileCompileProposal(ctx *orm.Context, kb *core.WikiKnowledgeBase, item Comp
 		actionLabel = "update"
 	}
 
+	// the 概念页最少源数 compile rule gates CREATION, not just retrieval:
+	// without it every recurring compile turns long-tail single-source
+	// concepts into new pages (observed: ~1600 pages over a weekend of
+	// auto-approve runs on a 24-document KB)
+	if key.Kind == "concept" && item.Action == PlanCreate {
+		if min := projectionConceptMinSources(); min > 0 {
+			docs := map[string]bool{}
+			for _, st := range key.Statements {
+				if st.DocID != "" {
+					docs[st.DocID] = true
+				}
+			}
+			if len(docs) < min {
+				log.Debugf("wiki compiler: dropping concept [%s] — %d source(s) below the %d-source floor", key.Name, len(docs), min)
+				return false
+			}
+		}
+	}
+
 	// evidence chain: every statement with its document id
 	evidence := make([]interface{}, 0, len(key.Statements))
 	for _, s := range key.Statements {

@@ -182,6 +182,10 @@ export function Component() {
   // batch review: the checked ids and the in-flight flag for the toolbar
   const [selected, setSelected] = useState<string[]>([]);
   const [batchLoading, setBatchLoading] = useState(false);
+  // controlled pagination: a literal pageSize in the config is treated as
+  // controlled and snaps back to 10 on every refresh
+  const [pageCurrent, setPageCurrent] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const fetchData = (st: string = status) => {
     setLoading(true);
@@ -196,6 +200,7 @@ export function Component() {
     // a status switch resets the checked set — selections belong to one
     // filtered view only
     setSelected([]);
+    setPageCurrent(1);
   }, [status]);
 
   const toggleSelected = (id: string, checked: boolean) => {
@@ -465,7 +470,17 @@ export function Component() {
             className='wiki-row-list'
             dataSource={proposals}
             loading={loading}
-            pagination={{ pageSize: 10, hideOnSinglePage: true }}
+            pagination={{
+              current: pageCurrent,
+              pageSize,
+              showSizeChanger: true,
+              pageSizeOptions: [10, 20, 50, 100],
+              hideOnSinglePage: true,
+              onChange: (p: number, ps: number) => {
+                setPageCurrent(p);
+                setPageSize(ps);
+              }
+            }}
             locale={{
               emptyText: (
                 <Empty

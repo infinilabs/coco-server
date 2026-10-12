@@ -22,6 +22,7 @@ import {
 import { GenerateModal } from '../components/GenerateModal';
 import { KbGraph } from '../components/KbGraph';
 import { WikiEntityManager } from '../components/WikiEntityManager';
+import { KbFileManager } from '../components/KbFileManager';
 import { KbOverview } from '../components/KbOverview';
 import { KbSettings } from '../components/KbSettings';
 import { WikiShell } from '../components/WikiShell';
@@ -380,6 +381,15 @@ export function Component() {
               children: (
                 <div className='wiki-panel p-16px'>
                   <WikiEntityManager kbId={id || ''} />
+                </div>
+              )
+            },
+            {
+              key: 'files',
+              label: t('page.wiki.kb.tabs.files'),
+              children: (
+                <div className='wiki-panel p-16px'>
+                  <KbFileManager kbId={id || ''} />
                 </div>
               )
             },

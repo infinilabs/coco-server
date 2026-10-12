@@ -186,6 +186,9 @@ const page: App.I18n.Schema['translation']['page'] = {
           columns: { name: 'Name', type: 'Type', status: 'Status', relations: 'Relations' },
           newTitle: 'New Entity',
           editTitle: 'Edit Entity — {{name}}',
+          detailTitle: 'Entity Details — {{name}}',
+          viewArticle: 'Open article',
+          viewInGraph: 'View in graph',
           subtype: 'Subtype',
           aliases: 'Aliases',
           properties: 'Properties',
@@ -286,6 +289,16 @@ const page: App.I18n.Schema['translation']['page'] = {
       added: '{{count}} lines added',
       removed: '{{count}} lines removed'
     },
+    fileManager: {
+      title: 'KB files',
+      manualUpload: 'Manual upload',
+      upload: 'Upload files',
+      uploadHint: 'Uploaded files enter the same pipeline as synced content: entities, summaries and compile updates flow to the related articles',
+      uploadDone: '{{count}} file(s) uploaded — the pipeline will update related knowledge',
+      uploadPartial: '{{created}} uploaded, {{failed}} failed',
+      uploadFailed: 'Upload failed',
+      columns: { title: 'Title', source: 'Source', status: 'Status', attachments: 'Attachments', updated: 'Updated', articles: 'Citing articles' }
+    },
     kb: {
       newArticle: 'New Article',
       aiGenerate: 'AI Generate',
@@ -295,7 +308,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       docsUnit: 'docs',
       lastSynced: 'Synced',
       human: 'Human',
-      tabs: { articles: 'Articles', datasources: 'Datasources', members: 'Members', overview: 'Overview', graph: 'Graph', entities: 'Entities', settings: 'Settings' },
+      tabs: { articles: 'Articles', datasources: 'Datasources', members: 'Members', overview: 'Overview', graph: 'Graph', entities: 'Entities', settings: 'Settings', files: 'Files' },
       columns: {
         title: 'Title',
         status: 'Status',

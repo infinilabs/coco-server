@@ -14,6 +14,7 @@ import (
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/llms"
 	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
@@ -595,6 +596,15 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 	aliases, _ := p.Evidence["aliases"].([]interface{})
 
 	existingID, _ := p.Evidence["existing_id"].(string)
+	if existingID == "" {
+		// create-dedup: a recurring compile re-files the same key every
+		// run, and each application of a create proposal would stack a
+		// twin page (observed: every concept page twice under auto-approve).
+		// A same-title page in this KB absorbs the supplement instead.
+		if dup := findArticleByTitle(ctx, p.KbID, p.ArticleTitle); dup != nil {
+			existingID = dup.ID
+		}
+	}
 	if existingID != "" {
 		article := core.WikiArticle{}
 		article.ID = existingID
@@ -733,4 +743,23 @@ func ensureFolderChain(nodes []core.WikiTocNode, segments []string) ([]core.Wiki
 		leaf = l
 	}
 	return nodes, leaf
+}
+
+// findArticleByTitle resolves an existing page by exact title within one
+// KB (title is keyword-mapped — exact match). nil when absent.
+func findArticleByTitle(ctx *orm.Context, kbID, title string) *core.WikiArticle {
+	if strings.TrimSpace(title) == "" {
+		return nil
+	}
+	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1).
+		Filter(orm.TermQuery("kb_id", kbID), orm.TermQuery("title", title)).
+		Include("id", "title"))
+	if err != nil || res == nil {
+		return nil
+	}
+	arts, _, derr := elastic.DecodeHits[core.WikiArticle](res)
+	if derr != nil || len(arts) == 0 {
+		return nil
+	}
+	return &arts[0]
 }

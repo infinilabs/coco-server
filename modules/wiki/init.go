@@ -103,6 +103,13 @@ func init() {
 		api.RequireLogin(), api.RequirePermission(readKbPermission),
 		api.MCPTool("kb_graph", "Get the knowledge graph of a knowledge base: article and entity nodes, wikilink and typed-relation edges with schema labels"))
 
+	// KB-level files: raw material listing + manual uploads (same pipeline
+	// as synced content, manual delivery)
+	api.HandleUIMethod(api.GET, "/wiki/kb/:id/_files", handler.kbFiles,
+		api.RequireLogin(), api.RequirePermission(readKbPermission))
+	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_files/upload", handler.uploadKBFiles,
+		api.RequireLogin(), api.RequirePermission(security.GetSimplePermission(Category, kbResource, string(security.Update))))
+
 	// KM agent generation, SSE (design doc §5.1, stage C): the event
 	// contract is progress/article/done; output stops at draft — the
 	// review gate stays on PUT /wiki/article/:id/status (D1)

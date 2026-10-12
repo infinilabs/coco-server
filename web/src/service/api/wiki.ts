@@ -135,6 +135,8 @@ export function searchWikiArticles(params: { kbId?: string; query?: string }) {
   const searchParams = new URLSearchParams();
   if (params.kbId) searchParams.set('filter', `kb_id:${params.kbId}`);
   if (params.query) searchParams.set('query', params.query);
+  // crud default page size is 10 — the KB pages render the full set
+  searchParams.set('size', '1000');
   return request<{ hits: any }>({
     method: 'get',
     url: `/wiki/article/_search?${searchParams.toString()}`
@@ -773,5 +775,26 @@ export function batchUpdateWikiEntityStatus(ids: string[], status: string) {
     method: 'put',
     data: { ids, status },
     url: '/wiki/entity/_batch_status'
+  }).then(res => (res as any)?.data);
+}
+
+/* ---------------- KB-level files (raw material) ---------------- */
+
+export function getWikiKbFiles(kbId: string) {
+  return request<{ files: any[]; upload_source_id: string }>({
+    method: 'get',
+    url: `/wiki/kb/${kbId}/_files`
+  }).then(res => (res as any)?.data);
+}
+
+/** manual uploads: files land as documents in the KB's upload datasource
+ * and enter the standard enrichment pipeline */
+export function uploadWikiKbFiles(kbId: string, files: any[]) {
+  const fd = new FormData();
+  for (const f of files) fd.append('files', f, f.name);
+  return request<{ created: number; failed: { file: string; error: string }[] }>({
+    method: 'post',
+    data: fd,
+    url: `/wiki/kb/${kbId}/_files/upload`
   }).then(res => (res as any)?.data);
 }
