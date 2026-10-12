@@ -216,6 +216,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: { stale: 'Stale', duplicate: 'Duplicate', conflict: 'Conflict', low_quality: 'Low quality', orphan: 'Orphaned', entity_duplicate: 'Entity duplicate', entity_conflict: 'Entity type conflict', knowledge_gap: 'Knowledge gap', correction: 'Correction' },
       hint: '{{count}} proposal(s) waiting',
       treePreview: 'Proposed TOC: {{count}} pages across {{folders}} departments',
+      targetFolder: 'target folder',
 
       compilePreview: 'Will create a "{{kind}}" page · {{count}} statements',
       existingType: 'existing type',

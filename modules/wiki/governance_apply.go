@@ -492,5 +492,67 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 	if err := orm.Create(ctx, &article); err != nil {
 		return "", "", err
 	}
+	// placement step: file the new page into the folder path the compiler
+	// planned (evidence.target_folder) — without this the page ships
+	// orphaned from the navigation
+	if target, _ := p.Evidence["target_folder"].(string); target != "" {
+		if err := placeInToc(ctx, p.KbID, target, article.ID, article.Title); err != nil {
+			log.Warnf("wiki: failed to place [%s] into [%s]: %v", article.Title, target, err)
+		}
+	}
 	return fmt.Sprintf("已生成草稿页「%s」(%d 条主张)", article.Title, len(statements)), article.ID, nil
+}
+
+// placeInToc walks (creating as needed) the "/"-separated folder path in
+// the KB's TOC and appends the article node at the leaf.
+func placeInToc(ctx *orm.Context, kbID, folderPath, articleID, title string) error {
+	orm.WithModel(ctx, &core.WikiToc{})
+	toc, found, err := findToc(ctx, kbID)
+	if err != nil {
+		return err
+	}
+	if !found {
+		toc = &core.WikiToc{KbID: kbID}
+	}
+	nodes, leaf := ensureFolderChain(toc.Nodes, strings.Split(folderPath, "/"))
+	// dedupe: a re-applied proposal must not stack twin nodes
+	already := false
+	for _, c := range leaf.Children {
+		if c.ArticleID == articleID {
+			already = true
+			break
+		}
+	}
+	if !already {
+		leaf.Children = append(leaf.Children, core.WikiTocNode{
+			ID: "toc-" + articleID, Title: title, Type: "article", ArticleID: articleID,
+		})
+	}
+	toc.Nodes = nodes
+	return orm.Update(ctx, toc)
+}
+
+// ensureFolderChain walks/creates the folder chain, returning the (possibly
+// rebuilt) node slice plus the leaf folder — index-based reassignment keeps
+// appends visible to the caller through reallocation.
+func ensureFolderChain(nodes []core.WikiTocNode, segments []string) ([]core.WikiTocNode, *core.WikiTocNode) {
+	seg := segments[0]
+	for i := range nodes {
+		if nodes[i].Type == "folder" && nodes[i].Title == seg {
+			if len(segments) == 1 {
+				return nodes, &nodes[i]
+			}
+			child, leaf := ensureFolderChain(nodes[i].Children, segments[1:])
+			nodes[i].Children = child
+			return nodes, leaf
+		}
+	}
+	nodes = append(nodes, core.WikiTocNode{ID: "folder-" + seg, Title: seg, Type: "folder"})
+	leaf := &nodes[len(nodes)-1]
+	if len(segments) > 1 {
+		child, l := ensureFolderChain(leaf.Children, segments[1:])
+		leaf.Children = child
+		leaf = l
+	}
+	return nodes, leaf
 }

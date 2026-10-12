@@ -881,6 +881,15 @@ func fileCompileProposal(ctx *orm.Context, kb *core.WikiKnowledgeBase, item Comp
 		"existing_id": item.ExistingArticleID,
 		"model":       model.ProviderID + "/" + model.ID,
 	}
+	// placement planning (the multi-step discipline: read the structure,
+	// decide where the page lands BEFORE anything is written) — department
+	// from the cited documents' folder path, dimension from the entity type
+	if item.Action == PlanCreate {
+		if target := planTargetFolder(ctx, kb, item); target != "" {
+			proposal.Evidence["target_folder"] = target
+			proposal.Reason += " → " + target
+		}
+	}
 	if err := orm.Create(ctx, proposal); err != nil {
 		log.Debugf("wiki compiler: proposal create failed for [%s]: %v", key.Name, err)
 		return false
@@ -892,6 +901,70 @@ func fileCompileProposal(ctx *orm.Context, kb *core.WikiKnowledgeBase, item Comp
 			fmt.Sprintf("知识编译:%s %s 页提议(来自 %d 条来源主张)", actionLabel, key.Name, len(key.Statements)))
 	}
 	return true
+}
+
+// planTargetFolder resolves where a compiled page belongs under the KB's
+// department layout (the multi-step discipline: read the structure, decide
+// the placement before anything is written): department from the cited
+// documents' folder path, dimension from the entity type. Empty when the KB
+// has no layout — the page then stays unplaced until a tree_organize pass.
+func planTargetFolder(ctx *orm.Context, kb *core.WikiKnowledgeBase, item CompilePlanItem) string {
+	if len(kb.TocLayout) == 0 {
+		return ""
+	}
+	docIDs := make([]string, 0, len(item.Key.Statements))
+	for _, s := range item.Key.Statements {
+		if s.DocID != "" {
+			docIDs = append(docIDs, s.DocID)
+		}
+	}
+	dept := ""
+	if len(docIDs) > 0 {
+		octx := orm.NewContextWithParent(ctx)
+		octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+		orm.WithModel(octx, &core.Document{})
+		if res, err := orm.SearchV2(octx, orm.NewQuery().Size(50).
+			Filter(orm.TermsQuery("id", docIDs)).Include("id", "folder_path", "category")); err == nil && res != nil {
+			if docs, _, derr := elastic.DecodeHits[core.Document](res); derr == nil {
+				for i := range docs {
+					p := strings.Trim(docs[i].FolderPath, "/")
+					if p == "" {
+						p = strings.Trim(docs[i].Category, "/")
+					}
+					p = strings.ToLower(p)
+					for _, deptFolder := range kb.TocLayout {
+						for _, prefix := range deptFolder.PathPrefixes {
+							prefix = strings.ToLower(strings.Trim(prefix, "/"))
+							if prefix != "" && (p == prefix || strings.HasPrefix(p, prefix+"/") ||
+								strings.Contains("/"+p+"/", "/"+prefix+"/")) {
+								dept = deptFolder.Title
+								break
+							}
+						}
+						if dept != "" {
+							break
+						}
+					}
+					if dept != "" {
+						break
+					}
+				}
+			}
+		}
+	}
+	dim := "专题与概念"
+	if e := wikiEntityByName(ctx, item.Key.Name); e != nil {
+		switch strings.ToLower(e.Type) {
+		case "organization", "person":
+			dim = "客户与组织"
+		case "product":
+			dim = "产品与服务"
+		}
+	}
+	if dept == "" {
+		return dim
+	}
+	return dept + "/" + dim
 }
 
 func compileGeneration(ctx *orm.Context, kbID, normKey string) int {

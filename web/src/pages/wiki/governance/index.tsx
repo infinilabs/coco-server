@@ -64,6 +64,7 @@ function CompileProposalPreview({ evidence }: { evidence: Record<string, any> })
           count: statements.length
         })}
         {aliases.length > 0 ? ` · ${aliases.join(' / ')}` : ''}
+        {evidence.target_folder ? ` · ${t('page.wiki.governance.targetFolder')}: ${String(evidence.target_folder)}` : ''}
       </div>
       <div className='flex max-h-220px flex-col gap-6px overflow-y-auto'>
         {statements.map((s, i) => (
