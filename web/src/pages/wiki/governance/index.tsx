@@ -228,6 +228,11 @@ export function Component() {
   // never stops the worker, and a fresh mount re-attaches to a running one
   const [applyProgress, setApplyProgress] = useState<{ done: number; total: number; current?: string } | null>(null);
   const applyPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // select-all on a big queue exceeds the per-batch cap (200) — the run is
+  // split into chunks and the poller starts the next one as each finishes
+  const applyChunksRef = useRef<string[][]>([]);
+  const applyFinishedRef = useRef(0);
+  const applyTotalRef = useRef(0);
 
   const stopApplyPolling = () => {
     if (applyPollRef.current) {
@@ -246,18 +251,39 @@ export function Component() {
       }
       if (p.status === 'running') {
         setBatchLoading(true);
-        setApplyProgress({ done: p.done + p.failed + p.skipped, total: p.total, current: p.current });
+        setApplyProgress({
+          done: applyFinishedRef.current + p.done + p.failed + p.skipped,
+          total: applyTotalRef.current || p.total,
+          current: p.current
+        });
         return;
+      }
+      // chunk finished — count it, start the next one, or wrap up
+      applyFinishedRef.current += p.done + p.failed + p.skipped
+      if (applyChunksRef.current.length > 0) {
+        const next = applyChunksRef.current.shift();
+        if (next && next.length) {
+          startBatchApply(next)
+            .then(() => { /* polling continues */ })
+            .catch(() => {
+              stopApplyPolling();
+              setApplyProgress(null);
+              setBatchLoading(false);
+              window.$message?.error(t('page.wiki.governance.batchFailed'));
+            });
+          return;
+        }
       }
       stopApplyPolling();
       setApplyProgress(null);
       setBatchLoading(false);
       setSelected([]);
       fetchData();
-      if (p.failed > 0 || p.skipped > 0) {
-        window.$message?.warning(t('page.wiki.governance.batchApplyDone', { done: p.done, failed: p.failed, skipped: p.skipped }));
+      const failedShown = p.failed;
+      if (failedShown > 0 || p.skipped > 0) {
+        window.$message?.warning(t('page.wiki.governance.batchApplyDone', { done: applyFinishedRef.current + p.done, failed: failedShown, skipped: p.skipped }));
       } else {
-        window.$message?.success(t('page.wiki.governance.batchApplyAllDone', { count: p.done }));
+        window.$message?.success(t('page.wiki.governance.batchApplyAllDone', { count: applyFinishedRef.current + p.done }));
       }
     });
   };
@@ -268,10 +294,12 @@ export function Component() {
   };
 
   useEffect(() => {
-    // a running batch survives navigation — re-attach on mount
+    // a running batch survives navigation — re-attach on mount (chunks
+    // queued client-side do not survive; the running one finishes)
     getBatchApplyProgress().then((p: any) => {
       if (p?.status === 'running') {
         setBatchLoading(true);
+        applyTotalRef.current = p.total;
         setApplyProgress({ done: p.done + p.failed + p.skipped, total: p.total, current: p.current });
         startApplyPolling();
       }
@@ -281,8 +309,15 @@ export function Component() {
 
   const runBatchApply = () => {
     if (!selected.length) return;
+    const chunks: string[][] = [];
+    for (let i = 0; i < selected.length; i += 200) {
+      chunks.push(selected.slice(i, i + 200));
+    }
+    applyChunksRef.current = chunks.slice(1);
+    applyTotalRef.current = selected.length;
+    applyFinishedRef.current = 0;
     setBatchLoading(true);
-    startBatchApply(selected)
+    startBatchApply(chunks[0])
       .then(() => startApplyPolling())
       .catch((err: any) => {
         setBatchLoading(false);
@@ -351,7 +386,17 @@ export function Component() {
           />
         </div>
         <div className='px-16px pb-16px pt-4px'>
-          <div className='mb-10px text-12.5px color-[var(--wiki-text-3)]'>{t('page.wiki.governance.subtitle')}</div>
+          <div className='mb-10px flex items-center gap-8px text-12.5px color-[var(--wiki-text-3)]'>
+            {/* select-all over the whole filtered queue (the fetched window),
+                not just the visible page — batch actions are the point */}
+            <Checkbox
+              checked={proposals.length > 0 && selected.length >= proposals.length}
+              indeterminate={selected.length > 0 && selected.length < proposals.length}
+              onChange={e => setSelected(e.target.checked ? proposals.map(p2 => p2.id) : [])}
+            />
+            <span>{t('page.wiki.governance.selectAll')}</span>
+            <span>{t('page.wiki.governance.subtitle')}</span>
+          </div>
           {/* batch review bar: only when something is checked */}
           {selected.length > 0 && (
             <div

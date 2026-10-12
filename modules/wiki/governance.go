@@ -975,8 +975,8 @@ func (h *APIHandler) batchUpdateGovernanceStatus(w http.ResponseWriter, req *htt
 		h.Error400(w, "ids is empty")
 		return
 	}
-	if len(body.IDs) > 500 {
-		h.Error400(w, "too many ids (cap 500 per batch)")
+	if len(body.IDs) > 2000 {
+		h.Error400(w, "too many ids (cap 2000 per batch)")
 		return
 	}
 

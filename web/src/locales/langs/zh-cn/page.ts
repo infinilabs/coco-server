@@ -197,6 +197,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     like: { add: '点赞', remove: '取消点赞' },
     bookmark: { add: '收藏该文章', remove: '已收藏' },
     governance: {
+      selectAll: '全选',
       batchApply: '批量修复',
       batchApplyConfirm: '将逐条执行 {{count}} 条修复，编译类每条约 30-60 秒；后台执行，可离开本页',
       batchRunning: '批量修复中 {{done}}/{{total}}{{current}}',

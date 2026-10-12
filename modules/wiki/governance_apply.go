@@ -18,9 +18,9 @@ import (
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 
+	"infini.sh/coco/core"
 	langchain "infini.sh/coco/modules/assistant/langchain"
 	llmmodule "infini.sh/coco/modules/llm"
-	"infini.sh/coco/core"
 )
 
 /* The governance queue's closed loop: until now every proposal was only a

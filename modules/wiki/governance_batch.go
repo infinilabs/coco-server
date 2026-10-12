@@ -166,4 +166,3 @@ func (h *APIHandler) batchApplyProgressHandler(w http.ResponseWriter, req *http.
 	}
 	h.WriteOKJSON(w, readBatchApplyProgress())
 }
-
