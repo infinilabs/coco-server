@@ -75,6 +75,8 @@ func init() {
 
 	// ontology query face (design doc B5): exact-name resolution and
 	// one-hop graph traversal, exposed as MCP tools for assistants
+	api.HandleUIMethod(api.PUT, "/wiki/entity/_batch_status", handler.batchUpdateEntityStatus,
+		api.RequireLogin(), api.RequirePermission(security.GetSimplePermission(Category, entityResource, string(security.Update))))
 	api.HandleUIMethod(api.GET, "/wiki/entity/lookup", handler.entityLookup,
 		api.RequireLogin(), api.RequirePermission(searchEntityPermission),
 		api.MCPTool("entity_lookup", "Resolve an ontology entity by exact name or alias; returns the entity with relations, or not_found"))

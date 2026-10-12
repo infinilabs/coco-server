@@ -765,3 +765,13 @@ export function getBatchApplyProgress() {
     url: '/wiki/governance/_batch_apply'
   }).then(res => (res as any)?.data);
 }
+
+/** batch entity review: set status for N entities in one call (reviewed/
+ * published/retired — retired being the design's "delete" for entities) */
+export function batchUpdateWikiEntityStatus(ids: string[], status: string) {
+  return request<{ updated: number; skipped: number }>({
+    method: 'put',
+    data: { ids, status },
+    url: '/wiki/entity/_batch_status'
+  }).then(res => (res as any)?.data);
+}

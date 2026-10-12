@@ -164,6 +164,18 @@ const page: App.I18n.Schema['translation']['page'] = {
         },
 
         entityManager: {
+          batchSelected: '{{count}} selected',
+          batchSetStatus: 'Set status to',
+          batchConfirm: 'Set {{count}} entities to {{status}}?',
+          batchApply: 'Apply',
+          batchClear: 'Clear selection',
+          batchDone: '{{count}} entities updated',
+          batchPartial: '{{updated}} updated, {{skipped}} skipped',
+          batchFailed: 'Batch operation failed',
+          statusReviewed: 'Reviewed',
+          statusPublished: 'Published',
+          statusRetired: 'Retired (= delete)',
+          statusProposed: 'Proposed',
           title: 'Entities',
           searchPlaceholder: 'Search name or alias…',
           typeFilter: 'Type',

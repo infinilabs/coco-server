@@ -164,6 +164,18 @@ const page: App.I18n.Schema['translation']['page'] = {
         },
 
         entityManager: {
+          batchSelected: '已选 {{count}} 项',
+          batchSetStatus: '批量设置状态为',
+          batchConfirm: '将 {{count}} 个实体状态设为 {{status}}？',
+          batchApply: '执行',
+          batchClear: '取消选择',
+          batchDone: '已更新 {{count}} 个实体',
+          batchPartial: '已更新 {{updated}} 个，跳过 {{skipped}} 个',
+          batchFailed: '批量操作失败',
+          statusReviewed: '已审阅 reviewed',
+          statusPublished: '已发布 published',
+          statusRetired: '已下线 retired（等同删除）',
+          statusProposed: '待审 proposed',
           title: '实体管理',
           searchPlaceholder: '搜索名称或别名…',
           typeFilter: '按类型',

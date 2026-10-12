@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
+  batchUpdateWikiEntityStatus,
   createWikiEntity,
   getOntologySchema,
   getWikiEntity,
@@ -112,6 +113,9 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
     update: hasAuth('coco#wiki_entity/update')
   };
 
+  const [selectedIds, setSelectedIds] = useState<React.Key[]>([]);
+  const [batchStatus, setBatchStatus] = useState<string>('reviewed');
+  const [batchLoading, setBatchLoading] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [typeFilter, setTypeFilter] = useState<string | undefined>();
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
@@ -238,6 +242,25 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
     });
   };
 
+  const runBatchStatus = () => {
+    if (!selectedIds.length) return;
+    setBatchLoading(true);
+    batchUpdateWikiEntityStatus(selectedIds.map(String), batchStatus)
+      .then((res: any) => {
+        const updated = res?.updated ?? 0;
+        const skipped = res?.skipped ?? 0;
+        if (skipped > 0) {
+          message.warning(t('page.wiki.entityManager.batchPartial', { updated, skipped }));
+        } else {
+          message.success(t('page.wiki.entityManager.batchDone', { count: updated }));
+        }
+        setSelectedIds([]);
+        fetchData();
+      })
+      .catch(() => message.error(t('page.wiki.entityManager.batchFailed')))
+      .finally(() => setBatchLoading(false));
+  };
+
   const columns: any[] = [
     {
       title: t('page.wiki.entityManager.columns.name'),
@@ -315,6 +338,38 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
         </Button>
       )
     }>
+      {selectedIds.length > 0 && permissions.update && (
+        <div
+          className="mb-12px flex flex-wrap items-center gap-10px rounded-6px border border-solid px-10px py-6px"
+          style={{ borderColor: 'var(--ant-color-primary-border)', background: 'var(--ant-color-primary-bg)' }}
+        >
+          <span className="text-12.5px">{t('page.wiki.entityManager.batchSelected', { count: selectedIds.length })}</span>
+          <span className="text-12.5px">{t('page.wiki.entityManager.batchSetStatus')}</span>
+          <Select
+            className="w-36"
+            size="small"
+            value={batchStatus}
+            options={[
+              { value: 'reviewed', label: t('page.wiki.entityManager.statusReviewed') },
+              { value: 'published', label: t('page.wiki.entityManager.statusPublished') },
+              { value: 'retired', label: t('page.wiki.entityManager.statusRetired') },
+              { value: 'proposed', label: t('page.wiki.entityManager.statusProposed') }
+            ]}
+            onChange={setBatchStatus}
+          />
+          <Popconfirm
+            title={t('page.wiki.entityManager.batchConfirm', { count: selectedIds.length, status: batchStatus })}
+            onConfirm={runBatchStatus}
+          >
+            <Button loading={batchLoading} size="small" type="primary">
+              {t('page.wiki.entityManager.batchApply')}
+            </Button>
+          </Popconfirm>
+          <a className="text-12px" onClick={() => setSelectedIds([])}>
+            {t('page.wiki.entityManager.batchClear')}
+          </a>
+        </div>
+      )}
       <Space className="mb-12px" wrap>
         <Input.Search
           className="w-56"
@@ -352,6 +407,10 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
       </Space>
       <Table
         rowKey="id"
+        rowSelection={permissions.update ? {
+          selectedRowKeys: selectedIds,
+          onChange: (keys: React.Key[]) => setSelectedIds(keys)
+        } : undefined}
         loading={loading}
         columns={columns}
         dataSource={data}
