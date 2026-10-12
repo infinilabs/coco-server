@@ -70,7 +70,7 @@ func (h *APIHandler) kbFiles(w http.ResponseWriter, req *http.Request, ps httpro
 	kb.SetID(kbID)
 	orm.WithModel(ctx, &core.WikiKnowledgeBase{})
 	exists, err := orm.GetV2(ctx, &kb)
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "record not found") {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -228,7 +228,7 @@ func (h *APIHandler) uploadKBFiles(w http.ResponseWriter, req *http.Request, ps 
 	kb.SetID(kbID)
 	orm.WithModel(ctx, &core.WikiKnowledgeBase{})
 	exists, err := orm.GetV2(ctx, &kb)
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "record not found") {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
