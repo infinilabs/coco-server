@@ -86,3 +86,19 @@ export function batchDeleteDocument(body: any) {
     url: `/document/`
   });
 }
+
+/** 数据源能力概览（W4）：文档总数 + 向量化/FAQ/Wiki 覆盖情况 */
+export function fetchDatasourceCapabilities(datasourceID: string) {
+  return request<{ datasource_id: string; documents: number; vector: boolean; faq: boolean; wiki: boolean }>({
+    method: 'get',
+    url: `/datasource/${datasourceID}/capabilities`
+  });
+}
+
+/** 单文档重放（失败文档无视指纹守卫，force 语义与后端 reprocessurl 一致） */
+export function reprocessDocument(documentID: string) {
+  return request({
+    method: 'post',
+    url: `/document/${documentID}/_reprocess?force=true`
+  });
+}

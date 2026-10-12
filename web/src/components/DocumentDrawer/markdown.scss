@@ -1119,6 +1119,63 @@
     background-color: var(--white);
   }
 
+  .markdown-body .mermaid-error {
+    border: 1px solid rgba(250, 173, 20, 0.45);
+  }
+
+  .markdown-body .mermaid-block {
+    overflow: auto;
+  }
+
+  .markdown-body .mermaid-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .markdown-body .mermaid-title {
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0.75;
+  }
+
+  .markdown-body .mermaid-view-diagram svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .markdown-body .mermaid-view-code {
+    margin: 0;
+    padding: 12px;
+    border-radius: 6px;
+    background-color: #0d1117;
+    color: #e6edf3;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .markdown-body .mermaid-error-banner {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    line-height: 18px;
+    color: #d46b08;
+    margin-bottom: 8px;
+  }
+
+  .markdown-body .mermaid-error-code {
+    margin: 0;
+    padding: 0;
+    background: none;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    opacity: 0.85;
+  }
+
   #dmermaid {
     display: none;
   }

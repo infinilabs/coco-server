@@ -1,4 +1,4 @@
-import { Descriptions, Drawer, Tag, Typography } from "antd";
+import { Button, Descriptions, Drawer, Tag, Typography } from "antd";
 import styles from "./index.module.less";
 import Markdown from "./Markdown";
 import ProgressiveImage from "../common/ProgressiveImage";
@@ -8,6 +8,9 @@ export default function DocumentDrawer(props) {
     const { getContainer, data = {}, isMobile, open, onClose } = props;
 
     const { t } = useTranslation();
+    const navigate = useNavigate();
+
+    const docId = data.id;
 
     return (
         <>
@@ -18,7 +21,17 @@ export default function DocumentDrawer(props) {
                 width={isMobile ? '100%' : 724}
                 closeIcon={null}
                 extra={(
-                    <X className="color-[#bbb] cursor-pointer" onClick={onClose}/>
+                    <div className="flex items-center gap-8px">
+                        {docId && (
+                            <Button
+                                size="small"
+                                onClick={() => navigate(`/data-source/doc/${docId}`)}
+                            >
+                                {t('page.datasource.doc.viewDetail')}
+                            </Button>
+                        )}
+                        <X className="color-[#bbb] cursor-pointer" onClick={onClose}/>
+                    </div>
                 )}
                 rootClassName={styles.detail}
                 getContainer={getContainer}

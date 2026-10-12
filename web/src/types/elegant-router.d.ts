@@ -50,6 +50,7 @@ declare module "@elegant-router/types" {
     "connector_new": "new";
     "data-source": "/data-source";
     "data-source_detail": "detail/:id";
+    "data-source_doc": "doc/:id";
     "data-source_edit": "edit/:id";
     "data-source_list": "list";
     "data-source_new": "new";
@@ -201,6 +202,7 @@ declare module "@elegant-router/types" {
     | "connector_edit"
     | "connector_new"
     | "data-source_detail"
+    | "data-source_doc"
     | "data-source_edit"
     | "data-source_list"
     | "data-source_new-first"

@@ -17,12 +17,6 @@ const SearchSettings = memo(() => {
   const [form] = Form.useForm();
   const { t } = useTranslation();
 
-  const { hasAuth } = useAuth()
-
-  const permissions = {
-    update: hasAuth('coco#system/update'),
-  }
-
   const { endLoading, loading, startLoading } = useLoading();
 
   const dispatch = useAppDispatch();
@@ -56,7 +50,7 @@ const SearchSettings = memo(() => {
     runBuiltin(BUILTIN_SEARCH_INTEGRATION_ID);
   });
 
-  const handleSubmit = async () => {
+  const saveSearchSettings = async ({ silent = false }: { silent?: boolean } = {}) => {
     const params = await form.validateFields();
     const { enabled, search_type } = params;
     startLoading();
@@ -82,7 +76,9 @@ const SearchSettings = memo(() => {
       await dispatch(initConstantRoute());
       await dispatch(resetAuth());
       await dispatch(initAuthRoute());
-      window.$message?.success(t('common.updateSuccess'));
+      if (!silent) {
+        window.$message?.success(t('common.updateSuccess'));
+      }
     }
     endLoading();
   };
@@ -125,6 +121,7 @@ const SearchSettings = memo(() => {
           <Form.Item
               label={t('page.settings.search_settings.labels.enabled')}
               name={['enabled']}
+              valuePropName="checked"
             >
             <Switch size="small" />
           </Form.Item>
@@ -174,6 +171,7 @@ const SearchSettings = memo(() => {
                 loading={builtinLoading}
                 record={builtin?._source}
                 onSubmit={handleUpdateBuiltin}
+                onBeforeSave={saveSearchSettings}
               />
             ) : (
               <Spin />

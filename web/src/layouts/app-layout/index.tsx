@@ -29,7 +29,7 @@ export function Component() {
   const responsive = useResponsive();
   const isLogin = useAppSelector(getIsLogin);
 
-  // one 48px row cannot hold a labeled segmented + console/lang/theme/login
+  // one 56px row cannot hold a labeled segmented + console/lang/theme/login
   // below md: icon-only segmented, and the console entry moves into the avatar
   // dropdown — otherwise flexbox squeezes the logo to 0px and pushes the login
   // entry off-screen
@@ -135,7 +135,7 @@ export function Component() {
 
   return (
     <div className='h-screen flex flex-col'>
-      <header className='h-48px flex-y-center shrink-0 justify-between border-b border-gray-200 bg-white px-12px dark:border-gray-700 dark:bg-[#141414]'>
+      <header className='h-56px flex-y-center shrink-0 justify-between border-b border-gray-200 bg-white px-12px dark:border-gray-700 dark:bg-[#141414]'>
         <div className='flex flex-none items-center gap-4'>
           <div
             className='flex flex-none cursor-pointer items-center'

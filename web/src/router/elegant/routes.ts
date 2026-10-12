@@ -235,6 +235,18 @@ export const generatedRoutes: GeneratedRoute[] = [
         }
       },
       {
+        name: 'data-source_doc',
+        path: 'doc/:id',
+        component: 'view.data-source_doc',
+        meta: {
+          i18nKey: 'route.data-source_doc',
+          title: 'data-source_doc',
+          hideInMenu: true,
+          activeMenu: 'data-source',
+          permissions: ['coco#datasource/search', 'coco#document/read']
+        }
+      },
+      {
         name: 'data-source_edit',
         path: 'edit/:id',
         component: 'view.data-source_edit',

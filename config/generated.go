@@ -2,9 +2,9 @@ package config
 
 const LastCommitLog = "N/A"
 
-const BuildDate = "N/A"
+const BuildDate = "2026-10-10T09:00:00+08:00"
 
-const EOLDate = "N/A"
+const EOLDate = "2030-01-01T00:00:00Z"
 
 const Version = "0.0.1-SNAPSHOT"
 

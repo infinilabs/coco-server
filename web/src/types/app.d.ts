@@ -313,6 +313,9 @@ declare namespace App {
           edit: string;
           error: string;
           errorHint: string;
+          mermaidRenderError: string;
+          diagram: string;
+          sourceCode: string;
           expandColumn: string;
           index: string;
           keywordSearch: string;

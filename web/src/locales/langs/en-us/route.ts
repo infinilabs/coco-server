@@ -13,6 +13,7 @@ const route: App.I18n.Schema['translation']['route'] = {
   'data-source_new': 'New Data Source',
   'data-source_new-first': 'New Data Source First Step',
   'data-source_detail': 'Data Source Detail',
+  'data-source_doc': 'Document Detail',
   pipeline: 'Pipelines',
   pipeline_list: 'Pipelines',
   pipeline_new: 'New Pipeline',
