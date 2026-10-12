@@ -46,6 +46,86 @@ interface RawTocNode {
   children?: RawTocNode[];
 }
 
+/** Review-before-apply for knowledge_compile: the statements the generated
+ * page will carry — claim + source excerpt + link to the cited document. */
+function CompileProposalPreview({ evidence }: { evidence: Record<string, any> }) {
+  const { t } = useTranslation();
+  const aliases = (evidence.aliases || []) as string[];
+  const statements = (evidence.statements || []) as { claim?: string; doc_id?: string; excerpt?: string }[];
+  return (
+    <div
+      className='mt-6px rounded-6px border border-solid p-8px'
+      style={{ borderColor: 'var(--ant-color-border-secondary)' }}
+      onClick={e => e.stopPropagation()}
+    >
+      <div className='mb-4px text-11.5px color-[var(--wiki-text-3)]'>
+        {t('page.wiki.governance.compilePreview', {
+          kind: String(evidence.kind || ''),
+          count: statements.length
+        })}
+        {aliases.length > 0 ? ` · ${aliases.join(' / ')}` : ''}
+      </div>
+      <div className='flex max-h-220px flex-col gap-6px overflow-y-auto'>
+        {statements.map((s, i) => (
+          <div
+            className='rounded-4px px-8px py-6px'
+            key={i}
+            style={{ background: 'var(--wiki-accent-softer)' }}
+          >
+            <div className='text-12.5px'>{s.claim}</div>
+            {s.excerpt && (
+              <div
+                className='mt-2px max-h-28px overflow-hidden text-11.5px color-[var(--wiki-text-3)]'
+                style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}
+              >
+                {s.excerpt}
+              </div>
+            )}
+            {s.doc_id && (
+              <a
+                className='mt-2px inline-block text-11px text-[var(--ant-color-link)]'
+                href={`#/preview/document/${s.doc_id}`}
+                onClick={e => e.stopPropagation()}
+              >
+                {t('page.wiki.article.openSource')}
+              </a>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Review-before-apply for entity_conflict: the two competing types, with
+ * the mentioning document one click away. */
+function ConflictProposalPreview({ evidence }: { evidence: Record<string, any> }) {
+  const { t } = useTranslation();
+  return (
+    <div
+      className='mt-6px flex flex-wrap items-center gap-6px'
+      onClick={e => e.stopPropagation()}
+    >
+      <Tag color='gold'>
+        {t('page.wiki.governance.existingType')}: {String(evidence.existing_type || '?')}
+      </Tag>
+      <span className='text-11px color-[var(--wiki-text-3)]'>vs</span>
+      <Tag color='purple'>
+        {t('page.wiki.governance.mentionedAs')}: {String(evidence.extracted_type || '?')}
+      </Tag>
+      {evidence.doc_id && (
+        <a
+          className='text-11px text-[var(--ant-color-link)]'
+          href={`#/preview/document/${evidence.doc_id}`}
+          onClick={e => e.stopPropagation()}
+        >
+          {t('page.wiki.article.openSource')}
+        </a>
+      )}
+    </div>
+  );
+}
+
 /** Review-before-apply for tree_organize: renders the proposed TOC straight
  * from evidence.tree — folders with article counts, articles as leaves. */
 function TreeProposalPreview({ tree }: { tree: RawTocNode[] }) {
@@ -249,6 +329,21 @@ export function Component() {
                         <span>{proposal.reason}</span>
                         {proposal.type === 'tree_organize' && Array.isArray(proposal.evidence?.tree) && (
                           <TreeProposalPreview tree={proposal.evidence.tree as RawTocNode[]} />
+                        )}
+                        {proposal.type === 'knowledge_compile' && proposal.evidence?.statements && (
+                          <CompileProposalPreview evidence={proposal.evidence} />
+                        )}
+                        {proposal.type === 'entity_conflict' && proposal.evidence?.existing_type && (
+                          <ConflictProposalPreview evidence={proposal.evidence} />
+                        )}
+                        {proposal.type === 'article_refresh' && proposal.evidence?.doc_id && (
+                          <a
+                            className='text-11.5px text-[var(--ant-color-link)]'
+                            href={`#/preview/document/${proposal.evidence.doc_id}`}
+                            onClick={e => e.stopPropagation()}
+                          >
+                            {t('page.wiki.governance.refreshDoc')}
+                          </a>
                         )}
                         {dupOf && (
                           <Tooltip title={t('page.wiki.governance.duplicateOf')}>
