@@ -35,6 +35,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       tocLayoutAdd: '添加部门',
       tocLayoutDeptPlaceholder: '部门名称,如 研发',
       tocLayoutPrefixPlaceholder: '路径前缀,逗号分隔,如 研发, rd',
+      tocLayoutDimPlaceholder: '维度名,逗号分隔,按 组织/产品/专题,如 技术方案, 架构决策, 专题研究',
       tocLayoutTitleRequired: '请输入部门名称'
     },
     tree: {

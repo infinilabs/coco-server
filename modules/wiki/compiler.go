@@ -522,7 +522,11 @@ func proposeTreeOrganization(ctx *orm.Context, kb *core.WikiKnowledgeBase, exist
 		log.Infof("wiki compiler: tree grouping looked up %d articles, matched %d entity types", len(ids), len(articleType))
 	}
 
-	folders := []struct {
+	// dimensionSlots are the canonical dimension folders every layout
+	// shape hangs articles under, in slot order: an entity type maps to a
+	// slot (entityDimensionSlot), and a department may rename its slots
+	// (WikiTocLayoutFolder.Dimensions) while the grouping semantics stay.
+	dimensionSlots := []struct {
 		key   string
 		title string
 		types []string
@@ -540,16 +544,15 @@ func proposeTreeOrganization(ctx *orm.Context, kb *core.WikiKnowledgeBase, exist
 		return !(a.Status == core.WikiArticleDraft && len(a.Sources) < 2 &&
 			!strings.HasSuffix(a.Title, "概览"))
 	}
-	dimensionNode := func(key, title string, arts []core.WikiArticle) *core.WikiTocNode {
-		f := folders
+	dimensionNode := func(key, title, idNS string, arts []core.WikiArticle) *core.WikiTocNode {
 		var def *struct {
 			key   string
 			title string
 			types []string
 		}
-		for i := range f {
-			if f[i].key == key {
-				def = &f[i]
+		for i := range dimensionSlots {
+			if dimensionSlots[i].key == key {
+				def = &dimensionSlots[i]
 				break
 			}
 		}
@@ -575,6 +578,12 @@ func proposeTreeOrganization(ctx *orm.Context, kb *core.WikiKnowledgeBase, exist
 		if len(children) == 0 {
 			return nil
 		}
+		// the department name namespaces the node id — two departments
+		// share the same slot keys, and colliding tree node ids break
+		// expand/collapse state in the UI
+		if idNS != "" {
+			return &core.WikiTocNode{ID: "folder-" + idNS + "-" + key + "-" + kb.ID, Title: title, Type: "folder", Children: children}
+		}
 		return &core.WikiTocNode{ID: "folder-" + key + "-" + kb.ID, Title: title, Type: "folder", Children: children}
 	}
 
@@ -589,7 +598,7 @@ func proposeTreeOrganization(ctx *orm.Context, kb *core.WikiKnowledgeBase, exist
 				nav = append(nav, a)
 			}
 		}
-		for _, dept := range kb.TocLayout {
+		for di, dept := range kb.TocLayout {
 			var deptChildren []core.WikiTocNode
 			inDept := make([]core.WikiArticle, 0, len(nav))
 			for _, a := range nav {
@@ -597,8 +606,8 @@ func proposeTreeOrganization(ctx *orm.Context, kb *core.WikiKnowledgeBase, exist
 					inDept = append(inDept, a)
 				}
 			}
-			for _, f := range folders {
-				if dim := dimensionNode(f.key, f.title, inDept); dim != nil {
+			for slot, f := range dimensionSlots {
+				if dim := dimensionNode(f.key, dimensionDisplayName(&kb.TocLayout[di], slot), dept.Title, inDept); dim != nil {
 					deptChildren = append(deptChildren, *dim)
 				}
 			}
@@ -617,8 +626,8 @@ func proposeTreeOrganization(ctx *orm.Context, kb *core.WikiKnowledgeBase, exist
 		}
 		if len(rest) > 0 {
 			var deptChildren []core.WikiTocNode
-			for _, f := range folders {
-				if dim := dimensionNode(f.key, f.title, rest); dim != nil {
+			for slot, f := range dimensionSlots {
+				if dim := dimensionNode(f.key, dimensionDisplayName(nil, slot), "综合", rest); dim != nil {
 					deptChildren = append(deptChildren, *dim)
 				}
 			}
@@ -629,15 +638,15 @@ func proposeTreeOrganization(ctx *orm.Context, kb *core.WikiKnowledgeBase, exist
 			}
 		}
 	} else {
-		nodes = make([]core.WikiTocNode, 0, len(folders))
-		for _, f := range folders {
+		nodes = make([]core.WikiTocNode, 0, len(dimensionSlots))
+		for slot, f := range dimensionSlots {
 			arts := make([]core.WikiArticle, 0, len(existing))
 			for _, a := range existing {
 				if navigable(a) {
 					arts = append(arts, a)
 				}
 			}
-			if dim := dimensionNode(f.key, f.title, arts); dim != nil {
+			if dim := dimensionNode(f.key, dimensionDisplayName(nil, slot), "", arts); dim != nil {
 				nodes = append(nodes, *dim)
 			}
 		}
@@ -903,6 +912,20 @@ func fileCompileProposal(ctx *orm.Context, kb *core.WikiKnowledgeBase, item Comp
 	return true
 }
 
+// dimensionDisplayName resolves a department's display name for a canonical
+// dimension slot (0=organization, 1=product, 2=topic); unset or blank slots
+// fall back to the shared defaults, so a department can rename just one.
+func dimensionDisplayName(dept *core.WikiTocLayoutFolder, slot int) string {
+	defaults := [...]string{"客户与组织", "产品与服务", "专题与概念"}
+	if slot < 0 || slot >= len(defaults) {
+		return ""
+	}
+	if dept != nil && slot < len(dept.Dimensions) && strings.TrimSpace(dept.Dimensions[slot]) != "" {
+		return strings.TrimSpace(dept.Dimensions[slot])
+	}
+	return defaults[slot]
+}
+
 // planTargetFolder resolves where a compiled page belongs under the KB's
 // department layout (the multi-step discipline: read the structure, decide
 // the placement before anything is written): department from the cited
@@ -919,6 +942,7 @@ func planTargetFolder(ctx *orm.Context, kb *core.WikiKnowledgeBase, item Compile
 		}
 	}
 	dept := ""
+	matchedDept := -1
 	if len(docIDs) > 0 {
 		octx := orm.NewContextWithParent(ctx)
 		octx.Set(orm.DirectReadWithoutPermissionCheck, true)
@@ -932,12 +956,14 @@ func planTargetFolder(ctx *orm.Context, kb *core.WikiKnowledgeBase, item Compile
 						p = strings.Trim(docs[i].Category, "/")
 					}
 					p = strings.ToLower(p)
-					for _, deptFolder := range kb.TocLayout {
+					for di := range kb.TocLayout {
+						deptFolder := &kb.TocLayout[di]
 						for _, prefix := range deptFolder.PathPrefixes {
 							prefix = strings.ToLower(strings.Trim(prefix, "/"))
 							if prefix != "" && (p == prefix || strings.HasPrefix(p, prefix+"/") ||
 								strings.Contains("/"+p+"/", "/"+prefix+"/")) {
 								dept = deptFolder.Title
+								matchedDept = di
 								break
 							}
 						}
@@ -952,15 +978,23 @@ func planTargetFolder(ctx *orm.Context, kb *core.WikiKnowledgeBase, item Compile
 			}
 		}
 	}
-	dim := "专题与概念"
+	// dimension slot from the entity type, display name from the matched
+	// department's own renames — 研发's org pages file under its "技术方案"
+	// folder, not the shared 客户与组织
+	slot := 2
 	if e := wikiEntityByName(ctx, item.Key.Name); e != nil {
 		switch strings.ToLower(e.Type) {
 		case "organization", "person":
-			dim = "客户与组织"
+			slot = 0
 		case "product":
-			dim = "产品与服务"
+			slot = 1
 		}
 	}
+	var deptPtr *core.WikiTocLayoutFolder
+	if matchedDept >= 0 {
+		deptPtr = &kb.TocLayout[matchedDept]
+	}
+	dim := dimensionDisplayName(deptPtr, slot)
 	if dept == "" {
 		return dim
 	}

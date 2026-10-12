@@ -426,8 +426,8 @@ declare namespace Api {
       members: Member[];
       datasources: DatasourceInfo[];
       ai_status?: AiStatus;
-      /** 企业目录布局:部门顶层目录 + 被引文档 folder_path 前缀归属 */
-      toc_layout?: { title: string; path_prefixes?: string[] }[];
+      /** 企业目录布局:部门顶层目录 + 被引文档 folder_path 前缀归属;dimensions 按槽位(组织/产品/专题)覆盖部门内维度目录名 */
+      toc_layout?: { title: string; path_prefixes?: string[]; dimensions?: string[] }[];
     }
 
     interface SourceRef {

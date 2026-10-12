@@ -35,6 +35,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       tocLayoutAdd: 'Add department',
       tocLayoutDeptPlaceholder: 'Department, e.g. R&D',
       tocLayoutPrefixPlaceholder: 'Path prefixes, comma-separated, e.g. rd, eng',
+      tocLayoutDimPlaceholder: 'Dimension names, comma-separated in org/product/topic order, e.g. Tech Designs, Architecture, Research',
       tocLayoutTitleRequired: 'Department name is required'
     },
     tree: {

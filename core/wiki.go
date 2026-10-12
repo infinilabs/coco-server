@@ -119,10 +119,13 @@ type WikiKnowledgeBase struct {
 // WikiTocLayoutFolder is one top-level department folder of the KB layout.
 // PathPrefixes match the cited documents' folder path (any-level prefix,
 // case-insensitive) — a doc under "kb/研发/" files its articles under the
-// department whose prefix matches first.
+// department whose prefix matches first. Dimensions renames the per-department
+// dimension folders in canonical slot order (organization/product/topic);
+// unset or empty slots fall back to the shared defaults.
 type WikiTocLayoutFolder struct {
 	Title        string   `json:"title"`                   // 研发部
 	PathPrefixes []string `json:"path_prefixes,omitempty"` // ["研发", "rd"]
+	Dimensions   []string `json:"dimensions,omitempty"`    // ["技术方案", "产品与服务", "架构决策"]
 }
 
 // WikiSourceReference points back at the ingested document a statement

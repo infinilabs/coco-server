@@ -45,8 +45,8 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
   const onSave = () => {
     form.validateFields().then(values => {
       setSaving(true);
-      // layout rows carry prefixes as a comma string in the form; the API
-      // wants the array form
+      // layout rows carry prefixes/dimensions as comma strings in the form;
+      // the API wants the array form (dimensions slot order: 组织/产品/专题)
       const payload = {
         ...values,
         toc_layout: ((values.toc_layout || []) as any[])
@@ -54,6 +54,10 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
           .map(row => ({
             title: row.title.trim(),
             path_prefixes: (row.prefixes || '')
+              .split(/[,，]/)
+              .map((s: string) => s.trim())
+              .filter(Boolean),
+            dimensions: (row.dimensions || '')
               .split(/[,，]/)
               .map((s: string) => s.trim())
               .filter(Boolean)
@@ -91,7 +95,8 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
             datasource_ids: kb.datasource_ids,
             toc_layout: (kb.toc_layout || []).map(f => ({
               title: f.title,
-              prefixes: (f.path_prefixes || []).join(', ')
+              prefixes: (f.path_prefixes || []).join(', '),
+              dimensions: (f.dimensions || []).join(', ')
             }))
           }}
           labelCol={{ span: 5 }}
@@ -156,6 +161,12 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
                           style={{ width: 260 }}
                         />
                       </Form.Item>
+                      <Form.Item className="mb-0" name={[field.name, 'dimensions']} noStyle>
+                        <Input
+                          placeholder={t('page.wiki.settings.tocLayoutDimPlaceholder')}
+                          style={{ width: 220 }}
+                        />
+                      </Form.Item>
                       <Button
                         icon={<DeleteOutlined />}
                         onClick={() => remove(field.name)}
@@ -167,7 +178,7 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
                     block={false}
                     className="w-fit"
                     icon={<PlusOutlined />}
-                    onClick={() => add({ title: '', prefixes: '' })}
+                    onClick={() => add({ title: '', prefixes: '', dimensions: '' })}
                   >
                     {t('page.wiki.settings.tocLayoutAdd')}
                   </Button>
