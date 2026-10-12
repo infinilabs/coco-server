@@ -16,6 +16,7 @@ import {
   type OntologyRelationDef
 } from '@/service/api';
 import { wikiTypeColor } from '../shared/WikiLinkTag';
+import { EntityArticleSections } from './EntityArticleSections';
 
 const STATUS_FLOW: Record<string, string | undefined> = {
   proposed: 'reviewed',
@@ -123,12 +124,15 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
+  const nav = useNavigate();
 
   const [schemaTypes, setSchemaTypes] = useState<OntologyEntityTypeDef[]>([]);
 
   // edit drawer state
   const [editing, setEditing] = useState<Api.Wiki.EntityInfo | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // detail drawer state (click a row/name to inspect an entity)
+  const [detail, setDetail] = useState<Api.Wiki.EntityInfo | null>(null);
   const [form] = Form.useForm();
   const [propValues, setPropValues] = useState<Record<string, unknown>>({});
   const [relRows, setRelRows] = useState<RelationRow[]>([]);
@@ -142,7 +146,7 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
   const fetchData = useCallback(
     (kw = keyword, tf = typeFilter, sf = statusFilter, pg = page) => {
       setLoading(true);
-      searchWikiEntityPage({ query: kw || undefined, type: tf, status: sf, from: pg * pageSize, size: pageSize })
+      searchWikiEntityPage({ query: kw || undefined, type: tf, status: sf, kbId, from: pg * pageSize, size: pageSize })
         .then(res => {
           setData(res.data);
           setTotal(res.total);
@@ -196,7 +200,7 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
   useEffect(() => {
     if (!targetPicker) return;
     const kw = targetSearch.trim();
-    searchWikiEntityPage({ query: kw || undefined, type: targetPicker.relation.target_type === '*' ? undefined : targetPicker.relation.target_type, size: 20 }).then(
+    searchWikiEntityPage({ query: kw || undefined, type: targetPicker.relation.target_type === '*' ? undefined : targetPicker.relation.target_type, kbId, size: 20 }).then(
       res => setTargetOptions(res.data)
     );
   }, [targetPicker, targetSearch]);
@@ -267,7 +271,7 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
       dataIndex: 'name',
       render: (_: any, row: Api.Wiki.EntityInfo) => (
         <Space size={4}>
-          <span>{row.name}</span>
+          <a onClick={() => setDetail(row)}>{row.name}</a>
           {(row.aliases || []).length > 0 && (
             <span className="text-12px text-[var(--ant-color-text-tertiary)]" title={(row.aliases || []).join(', ')}>
               +{row.aliases!.length}
@@ -407,6 +411,14 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
       </Space>
       <Table
         rowKey="id"
+        rowClassName="cursor-pointer"
+        onRow={record => ({
+          onClick: e => {
+            // clicking a row opens the details; interactive cells (selection checkbox, action buttons) opt out
+            if ((e.target as HTMLElement).closest('button, a, .ant-table-selection-column')) return;
+            setDetail(record);
+          }
+        })}
         rowSelection={permissions.update ? {
           selectedRowKeys: selectedIds,
           onChange: (keys: React.Key[]) => setSelectedIds(keys)
@@ -485,6 +497,43 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
             />
           </div>
         </Form>
+      </Drawer>
+
+      <Drawer
+        title={detail ? t('page.wiki.entityManager.detailTitle', { name: detail.name }) : ''}
+        width={560}
+        open={!!detail}
+        onClose={() => setDetail(null)}
+        extra={
+          detail && (
+            <Space>
+              {detail.article_id && (
+                <Button size="small" onClick={() => nav(`/wiki/article/${detail.article_id}?kb=${kbId}`)}>
+                  {t('page.wiki.entityManager.viewArticle')}
+                </Button>
+              )}
+              <Button size="small" onClick={() => nav(`/wiki/kb/${kbId}?tab=graph&entity=${detail.id}`)}>
+                {t('page.wiki.entityManager.viewInGraph')}
+              </Button>
+              {permissions.update && (
+                <Button
+                  size="small"
+                  type="primary"
+                  icon={<Pencil />}
+                  onClick={() => {
+                    const target = detail;
+                    setDetail(null);
+                    openEdit(target);
+                  }}
+                >
+                  {t('common.edit')}
+                </Button>
+              )}
+            </Space>
+          )
+        }
+      >
+        {detail && <EntityArticleSections entityId={detail.id} kbId={kbId} />}
       </Drawer>
 
       <Modal title={t('page.wiki.entityManager.pickTarget')} open={!!targetPicker} onCancel={() => setTargetPicker(null)} onOk={() => setTargetPicker(null)} footer={null}>

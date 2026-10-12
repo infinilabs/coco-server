@@ -317,7 +317,7 @@ func resolveOrCreateEntity(ctx *orm.Context, extracted *extractedEntity, doc *co
 	orm.WithModel(ctx, &core.WikiEntity{})
 
 	extractedType := strings.ToLower(strings.TrimSpace(extracted.Type))
-	if existing := findEntityByName(ctx, extracted.Name); existing != nil {
+	if existing := findEntityByName(ctx, kbID, extracted.Name); existing != nil {
 		// same name, conflicting types: keep merging the provenance but let
 		// the governance queue ask the human whether to split (O2)
 		if existing.Type != "" && extractedType != "" && existing.Type != extractedType {
@@ -336,7 +336,7 @@ func resolveOrCreateEntity(ctx *orm.Context, extracted *extractedEntity, doc *co
 		if alias == "" {
 			continue
 		}
-		if existing := findEntityByName(ctx, alias); existing != nil {
+		if existing := findEntityByName(ctx, kbID, alias); existing != nil {
 			if existing.Type != "" && extractedType != "" && existing.Type != extractedType {
 				wiki.FileEntityGovernanceProposal(kbID, existing, core.WikiGovernanceEntityConflict,
 					fmt.Sprintf("document %q mentions alias %q of %q as %q, existing entity is %q", doc.Title, alias, extracted.Name, extractedType, existing.Type),
@@ -387,7 +387,7 @@ func resolveOrCreateEntity(ctx *orm.Context, extracted *extractedEntity, doc *co
 		// wants one row with merged provenance, so fall back to the merge
 		// path on the winner instead of failing the batch
 		if strings.Contains(err.Error(), "version_conflict") {
-			if winner := findEntityByName(ctx, entity.Name); winner != nil {
+			if winner := findEntityByName(ctx, kbID, entity.Name); winner != nil {
 				appendEntitySource(winner, extracted, doc)
 				if uerr := orm.Update(ctx, winner); uerr != nil {
 					return nil, false, uerr
@@ -465,8 +465,8 @@ func caseInsensitiveList(types []string) []string {
 
 // findEntityByName shares the wiki module's portable resolver (exact name,
 // then case-insensitive, then alias with backend-portable fallback).
-func findEntityByName(ctx *orm.Context, name string) *core.WikiEntity {
-	return wiki.FindEntityByNameOrAlias(ctx, name, "")
+func findEntityByName(ctx *orm.Context, kbID, name string) *core.WikiEntity {
+	return wiki.FindEntityByNameOrAlias(ctx, name, "", kbID)
 }
 
 func decodeArticleHits(res *orm.SearchResult) ([]core.WikiArticle, int64, error) {

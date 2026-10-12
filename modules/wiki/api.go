@@ -445,6 +445,7 @@ func (h *APIHandler) updateArticleStatus(w http.ResponseWriter, req *http.Reques
 func (h *APIHandler) entityLookup(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	name := strings.TrimSpace(req.URL.Query().Get("name"))
 	entityType := strings.TrimSpace(req.URL.Query().Get("type"))
+	kb := strings.TrimSpace(req.URL.Query().Get("kb"))
 	if name == "" {
 		h.Error400(w, "name is required")
 		return
@@ -452,7 +453,7 @@ func (h *APIHandler) entityLookup(w http.ResponseWriter, req *http.Request, _ ht
 
 	ctx := orm.NewContextWithParent(req.Context())
 
-	if entity := FindEntityByNameOrAlias(ctx, name, entityType); entity != nil {
+	if entity := FindEntityByNameOrAlias(ctx, name, entityType, kb); entity != nil {
 		h.WriteGetOKJSON(w, entity.ID, entity)
 		return
 	}

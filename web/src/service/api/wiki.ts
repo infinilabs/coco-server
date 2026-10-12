@@ -425,10 +425,11 @@ export function fetchWikiEntityNeighbors(id: string) {
   }).then(res => (res?.data ?? {}) as WikiEntityNeighbor);
 }
 
-export function searchWikiEntityPage(params: { query?: string; type?: string; status?: string; from?: number; size?: number }) {
+export function searchWikiEntityPage(params: { query?: string; type?: string; status?: string; kbId?: string; from?: number; size?: number }) {
   const searchParams = new URLSearchParams();
   if (params.query) searchParams.set('query', params.query);
   const filters: string[] = [];
+  if (params.kbId) filters.push(`kb_id:${params.kbId}`);
   if (params.type) filters.push(`type:${params.type}`);
   if (params.status) filters.push(`status:${params.status}`);
   if (filters.length > 0) searchParams.set('filter', filters.join(','));

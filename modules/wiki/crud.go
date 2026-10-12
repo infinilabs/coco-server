@@ -355,6 +355,9 @@ func (h APIHandler) createEntity(w http.ResponseWriter, req *http.Request, _ htt
 		h.WriteError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	// the kb_id select was popped from the body — it scopes the entity to
+	// its KB's pool (per-KB isolation, cascade delete on KB removal)
+	obj.KbID = kbID
 	if err := applyEntityCreateDefaults(obj); err != nil {
 		h.WriteError(w, err.Error(), http.StatusBadRequest)
 		return
@@ -420,6 +423,38 @@ func deleteKbChildren(kbID string) error {
 	}
 	for _, id := range tocs {
 		if err := deleteByID(ctx, &core.WikiToc{}, id); err != nil {
+			return err
+		}
+	}
+
+	// the KB's entity pool dies with it — entities are kb-scoped, so
+	// removal is a straight purge instead of leftover globals
+	entities, err := findIDs(ctx, &core.WikiEntity{}, orm.TermQuery("kb_id", kbID))
+	if err != nil {
+		return err
+	}
+	for _, eid := range entities {
+		if err := deleteByID(ctx, &core.WikiEntity{}, eid); err != nil {
+			return err
+		}
+	}
+
+	// governance proposals and notifications of the deleted KB are orphans
+	proposals, err := findIDs(ctx, &core.WikiGovernanceProposal{}, orm.TermQuery("kb_id", kbID))
+	if err != nil {
+		return err
+	}
+	for _, pid := range proposals {
+		if err := deleteByID(ctx, &core.WikiGovernanceProposal{}, pid); err != nil {
+			return err
+		}
+	}
+	notes, err := findIDs(ctx, &core.WikiNotification{}, orm.TermQuery("kb_id", kbID))
+	if err != nil {
+		return err
+	}
+	for _, nid := range notes {
+		if err := deleteByID(ctx, &core.WikiNotification{}, nid); err != nil {
 			return err
 		}
 	}

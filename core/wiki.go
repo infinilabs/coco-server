@@ -290,6 +290,11 @@ type WikiLinkedPage struct {
 // page_type=entity) links back via EntityID/ArticleID (design doc D1).
 type WikiEntity struct {
 	orm.ORMObjectBase
+	// KbID scopes the entity to one knowledge base: each KB compiles its
+	// own entity pool from its bound datasources, and deleting the KB
+	// deletes its entities wholesale. Same-name entities in different KBs
+	// are different rows (isolated pools, per the per-KB review model).
+	KbID       string                 `json:"kb_id,omitempty" elastic_mapping:"kb_id:{type:keyword}"`
 	Type       string                 `json:"type" elastic_mapping:"type:{type:keyword}"` // store | campaign | contract | ...
 	Subtype    string                 `json:"subtype,omitempty" elastic_mapping:"subtype:{type:keyword}"`
 	Name       string                 `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext,fields:{text:{type:text},pinyin:{type:text,analyzer:pinyin_analyzer}}}"`

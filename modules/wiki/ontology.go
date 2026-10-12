@@ -72,7 +72,7 @@ func resolveLinkedPages(article *core.WikiArticle) {
 
 	pages := parseWikilinks(article.Content)
 	for i := range pages {
-		if entity := findEntityByNameOrAlias(ctx, pages[i].Name); entity != nil {
+		if entity := FindEntityByNameOrAlias(ctx, pages[i].Name, "", article.KbID); entity != nil {
 			pages[i].EntityID = entity.ID
 		}
 	}
@@ -165,7 +165,13 @@ func syncEntityStatus(article *core.WikiArticle, status string) {
 // findEntityByNameOrAlias resolves a wikilink target by exact name, then
 // case-insensitive name, then alias.
 func findEntityByNameOrAlias(ctx *orm.Context, name string) *core.WikiEntity {
-	return FindEntityByNameOrAlias(ctx, name, "")
+	return FindEntityByNameOrAlias(ctx, name, "", "")
+}
+
+// findKBEntityByNameOrAlias scopes the resolution to one knowledge base's
+// entity pool.
+func findKBEntityByNameOrAlias(ctx *orm.Context, name, kbID string) *core.WikiEntity {
+	return FindEntityByNameOrAlias(ctx, name, "", kbID)
 }
 
 // FindEntityByNameOrAlias resolves a name to an entity across name and
@@ -174,7 +180,7 @@ func findEntityByNameOrAlias(ctx *orm.Context, name string) *core.WikiEntity {
 // client-side scan: backends like sqlite store arrays as JSON text, where
 // equality can't see individual elements. entityType optionally narrows
 // the resolution.
-func FindEntityByNameOrAlias(ctx *orm.Context, name, entityType string) *core.WikiEntity {
+func FindEntityByNameOrAlias(ctx *orm.Context, name, entityType, kbID string) *core.WikiEntity {
 	orm.WithModel(ctx, &core.WikiEntity{})
 	for _, candidate := range []string{name, strings.ToLower(name)} {
 		if candidate == "" {
@@ -183,6 +189,9 @@ func FindEntityByNameOrAlias(ctx *orm.Context, name, entityType string) *core.Wi
 		builder := orm.NewQuery().Size(1).Filter(orm.TermQuery("name", candidate))
 		if entityType != "" {
 			builder.Filter(orm.TermQuery("type", strings.ToLower(entityType)))
+		}
+		if kbID != "" {
+			builder.Filter(orm.TermQuery("kb_id", kbID))
 		}
 		if entity := searchOneEntity(ctx, builder); entity != nil {
 			return entity
@@ -196,6 +205,9 @@ func FindEntityByNameOrAlias(ctx *orm.Context, name, entityType string) *core.Wi
 		if entityType != "" {
 			builder.Filter(orm.TermQuery("type", strings.ToLower(entityType)))
 		}
+		if kbID != "" {
+			builder.Filter(orm.TermQuery("kb_id", kbID))
+		}
 		if entity := searchOneEntity(ctx, builder); entity != nil {
 			return entity
 		}
@@ -206,6 +218,9 @@ func FindEntityByNameOrAlias(ctx *orm.Context, name, entityType string) *core.Wi
 	builder := orm.NewQuery().Size(scanLimit)
 	if entityType != "" {
 		builder.Filter(orm.TermQuery("type", strings.ToLower(entityType)))
+	}
+	if kbID != "" {
+		builder.Filter(orm.TermQuery("kb_id", kbID))
 	}
 	res, err := orm.SearchV2(ctx, builder)
 	if err != nil {
