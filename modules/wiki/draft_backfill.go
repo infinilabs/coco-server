@@ -83,6 +83,9 @@ func backfillDraftEntityContent() {
 			log.Debugf("wiki: draft content backfill update failed for [%s]: %v", a.Title, err)
 			continue
 		}
+		// the backfill is the page's first real content — snapshot it so the
+		// history starts at v1 instead of an empty state
+		snapshotPipelineWrite(a, fmt.Sprintf("草稿内容回填，依据 %d 条来源主张", len(entity.Sources)))
 		updated++
 	}
 	if updated > 0 {

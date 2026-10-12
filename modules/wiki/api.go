@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 
+	log "github.com/cihub/seelog"
+
 	"infini.sh/coco/core"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
@@ -643,7 +645,53 @@ func writeVersionSnapshot(article *core.WikiArticle, version int, changeType, ch
 		Content:       article.Content,
 		CreatedBy:     article.GetOwnerID(),
 	}
-	return orm.Create(ctx, v)
+	if err := orm.Create(ctx, v); err != nil {
+		return err
+	}
+	// every snapshot path funnels here, so the retention cap is enforced
+	// at this single chokepoint (hard cap; WeKnora prunes at 50 soft/200 hard)
+	if version >= versionHardCap {
+		pruneOldVersions(article.ID)
+	}
+	return nil
+}
+
+// versionHardCap bounds per-article history; pruneOldVersions deletes the
+// oldest snapshots past it.
+const versionHardCap = 200
+
+// pruneOldVersions drops versions beyond versionHardCap, newest kept first.
+// Best-effort: a failed prune only means history grows one write longer.
+func pruneOldVersions(articleID string) {
+	ctx := orm.NewContext()
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(ctx, &core.WikiVersion{})
+	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1000).
+		Filter(orm.TermQuery("article_id", articleID)).
+		SortBy(orm.Sort{Field: "version", SortType: orm.DESC}))
+	if err != nil {
+		return
+	}
+	versions, _, err := elastic.DecodeHits[core.WikiVersion](res)
+	if err != nil || len(versions) <= versionHardCap {
+		return
+	}
+	orm.WithModel(ctx, &core.WikiVersion{})
+	for _, v := range versions[versionHardCap:] {
+		if err := deleteByID(ctx, &core.WikiVersion{}, v.ID); err != nil {
+			return
+		}
+	}
+}
+
+// snapshotPipelineWrite versions agent/pipeline-authored content so every
+// non-human write stays visible and revertable in the history UI — the
+// compile/rebuild/backfill paths write outside the save handler and would
+// otherwise be invisible to 版本历史.
+func snapshotPipelineWrite(article *core.WikiArticle, changeSummary string) {
+	if err := writeVersionSnapshot(article, nextVersionNumber(article.ID), core.WikiChangeAIGenerated, changeSummary); err != nil {
+		log.Warnf("wiki: pipeline version snapshot failed for [%s]: %v", article.Title, err)
+	}
 }
 
 // writeVersionIfChanged snapshots only when the content differs from the

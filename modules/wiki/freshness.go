@@ -332,7 +332,13 @@ func writeAutoUpdatedVersion(article *core.WikiArticle, content, summary string)
 		Content:       content,
 		CreatedBy:     article.GetOwnerID(),
 	}
-	return orm.Create(ctx, v)
+	if err := orm.Create(ctx, v); err != nil {
+		return err
+	}
+	if v.Version >= versionHardCap {
+		pruneOldVersions(article.ID)
+	}
+	return nil
 }
 
 /* ---------------- watermark ---------------- */

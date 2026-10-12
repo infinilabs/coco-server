@@ -287,15 +287,16 @@ func applyRebuildProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 	}
 
 	if article.EntityID != "" {
-		entity := core.WikiEntity{}
-		entity.ID = article.EntityID
-		if ok, err := orm.GetV2(ctx, &entity); err == nil && ok {
-			article.Content = DraftEntityContentFor(ctx, article.KbID, &entity)
+		ent := core.WikiEntity{}
+		ent.ID = article.EntityID
+		if ok, err := orm.GetV2(ctx, &ent); err == nil && ok {
+			article.Content = DraftEntityContentFor(ctx, article.KbID, &ent)
 			article.Status = core.WikiArticleDraft
 			if err := orm.Update(ctx, &article); err != nil {
 				return "", err
 			}
-			return fmt.Sprintf("「%s」已按 %d 条来源主张重建(草稿)", article.Title, len(entity.Sources)), nil
+			snapshotPipelineWrite(&article, fmt.Sprintf("治理重建：按 %d 条来源主张重排页面（提案 %s）", len(ent.Sources), p.ID))
+			return fmt.Sprintf("「%s」已按 %d 条来源主张重建(草稿)", article.Title, len(ent.Sources)), nil
 		}
 	}
 
@@ -324,6 +325,7 @@ func applyRebuildProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 	if err := orm.Update(ctx, &article); err != nil {
 		return "", err
 	}
+	snapshotPipelineWrite(&article, fmt.Sprintf("治理重建：按 %d 条来源引用重排页面（提案 %s）", len(article.Sources), p.ID))
 	return fmt.Sprintf("「%s」已按来源引用重建(草稿)", article.Title), nil
 }
 
@@ -445,6 +447,7 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 	// known entity names in the compiled text become wikilinks — the page
 	// joins the graph and every mention is a clickable capsule
 	content := LinkEntityMentions(ctx, body.String(), p.ArticleTitle)
+	aliases, _ := p.Evidence["aliases"].([]interface{})
 
 	existingID, _ := p.Evidence["existing_id"].(string)
 	if existingID != "" {
@@ -452,14 +455,37 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 		article.ID = existingID
 		if ok, err := orm.GetV2(ctx, &article); err == nil && ok {
 			article.Content = strings.TrimSpace(article.Content) + "\n\n## 编译补充\n\n" + content
+			// the supplement cites sources too — merge them so the 来源文献
+			// panel and freshness tracking see the full picture
+			seen := map[string]bool{}
+			for _, s := range article.Sources {
+				seen[s.DocID] = true
+			}
+			for _, s := range statements {
+				if s.DocID == "" || seen[s.DocID] {
+					continue
+				}
+				seen[s.DocID] = true
+				article.Sources = append(article.Sources, core.WikiSourceReference{
+					DocID:   s.DocID,
+					Title:   s.DocID,
+					Excerpt: s.Excerpt,
+				})
+			}
+			for _, a := range aliases {
+				if s, ok := a.(string); ok && s != "" && !util.AnyInArrayEquals(article.Aliases, s) {
+					article.Aliases = append(article.Aliases, s)
+				}
+			}
+			persistLinkedPages(&article)
 			if err := orm.Update(ctx, &article); err != nil {
 				return "", "", err
 			}
+			snapshotPipelineWrite(&article, fmt.Sprintf("知识编译追加 %d 条来源主张（治理提案 %s）", len(statements), p.ID))
 			return fmt.Sprintf("「%s」已追加编译补充(%d 条主张)", article.Title, len(statements)), article.ID, nil
 		}
 	}
 
-	aliases, _ := p.Evidence["aliases"].([]interface{})
 	article := core.WikiArticle{
 		KbID:        p.KbID,
 		Title:       p.ArticleTitle,
@@ -500,6 +526,7 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 			log.Warnf("wiki: failed to place [%s] into [%s]: %v", article.Title, target, err)
 		}
 	}
+	snapshotPipelineWrite(&article, fmt.Sprintf("知识编译起草，%d 条来源主张（治理提案 %s）", len(statements), p.ID))
 	return fmt.Sprintf("已生成草稿页「%s」(%d 条主张)", article.Title, len(statements)), article.ID, nil
 }
 
