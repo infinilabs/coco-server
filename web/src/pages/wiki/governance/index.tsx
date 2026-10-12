@@ -6,11 +6,11 @@ import {
   SafetyCertificateOutlined,
   ThunderboltOutlined
 } from '@ant-design/icons';
-import { Badge, Button, Empty, List, Popconfirm, Segmented, Space, Tag, Tooltip, Tree } from 'antd';
+import { Badge, Button, Checkbox, Empty, List, Popconfirm, Segmented, Space, Tag, Tooltip, Tree } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { type GovernanceProposal, applyWikiGovernanceProposal, searchWikiGovernance, updateWikiGovernanceStatus } from '@/service/api';
+import { type GovernanceProposal, applyWikiGovernanceProposal, batchUpdateWikiGovernanceStatus, searchWikiGovernance, updateWikiGovernanceStatus } from '@/service/api';
 import { WikiShell } from '../components/WikiShell';
 
 const TYPE_COLOR: Record<string, string> = {
@@ -179,6 +179,9 @@ export function Component() {
   const [status, setStatus] = useState<string>('open');
   const [proposals, setProposals] = useState<GovernanceProposal[]>([]);
   const [loading, setLoading] = useState(true);
+  // batch review: the checked ids and the in-flight flag for the toolbar
+  const [selected, setSelected] = useState<string[]>([]);
+  const [batchLoading, setBatchLoading] = useState(false);
 
   const fetchData = (st: string = status) => {
     setLoading(true);
@@ -190,7 +193,35 @@ export function Component() {
 
   useEffect(() => {
     fetchData(status);
+    // a status switch resets the checked set — selections belong to one
+    // filtered view only
+    setSelected([]);
   }, [status]);
+
+  const toggleSelected = (id: string, checked: boolean) => {
+    setSelected(prev => (checked ? [...prev, id] : prev.filter(x => x !== id)));
+  };
+
+  const runBatch = (to: string) => {
+    if (!selected.length) return;
+    setBatchLoading(true);
+    batchUpdateWikiGovernanceStatus(selected, to)
+      .then((res: any) => {
+        const updated = res?.updated ?? 0;
+        const skipped = res?.skipped ?? 0;
+        if (skipped > 0) {
+          window.$message?.warning(t('page.wiki.governance.batchPartial', { updated, skipped }));
+        } else {
+          window.$message?.success(t('page.wiki.governance.batchDone', { count: updated }));
+        }
+        setSelected([]);
+        fetchData();
+      })
+      .catch(() => {
+        window.$message?.error(t('page.wiki.governance.batchFailed'));
+      })
+      .finally(() => setBatchLoading(false));
+  };
 
   const act = (proposal: GovernanceProposal, to: string) => {
     updateWikiGovernanceStatus(proposal.id, to).then(() => {
@@ -250,6 +281,48 @@ export function Component() {
         </div>
         <div className='px-16px pb-16px pt-4px'>
           <div className='mb-10px text-12.5px color-[var(--wiki-text-3)]'>{t('page.wiki.governance.subtitle')}</div>
+          {/* batch review bar: only when something is checked */}
+          {selected.length > 0 && (
+            <div
+              className='mb-10px flex items-center gap-10px rounded-6px border border-solid px-10px py-6px'
+              style={{ borderColor: 'var(--ant-color-primary-border)', background: 'var(--ant-color-primary-bg)' }}
+            >
+              <span className='text-12.5px'>
+                {t('page.wiki.governance.batchSelected', { count: selected.length })}
+              </span>
+              <Popconfirm
+                onConfirm={() => runBatch('resolved')}
+                title={t('page.wiki.governance.batchResolveConfirm', { count: selected.length })}
+              >
+                <Button
+                  icon={<CheckOutlined />}
+                  loading={batchLoading}
+                  size='small'
+                  type='primary'
+                >
+                  {t('page.wiki.governance.batchResolve')}
+                </Button>
+              </Popconfirm>
+              <Popconfirm
+                onConfirm={() => runBatch('dismissed')}
+                title={t('page.wiki.governance.batchDismissConfirm', { count: selected.length })}
+              >
+                <Button
+                  icon={<CloseOutlined />}
+                  loading={batchLoading}
+                  size='small'
+                >
+                  {t('page.wiki.governance.batchDismiss')}
+                </Button>
+              </Popconfirm>
+              <a
+                className='text-12px'
+                onClick={() => setSelected([])}
+              >
+                {t('page.wiki.governance.batchClear')}
+              </a>
+            </div>
+          )}
           <List
             className='wiki-row-list'
             dataSource={proposals}
@@ -316,6 +389,13 @@ export function Component() {
                   ].filter(Boolean)}
                 >
                   <List.Item.Meta
+                    avatar={
+                      <Checkbox
+                        checked={selected.includes(proposal.id)}
+                        onClick={e => e.stopPropagation()}
+                        onChange={e => toggleSelected(proposal.id, e.target.checked)}
+                      />
+                    }
                     description={
                       <Space
                         direction='vertical'

@@ -197,6 +197,15 @@ const page: App.I18n.Schema['translation']['page'] = {
     like: { add: 'Like', remove: 'Unlike' },
     bookmark: { add: 'Bookmark this article', remove: 'Bookmarked' },
     governance: {
+      batchSelected: '{{count}} selected',
+      batchResolve: 'Mark resolved',
+      batchResolveConfirm: 'Mark {{count}} proposals as resolved?',
+      batchDismiss: 'Dismiss',
+      batchDismissConfirm: 'Dismiss {{count}} proposals? The scanner will not resubmit them until conditions change',
+      batchClear: 'Clear selection',
+      batchDone: '{{count}} processed',
+      batchPartial: '{{updated}} processed, {{skipped}} skipped (status disallows)',
+      batchFailed: 'Batch operation failed',
       title: 'Knowledge Governance',
       subtitle: 'AI scans the knowledge bases and files proposals: stale, duplicate, conflicting, low-quality or orphaned pages. Every fix stays a human decision.',
       statusOpen: 'Open',
@@ -303,7 +312,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       attachments: {
         empty: 'No attachments yet — upload files to hang them on this page',
         upload: 'Upload attachment',
-        uploaded: 'Uploaded {count} attachment(s)',
+        uploaded: 'Uploaded {{count}} attachment(s)',
         uploadFailed: 'Attachment upload failed',
         removeFailed: 'Failed to remove attachment',
         removeConfirm: 'Remove this attachment from the page?'

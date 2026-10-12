@@ -134,6 +134,9 @@ func init() {
 
 	api.HandleUIMethod(api.PUT, "/wiki/governance/:id/status", handler.updateGovernanceStatus,
 		api.RequireLogin(), api.RequirePermission(security.GetSimplePermission(Category, governanceResource, string(security.Update))))
+	// batch review: same transition rules per id, tree_organize refused
+	api.HandleUIMethod(api.PUT, "/wiki/governance/_batch_status", handler.batchUpdateGovernanceStatus,
+		api.RequireLogin(), api.RequirePermission(security.GetSimplePermission(Category, governanceResource, string(security.Update))))
 
 	// the queue's closed loop: execute the fix a proposal implies (tree the
 	// orphan, merge the duplicate, rebuild the stale page, adopt the type,

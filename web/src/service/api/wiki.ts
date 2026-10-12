@@ -724,3 +724,13 @@ export function updateWikiArticleAttachments(id: string, attachmentIds: string[]
     url: `/wiki/article/${id}/_attachments`
   }).then(res => (res as any)?.data);
 }
+
+/** batch review: resolve/dismiss N proposals in one call; the backend
+ * applies the same transition rules per id and counts refusals as skipped */
+export function batchUpdateWikiGovernanceStatus(ids: string[], status: string) {
+  return request<{ updated: number; unchanged: number; skipped: number }>({
+    method: 'put',
+    data: { ids, status },
+    url: '/wiki/governance/_batch_status'
+  }).then(res => (res as any)?.data);
+}

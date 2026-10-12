@@ -951,3 +951,82 @@ func docDatasources(ctx context.Context, docIDs map[string]bool) map[string]stri
 	}
 	return out
 }
+
+// PUT /wiki/governance/_batch_status — review N proposals in one action:
+// the same transition rules as the single-item PUT, applied per id. Items
+// that cannot transition (unknown, already in the target state's face,
+// illegal move) are counted as skipped, never fatal. tree_organize is
+// refused here on purpose: resolving one APPLIES its tree, and applying
+// trees in bulk is not a review action.
+func (h *APIHandler) batchUpdateGovernanceStatus(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	var body struct {
+		IDs    []string `json:"ids"`
+		Status string   `json:"status"`
+	}
+	if err := h.DecodeJSON(req, &body); err != nil {
+		h.Error400(w, err.Error())
+		return
+	}
+	if err := validateGovernanceStatus(body.Status); err != nil {
+		h.Error400(w, err.Error())
+		return
+	}
+	if len(body.IDs) == 0 {
+		h.Error400(w, "ids is empty")
+		return
+	}
+	if len(body.IDs) > 500 {
+		h.Error400(w, "too many ids (cap 500 per batch)")
+		return
+	}
+
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	// two reviewers acting on the same queue must see each other's
+	// transitions — both the read and the write wait for refresh
+	ctx.Refresh = orm.WaitForRefresh
+	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
+
+	userID := ""
+	if user, err := security.GetUserFromRequest(req); err == nil && user != nil {
+		userID = user.UserID
+	}
+	now := time.Now()
+
+	updated, unchanged, skipped := 0, 0, 0
+	for _, id := range body.IDs {
+		if strings.TrimSpace(id) == "" {
+			skipped++
+			continue
+		}
+		var proposal core.WikiGovernanceProposal
+		proposal.SetID(id)
+		exists, err := orm.GetV2(ctx, &proposal)
+		if err != nil || !exists {
+			skipped++
+			continue
+		}
+		if proposal.Status == body.Status {
+			unchanged++
+			continue
+		}
+		if !util.AnyInArrayEquals(governanceStatusTransitions[proposal.Status], body.Status) || body.Status == core.WikiGovernanceResolved && proposal.Type == core.WikiGovernanceTreeOrganize {
+			skipped++
+			continue
+		}
+		proposal.Status = body.Status
+		proposal.ResolvedBy = userID
+		proposal.ResolvedAt = &now
+		if err := orm.Update(ctx, &proposal); err != nil {
+			skipped++
+			continue
+		}
+		updated++
+	}
+	h.WriteOKJSON(w, util.MapStr{
+		"updated":   updated,
+		"unchanged": unchanged,
+		"skipped":   skipped,
+	})
+}

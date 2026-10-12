@@ -197,6 +197,15 @@ const page: App.I18n.Schema['translation']['page'] = {
     like: { add: '点赞', remove: '取消点赞' },
     bookmark: { add: '收藏该文章', remove: '已收藏' },
     governance: {
+      batchSelected: '已选 {{count}} 项',
+      batchResolve: '批量标记已处理',
+      batchResolveConfirm: '将 {{count}} 条提议标记为已处理？',
+      batchDismiss: '批量忽略',
+      batchDismissConfirm: '将 {{count}} 条提议忽略？扫描器在情况变化前不会重复提交',
+      batchClear: '取消选择',
+      batchDone: '已处理 {{count}} 条',
+      batchPartial: '已处理 {{updated}} 条，跳过 {{skipped}} 条（状态不允许）',
+      batchFailed: '批量操作失败',
       title: '知识治理',
       subtitle: 'AI 定期巡检知识库并提交提议。带「执行修复」按钮的提议可一键闭环:修复自动落地,提议自动关闭。',
       statusOpen: '待处理',
@@ -303,7 +312,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       attachments: {
         empty: '暂无附件,可上传文件挂到本页',
         upload: '上传附件',
-        uploaded: '已上传 {count} 个附件',
+        uploaded: '已上传 {{count}} 个附件',
         uploadFailed: '附件上传失败',
         removeFailed: '附件移除失败',
         removeConfirm: '从本页移除该附件?'
