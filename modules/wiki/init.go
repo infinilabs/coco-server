@@ -166,6 +166,9 @@ func init() {
 		api.RequireLogin(), api.RequirePermission(readArticlePermission))
 	api.HandleUIMethod(api.PUT, "/wiki/article/:id/_attachments", handler.updateArticleAttachments,
 		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
+	// REFINE rewrite: the writing pass for drafts applied before it existed
+	api.HandleUIMethod(api.POST, "/wiki/article/:id/_rewrite", handler.rewriteArticle,
+		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
 	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_consolidate", handler.consolidateKB,
 		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
 	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_compile", handler.compileKBHandler,

@@ -4,9 +4,11 @@
 package wiki
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"sort"
+	"strings"
 
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
@@ -265,4 +267,116 @@ func (h *APIHandler) updateArticleAttachments(w http.ResponseWriter, req *http.R
 		"attachments": resolved,
 		"dropped":     len(body.AttachmentIDs) - len(kept),
 	})
+}
+
+/* ---------------- REFINE rewrite for existing thin drafts ---------------- */
+
+// POST /wiki/article/:id/_rewrite — the REFINE writing pass for a draft
+// that was applied before the pass existed: writes prose from the page's
+// own source references and puts it in front of the citation sections.
+// The old preamble blockquote is replaced; sections, sources and aliases
+// stay untouched. No-op success when no model is configured.
+func (h *APIHandler) rewriteArticle(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	articleID := ps.ByName("id")
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(ctx, &core.WikiArticle{})
+
+	article := core.WikiArticle{}
+	article.ID = articleID
+	exists, err := orm.GetV2(ctx, &article)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if !exists {
+		h.WriteOpRecordNotFoundJSON(w, articleID)
+		return
+	}
+
+	// statements from the page's own provenance. Sources[].Excerpt may hold
+	// a document-head snippet rather than the claim (early proposals did),
+	// so the content's own 来源引用 bullets are harvested first — they are
+	// the claims the page actually shows.
+	statements := make([]compileStatement, 0, len(article.Sources)+4)
+	seenClaim := map[string]bool{}
+	for _, line := range extractSourceClaims(article.Content) {
+		if seenClaim[line] {
+			continue
+		}
+		seenClaim[line] = true
+		statements = append(statements, compileStatement{Claim: line})
+	}
+	for _, s := range article.Sources {
+		claim := strings.TrimSpace(s.Excerpt)
+		if claim == "" || seenClaim[claim] {
+			continue
+		}
+		seenClaim[claim] = true
+		statements = append(statements, compileStatement{DocID: s.DocID, Excerpt: claim, Claim: claim})
+	}
+	kind := "concept"
+	if article.PageType == core.WikiPageTypeEntity {
+		kind = "entity"
+	}
+	prose := compiledProse(ctx, article.Title, kind, statements)
+	if prose == "" {
+		h.WriteOKJSON(w, util.MapStr{"rewritten": false, "reason": "no language model or empty material"})
+		return
+	}
+
+	// drop the old preamble blockquote lines, keep everything from the
+	// first section heading on
+	content := strings.TrimSpace(article.Content)
+	for strings.HasPrefix(content, ">") {
+		if i := strings.Index(content, "\n"); i >= 0 {
+			content = strings.TrimSpace(content[i+1:])
+		} else {
+			content = ""
+		}
+	}
+	article.Content = fmt.Sprintf("> 本页由知识编译起草：正文为 AI 依据来源主张撰写，等待人工审阅。\n\n%s\n\n%s", prose, content)
+	persistLinkedPages(&article)
+
+	writeCtx := orm.NewContextWithParent(req.Context())
+	writeCtx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	orm.WithModel(writeCtx, &core.WikiArticle{})
+	if err := orm.Update(writeCtx, &article); err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// the rewrite is agent-authored page content — history keeps it
+	// revertable like every other pipeline write
+	snapshotPipelineWrite(&article, "AI 撰写正文（REFINE 重写）")
+	h.WriteOKJSON(w, util.MapStr{"rewritten": true})
+}
+
+// extractSourceClaims pulls the claim text out of a page's 来源引用
+// section: every "- " bullet, minus the trailing （来源：…） citation
+// markup — those bullets are the claims the page actually shows.
+func extractSourceClaims(content string) []string {
+	var out []string
+	inSection := false
+	for _, line := range strings.Split(content, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "## ") {
+			inSection = strings.Contains(trimmed, "来源引用") || strings.Contains(trimmed, "来源主张")
+			continue
+		}
+		if !inSection || !strings.HasPrefix(trimmed, "- ") {
+			continue
+		}
+		claim := strings.TrimPrefix(trimmed, "- ")
+		if i := strings.Index(claim, "（来源："); i > 0 {
+			claim = claim[:i]
+		}
+		if i := strings.Index(claim, "(来源:"); i > 0 {
+			claim = claim[:i]
+		}
+		claim = strings.TrimSpace(claim)
+		if claim != "" {
+			out = append(out, claim)
+		}
+	}
+	return out
 }

@@ -4,17 +4,22 @@
 package wiki
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	log "github.com/cihub/seelog"
+	"github.com/tmc/langchaingo/llms"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 
+	langchain "infini.sh/coco/modules/assistant/langchain"
+	llmmodule "infini.sh/coco/modules/llm"
 	"infini.sh/coco/core"
 )
 
@@ -24,6 +29,100 @@ import (
  * proposal as resolved, so one click lands the page in the tree, merges the
  * duplicate, rebuilds the stale page, adopts the entity type, or materializes
  * the compiled draft. */
+
+// compileStatement is one reduced claim a compile proposal carries: the
+// normalized claim, the verbatim source excerpt backing it, and the source
+// document id for the citation link.
+type compileStatement struct {
+	DocID   string `json:"doc_id"`
+	Excerpt string `json:"excerpt"`
+	Claim   string `json:"claim"`
+}
+
+// compiledProse is the compile REFINE writing pass: turns the reduced
+// statements into actual page prose. Evidence-only drafts read as "a
+// preamble and a quote list" — a page with no content of its own. The LLM
+// writes ONLY from the provided material (nothing invented); the numbered
+// cited claims stay appended below so every sentence stays verifiable.
+// Empty when no model is configured or the call fails — the caller falls
+// back to the claims draft.
+func compiledProse(ctx context.Context, title, kind string, statements []compileStatement) string {
+	model := llmmodule.ResolveModel(core.LLMTypeLanguage, nil)
+	if model == nil {
+		return ""
+	}
+	llm, err := langchain.SimplyGetLLM(model.ProviderID, model.ID, "")
+	if err != nil {
+		log.Debugf("wiki compiler: writing pass llm unavailable for [%s]: %v", title, err)
+		return ""
+	}
+	var material strings.Builder
+	for i, s := range statements {
+		claim := strings.TrimSpace(s.Claim)
+		if claim == "" {
+			claim = strings.TrimSpace(s.Excerpt)
+		}
+		if claim == "" {
+			continue
+		}
+		fmt.Fprintf(&material, "%d. %s\n", i+1, claim)
+		if ex := strings.TrimSpace(s.Excerpt); ex != "" && ex != claim {
+			fmt.Fprintf(&material, "   原文摘录：%s\n", ex)
+		}
+	}
+	if material.Len() == 0 {
+		return ""
+	}
+	kindLabel := "概念"
+	if kind == "entity" {
+		kindLabel = "实体"
+	}
+	prompt := fmt.Sprintf(`你是百科编辑。根据下面的来源主张与原文摘录，为%s词条「%s」撰写正文。
+
+规则：
+- 只使用给出的材料，绝不引入材料之外的事实、数字或评价
+- 语言跟随材料（材料是繁体就用繁体，是英文就用英文）
+- 第一段：2-4 句的定义性描述（它是什么、核心事实是什么）
+- 材料充分时可再加一段展开；不足就只写第一段，宁短勿编
+- 输出纯 Markdown 正文：不要一级标题，不要列表化主张，不要输出"来源引用"清单，不要任何客套说明
+
+来源主张与摘录：
+%s`, kindLabel, title, material.String())
+
+	messages := []llms.MessageContent{
+		langchain.SystemTextParts("你是严谨的百科编辑，只依据给定材料写作，宁可短也不编造。"),
+		llms.TextParts(llms.ChatMessageTypeHuman, prompt),
+	}
+	cctx, cancel := context.WithTimeout(ctx, 90*time.Second)
+	defer cancel()
+	var out strings.Builder
+	resp, err := llm.GenerateContent(cctx, messages,
+		llms.WithStreamingFunc(func(_ context.Context, chunk []byte) error {
+			out.Write(chunk)
+			return nil
+		}))
+	if err != nil {
+		log.Debugf("wiki compiler: writing pass failed for [%s]: %v", title, err)
+		return ""
+	}
+	prose := ""
+	if resp != nil && len(resp.Choices) > 0 {
+		prose = resp.Choices[0].Content
+	}
+	if strings.TrimSpace(prose) == "" {
+		prose = out.String()
+	}
+	// reasoning models may inline thinking before the answer — strip it,
+	// then any markdown fence, then judge by substance
+	if i := strings.Index(prose, "</think>"); i >= 0 {
+		prose = prose[i+len("</think>"):]
+	}
+	prose = strings.TrimSpace(prose)
+	if len([]rune(prose)) < 40 {
+		return ""
+	}
+	return prose
+}
 
 // applyAction describes what one click does for a proposal type — the UI
 // renders the label on its primary button; empty means no automatic fix
@@ -369,7 +468,7 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 		Excerpt string `json:"excerpt"`
 		Claim   string `json:"claim"`
 	}
-	var statements []stmt
+	var statements []compileStatement
 	if err := util.FromJSONBytes(util.MustToJSONBytes(raw), &statements); err != nil || len(statements) == 0 {
 		return "", "", nil
 	}
@@ -417,11 +516,24 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 
 	var body strings.Builder
 	if len(layout) > 0 {
-		intro := fmt.Sprintf("> 本页由知识编译依据 %d 条来源主张自动起草，按「%s」类型的页面结构组织，等待人工审阅。\n\n",
-			len(statements), synthetic.Type)
-		body.WriteString(composeEntityContentWithIntro(&synthetic, layout, targetNames, intro))
+		// REFINE writing pass first: prose turns the section skeleton (which
+		// on single-claim pages is just a quote list) into an actual article
+		// body; the layout's own 来源引用/别名 sections follow as the
+		// verification floor
+		sections := composeEntityContentWithIntro(&synthetic, layout, targetNames, "")
+		if prose := compiledProse(ctx, p.ArticleTitle, kind, statements); prose != "" {
+			body.WriteString(fmt.Sprintf("> 本页由知识编译起草：正文为 AI 依据来源主张撰写，按「%s」类型的页面结构组织，等待人工审阅。\n\n%s\n\n",
+				synthetic.Type, prose))
+			body.WriteString(sections)
+		} else {
+			intro := fmt.Sprintf("> 本页由知识编译依据 %d 条来源主张自动起草，按「%s」类型的页面结构组织，等待人工审阅。\n\n",
+				len(statements), synthetic.Type)
+			body.WriteString(composeEntityContentWithIntro(&synthetic, layout, targetNames, intro))
+		}
 	} else {
-		body.WriteString(fmt.Sprintf("> 本页由知识编译依据 %d 条来源主张自动起草，等待人工审阅。\n\n", len(statements)))
+		// numbered cited claims: the verification floor every draft keeps,
+		// whatever the writing pass above it produces
+		var claims strings.Builder
 		for i, s := range statements {
 			claim := strings.TrimSpace(s.Claim)
 			if claim == "" {
@@ -430,7 +542,7 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 			if claim == "" {
 				continue
 			}
-			fmt.Fprintf(&body, "%d. %s", i+1, claim)
+			fmt.Fprintf(&claims, "%d. %s", i+1, claim)
 			if s.DocID != "" {
 				// the citation carries the supporting excerpt: hover shows the
 				// exact backing text, clicking opens the source document with
@@ -439,9 +551,19 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 				if len([]rune(excerpt)) > 120 {
 					excerpt = string([]rune(excerpt)[:120]) + "…"
 				}
-				fmt.Fprintf(&body, " [源](#/preview/document/%s?q=%s \"%s\")", s.DocID, url.QueryEscape(excerpt), excerpt)
+				fmt.Fprintf(&claims, " [源](#/preview/document/%s?q=%s \"%s\")", s.DocID, url.QueryEscape(excerpt), excerpt)
 			}
-			body.WriteString("\n")
+			claims.WriteString("\n")
+		}
+		// REFINE writing pass: turn the statements into actual prose —
+		// evidence-only drafts read as "a preamble and a quote list",
+		// which is exactly the 正文为空 complaint on single-claim pages
+		if prose := compiledProse(ctx, p.ArticleTitle, kind, statements); prose != "" {
+			body.WriteString(fmt.Sprintf("> 本页由知识编译起草：正文为 AI 依据下方来源主张撰写，等待人工审阅。\n\n%s\n\n## 来源主张\n\n", prose))
+			body.WriteString(claims.String())
+		} else {
+			body.WriteString(fmt.Sprintf("> 本页由知识编译依据 %d 条来源主张自动起草，等待人工审阅。\n\n", len(statements)))
+			body.WriteString(claims.String())
 		}
 	}
 	// known entity names in the compiled text become wikilinks — the page

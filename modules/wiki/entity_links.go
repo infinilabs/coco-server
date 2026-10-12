@@ -64,9 +64,23 @@ func LinkEntityMentions(ctx context.Context, content, exclude string) string {
 	for {
 		bestIdx, best := -1, mention{}
 		for _, l := range links {
-			idx := strings.Index(rest, l.full)
-			if idx >= 0 && (bestIdx == -1 || idx < bestIdx || (idx == bestIdx && len(l.full) > len(best.full))) {
-				bestIdx, best = idx, l
+			// first occurrence of this name that is not glued into a larger
+			// ASCII word — "inventory" inside "inventoried" is a different
+			// word, not a mention (CJK neighbours stay legal)
+			from := 0
+			for {
+				idx := strings.Index(rest[from:], l.full)
+				if idx < 0 {
+					break
+				}
+				at := from + idx
+				if !asciiWordFlanked(rest, at, at+len(l.full)) {
+					if bestIdx == -1 || at < bestIdx || (at == bestIdx && len(l.full) > len(best.full)) {
+						bestIdx, best = at, l
+					}
+					break
+				}
+				from = at + 1
 			}
 		}
 		if bestIdx == -1 {
@@ -82,4 +96,22 @@ func LinkEntityMentions(ctx context.Context, content, exclude string) string {
 		rest = rest[bestIdx+len(best.full):]
 	}
 	return sb.String()
+}
+
+// asciiWordFlanked reports whether the match s[start:end] is glued into a
+// larger ASCII word on either side (letter/digit on both the inner edge of
+// the match and the neighbour) — such spans are parts of words, not
+// mentions. CJK boundaries never block: 美心 inside 美心月餅 still links.
+func asciiWordFlanked(s string, start, end int) bool {
+	if start > 0 && isASCIILetter(s[start-1]) && isASCIILetter(s[start]) {
+		return true
+	}
+	if end < len(s) && isASCIILetter(s[end]) && isASCIILetter(s[end-1]) {
+		return true
+	}
+	return false
+}
+
+func isASCIILetter(c byte) bool {
+	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_'
 }
