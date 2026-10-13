@@ -248,6 +248,16 @@ export default function useSearchBox({
     setCursorPosition(e.target.selectionStart);
   }, [handleQueryParamsChange]);
 
+  // Programmatic completion (Tab on a keyword suggestion): the query changes
+  // outside the input's change event, so cursorPosition must be pushed to the
+  // new end too — a stale cursor inside a '/'-containing keyword makes
+  // extractSlashFieldQuery misread the query as a "/field" pattern and the
+  // dropdown/Enter silently break.
+  const completeQueryText = useCallback((text: string) => {
+    handleQueryParamsChange('query', text);
+    setCursorPosition(text.length);
+  }, [handleQueryParamsChange]);
+
   const handleSuggestionItemClick = useCallback((handler: any) => {
     return (item: any) => {
       isClickingSuggestion.current = true;
@@ -337,6 +347,18 @@ export default function useSearchBox({
     setSuggestions({});
     handleSearch(query, filters, action_type, search_type, fuzziness, sort);
   }, [query, filters, action_type, search_type, fuzziness, sort, handleSearch]);
+
+  // Tab while a filter is being edited (value/operator lists): commit the
+  // chip and hand focus back to the main input so the keyboard flow keeps
+  // going — the user types the query and Enter searches. Deliberately does
+  // NOT run a search, unlike handleFilterComplete (which nothing currently
+  // triggers) — Tab advances the construction, Enter executes it.
+  const handleFilterTabComplete = useCallback(() => {
+    setFilterState({ type: 'none', index: -1 });
+    setSuggestions({});
+    setMainInputActive(true);
+    focusExpandedInputOnNextFrame();
+  }, [focusExpandedInputOnNextFrame]);
 
   // Delete a filter by index
   const handleFilterDelete = useCallback((index: number) => {
@@ -648,6 +670,7 @@ export default function useSearchBox({
     handleSearchActionDropdownClose,
     handleQueryParamsChange,
     handleCursorPositionChange,
+    completeQueryText,
     handleInputChange,
     handleInputFocus,
     handleInputBlur,
@@ -661,6 +684,7 @@ export default function useSearchBox({
     handleFilterValueToggle,
     handleOperatorChange,
     handleFilterComplete,
+    handleFilterTabComplete,
     handleFilterDelete,
     handleFilterValueEdit,
     filterSearchValue,

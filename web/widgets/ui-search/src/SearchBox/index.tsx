@@ -182,11 +182,26 @@ export function SearchBox(props: SearchBoxProps) {
     handleFilterValueToggle,
     handleOperatorChange: sb.handleOperatorChange,
     handleFilterComplete: sb.handleFilterComplete,
+    onFilterTabComplete: sb.handleFilterTabComplete,
     turnToChat,
     language,
     settings,
     resetKey: suggestionResetKey,
-    keyboardRootRef: sb.rootRef
+    // keyboard nav (arrows/Enter on the suggestion list) listens for keydown
+    // on this element — it must be an ANCESTOR of whatever holds focus. In
+    // centered mode the focus lives in the body portal, where the searchbox
+    // root can never see the events; the portal container is on that path.
+    keyboardRootRef: centeredPanel ? sb.panelRootRef : sb.rootRef,
+    // Tab completes the highlighted keyword/action row into the query with
+    // a trailing space instead of searching (omnibox convention) — the
+    // highlighted action row echoes the query, so completing it is the same
+    // as typing the space itself and multi-word queries keep working.
+    // Enter selects and runs. completeQueryText also moves the tracked
+    // cursor to the end so the '/'-pattern detection can't misfire.
+    onItemComplete: (item: any) => {
+      const text = `${item?.suggestion ?? sb.query ?? ''}`.trimEnd();
+      if (text) sb.completeQueryText(`${text} `);
+    }
   }), [
     sb.suggestions,
     sb.loadNextSuggestion,
@@ -197,16 +212,20 @@ export function SearchBox(props: SearchBoxProps) {
     sb.filterState,
     sb.mainInputActive,
     sb.handleQueryParamsChange,
+    sb.completeQueryText,
     sb.handleSuggestionItemClick,
     handleSearch,
     sb.handleAddFilter,
     handleFilterValueToggle,
     sb.handleOperatorChange,
     sb.handleFilterComplete,
+    sb.handleFilterTabComplete,
     turnToChat,
     language,
     settings,
     suggestionResetKey,
+    centeredPanel,
+    sb.panelRootRef,
     sb.rootRef
   ]);
 

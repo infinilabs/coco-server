@@ -19,10 +19,15 @@ interface SuggestionsProps {
   readonly handleQueryParamsChange: (field: string, value: any) => void;
   readonly handleSuggestionItemClick: (handler: (item: any) => void) => (item: any) => void;
   readonly handleSearch: (query: string, filters: any[], actionType: string | undefined, searchType: string) => void;
+  /** Tab (complete) on a keyword/action row fills it into the query without searching */
+  readonly onItemComplete?: (item: any) => void;
   readonly handleAddFilter: (item: any) => void;
   readonly handleFilterValueToggle: (item: any) => void;
   readonly handleOperatorChange: (item: any) => void;
   readonly handleFilterComplete: () => void;
+  /** Tab in the value/operator lists: commit the filter being edited and hand
+   * focus back to the main input (keyboard flow: keep building the query). */
+  readonly onFilterTabComplete?: () => void;
   readonly turnToChat?: (item: any) => void;
   readonly language?: string;
   readonly settings?: Record<string, any>;
@@ -42,10 +47,12 @@ const Suggestions: FC<SuggestionsProps> = ({
   handleQueryParamsChange,
   handleSuggestionItemClick,
   handleSearch,
+  onItemComplete,
   handleAddFilter,
   handleFilterValueToggle,
   handleOperatorChange,
   handleFilterComplete,
+  onFilterTabComplete,
   turnToChat,
   language,
   settings,
@@ -86,6 +93,7 @@ const Suggestions: FC<SuggestionsProps> = ({
             handleQueryParamsChange('query', nextQuery);
             handleSearch(nextQuery, filters, item.action || action_type, search_type || '')
           })}
+          onItemComplete={onItemComplete}
           language={language}
           keyboardRootRef={keyboardRootRef}
         />
@@ -107,6 +115,7 @@ const Suggestions: FC<SuggestionsProps> = ({
           data={data}
           filter={filters[filterState.index] || null}
           onItemClick={handleSuggestionItemClick(handleFilterValueToggle)}
+          onTabComplete={onFilterTabComplete}
           onComplete={handleFilterComplete}
           language={language}
           loadNext={onLoadNext}
@@ -115,7 +124,7 @@ const Suggestions: FC<SuggestionsProps> = ({
         />
       );
     case SUGGESTION_OPERATORS:
-      return <Operators currentOperator={filters[filterState.index]?.operator} onItemClick={handleSuggestionItemClick(handleOperatorChange)} language={language} keyboardRootRef={keyboardRootRef} />;
+      return <Operators currentOperator={filters[filterState.index]?.operator} onTabComplete={onFilterTabComplete} onItemClick={handleSuggestionItemClick(handleOperatorChange)} language={language} keyboardRootRef={keyboardRootRef} />;
     default:
       return null;
   }

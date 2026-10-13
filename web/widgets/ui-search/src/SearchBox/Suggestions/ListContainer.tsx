@@ -25,6 +25,20 @@ interface ListContainerProps {
   language?: string;
   resetKey?: string;
   keyboardRootRef?: RefObject<HTMLElement | null>;
+  /** Tab completes the highlighted row through this softer action (fill the
+   * text, keep editing) instead of onItemClick — Enter selects and runs it.
+   * Lists without it treat Tab exactly like a click on the row. */
+  onItemComplete?: (item: any) => void;
+  /** Space also picks the highlighted row. Only for picker-style lists where
+   * a typed space is never meaningful input — filter fields, values,
+   * operators. Keyword suggestions keep Space as a literal character so
+   * multi-word queries still type. */
+  selectOnSpace?: boolean;
+  /** Tab finishes the whole construction step instead of acting on the
+   * highlighted row — e.g. commit the filter being edited (value/operator
+   * lists) and hand focus back to the main input. Provided only by
+   * picker-style lists that own an "editing" state. */
+  onTabComplete?: () => void;
 }
 
 const ITEM_HEIGHT = 40;
@@ -46,7 +60,10 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
     defaultActiveIndex = 0,
     language,
     resetKey,
-    keyboardRootRef
+    keyboardRootRef,
+    onItemComplete,
+    selectOnSpace = false,
+    onTabComplete
   } = props;
     
   const lang = language ? (language.startsWith('zh') ? 'zh' : 'en') : 'en';
@@ -171,10 +188,33 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
     if (!keyboardTarget) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (![38, 40, 13].includes(e.keyCode)) return;
+      // Industry-standard search-box keys (omnibox/command-palette): ↑/↓
+      // move the highlight, Enter selects the highlighted row and runs it,
+      // Tab completes the row — filling the text when onItemComplete is
+      // given (keyword lists), otherwise acting like a click (filter
+      // fields/values). Space additionally picks the row in picker-style
+      // lists (selectOnSpace) where a typed space is never input; keyword
+      // suggestions leave Space as a literal character for multi-word
+      // queries.
+      const isTab = e.keyCode === 9;
+      const isSpace = e.keyCode === 32 && selectOnSpace;
+      const isSelect = e.keyCode === 13 || isTab || isSpace;
+      if (!isSelect && ![38, 40].includes(e.keyCode)) return;
 
       const totalItems = dataSource.length;
       if (totalItems === 0) return;
+
+      // Tab finishes the construction step (commit the filter being edited,
+      // hand focus back to the main input) regardless of the highlight.
+      if (isTab && onTabComplete) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        setIsKeyboardNav(true);
+        onTabComplete();
+        return;
+      }
+
+      if ((isTab || isSpace) && activeIndex < 0) return;
 
       e.preventDefault();
       e.stopImmediatePropagation();
@@ -182,7 +222,7 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
       setIsKeyboardNav(true);
 
       switch (e.keyCode) {
-        case 40: 
+        case 40:
           keyDirectionRef.current = 'down';
           setActiveIndex((prev) => {
             if (prev === -1) return 0;
@@ -190,7 +230,7 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
             return prev + 1;
           });
           break;
-        case 38: 
+        case 38:
           keyDirectionRef.current = 'up';
           setActiveIndex((prev) => {
             if (prev <= 0) return 0;
@@ -198,7 +238,20 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
             return prev - 1;
           });
           break;
-        case 13: 
+        case 13:
+          if (activeIndex >= 0 && activeIndex < totalItems) {
+            keyDirectionRef.current = 'none';
+            onItemClick(dataSource[activeIndex]);
+          }
+          break;
+        case 9:
+          if (activeIndex >= 0 && activeIndex < totalItems) {
+            keyDirectionRef.current = 'none';
+            if (onItemComplete) onItemComplete(dataSource[activeIndex]);
+            else onItemClick(dataSource[activeIndex]);
+          }
+          break;
+        case 32:
           if (activeIndex >= 0 && activeIndex < totalItems) {
             keyDirectionRef.current = 'none';
             onItemClick(dataSource[activeIndex]);
@@ -211,7 +264,7 @@ const ListContainer = forwardRef<any, ListContainerProps>((props, ref) => {
 
     keyboardTarget.addEventListener("keydown", handleKeyDown);
     return () => keyboardTarget.removeEventListener("keydown", handleKeyDown);
-  }, [useGlobalKeydown, dataSource, activeIndex, onItemClick, keyboardRootRef]);
+  }, [useGlobalKeydown, dataSource, activeIndex, onItemClick, keyboardRootRef, onItemComplete, selectOnSpace, onTabComplete]);
 
   useImperativeHandle(ref, () => ({
     triggerItemClick: (index: number) => {
