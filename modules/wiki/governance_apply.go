@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -21,6 +20,7 @@ import (
 
 	"infini.sh/coco/core"
 	langchain "infini.sh/coco/modules/assistant/langchain"
+	"infini.sh/coco/modules/common/fingerprint"
 	llmmodule "infini.sh/coco/modules/llm"
 )
 
@@ -478,10 +478,60 @@ func applyEntityConflictProposal(ctx *orm.Context, p *core.WikiGovernanceProposa
 
 // applyCompileProposal materializes the compiled draft: every statement in
 // the evidence becomes a cited section of a draft page — create if the page
-// does not exist, append a supplement section if it does.
+// does not exist, append a supplement section if it does. Topic proposals
+// (evidence.sections, DESIGN-topic-pages.md) take the structured path:
+// outline-driven page create, or section-level merge into the existing page.
 func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (string, string, error) {
 	if p.ArticleTitle == "" {
 		return "", "", nil
+	}
+	// legacy stub cleanup: archive the pre-topic-era thin pages in one click
+	if p.Evidence["legacy_cleanup"] == true {
+		pageIDs := evidenceStrings(p.Evidence["page_ids"])
+		if len(pageIDs) == 0 {
+			return "", "", nil
+		}
+		archived := 0
+		for _, id := range pageIDs {
+			stub := core.WikiArticle{}
+			stub.ID = id
+			ok, err := orm.GetV2(ctx, &stub)
+			if err != nil || !ok || stub.Status == core.WikiArticleArchived {
+				continue
+			}
+			stub.Status = core.WikiArticleArchived
+			if err := orm.Update(ctx, &stub); err != nil {
+				log.Warnf("wiki: cleanup archive [%s] failed: %v", stub.Title, err)
+				continue
+			}
+			archived++
+			orm.WithModel(ctx, &core.WikiToc{})
+			if toc, found, terr := findToc(ctx, p.KbID); terr == nil && found {
+				kept := tocRemove(toc.Nodes, stub.ID)
+				if len(kept) != len(toc.Nodes) {
+					toc.Nodes = kept
+					if err := orm.Update(ctx, toc); err != nil {
+						log.Warnf("wiki: cleanup toc prune failed: %v", err)
+					}
+				}
+			}
+			orm.WithModel(ctx, &core.WikiEntity{})
+			if res, err := orm.SearchV2(ctx, orm.NewQuery().Size(10).
+				Filter(orm.TermQuery("article_id", stub.ID)).Include("id")); err == nil && res != nil {
+				if ents, _, derr := elastic.DecodeHits[core.WikiEntity](res); derr == nil {
+					for i := range ents {
+						ents[i].ArticleID = ""
+						if err := orm.Update(ctx, &ents[i]); err != nil {
+							log.Warnf("wiki: cleanup entity unlink failed: %v", err)
+						}
+					}
+				}
+			}
+		}
+		return fmt.Sprintf("已归档 %d 个编译残页", archived), "", nil
+	}
+	if _, ok := p.Evidence["sections"]; ok {
+		return applyTopicProposal(ctx, p)
 	}
 	raw, ok := p.Evidence["statements"]
 	if !ok {
@@ -557,37 +607,16 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 	} else {
 		// numbered cited claims: the verification floor every draft keeps,
 		// whatever the writing pass above it produces
-		var claims strings.Builder
-		for i, s := range statements {
-			claim := strings.TrimSpace(s.Claim)
-			if claim == "" {
-				claim = strings.TrimSpace(s.Excerpt)
-			}
-			if claim == "" {
-				continue
-			}
-			fmt.Fprintf(&claims, "%d. %s", i+1, claim)
-			if s.DocID != "" {
-				// the citation carries the supporting excerpt: hover shows the
-				// exact backing text, clicking opens the source document with
-				// that excerpt highlighted (W17 quote locator)
-				excerpt := strings.TrimSpace(s.Excerpt)
-				if len([]rune(excerpt)) > 120 {
-					excerpt = string([]rune(excerpt)[:120]) + "…"
-				}
-				fmt.Fprintf(&claims, " [源](#/preview/document/%s?q=%s \"%s\")", s.DocID, url.QueryEscape(excerpt), excerpt)
-			}
-			claims.WriteString("\n")
-		}
+		claims := renderClaimList(statements)
 		// REFINE writing pass: turn the statements into actual prose —
 		// evidence-only drafts read as "a preamble and a quote list",
 		// which is exactly the 正文为空 complaint on single-claim pages
 		if prose := compiledProse(ctx, p.ArticleTitle, kind, statements); prose != "" {
 			body.WriteString(fmt.Sprintf("> 本页由知识编译起草：正文为 AI 依据下方来源主张撰写，等待人工审阅。\n\n%s\n\n## 来源主张\n\n", prose))
-			body.WriteString(claims.String())
+			body.WriteString(claims)
 		} else {
 			body.WriteString(fmt.Sprintf("> 本页由知识编译依据 %d 条来源主张自动起草，等待人工审阅。\n\n", len(statements)))
-			body.WriteString(claims.String())
+			body.WriteString(claims)
 		}
 	}
 	// known entity names in the compiled text become wikilinks — the page
@@ -670,13 +699,17 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 	}
 	// the wikilinks inside the compiled text resolve here — without this
 	// the page ships with no LinkedPages and the graph shows it orphaned
-	persistLinkedPages(&article)
+	// (after Create: the id must exist for the links to persist)
 	for _, a := range aliases {
 		if s, ok := a.(string); ok && s != "" && !util.AnyInArrayEquals(article.Aliases, s) {
 			article.Aliases = append(article.Aliases, s)
 		}
 	}
 	if err := orm.Create(ctx, &article); err != nil {
+		return "", "", err
+	}
+	persistLinkedPages(&article)
+	if err := orm.Update(ctx, &article); err != nil {
 		return "", "", err
 	}
 	// placement step: file the new page into the folder path the compiler
@@ -762,4 +795,305 @@ func findArticleByTitle(ctx *orm.Context, kbID, title string) *core.WikiArticle 
 		return nil
 	}
 	return &arts[0]
+}
+
+/* ---------------- topic proposals (DESIGN-topic-pages.md) ---------------- */
+
+// evidenceStrings decodes an evidence field that was filed as []string but
+// round-trips through storage as []interface{}.
+func evidenceStrings(v interface{}) []string {
+	items, ok := v.([]interface{})
+	if !ok {
+		return nil
+	}
+	out := make([]string, 0, len(items))
+	for _, it := range items {
+		if s, ok := it.(string); ok && strings.TrimSpace(s) != "" {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// docTitlesFor resolves document titles for the citation links the topic
+// renderer emits (the claim pool only carries doc ids).
+func docTitlesFor(ctx *orm.Context, sections []core.WikiSection, statements []compileStatement) map[string]string {
+	ids := map[string]bool{}
+	for _, s := range sections {
+		for _, d := range s.DocIDs {
+			ids[d] = true
+		}
+	}
+	for _, s := range statements {
+		if s.DocID != "" {
+			ids[s.DocID] = true
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	idList := make([]string, 0, len(ids))
+	for id := range ids {
+		idList = append(idList, id)
+	}
+	titles := map[string]string{}
+	octx := orm.NewContextWithParent(ctx)
+	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(octx, &core.Document{})
+	if res, err := orm.SearchV2(octx, orm.NewQuery().Size(100).
+		Filter(orm.TermsQuery("id", idList)).Include("id", "title")); err == nil && res != nil {
+		if docs, _, derr := elastic.DecodeHits[core.Document](res); derr == nil {
+			for i := range docs {
+				if docs[i].Title != "" {
+					titles[docs[i].ID] = docs[i].Title
+				}
+			}
+		}
+	}
+	return titles
+}
+
+// mergeTopicSections merges incoming compiled sections into an existing
+// outline at section granularity — update-first enrichment: same-heading
+// sections get their body refreshed and provenance unioned, new headings
+// append. An incoming empty body never wipes existing prose.
+func mergeTopicSections(outline []core.WikiSection, incoming []core.WikiSection) []core.WikiSection {
+	for _, inc := range incoming {
+		matched := false
+		for i := range outline {
+			if fingerprint.Normalize(outline[i].Heading) == fingerprint.Normalize(inc.Heading) {
+				matched = true
+				if strings.TrimSpace(inc.Body) != "" {
+					outline[i].Body = strings.TrimSpace(inc.Body)
+					outline[i].UpdatedAt = inc.UpdatedAt
+				}
+				seen := map[string]bool{}
+				for _, d := range outline[i].DocIDs {
+					seen[d] = true
+				}
+				for _, d := range inc.DocIDs {
+					if !seen[d] {
+						seen[d] = true
+						outline[i].DocIDs = append(outline[i].DocIDs, d)
+					}
+				}
+				break
+			}
+		}
+		if !matched && strings.TrimSpace(inc.Body) != "" {
+			outline = append(outline, inc)
+		}
+	}
+	return outline
+}
+
+// absorbThinPages folds the compiled topic's thin AI pages into the topic
+// page: their provenance merges in, the pages archive and drop out of the
+// tree, and their entities let go of the page link (the entity stays in
+// the ontology — pages and entities are peers, absorb never deletes one).
+func absorbThinPages(ctx *orm.Context, kbID string, article *core.WikiArticle, absorbIDs []string) int {
+	absorbed := 0
+	for _, id := range absorbIDs {
+		if id == "" || id == article.ID {
+			continue
+		}
+		twin := core.WikiArticle{}
+		twin.ID = id
+		ok, err := orm.GetV2(ctx, &twin)
+		if err != nil || !ok {
+			continue
+		}
+		for _, s := range twin.Sources {
+			known := false
+			for _, ps := range article.Sources {
+				if ps.DocID == s.DocID {
+					known = true
+					break
+				}
+			}
+			if !known {
+				article.Sources = append(article.Sources, s)
+			}
+		}
+		twin.Status = core.WikiArticleArchived
+		if err := orm.Update(ctx, &twin); err != nil {
+			log.Warnf("wiki: absorb archive [%s] failed: %v", twin.Title, err)
+			continue
+		}
+		absorbed++
+		// out of the tree so the menu stops showing the thin twin
+		orm.WithModel(ctx, &core.WikiToc{})
+		if toc, found, err := findToc(ctx, kbID); err == nil && found {
+			kept := tocRemove(toc.Nodes, twin.ID)
+			if len(kept) != len(toc.Nodes) {
+				toc.Nodes = kept
+				if err := orm.Update(ctx, toc); err != nil {
+					log.Warnf("wiki: absorb toc prune failed: %v", err)
+				}
+			}
+		}
+		orm.WithModel(ctx, &core.WikiEntity{})
+		if res, err := orm.SearchV2(ctx, orm.NewQuery().Size(50).
+			Filter(orm.TermQuery("article_id", twin.ID)).Include("id")); err == nil && res != nil {
+			if ents, _, derr := elastic.DecodeHits[core.WikiEntity](res); derr == nil {
+				for i := range ents {
+					ents[i].ArticleID = ""
+					if err := orm.Update(ctx, &ents[i]); err != nil {
+						log.Warnf("wiki: absorb entity unlink [%s] failed: %v", ents[i].Name, err)
+					}
+				}
+			}
+		}
+	}
+	return absorbed
+}
+
+// applyTopicProposal materializes a topic proposal: create the
+// outline-driven page, or merge its sections into the existing topic page
+// (update-first), then absorb the thin pages it consolidates.
+func applyTopicProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (string, string, error) {
+	var sections []core.WikiSection
+	if err := util.FromJSONBytes(util.MustToJSONBytes(p.Evidence["sections"]), &sections); err != nil || len(sections) == 0 {
+		return "", "", nil
+	}
+	var statements []compileStatement
+	if raw, ok := p.Evidence["statements"]; ok {
+		util.FromJSONBytes(util.MustToJSONBytes(raw), &statements)
+	}
+	keyEntities := evidenceStrings(p.Evidence["key_entities"])
+	aliases := evidenceStrings(p.Evidence["aliases"])
+	absorbIDs := evidenceStrings(p.Evidence["absorb_ids"])
+	planned := len(sections)
+	switch v := p.Evidence["planned"].(type) {
+	case float64:
+		if int(v) > planned {
+			planned = int(v)
+		}
+	case int:
+		if v > planned {
+			planned = v
+		}
+	}
+	docTitles := docTitlesFor(ctx, sections, statements)
+
+	// update-first: the planner's target, the outline's claimed title, then
+	// a same-title page — in that order
+	updateID, _ := p.Evidence["update_article_id"].(string)
+	if updateID == "" {
+		if t, _ := p.Evidence["update_title"].(string); t != "" {
+			if a := findArticleByTitle(ctx, p.KbID, t); a != nil {
+				updateID = a.ID
+			}
+		}
+	}
+	if updateID == "" {
+		if dup := findArticleByTitle(ctx, p.KbID, p.ArticleTitle); dup != nil {
+			updateID = dup.ID
+		}
+	}
+
+	if updateID != "" {
+		article := core.WikiArticle{}
+		article.ID = updateID
+		if ok, err := orm.GetV2(ctx, &article); err == nil && ok {
+			// a hand-written page never gets clobbered by the merge — its
+			// content survives as the leading section
+			if !article.AIGenerated && article.PageType != core.WikiPageTypeTopic && strings.TrimSpace(article.Content) != "" {
+				sections = append([]core.WikiSection{{
+					ID: sectionID("原页面内容"), Heading: "原页面内容",
+					Body: strings.TrimSpace(article.Content), UpdatedAt: time.Now().Unix(),
+				}}, sections...)
+			}
+			article.Outline = mergeTopicSections(article.Outline, sections)
+			if article.PageType == "" || article.PageType == core.WikiPageTypeEntity || article.PageType == core.WikiPageTypeConcept {
+				article.PageType = core.WikiPageTypeTopic
+			}
+			for _, ke := range keyEntities {
+				if !util.AnyInArrayEquals(article.KeyEntities, ke) {
+					article.KeyEntities = append(article.KeyEntities, ke)
+				}
+			}
+			seenSrc := map[string]bool{}
+			for _, s := range article.Sources {
+				seenSrc[s.DocID] = true
+			}
+			for _, s := range statements {
+				if s.DocID == "" || seenSrc[s.DocID] {
+					continue
+				}
+				seenSrc[s.DocID] = true
+				article.Sources = append(article.Sources, core.WikiSourceReference{DocID: s.DocID, Title: docTitles[s.DocID], Excerpt: s.Excerpt})
+			}
+			for _, a := range aliases {
+				if !util.AnyInArrayEquals(article.Aliases, a) {
+					article.Aliases = append(article.Aliases, a)
+				}
+			}
+			absorbed := absorbThinPages(ctx, p.KbID, &article, absorbIDs)
+			article.Maturity = ComputeTopicMaturity(article.Outline, planned, len(article.Sources))
+			article.Content = LinkEntityMentions(ctx, RenderTopicContent(article.Outline, statements, docTitles), article.Title)
+			persistLinkedPages(&article)
+			if err := orm.Update(ctx, &article); err != nil {
+				return "", "", err
+			}
+			outcome := fmt.Sprintf("「%s」已按 %d 节合并更新(%d 条主张)", article.Title, len(article.Outline), len(statements))
+			if absorbed > 0 {
+				outcome += fmt.Sprintf("，收编 %d 个薄页", absorbed)
+			}
+			snapshotPipelineWrite(&article, fmt.Sprintf("知识编译更新主题页 %d 节（治理提案 %s）", len(sections), p.ID))
+			return outcome, article.ID, nil
+		}
+	}
+
+	// create: the outline IS the page
+	content := LinkEntityMentions(ctx, RenderTopicContent(sections, statements, docTitles), p.ArticleTitle)
+	createStatus := core.WikiArticleDraft
+	if KBAutoApprove(ctx, p.KbID) {
+		createStatus = core.WikiArticlePublished
+	}
+	article := core.WikiArticle{
+		KbID:        p.KbID,
+		Title:       p.ArticleTitle,
+		PageType:    core.WikiPageTypeTopic,
+		Status:      createStatus,
+		AIGenerated: true,
+		Content:     content,
+		Outline:     sections,
+		KeyEntities: keyEntities,
+	}
+	seenSrc := map[string]bool{}
+	for _, s := range statements {
+		if s.DocID == "" || seenSrc[s.DocID] {
+			continue
+		}
+		seenSrc[s.DocID] = true
+		article.Sources = append(article.Sources, core.WikiSourceReference{DocID: s.DocID, Title: docTitles[s.DocID], Excerpt: s.Excerpt})
+	}
+	for _, a := range aliases {
+		if !util.AnyInArrayEquals(article.Aliases, a) {
+			article.Aliases = append(article.Aliases, a)
+		}
+	}
+	if err := orm.Create(ctx, &article); err != nil {
+		return "", "", err
+	}
+	// linked pages need the generated id — persisting before Create lost
+	// them on every compiled page (graph showed topic pages orphaned)
+	persistLinkedPages(&article)
+	absorbed := absorbThinPages(ctx, p.KbID, &article, absorbIDs)
+	article.Maturity = ComputeTopicMaturity(article.Outline, planned, len(article.Sources))
+	if err := orm.Update(ctx, &article); err != nil {
+		log.Warnf("wiki: topic maturity stamp failed for [%s]: %v", article.Title, err)
+	}
+	if target, _ := p.Evidence["target_folder"].(string); target != "" {
+		if err := placeInToc(ctx, p.KbID, target, article.ID, article.Title); err != nil {
+			log.Warnf("wiki: failed to place [%s] into [%s]: %v", article.Title, target, err)
+		}
+	}
+	snapshotPipelineWrite(&article, fmt.Sprintf("知识编译起草主题页 %d 节（治理提案 %s）", len(sections), p.ID))
+	outcome := fmt.Sprintf("已生成主题页「%s」(%d 节,%d 条主张)", article.Title, len(sections), len(statements))
+	if absorbed > 0 {
+		outcome += fmt.Sprintf("，收编 %d 个薄页", absorbed)
+	}
+	return outcome, article.ID, nil
 }

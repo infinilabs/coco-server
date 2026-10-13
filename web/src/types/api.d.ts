@@ -386,7 +386,7 @@ declare namespace Api {
     type Visibility = 'public' | 'private' | 'team';
     type SyncStrategy = 'realtime' | 'scheduled' | 'manual';
     type AiStatus = 'ready' | 'processing' | 'queued' | 'updating';
-    type PageType = 'entity' | 'concept' | 'source';
+    type PageType = 'entity' | 'concept' | 'source' | 'topic';
     type ArticleStatus = 'draft' | 'reviewed' | 'published' | 'archived';
     type Confidence = 'high' | 'medium' | 'low';
     type MemberRole = 'owner' | 'editor' | 'viewer' | 'agent';
@@ -461,6 +461,13 @@ declare namespace Api {
       entity_id?: string;
       /** wikilinks [[type:name]] parsed out of the content at save time */
       linked_pages?: LinkedPage[];
+      /** topic-page structure (outline-driven compilation): planned sections
+       *  with per-section provenance; content is their rendered markdown */
+      outline?: ArticleSection[];
+      /** headline entities of a topic page (ontology chips) */
+      key_entities?: string[];
+      /** coverage of a compiled topic page: sources, filled/planned sections, 0-1 score */
+      maturity?: PageMaturity;
       created_by: Member;
       contributors: Member[];
       created_at: string;
@@ -482,6 +489,23 @@ declare namespace Api {
       type: string;
       name: string;
       entity_id?: string;
+    }
+
+    /** one planned section of a topic page (mirror of core.WikiSection) */
+    interface ArticleSection {
+      id: string;
+      heading: string;
+      body?: string;
+      doc_ids?: string[];
+      updated_at?: number;
+    }
+
+    /** coverage of a compiled topic page (mirror of core.WikiPageMaturity) */
+    interface PageMaturity {
+      sources?: number;
+      sections?: number;
+      planned?: number;
+      score?: number;
     }
 
     /** cited source doc behind a wiki page, with its enrichment attachments */

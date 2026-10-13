@@ -90,7 +90,7 @@ func compileCacheGet(fp string) ([]CompileExtract, bool) {
 	if hit {
 		return extracts, true
 	}
-	buf, err := kv.GetValue(compileCacheKVKey, []byte(fp))
+	buf, err := kv.GetCompressedValue(compileCacheKVKey, []byte(fp))
 	if err != nil || buf == nil {
 		return nil, false
 	}
@@ -465,34 +465,39 @@ func runCompilePipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *
 			if hit {
 				summary.CachedBatches++
 				if job != nil {
-					job.BatchesDone++
 					job.BatchesCached = summary.CachedBatches
 				}
-				allExtracts = append(allExtracts, extracts...)
-				continue
-			}
-			extracts, err := compileMAPFn(context.WithoutCancel(ctx), model, batch)
-			if err != nil {
-				summary.FailedBatches++
-				if job != nil {
-					job.BatchesDone++
-					job.BatchesFailed = summary.FailedBatches
-					job.log("MAP failed %s/%d: %v", doc.Title, bi, err)
+			} else {
+				var merr error
+				extracts, merr = compileMAPFn(context.WithoutCancel(ctx), model, batch)
+				if merr != nil {
+					summary.FailedBatches++
+					if job != nil {
+						job.BatchesDone++
+						job.BatchesFailed = summary.FailedBatches
+						job.log("MAP failed %s/%d: %v", doc.Title, bi, merr)
+					}
+					if summary.FailedBatches <= 3 {
+						log.Warnf("wiki compiler: MAP batch %s/%d failed (model %s/%s): %v", doc.ID, bi, model.ProviderID, model.ID, merr)
+					}
+					continue
 				}
-				if summary.FailedBatches <= 3 {
-					log.Warnf("wiki compiler: MAP batch %s/%d failed (model %s/%s): %v", doc.ID, bi, model.ProviderID, model.ID, err)
-				}
-				continue
+				compileCachePut(fp, extracts)
 			}
-			if job != nil {
-				job.BatchesDone++
-				job.log("MAP %s: %d extracts", doc.Title, len(extracts))
-			}
+			// provenance stamp runs on BOTH paths — DocID/ChunkHint carry
+			// json:"-" and never persist, so a cache replay that skips the
+			// stamp produces keys with zero statements (observed: 335 keys,
+			// 0 statements, zero topics filed)
 			for i := range extracts {
 				extracts[i].DocID = doc.ID
 				extracts[i].ChunkHint = truncateCompile(batch, 200)
 			}
-			compileCachePut(fp, extracts)
+			if job != nil {
+				job.BatchesDone++
+				if !hit {
+					job.log("MAP %s: %d extracts", doc.Title, len(extracts))
+				}
+			}
 			allExtracts = append(allExtracts, extracts...)
 		}
 	}
@@ -519,18 +524,11 @@ func runCompilePipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *
 		job.log("reduced to %d keys", summary.Reduced)
 	}
 
-	// PLAN against existing entity pages
-	if job != nil {
-		job.Stage = "plan"
-	}
-	existing := compileExistingArticles(ctx, kb.ID)
-	plan := PlanCompile(reduced, existing)
-	if job != nil {
-		job.log("plan: %d items", len(plan))
-	}
-
-	// REFINE → proposals (single-source concepts stay proposals too —
-	// the noise gate applies at PUBLISH time, not compile time)
+	// TOPIC PIPELINE (DESIGN-topic-pages.md): pages are subjects, not
+	// single entities — CLUSTER the reduced keys into topics, NAME them,
+	// plan each page's OUTLINE, FILL its sections from the pooled claims,
+	// and file one rich proposal per topic. The per-entity article path is
+	// retired: entities live in the ontology pool, peer to pages.
 	pctx := orm.NewContext()
 	// the write flag passes create/update hooks; the READ flag is what the
 	// search hooks bypass on — compileGeneration searches with this same
@@ -538,26 +536,10 @@ func runCompilePipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *
 	// first proposal filing panicked the whole compile
 	pctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 	pctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	existing := compileExistingArticles(ctx, kb.ID)
+	summary.Proposals = runTopicPipeline(ctx, kb, model, job, reduced, existing, summary.Docs, pctx)
 	if job != nil {
-		job.Stage = "propose"
-	}
-	for _, item := range plan {
-		if summary.Proposals >= 50 {
-			log.Warnf("wiki compiler: proposal cap 50 reached, truncating")
-			break
-		}
-		if job != nil && job.cancelled() {
-			return summary, context.Canceled
-		}
-		if fileCompileProposal(pctx, kb, item, model) {
-			summary.Proposals++
-			if job != nil {
-				job.Proposals = summary.Proposals
-			}
-		}
-	}
-	if job != nil {
-		job.log("filed %d proposals", summary.Proposals)
+		job.log("filed %d topic proposals", summary.Proposals)
 	}
 
 	// dimension organization: propose a TOC that groups the KB's pages into
@@ -1035,43 +1017,7 @@ func planTargetFolder(ctx *orm.Context, kb *core.WikiKnowledgeBase, item Compile
 			docIDs = append(docIDs, s.DocID)
 		}
 	}
-	dept := ""
-	matchedDept := -1
-	if len(docIDs) > 0 {
-		octx := orm.NewContextWithParent(ctx)
-		octx.Set(orm.DirectReadWithoutPermissionCheck, true)
-		orm.WithModel(octx, &core.Document{})
-		if res, err := orm.SearchV2(octx, orm.NewQuery().Size(50).
-			Filter(orm.TermsQuery("id", docIDs)).Include("id", "folder_path", "category")); err == nil && res != nil {
-			if docs, _, derr := elastic.DecodeHits[core.Document](res); derr == nil {
-				for i := range docs {
-					p := strings.Trim(docs[i].FolderPath, "/")
-					if p == "" {
-						p = strings.Trim(docs[i].Category, "/")
-					}
-					p = strings.ToLower(p)
-					for di := range kb.TocLayout {
-						deptFolder := &kb.TocLayout[di]
-						for _, prefix := range deptFolder.PathPrefixes {
-							prefix = strings.ToLower(strings.Trim(prefix, "/"))
-							if prefix != "" && (p == prefix || strings.HasPrefix(p, prefix+"/") ||
-								strings.Contains("/"+p+"/", "/"+prefix+"/")) {
-								dept = deptFolder.Title
-								matchedDept = di
-								break
-							}
-						}
-						if dept != "" {
-							break
-						}
-					}
-					if dept != "" {
-						break
-					}
-				}
-			}
-		}
-	}
+	dept, matchedDept := matchDeptByDocIDs(ctx, kb, docIDs)
 	// dimension slot from the entity type, display name from the matched
 	// department's own renames — 研发's org pages file under its "技术方案"
 	// folder, not the shared 客户与组织
@@ -1093,6 +1039,53 @@ func planTargetFolder(ctx *orm.Context, kb *core.WikiKnowledgeBase, item Compile
 		return dim
 	}
 	return dept + "/" + dim
+}
+
+// matchDeptByDocIDs resolves the layout department a set of cited
+// documents belongs to: a layout folder matches when any doc's folder path
+// (or category) hits one of its path prefixes, case-insensitive, any level.
+// Returns the department title and its layout index; ("", -1) when nothing
+// matches — the caller files those under the catch-all.
+func matchDeptByDocIDs(ctx *orm.Context, kb *core.WikiKnowledgeBase, docIDs []string) (string, int) {
+	dept := ""
+	matchedDept := -1
+	if len(docIDs) == 0 {
+		return dept, matchedDept
+	}
+	octx := orm.NewContextWithParent(ctx)
+	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(octx, &core.Document{})
+	if res, err := orm.SearchV2(octx, orm.NewQuery().Size(50).
+		Filter(orm.TermsQuery("id", docIDs)).Include("id", "folder_path", "category")); err == nil && res != nil {
+		if docs, _, derr := elastic.DecodeHits[core.Document](res); derr == nil {
+			for i := range docs {
+				p := strings.Trim(docs[i].FolderPath, "/")
+				if p == "" {
+					p = strings.Trim(docs[i].Category, "/")
+				}
+				p = strings.ToLower(p)
+				for di := range kb.TocLayout {
+					deptFolder := &kb.TocLayout[di]
+					for _, prefix := range deptFolder.PathPrefixes {
+						prefix = strings.ToLower(strings.Trim(prefix, "/"))
+						if prefix != "" && (p == prefix || strings.HasPrefix(p, prefix+"/") ||
+							strings.Contains("/"+p+"/", "/"+prefix+"/")) {
+							dept = deptFolder.Title
+							matchedDept = di
+							break
+						}
+					}
+					if dept != "" {
+						break
+					}
+				}
+				if dept != "" {
+					break
+				}
+			}
+		}
+	}
+	return dept, matchedDept
 }
 
 func compileGeneration(ctx *orm.Context, kbID, normKey string) int {

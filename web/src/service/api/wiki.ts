@@ -68,6 +68,9 @@ const normalizeArticle = (src: any): Api.Wiki.Article => ({
   sources: src?.sources ?? [],
   entity_id: src?.entity_id,
   linked_pages: src?.linked_pages ?? [],
+  outline: src?.outline ?? [],
+  key_entities: src?.key_entities ?? [],
+  maturity: src?.maturity ?? undefined,
   created_by: { id: '', name: src?.created_by ?? '', avatar: 'U', role: 'owner' },
   contributors: [],
   created_at: fmtDate(src?.created),
@@ -813,6 +816,8 @@ export interface WikiCompileJob {
   batches_failed?: number;
   extracts?: number;
   reduced?: number;
+  topics?: number;
+  topics_done?: number;
   proposals?: number;
   current?: string;
   logs?: string[];

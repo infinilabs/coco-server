@@ -21,7 +21,7 @@ type CompileJob struct {
 	ID            string   `json:"id"`
 	KbID          string   `json:"kb_id"`
 	Status        string   `json:"status"` // running | done | failed | cancelled
-	Stage         string   `json:"stage"`  // map | reduce | plan | propose
+	Stage         string   `json:"stage"`  // map | reduce | cluster | compose | done
 	Docs          int      `json:"docs"`
 	Batches       int      `json:"batches"`
 	BatchesDone   int      `json:"batches_done"`
@@ -29,6 +29,8 @@ type CompileJob struct {
 	BatchesFailed int      `json:"batches_failed"`
 	Extracts      int      `json:"extracts"`
 	Reduced       int      `json:"reduced"`
+	Topics        int      `json:"topics"`
+	TopicsDone    int      `json:"topics_done"`
 	Proposals     int      `json:"proposals"`
 	Current       string   `json:"current,omitempty"`
 	Logs          []string `json:"logs,omitempty"`

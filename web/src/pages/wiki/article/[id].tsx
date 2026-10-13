@@ -749,6 +749,23 @@ export function Component() {
                   {article.page_type && (
                     <span className='wiki-pill wiki-pill-accent'>{t(`page.wiki.pageType.${article.page_type}`)}</span>
                   )}
+                  {!!article.maturity && (
+                    <span
+                      className='wiki-pill'
+                      style={{
+                        borderColor:
+                          (article.maturity.score || 0) >= 0.7 ? 'rgba(82, 196, 26, .45)' : 'rgba(250, 173, 20, .45)',
+                        color: (article.maturity.score || 0) >= 0.7 ? '#52c41a' : '#faad14'
+                      }}
+                      title={t('page.wiki.article.maturityHint')}
+                    >
+                      {t('page.wiki.article.maturity', {
+                        sources: article.maturity.sources || 0,
+                        sections: article.maturity.sections || 0,
+                        planned: article.maturity.planned || article.maturity.sections || 0
+                      })}
+                    </span>
+                  )}
                   {article.ai_generated && (
                     <span
                       className='wiki-pill'
@@ -955,6 +972,21 @@ export function Component() {
                   <span className='wiki-window-title'>{article.title}</span>
                 </div>
                 <div className='wiki-doc-surface'>
+                  {(article.key_entities?.length || 0) > 0 && (
+                    <div className='mb-10px flex flex-wrap items-center gap-6px text-xs'>
+                      <span className='color-[var(--wiki-text-3)]'>{t('page.wiki.article.keyEntities')}</span>
+                      {article.key_entities!.map(name => (
+                        <Tag
+                          bordered={false}
+                          className='cursor-pointer'
+                          key={name}
+                          onClick={() => nav(`/wiki/kb/${article.kb_id}?tab=entities&entity=${encodeURIComponent(name)}`)}
+                        >
+                          {name}
+                        </Tag>
+                      ))}
+                    </div>
+                  )}
                   {structured && (
                     <>
                       {structured.intro.trim() && (

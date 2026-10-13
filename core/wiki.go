@@ -32,7 +32,8 @@ const (
 	WikiPageTypeEntity  = "entity"
 	WikiPageTypeConcept = "concept"
 	WikiPageTypeSource  = "source"
-	WikiPageTypeMap     = "map" // hand-maintained company map: the agent entry page (D6)
+	WikiPageTypeTopic   = "topic" // outline-driven subject page: a cluster's curated hub
+	WikiPageTypeMap     = "map"   // hand-maintained company map: the agent entry page (D6)
 
 	// entity lifecycle (design doc D1): extraction proposes, humans
 	// review/publish — the AI pipeline never publishes directly
@@ -146,6 +147,28 @@ type WikiSourceReference struct {
 	Locator    string `json:"locator,omitempty" elastic_mapping:"locator:{type:keyword}"` // page/section/clause
 }
 
+// WikiSection is one planned section of a topic page (outline-driven
+// compilation): the heading the planner emitted, its drafted body and the
+// documents backing it. Enrichment merges at THIS granularity — a new
+// compile updates the sections it touches instead of stacking a new page.
+type WikiSection struct {
+	ID        string   `json:"id"`
+	Heading   string   `json:"heading"`
+	Body      string   `json:"body,omitempty"`
+	DocIDs    []string `json:"doc_ids,omitempty"`
+	UpdatedAt int64    `json:"updated_at,omitempty"`
+}
+
+// WikiPageMaturity records how complete a compiled topic page is: distinct
+// cited documents, filled vs planned sections, and a 0-1 coverage score.
+// The TOC badge and the consolidate (thin-page absorb) rule both read it.
+type WikiPageMaturity struct {
+	Sources  int     `json:"sources,omitempty"`
+	Sections int     `json:"sections,omitempty"`
+	Planned  int     `json:"planned,omitempty"`
+	Score    float64 `json:"score,omitempty"`
+}
+
 // WikiArticle is a curated page in structured markdown (design doc §3.3:
 // Obsidian-style sections with [[type:name]] wikilinks and doc_id mentions).
 type WikiArticle struct {
@@ -170,6 +193,13 @@ type WikiArticle struct {
 	// page itself, N per page — a page-level concern, independent of the
 	// cited source documents (a source document IS the file)
 	Attachments []string `json:"attachments,omitempty" elastic_mapping:"attachments:{type:keyword}"`
+	// topic-page structure (outline-driven compilation): planned sections
+	// with per-section provenance. Content stays the rendered markdown of
+	// the same sections — search, wikilinks and versions keep working off
+	// Content, Outline is the structured source of truth for enrichment.
+	Outline     []WikiSection     `json:"outline,omitempty" elastic_mapping:"outline:{type:object,enabled:false}"`
+	KeyEntities []string          `json:"key_entities,omitempty" elastic_mapping:"key_entities:{type:keyword}"`
+	Maturity    *WikiPageMaturity `json:"maturity,omitempty" elastic_mapping:"maturity:{type:object,enabled:false}"`
 }
 
 // WikiTocNode is one node of a KB's table of contents tree.

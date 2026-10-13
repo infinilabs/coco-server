@@ -47,11 +47,16 @@ interface RawTocNode {
 }
 
 /** Review-before-apply for knowledge_compile: the statements the generated
- * page will carry — claim + source excerpt + link to the cited document. */
+ * page will carry — claim + source excerpt + link to the cited document.
+ * Topic proposals (evidence.sections) preview the outline instead: each
+ * planned section with its drafted prose and provenance count. */
 function CompileProposalPreview({ evidence }: { evidence: Record<string, any> }) {
   const { t } = useTranslation();
   const aliases = (evidence.aliases || []) as string[];
   const statements = (evidence.statements || []) as { claim?: string; doc_id?: string; excerpt?: string }[];
+  const sections = (evidence.sections || []) as { heading?: string; body?: string; doc_ids?: string[] }[];
+  const keyEntities = (evidence.key_entities || []) as string[];
+  const isTopic = sections.length > 0;
   return (
     <div
       className='mt-6px rounded-6px border border-solid p-8px'
@@ -59,40 +64,84 @@ function CompileProposalPreview({ evidence }: { evidence: Record<string, any> })
       onClick={e => e.stopPropagation()}
     >
       <div className='mb-4px text-11.5px color-[var(--wiki-text-3)]'>
-        {t('page.wiki.governance.compilePreview', {
-          kind: String(evidence.kind || ''),
-          count: statements.length
-        })}
+        {isTopic
+          ? t('page.wiki.governance.topicPreview', { count: sections.length, claims: statements.length })
+          : t('page.wiki.governance.compilePreview', {
+              kind: String(evidence.kind || ''),
+              count: statements.length
+            })}
         {aliases.length > 0 ? ` · ${aliases.join(' / ')}` : ''}
+        {evidence.update_article_id || evidence.update_title ? ` · ${t('page.wiki.governance.updateTarget')}` : ''}
+        {Array.isArray(evidence.absorb_ids) && evidence.absorb_ids.length > 0
+          ? ` · ${t('page.wiki.governance.absorb', { count: evidence.absorb_ids.length })}`
+          : ''}
         {evidence.target_folder ? ` · ${t('page.wiki.governance.targetFolder')}: ${String(evidence.target_folder)}` : ''}
       </div>
+      {isTopic && keyEntities.length > 0 && (
+        <div className='mb-6px flex flex-wrap gap-4px'>
+          {keyEntities.map(name => (
+            <span
+              className='rounded-4px px-6px text-11px'
+              key={name}
+              style={{ background: 'var(--wiki-accent-softer)' }}
+            >
+              {name}
+            </span>
+          ))}
+        </div>
+      )}
       <div className='flex max-h-220px flex-col gap-6px overflow-y-auto'>
-        {statements.map((s, i) => (
-          <div
-            className='rounded-4px px-8px py-6px'
-            key={i}
-            style={{ background: 'var(--wiki-accent-softer)' }}
-          >
-            <div className='text-12.5px'>{s.claim}</div>
-            {s.excerpt && (
+        {isTopic
+          ? sections.map((sec, i) => (
               <div
-                className='mt-2px max-h-28px overflow-hidden text-11.5px color-[var(--wiki-text-3)]'
-                style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}
+                className='rounded-4px px-8px py-6px'
+                key={i}
+                style={{ background: 'var(--wiki-accent-softer)' }}
               >
-                {s.excerpt}
+                <div className='text-12.5px font-500'>
+                  {sec.heading}
+                  {!!(sec.doc_ids || []).length && (
+                    <span className='ml-6px text-11px font-400 color-[var(--wiki-text-3)]'>
+                      {t('page.wiki.governance.sectionSources', { count: sec.doc_ids!.length })}
+                    </span>
+                  )}
+                </div>
+                {sec.body && (
+                  <div
+                    className='mt-2px max-h-40px overflow-hidden text-11.5px color-[var(--wiki-text-3)]'
+                    style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}
+                  >
+                    {sec.body}
+                  </div>
+                )}
               </div>
-            )}
-            {s.doc_id && (
-              <a
-                className='mt-2px inline-block text-11px text-[var(--ant-color-link)]'
-                href={`#/preview/document/${s.doc_id}`}
-                onClick={e => e.stopPropagation()}
+            ))
+          : statements.map((s, i) => (
+              <div
+                className='rounded-4px px-8px py-6px'
+                key={i}
+                style={{ background: 'var(--wiki-accent-softer)' }}
               >
-                {t('page.wiki.article.openSource')}
-              </a>
-            )}
-          </div>
-        ))}
+                <div className='text-12.5px'>{s.claim}</div>
+                {s.excerpt && (
+                  <div
+                    className='mt-2px max-h-28px overflow-hidden text-11.5px color-[var(--wiki-text-3)]'
+                    style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}
+                  >
+                    {s.excerpt}
+                  </div>
+                )}
+                {s.doc_id && (
+                  <a
+                    className='mt-2px inline-block text-11px text-[var(--ant-color-link)]'
+                    href={`#/preview/document/${s.doc_id}`}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    {t('page.wiki.article.openSource')}
+                  </a>
+                )}
+              </div>
+            ))}
       </div>
     </div>
   );

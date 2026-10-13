@@ -253,7 +253,7 @@ export function KbFileManager({
               <Tag color={job.status === 'running' ? 'processing' : job.status === 'done' ? 'green' : job.status === 'failed' ? 'red' : 'default'}>
                 {t(`page.wiki.fileManager.compileStatus.${job.status}`)}
               </Tag>
-              <span>{t('page.wiki.fileManager.compileStage', { stage: job.stage || '-' })}</span>
+              <span>{t('page.wiki.fileManager.compileStage', { stage: t(`page.wiki.fileManager.compileStages.${job.stage}`, { defaultValue: job.stage || '-' }) })}</span>
               <span>
                 {t('page.wiki.fileManager.compileBatches', {
                   done: job.batches_done || 0,
@@ -262,11 +262,20 @@ export function KbFileManager({
                   failed: job.batches_failed || 0
                 })}
               </span>
+              {!!job.topics && (
+                <span>{t('page.wiki.fileManager.compileTopics', { done: job.topics_done || 0, total: job.topics || 0 })}</span>
+              )}
               <span>{t('page.wiki.fileManager.compileCounts', { docs: job.docs || 0, extracts: job.extracts || 0, reduced: job.reduced || 0, proposals: job.proposals || 0 })}</span>
             </div>
             {job.status === 'running' && (
               <Progress
-                percent={job.batches ? Math.round(((job.batches_done || 0) / job.batches) * 100) : 0}
+                percent={
+                  job.stage === 'compose' && job.topics
+                    ? Math.round(((job.topics_done || 0) / job.topics) * 100)
+                    : job.batches
+                      ? Math.round(((job.batches_done || 0) / job.batches) * 100)
+                      : 0
+                }
                 size="small"
                 status="active"
               />
