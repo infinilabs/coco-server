@@ -315,7 +315,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       uploadDone: '已上传 {{count}} 个文件，管道处理中将自动更新相关内容',
       uploadPartial: '已上传 {{created}} 个，{{failed}} 个失败',
       uploadFailed: '上传失败',
-      columns: { title: '标题', source: '来源', status: '状态', attachments: '附件数', updated: '更新时间', articles: '关联文章' }
+      columns: { title: '标题', size: '大小', created: '日期', hangFrom: '挂载于', articles: '关联文章' }
     },
     kb: {
       newArticle: '新建文章',

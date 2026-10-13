@@ -783,7 +783,7 @@ export function batchUpdateWikiEntityStatus(ids: string[], status: string) {
 /* ---------------- KB-level files (raw material) ---------------- */
 
 export function getWikiKbFiles(kbId: string) {
-  return request<{ files: any[]; upload_source_id: string }>({
+  return request<{ attachments: any[]; upload_source_id: string }>({
     method: 'get',
     url: `/wiki/kb/${kbId}/_files`
   }).then(res => (res as any)?.data);

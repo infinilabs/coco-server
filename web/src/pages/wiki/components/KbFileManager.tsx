@@ -24,17 +24,23 @@ interface KbFileAttachment {
   created?: string;
 }
 
-interface KbFileRow {
+interface KbFileOwner {
   id: string;
   title: string;
+  owner_type: 'article' | 'document';
   source_name?: string;
   uploaded?: boolean;
-  size?: number;
   status?: string;
-  processed?: boolean;
-  updated?: string;
-  attachments?: KbFileAttachment[];
   articles?: { id: string; title: string }[];
+}
+
+interface KbFileRow {
+  id: string;
+  name: string;
+  size?: number;
+  mime_type?: string;
+  created?: string;
+  owners: KbFileOwner[];
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -63,7 +69,7 @@ export function KbFileManager({
   const fetchData = useCallback(() => {
     setLoading(true);
     getWikiKbFiles(kbId)
-      .then(res => setFiles(((res as any)?.files || []) as KbFileRow[]))
+      .then(res => setFiles(((res as any)?.attachments || []) as KbFileRow[]))
       .catch(() => setFiles([]))
       .finally(() => setLoading(false));
   }, [kbId]);
@@ -143,60 +149,72 @@ export function KbFileManager({
   const columns: any[] = [
     {
       title: t('page.wiki.fileManager.columns.title'),
-      dataIndex: 'title',
+      dataIndex: 'name',
       render: (_: any, row: KbFileRow) => (
         <a
-          className="text-13px"
-          onClick={() => nav(`#/preview/document/${row.id}`)}
+          className="flex items-center gap-6px text-13px"
+          href={`/attachment/${row.id}`}
+          rel="noreferrer"
+          target="_blank"
         >
-          {row.title}
+          <PaperClipOutlined />
+          {row.name}
         </a>
       )
     },
     {
-      title: t('page.wiki.fileManager.columns.source'),
-      dataIndex: 'source_name',
-      width: 150,
-      render: (v: string, row: KbFileRow) =>
-        row.uploaded ? <Tag color="purple">{t('page.wiki.fileManager.manualUpload')}</Tag> : v || '—'
-    },
-    {
-      title: t('page.wiki.fileManager.columns.status'),
-      dataIndex: 'status',
-      width: 100,
-      render: (v: string, row: KbFileRow) =>
-        v ? <Tag color={STATUS_COLOR[v] || 'default'}>{v}</Tag> : row.processed ? <Tag color="green">✓</Tag> : '—'
-    },
-    {
-      title: t('page.wiki.fileManager.columns.attachments'),
-      key: 'attachments',
+      title: t('page.wiki.fileManager.columns.size'),
+      dataIndex: 'size',
       width: 90,
-      render: (_: any, row: KbFileRow) => (row.attachments || []).length
+      render: (v: number) => (v ? (v < 1024 ? '<1 KB' : `${(v / 1024).toFixed(0)} KB`) : '—')
     },
     {
-      title: t('page.wiki.fileManager.columns.updated'),
-      dataIndex: 'updated',
-      width: 130
+      title: t('page.wiki.fileManager.columns.created'),
+      dataIndex: 'created',
+      width: 110
+    },
+    {
+      title: t('page.wiki.fileManager.columns.hangFrom'),
+      key: 'owners',
+      render: (_: any, row: KbFileRow) => (
+        <div className="flex flex-col gap-2px">
+          {(row.owners || []).map((o, i) => (
+            <div className="flex flex-wrap items-center gap-4px text-12px" key={`${o.id}-${i}`}>
+              {o.owner_type === 'article' ? (
+                <a className="text-[var(--ant-color-link)]" onClick={() => nav(`/wiki/article/${o.id}?kb=${kbId}`)}>
+                  {o.title || o.id}
+                </a>
+              ) : (
+                <a className="text-[var(--ant-color-link)]" onClick={() => nav(`#/preview/document/${o.id}`)}>
+                  {o.title || o.id}
+                </a>
+              )}
+              {o.source_name && <Tag className="m-0">{o.source_name}</Tag>}
+              {o.uploaded && <Tag className="m-0" color="purple">{t('page.wiki.fileManager.manualUpload')}</Tag>}
+            </div>
+          ))}
+        </div>
+      )
     },
     {
       title: t('page.wiki.fileManager.columns.articles'),
       key: 'articles',
-      render: (_: any, row: KbFileRow) =>
-        (row.articles || []).length === 0 ? (
-          <span className="text-12px text-[var(--ant-color-text-tertiary)]">—</span>
-        ) : (
+      width: 200,
+      render: (_: any, row: KbFileRow) => {
+        const arts: { id: string; title: string }[] = [];
+        (row.owners || []).forEach(o => (o.articles || []).forEach(a => arts.push(a)));
+        if (!arts.length) return <span className="text-12px text-[var(--ant-color-text-tertiary)]">—</span>;
+        const uniq = arts.filter((a, i) => arts.findIndex(x => x.id === a.id) === i);
+        return (
           <div className="flex flex-col gap-2px">
-            {row.articles!.map(a => (
-              <a
-                className="text-12px"
-                key={a.id}
-                onClick={() => nav(`/wiki/article/${a.id}?kb=${kbId}`)}
-              >
+            {uniq.map(a => (
+              <a className="text-12px text-[var(--ant-color-link)]" key={a.id} onClick={() => nav(`/wiki/article/${a.id}?kb=${kbId}`)}>
                 {a.title}
               </a>
             ))}
           </div>
-        )
+        );
+      }
     }
   ];
 
@@ -335,30 +353,9 @@ export function KbFileManager({
         columns={columns}
         dataSource={files}
         loading={loading}
-        pagination={{ pageSize: 20, hideOnSinglePage: true }}
+        pagination={{ pageSize: 20, hideOnSinglePage: true, showSizeChanger: true }}
         rowKey="id"
         size="small"
-        expandable={{
-          rowExpandable: row => (row.attachments || []).length > 0,
-          expandedRowRender: row => (
-            <div className="flex flex-col gap-4px pl-24px">
-              {(row.attachments || []).map(att => (
-                <a
-                  className="flex items-center gap-6px text-12px text-[var(--ant-color-link)]"
-                  href={`/attachment/${att.id}`}
-                  key={att.id}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  <PaperClipOutlined />
-                  {att.name}
-                  {att.size ? ` (${att.size < 1024 ? '<1' : (att.size / 1024).toFixed(0)} KB)` : ''}
-                  {att.created ? ` · ${att.created}` : ''}
-                </a>
-              ))}
-            </div>
-          )
-        }}
       />
     </Card>
   );

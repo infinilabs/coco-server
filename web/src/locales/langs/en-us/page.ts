@@ -315,7 +315,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       uploadDone: '{{count}} file(s) uploaded — the pipeline will update related knowledge',
       uploadPartial: '{{created}} uploaded, {{failed}} failed',
       uploadFailed: 'Upload failed',
-      columns: { title: 'Title', source: 'Source', status: 'Status', attachments: 'Attachments', updated: 'Updated', articles: 'Citing articles' }
+      columns: { title: 'Title', source: 'Source', status: 'Status', size: 'Size', created: 'Date', hangFrom: 'Used by', articles: 'Citing articles' }
     },
     kb: {
       newArticle: 'New Article',
