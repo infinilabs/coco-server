@@ -826,14 +826,10 @@ export function Component() {
                       {`AI · ${t(`page.wiki.confidence.${article.confidence || 'medium'}`)}`}
                     </span>
                   )}
-                  {article.aliases?.map(alias => (
-                    <span
-                      className='wiki-pill'
-                      key={alias}
-                    >
-                      {alias}
-                    </span>
-                  ))}
+                  {/* aliases stay off the header — compile merges accumulate
+                      them without bound (absorbed twins union their aliases
+                      in), and a dozen pills drowned the meta row; they remain
+                      on the article for title matching */}
                   <span className='color-[var(--wiki-text-3)]'>{`${t('page.wiki.hub.lastUpdated')} ${article.updated_at}`}</span>
                   <span className='ml-auto flex items-center gap-1'>
                     {article.contributors.map(c => (
