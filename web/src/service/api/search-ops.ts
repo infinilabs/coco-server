@@ -64,10 +64,22 @@ export interface ProcessingFailedDoc {
   reprocessurl?: string;
 }
 
+/** real-time ingestion signals: queue backlogs and the oldest in-flight document */
+export interface ProcessingLive {
+  queues: {
+    indexing_documents: number;
+    documents_processed: number;
+    attachment_processing: number;
+  };
+  /** `updated` stamp of the earliest status=indexing document; empty when idle. A stale timestamp means a stuck pipeline */
+  oldest_indexing?: string;
+}
+
 export interface ProcessingOverview {
   statuses: Record<string, number>;
   failed: ProcessingFailedDoc[];
   failed_top: number;
+  live?: ProcessingLive;
 }
 
 export function fetchProcessingOverview(datasource?: string) {

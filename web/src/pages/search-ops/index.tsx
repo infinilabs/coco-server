@@ -1,8 +1,9 @@
 import { Activity, AlertTriangle, DatabaseZap, Search, Timer } from 'lucide-react';
-import { Alert, Button, Card, Col, Modal, Row, Space, Statistic, Table, Tag, Tooltip, Typography, message } from 'antd';
+import { Alert, Button, Card, Col, Drawer, Modal, Row, Space, Statistic, Switch, Table, Tag, Tooltip, Typography, message } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import ProcessingPanel from '@/components/ProcessingPanel';
 import {
   fetchIndexHealth,
   fetchProcessingOverview,
@@ -38,6 +39,8 @@ export function Component() {
   const [syncStatus, setSyncStatus] = useState<SyncStatusItem[] | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [detailDoc, setDetailDoc] = useState<ProcessingFailedDoc | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -81,6 +84,14 @@ export function Component() {
   useEffect(() => {
     if (permissions.view) load();
   }, []);
+
+  // ops polling: the queue depths and run states only mean something live;
+  // off by default so the page stays a quiet report until asked to watch
+  useEffect(() => {
+    if (!autoRefresh || !permissions.view) return;
+    const timer = setInterval(load, 5000);
+    return () => clearInterval(timer);
+  }, [autoRefresh, load]);
 
   const strategyColumns = [
     { title: t('page.searchOps.strategy'), dataIndex: 'type', width: 140 },
@@ -132,6 +143,19 @@ export function Component() {
     if (item.run.state === 'running') return <Tag color="processing">{t('page.searchOps.syncRunning')}</Tag>;
     if (item.run.state === 'superseded') return <Tag color="orange">{t('page.searchOps.syncSuperseded')}</Tag>;
     return <Tag>{item.run.state}</Tag>;
+  };
+
+  // age of the oldest in-flight document, in minutes — fresh means the
+  // backlog drains, a growing number means a stuck pipeline
+  const oldestIndexingAge = () => {
+    const stamp = processing?.live?.oldest_indexing;
+    if (!stamp) return null;
+    const age = Date.now() - new Date(stamp).getTime();
+    if (!(age >= 0)) return null;
+    const minutes = Math.floor(age / 60000);
+    if (minutes < 1) return t('page.searchOps.liveJustNow');
+    if (minutes < 60) return t('page.searchOps.liveMinutesAgo', { minutes: String(minutes) });
+    return t('page.searchOps.liveHoursAgo', { hours: String(Math.floor(minutes / 60)) });
   };
 
   const syncColumns = [
@@ -287,9 +311,15 @@ export function Component() {
           </span>
         }
         extra={
-          <Button size="small" danger loading={retrying} disabled={!processing?.statuses?.failed} onClick={retryFailed}>
-            {t('page.searchOps.retryFailed')}
-          </Button>
+          <Space size={12}>
+            <span className="inline-flex items-center gap-4px text-12px">
+              {t('page.searchOps.autoRefresh')}
+              <Switch checked={autoRefresh} size="small" onChange={setAutoRefresh} />
+            </span>
+            <Button size="small" danger loading={retrying} disabled={!processing?.statuses?.failed} onClick={retryFailed}>
+              {t('page.searchOps.retryFailed')}
+            </Button>
+          </Space>
         }
       >
         <Typography.Text type="secondary" className="text-12px">
@@ -313,6 +343,30 @@ export function Component() {
             <Statistic title={t('page.searchOps.statusLegacy')} value={processing?.statuses?.legacy ?? 0} />
           </Col>
         </Row>
+        {processing?.live ? (
+          <Row gutter={16} className="mt-8px">
+            <Col span={6}>
+              <Statistic
+                title={t('page.searchOps.queueIndexing')}
+                value={processing.live.queues.indexing_documents ?? 0}
+                valueStyle={{ color: (processing.live.queues.indexing_documents ?? 0) > 100 ? '#d46b08' : undefined }}
+              />
+            </Col>
+            <Col span={6}>
+              <Statistic title={t('page.searchOps.queueProcessed')} value={processing.live.queues.documents_processed ?? 0} />
+            </Col>
+            <Col span={6}>
+              <Statistic title={t('page.searchOps.queueAttachment')} value={processing.live.queues.attachment_processing ?? 0} />
+            </Col>
+            <Col span={6}>
+              <Statistic
+                title={t('page.searchOps.oldestIndexing')}
+                value={oldestIndexingAge() ?? '—'}
+                valueStyle={{ fontSize: 16 }}
+              />
+            </Col>
+          </Row>
+        ) : null}
         <Typography.Text type="secondary" className="text-12px block mt-8px">
           {t('page.searchOps.failedTitle')}
         </Typography.Text>
@@ -324,8 +378,22 @@ export function Component() {
           columns={failedColumns}
           dataSource={processing?.failed ?? []}
           locale={{ emptyText: t('page.searchOps.noData') }}
+          onRow={record => ({
+            onClick: () => setDetailDoc(record),
+            style: { cursor: 'pointer' }
+          })}
         />
       </Card>
+
+      <Drawer
+        open={!!detailDoc}
+        title={detailDoc?.title || t('page.searchOps.processingDetail')}
+        width={560}
+        onClose={() => setDetailDoc(null)}
+        destroyOnHidden
+      >
+        {detailDoc ? <ProcessingPanel docId={detailDoc.id} /> : null}
+      </Drawer>
 
       <Card size="small" title={t('page.searchOps.syncTitle')}>
         <Table<SyncStatusItem>

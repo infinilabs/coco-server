@@ -15,7 +15,7 @@ import (
 
 func TestApplyProcessingOutcomeSuccess(t *testing.T) {
 	doc := core.Document{Status: core.DocumentStatusIndexing, ErrorMessage: "old failure"}
-	applyProcessingOutcome(&doc, true, "enrich_documents", 1234, "")
+	applyProcessingOutcome(&doc, true, "enrich_documents", 1234, "", nil)
 
 	assert.Equal(t, core.DocumentStatusCompleted, doc.Status)
 	assert.True(t, doc.Processed)
@@ -36,7 +36,7 @@ func TestApplyProcessingOutcomeFailure(t *testing.T) {
 	for i := range long {
 		long[i] = 'x'
 	}
-	applyProcessingOutcome(&doc, false, "enrich_documents", 50, string(long))
+	applyProcessingOutcome(&doc, false, "enrich_documents", 50, string(long), nil)
 
 	assert.Equal(t, core.DocumentStatusFailed, doc.Status)
 	assert.False(t, doc.Processed)
@@ -64,12 +64,28 @@ func TestPassthroughOutcomePreservesFailure(t *testing.T) {
 func TestPipelineRunsCappedNewestFirst(t *testing.T) {
 	doc := core.Document{}
 	for i := 0; i < 8; i++ {
-		applyProcessingOutcome(&doc, true, "p", int64(i), "")
+		applyProcessingOutcome(&doc, true, "p", int64(i), "", nil)
 	}
 	runs := doc.Metadata["pipeline_runs"].([]interface{})
 	require.Len(t, runs, pipelineRunsCap)
 	first := runs[0].(util.MapStr)
 	assert.Equal(t, int64(7), first["took_ms"], "newest run must be first")
+}
+
+func TestApplyProcessingOutcomeRecordsProcessors(t *testing.T) {
+	doc := core.Document{}
+	applyProcessingOutcome(&doc, true, "enrich_documents", 88, "", []string{"file_type_detection", "file_metadata", "document_text_attachment_extraction"})
+
+	rec := doc.Metadata["pipeline_runs"].([]interface{})[0].(util.MapStr)
+	processors, ok := rec["processors"].([]string)
+	require.True(t, ok)
+	assert.Equal(t, []string{"file_type_detection", "file_metadata", "document_text_attachment_extraction"}, processors)
+
+	// no processors recorded (e.g. empty chain) → field omitted, keeps records lean
+	empty := core.Document{}
+	applyProcessingOutcome(&empty, true, "enrich_documents", 1, "", nil)
+	rec = empty.Metadata["pipeline_runs"].([]interface{})[0].(util.MapStr)
+	assert.NotContains(t, rec, "processors")
 }
 
 func TestIngestDedupGateEnvSwitch(t *testing.T) {

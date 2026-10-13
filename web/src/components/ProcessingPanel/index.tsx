@@ -19,6 +19,7 @@ interface PipelineRun {
   success?: boolean;
   at?: string;
   error?: string;
+  processors?: string[];
 }
 
 interface TimelineData {
@@ -132,6 +133,15 @@ export default function ProcessingPanel({ docId, headers }: { docId?: string; he
                 <span>{run.pipeline || run.passthrough || '-'}</span>
                 {run.took_ms ? <span>{run.took_ms}ms</span> : null}
                 {run.at ? <span className="text-gray-400">{new Date(run.at).toLocaleString()}</span> : null}
+                {(run.processors ?? []).length > 0 ? (
+                  <span className="flex items-center gap-2px flex-wrap">
+                    {run.processors!.map(p => (
+                      <Tag key={p} className="mr-0" style={{ fontSize: 11 }}>
+                        {p}
+                      </Tag>
+                    ))}
+                  </span>
+                ) : null}
                 {run.error ? <span className="text-red-500" style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>{run.error}</span> : null}
               </div>
             ))
