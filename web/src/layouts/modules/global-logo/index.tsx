@@ -37,7 +37,7 @@ const GlobalLogo: FC<Props> = memo(
       // wordmark already carries "Coco Server" text, so stacking the title
       // next to it reads as two brand names
       if (siteTitle) {
-        return renderIcon();
+        return <div className="pl-16px">{renderIcon()}</div>;
       }
       if (darkMode) {
         return configured?.dark ? (
@@ -59,7 +59,12 @@ const GlobalLogo: FC<Props> = memo(
 
     return (
       <Link
-        className={ClassNames('w-full flex-center nowrap-hidden', className)}
+        className={ClassNames(
+          'w-full nowrap-hidden',
+          // collapsed sider shows the bare icon: keep it centered in the narrow bar
+          siderCollapse ? 'flex-center' : 'flex items-center',
+          className
+        )}
         to="/"
         {...props}
       >
