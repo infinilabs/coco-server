@@ -118,7 +118,13 @@ function CitationChip({ n, citation }: { n: number; citation?: CitationRef }) {
   const content = (
     <div className='wiki-cite-pop'>
       <div className='wiki-cite-pop-claim'>{citation.claim}</div>
-      {citation.excerpt && <div className='wiki-cite-pop-excerpt'>{citation.excerpt}</div>}
+      {citation.excerpt && (
+        <div className='wiki-cite-pop-excerpt'>
+          {/* raw evidence can be a whole CSV row — the popover hints at the
+              source, the full text lives one click away in the document */}
+          {citation.excerpt.length > 220 ? `${citation.excerpt.slice(0, 220)}…` : citation.excerpt}
+        </div>
+      )}
       {citation.docId && (
         <a className='wiki-cite-pop-link' href={`#/preview/document/${citation.docId}`}>
           {t('page.wiki.article.openSource')} →

@@ -684,8 +684,16 @@
 
 /* hover popover: the claim + verbatim excerpt + document link */
 .wiki-cite-pop {
-  max-width: 340px;
+  max-width: 360px;
   padding: 2px 0;
+}
+/* evidence text carries unbroken tokens (CSV columns, long query URLs) —
+   without a forced wrap they push past the popover box */
+.wiki-cite-pop-claim,
+.wiki-cite-pop-excerpt,
+.wiki-cite-pop-link {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .wiki-cite-pop-claim {
   font-size: 12.5px;
