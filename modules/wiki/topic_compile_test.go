@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"infini.sh/coco/core"
+	"infini.sh/framework/core/orm"
 )
 
 func TestClusterTopicsMergesByDocCoOccurrence(t *testing.T) {
@@ -130,4 +131,67 @@ func TestHeadingSimilarAnchorsRenamedSections(t *testing.T) {
 	if merged[0].Body != "new" {
 		t.Errorf("body must refresh, got %q", merged[0].Body)
 	}
+}
+
+func TestMatchTopicTargetsByDocOverlap(t *testing.T) {
+	// last run's page: same documents, drifted title
+	page := core.WikiArticle{ORMObjectBase: orm.ORMObjectBase{ID: "p1"}, Title: "美心食品與餐飲禮券", PageType: core.WikiPageTypeTopic,
+		AIGenerated: true, KeyEntities: []string{"禮券", "美心食品"},
+		Outline: []core.WikiSection{{Heading: "h", DocIDs: []string{"d1", "d2"}}}}
+	// parallel twin from another run: same docs, third title
+	twin := core.WikiArticle{ORMObjectBase: orm.ORMObjectBase{ID: "p2"}, Title: "禮券業務", PageType: core.WikiPageTypeTopic,
+		AIGenerated: true, KeyEntities: []string{"禮券"},
+		Outline: []core.WikiSection{{Heading: "h", DocIDs: []string{"d1", "d2"}}}}
+	// human page on the same docs: enrichable, never absorbable
+	human := core.WikiArticle{ORMObjectBase: orm.ORMObjectBase{ID: "p3"}, Title: "禮券手冊", PageType: core.WikiPageTypeTopic,
+		Outline: []core.WikiSection{{Heading: "h", DocIDs: []string{"d1", "d2"}}}}
+	// unrelated topic page: must not be claimed
+	other := core.WikiArticle{ORMObjectBase: orm.ORMObjectBase{ID: "p4"}, Title: "門市網絡", PageType: core.WikiPageTypeTopic,
+		AIGenerated: true, KeyEntities: []string{"分店"},
+		Outline: []core.WikiSection{{Heading: "h", DocIDs: []string{"d9"}}}}
+
+	cluster := &topicCluster{Title: "美心食品與禮券業務", Docs: map[string]bool{"d1": true, "d2": true},
+		Keys: []ReducedKey{{Name: "禮券"}, {Name: "美心食品"}}}
+	matchTopicTargets([]*topicCluster{cluster}, []core.WikiArticle{page, twin, human, other})
+
+	if cluster.UpdateArticleID == "" {
+		t.Fatal("drifted-title cluster must match an existing page by doc overlap")
+	}
+	if cluster.UpdateArticleID == "p3" {
+		t.Error("argmax must prefer the page with key-entity agreement (p1), not the human page")
+	}
+	for _, id := range cluster.AbsorbIDs {
+		if id == "p3" {
+			t.Error("hand-written page must never be an absorb twin")
+		}
+	}
+	if !containsID(cluster.AbsorbIDs, "p2") {
+		t.Error("AI twin shadowing the same docs must be absorbed")
+	}
+	if containsID(cluster.AbsorbIDs, "p4") {
+		t.Error("unrelated page must not be absorbed")
+	}
+}
+
+func TestMatchTopicTargetsClaimsOnce(t *testing.T) {
+	page := core.WikiArticle{ORMObjectBase: orm.ORMObjectBase{ID: "p1"}, Title: "月餅", PageType: core.WikiPageTypeTopic, AIGenerated: true,
+		Outline: []core.WikiSection{{Heading: "h", DocIDs: []string{"d1", "d2"}}}}
+	first := &topicCluster{Title: "中秋月餅", Docs: map[string]bool{"d1": true, "d2": true}}
+	second := &topicCluster{Title: "節日禮品", Docs: map[string]bool{"d1": true, "d2": true}}
+	matchTopicTargets([]*topicCluster{first, second}, []core.WikiArticle{page})
+	if first.UpdateArticleID != "p1" {
+		t.Fatalf("first cluster must claim the page, got %q", first.UpdateArticleID)
+	}
+	if second.UpdateArticleID != "" {
+		t.Errorf("a page is enriched once per run; second cluster got %q", second.UpdateArticleID)
+	}
+}
+
+func containsID(ids []string, want string) bool {
+	for _, id := range ids {
+		if id == want {
+			return true
+		}
+	}
+	return false
 }

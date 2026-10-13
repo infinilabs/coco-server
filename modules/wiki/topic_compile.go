@@ -50,6 +50,15 @@ const (
 	topicMaxKeyEntities = 10
 	topicLLMOutlineTTL  = 150 * time.Second
 	topicLLMFillTTL     = 300 * time.Second
+
+	// content-based update matching: the LLM names clusters slightly
+	// differently every run, so title/alias equality alone mints a
+	// parallel page per recompile. Source-document overlap is the
+	// ground truth — a cluster built on the same docs enriches the page
+	// those docs built, whatever it got named.
+	topicMatchDocOverlap = 0.6  // min shared-doc ratio to claim a page
+	topicTwinDocOverlap  = 0.7  // twin absorb: near-total doc sharing…
+	topicTwinKeyOverlap  = 0.4  // …plus key-entity agreement
 )
 
 var topicCacheKVKey = "wiki-compile-topic-cache"
@@ -469,12 +478,24 @@ func applyNaming(clusters []*topicCluster, named []topicNaming) {
 
 // matchTopicTargets resolves each cluster against the KB's existing pages:
 // a topic page whose title/alias matches becomes the enrichment target
-// (update-first — new material enriches what exists); thin AI entity pages
-// whose title matches a cluster key become absorb candidates (folded into
-// the topic page when the proposal is applied). Hand-written pages are
-// never absorb candidates.
+// (update-first — new material enriches what exists); failing that, a page
+// built on largely the same source documents claims the cluster, because
+// cluster naming drifts between runs and title equality alone would mint a
+// parallel page per recompile. Topic pages that shadow the same documents
+// become absorb twins (folded into the target when the proposal applies);
+// thin AI entity pages whose title matches a cluster key are absorb
+// candidates too. Hand-written pages are never absorb candidates.
 func matchTopicTargets(clusters []*topicCluster, existing []core.WikiArticle) {
-	topicPages := map[string]string{}  // normalized title/alias -> article id
+	topicPages := map[string]string{} // normalized title/alias -> article id
+	// live topic pages pre-summarized for content matching
+	type pageSig struct {
+		id    string
+		ai    bool
+		docs  map[string]bool
+		keys  map[string]bool
+		title string
+	}
+	var sigs []pageSig
 	var thinAIPages []core.WikiArticle // absorb candidates by title
 	for _, a := range existing {
 		if a.Status == core.WikiArticleArchived {
@@ -486,6 +507,23 @@ func matchTopicTargets(clusters []*topicCluster, existing []core.WikiArticle) {
 			for _, al := range a.Aliases {
 				topicPages[fingerprint.Normalize(al)] = a.ID
 			}
+			sig := pageSig{id: a.ID, ai: a.AIGenerated, title: a.Title, docs: map[string]bool{}, keys: map[string]bool{}}
+			for _, s := range a.Sources {
+				if s.DocID != "" {
+					sig.docs[s.DocID] = true
+				}
+			}
+			for _, sec := range a.Outline {
+				for _, d := range sec.DocIDs {
+					sig.docs[d] = true
+				}
+			}
+			for _, k := range a.KeyEntities {
+				if n := fingerprint.Normalize(k); n != "" {
+					sig.keys[n] = true
+				}
+			}
+			sigs = append(sigs, sig)
 			continue
 		}
 		if a.AIGenerated && (a.PageType == core.WikiPageTypeEntity || a.PageType == core.WikiPageTypeConcept) {
@@ -496,25 +534,80 @@ func matchTopicTargets(clusters []*topicCluster, existing []core.WikiArticle) {
 		}
 	}
 
+	claimed := map[string]bool{} // one cluster per page: the next-strongest match must pick another page
 	for _, c := range clusters {
 		if id, ok := topicPages[fingerprint.Normalize(c.Title)]; ok {
 			c.UpdateArticleID = id
+			claimed[id] = true
 		}
 		for _, al := range c.Aliases {
 			if id, ok := topicPages[fingerprint.Normalize(al)]; ok {
 				c.UpdateArticleID = id
+				claimed[id] = true
 			}
 		}
 		keyNorms := map[string]bool{}
 		for _, k := range c.Keys {
 			keyNorms[fingerprint.Normalize(k.Name)] = true
 		}
+
+		// content pass: only when naming drifted past the title match
+		if c.UpdateArticleID == "" && len(c.Docs) > 0 {
+			best, bestDoc, bestKey := -1, 0.0, 0.0
+			for i := range sigs {
+				if claimed[sigs[i].id] {
+					continue
+				}
+				dr := overlapRatio(c.Docs, sigs[i].docs)
+				if dr < topicMatchDocOverlap {
+					continue
+				}
+				kr := overlapRatio(keyNorms, sigs[i].keys)
+				if dr > bestDoc || (dr == bestDoc && kr > bestKey) {
+					best, bestDoc, bestKey = i, dr, kr
+				}
+			}
+			if best >= 0 {
+				c.UpdateArticleID = sigs[best].id
+				claimed[sigs[best].id] = true
+			}
+		}
+
+		// twin absorb: AI topic pages shadowing this cluster's documents
+		// (the parallel pages past drift-prone runs left behind); human
+		// writing is never folded away
+		for i := range sigs {
+			s := &sigs[i]
+			if s.id == "" || !s.ai || s.id == c.UpdateArticleID || claimed[s.id] {
+				continue
+			}
+			if overlapRatio(c.Docs, s.docs) >= topicTwinDocOverlap && overlapRatio(keyNorms, s.keys) >= topicTwinKeyOverlap {
+				c.AbsorbIDs = append(c.AbsorbIDs, s.id)
+				claimed[s.id] = true
+			}
+		}
+
 		for _, a := range thinAIPages {
 			if keyNorms[fingerprint.Normalize(a.Title)] {
 				c.AbsorbIDs = append(c.AbsorbIDs, a.ID)
 			}
 		}
 	}
+}
+
+// overlapRatio is |a∩b| over the smaller set: a 1-doc cluster citing a page
+// that also cites that doc matches at 1.0, while unrelated docs sit at 0.
+func overlapRatio(a, b map[string]bool) float64 {
+	if len(a) == 0 || len(b) == 0 {
+		return 0
+	}
+	inter := 0
+	for k := range a {
+		if b[k] {
+			inter++
+		}
+	}
+	return float64(inter) / float64(min(len(a), len(b)))
 }
 
 /* ---------------- OUTLINE + FILL (per topic, cached) ---------------- */
