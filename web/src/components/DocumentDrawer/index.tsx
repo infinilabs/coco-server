@@ -1,13 +1,20 @@
-import { Descriptions, Drawer, Tag, Typography } from "antd";
+import { Descriptions, Drawer, Tabs, Tag, Typography } from "antd";
 import styles from "./index.module.less";
 import Markdown from "./Markdown";
 import ProgressiveImage from "../common/ProgressiveImage";
+import ProcessingPanel from "../ProcessingPanel";
 import { Tags, X } from "lucide-react";
 
 export default function DocumentDrawer(props) {
     const { getContainer, data = {}, isMobile, open, onClose } = props;
 
     const { t } = useTranslation();
+    const [activeTab, setActiveTab] = useState('content');
+
+    // reopening the drawer for another document lands back on the content tab
+    useEffect(() => {
+        if (open) setActiveTab('content');
+    }, [open, data.id]);
 
     return (
         <>
@@ -24,38 +31,60 @@ export default function DocumentDrawer(props) {
                 getContainer={getContainer}
             >
                 <div className="h-full overflow-auto px-24px">
-                    <div className="mb-8px">
-                        <Typography.Title className="!text-16px">
-                            {data.title}
-                        </Typography.Title>
-                    </div>
-                    <div className="mb-16px">
-                        {data.url?.startsWith('http') ? (
-                            <Typography.Link copyable onClick={() => data.url && window.open(data.url, '_blank')}>
-                                {data.url}
-                            </Typography.Link>
-                        ) : (
-                            <Typography.Text copyable>{data.url}</Typography.Text>
-                        )}
-                    </div>
-                    {
-                        data.tags?.length > 0 && (
-                            <div className="color-[#999] mb-16px flex items-center gap-8px mb-24px flex-wrap">
-                                <Tags className="text-24px"/>
-                                {data.tags.map((t, i) => <Tag className="bg-#E8E8E8 color-#101010 border-0" key={i}>{t}</Tag>)}
-                            </div>
-                        )
-                    }
-                    {
-                        data.thumbnail && (
-                            <div className={`flex justify-center items-center w-full bg-#F6F8FA rounded-lg mb-16px min-h-120px`}>
-                                <ProgressiveImage src={data.thumbnail} className="max-w-full max-h-full object-contain"/>
-                            </div>
-                        )
-                    }
-                    <div className="leading-[24px] text-12px">
-                        <Markdown content={data.content} />
-                    </div>
+                    <Tabs
+                        activeKey={activeTab}
+                        onChange={setActiveTab}
+                        size="small"
+                        items={[
+                            {
+                                key: 'content',
+                                label: t('page.searchOps.tabContent'),
+                                children: (
+                                    <>
+                                        <div className="mb-8px">
+                                            <Typography.Title className="!text-16px">
+                                                {data.title}
+                                            </Typography.Title>
+                                        </div>
+                                        <div className="mb-16px">
+                                            {data.url?.startsWith('http') ? (
+                                                <Typography.Link copyable onClick={() => data.url && window.open(data.url, '_blank')}>
+                                                    {data.url}
+                                                </Typography.Link>
+                                            ) : (
+                                                <Typography.Text copyable>{data.url}</Typography.Text>
+                                            )}
+                                        </div>
+                                        {
+                                            data.tags?.length > 0 && (
+                                                <div className="color-[#999] mb-16px flex items-center gap-8px mb-24px flex-wrap">
+                                                    <Tags className="text-24px"/>
+                                                    {data.tags.map((t, i) => <Tag className="bg-#E8E8E8 color-#101010 border-0" key={i}>{t}</Tag>)}
+                                                </div>
+                                            )
+                                        }
+                                        {
+                                            data.thumbnail && (
+                                                <div className={`flex justify-center items-center w-full bg-#F6F8FA rounded-lg mb-16px min-h-120px`}>
+                                                    <ProgressiveImage src={data.thumbnail} className="max-w-full max-h-full object-contain"/>
+                                                </div>
+                                            )
+                                        }
+                                        <div className="leading-[24px] text-12px">
+                                            <Markdown content={data.content} />
+                                        </div>
+                                    </>
+                                )
+                            },
+                            // the ingestion timeline for this document: lazily
+                            // mounted so opening the drawer costs no extra API call
+                            ...(data.id ? [{
+                                key: 'processing',
+                                label: t('page.searchOps.processingDetail'),
+                                children: activeTab === 'processing' ? <ProcessingPanel docId={data.id} /> : null
+                            }] : [])
+                        ]}
+                    />
                 </div>
                 <div className="absolute bottom-0 w-full px-24px">
                     <div className="bg-#f5f5f5 dark:bg-[rgb(var(--layout-bg-color))] rounded-20px mb-24px py-24px px-16px">
