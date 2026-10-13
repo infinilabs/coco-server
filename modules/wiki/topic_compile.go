@@ -916,7 +916,9 @@ func sectionID(heading string) string {
 // full claim list trails as the verification floor.
 func RenderTopicContent(sections []core.WikiSection, claims []compileStatement, docTitles map[string]string) string {
 	var sb strings.Builder
-	sb.WriteString("> 本页由知识编译按大纲整理：正文各章节由 AI 依据来源主张撰写，等待人工审阅。\n\n")
+	// no lead banner: the header's AI badge already marks the page as
+	// compiled-and-awaiting-review, and a boilerplate quote above every
+	// article was noise users deleted by hand
 	for _, s := range sections {
 		if strings.TrimSpace(s.Body) == "" {
 			continue

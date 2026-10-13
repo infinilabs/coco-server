@@ -129,18 +129,24 @@ export interface CitationRef {
 
 const CLAIMS_HEADING = /\n?##\s*来源主张\s*\n/;
 const SOURCE_LINE = /^> 来源：.*$/gm;
+/* boilerplate leads compiled pages used to open with — the header's AI
+   badge already says all of it; pages compiled before the leads were
+   dropped still carry them in stored content */
+const BOILERPLATE_LEAD =
+  /^>\s*本页由(?:知识编译|治理队列).*$\n?|^\*\*[^*]+\*\*\s*是知识管道从.*$\n?/gm;
 const CLAIM_ITEM = /^(\d+)\.\s+(.+)$/;
 const SOURCE_LINK = /\[源\]\(#\/preview\/document\/([A-Za-z0-9_-]+)(?:\?q=([^)\s]*))?[^)]*\)/;
 
 /**
  * Split a compiled page's content into its reading body and the numbered
- * source-claim list trailing it: the per-section `> 来源：` lines go away
- * (provenance lives on the interactive [n] chips) and the 来源主张 section
- * becomes data for the hover popovers instead of layout bulk.
+ * source-claim list trailing it: the per-section `> 来源：` lines and the
+ * compile banner go away (provenance lives on the interactive [n] chips,
+ * AI status on the header badge) and the 来源主张 section becomes data
+ * for the hover popovers instead of layout bulk.
  */
 export function splitCitationBlock(content: string): { body: string; claims: CitationRef[] } {
   if (!content) return { body: '', claims: [] };
-  let body = content.replace(SOURCE_LINE, '');
+  let body = content.replace(BOILERPLATE_LEAD, '').replace(SOURCE_LINE, '');
   const claims: CitationRef[] = [];
   const split = body.split(CLAIMS_HEADING);
   if (split.length > 1) {

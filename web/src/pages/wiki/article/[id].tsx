@@ -1099,15 +1099,27 @@ export function Component() {
                           </div>
                         </Section>
                       )}
-                      {structured.mainContent.trim() && (
-                        <>
-                          <Divider />
-                          <Markdown
-                            content={mainContent}
-                            renderLink={renderWikiLink}
-                          />
-                        </>
-                      )}
+                      {structured.mainContent.trim() && (() => {
+                        // the divider only separates preamble blocks from the
+                        // article body — with the compiled lead gone, nothing
+                        // precedes mainContent and a lone rule would dangle
+                        const hasPreamble =
+                          structured.intro.trim().length > 0 ||
+                          structured.keyCharacteristics.length > 0 ||
+                          structured.applications.length > 0 ||
+                          structured.relatedConcepts.length > 0 ||
+                          structured.relatedEntities.length > 0 ||
+                          structured.mentions.length > 0;
+                        return (
+                          <>
+                            {hasPreamble && <Divider />}
+                            <Markdown
+                              content={mainContent}
+                              renderLink={renderWikiLink}
+                            />
+                          </>
+                        );
+                      })()}
                       {/* key entities live at the footer like blog tags — a
                           10-chip row above the lead pushed the whole article
                           down on entity-rich pages */}

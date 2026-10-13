@@ -150,16 +150,11 @@ func relationTargetNames(ctx *orm.Context, entity *core.WikiEntity) map[string]s
 	return names
 }
 
-// composeEntityContent renders the page: the provenance intro, then the
-// declared sections in order (or the canonical 来源引用/别名 pair).
+// composeEntityContent renders the page: the declared sections in order
+// (or the canonical 来源引用/别名 pair). No boilerplate intro — the page
+// header already carries type/AI status.
 func composeEntityContent(entity *core.WikiEntity, layout []OntologyPageSection, targetNames map[string]string) string {
-	typeLabel := entity.Type
-	if typeLabel == "" {
-		typeLabel = "实体"
-	}
-	intro := fmt.Sprintf("**%s** 是知识管道从 %d 份来源资料中识别出的「%s」类实体，以下主张均附来源出处，等待人工审阅完善。\n\n",
-		entity.Name, len(entity.Sources), typeLabel)
-	return composeEntityContentWithIntro(entity, layout, targetNames, intro)
+	return composeEntityContentWithIntro(entity, layout, targetNames, "")
 }
 
 // composeEntityContentWithIntro renders the declared sections (or the

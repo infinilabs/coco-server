@@ -424,7 +424,6 @@ func applyRebuildProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 
 	// non-entity page: rebuild from the article's own source references
 	var sb strings.Builder
-	fmt.Fprintf(&sb, "> 本页由治理队列依据 %d 条来源引用自动重建，内容以来源原文为准，等待人工审阅。\n\n", len(article.Sources))
 	if len(article.Sources) > 0 {
 		sb.WriteString("## 来源主张\n\n")
 		for i, s := range article.Sources {
@@ -595,13 +594,11 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 		// verification floor
 		sections := composeEntityContentWithIntro(&synthetic, layout, targetNames, "")
 		if prose := compiledProse(ctx, p.ArticleTitle, kind, statements); prose != "" {
-			body.WriteString(fmt.Sprintf("> 本页由知识编译起草：正文为 AI 依据来源主张撰写，按「%s」类型的页面结构组织，等待人工审阅。\n\n%s\n\n",
-				synthetic.Type, prose))
+			body.WriteString(prose)
+			body.WriteString("\n\n")
 			body.WriteString(sections)
 		} else {
-			intro := fmt.Sprintf("> 本页由知识编译依据 %d 条来源主张自动起草，按「%s」类型的页面结构组织，等待人工审阅。\n\n",
-				len(statements), synthetic.Type)
-			body.WriteString(composeEntityContentWithIntro(&synthetic, layout, targetNames, intro))
+			body.WriteString(composeEntityContentWithIntro(&synthetic, layout, targetNames, ""))
 		}
 	} else {
 		// numbered cited claims: the verification floor every draft keeps,
@@ -611,10 +608,10 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 		// evidence-only drafts read as "a preamble and a quote list",
 		// which is exactly the 正文为空 complaint on single-claim pages
 		if prose := compiledProse(ctx, p.ArticleTitle, kind, statements); prose != "" {
-			body.WriteString(fmt.Sprintf("> 本页由知识编译起草：正文为 AI 依据下方来源主张撰写，等待人工审阅。\n\n%s\n\n## 来源主张\n\n", prose))
+			body.WriteString(prose)
+			body.WriteString("\n\n## 来源主张\n\n")
 			body.WriteString(claims)
 		} else {
-			body.WriteString(fmt.Sprintf("> 本页由知识编译依据 %d 条来源主张自动起草，等待人工审阅。\n\n", len(statements)))
 			body.WriteString(claims)
 		}
 	}
