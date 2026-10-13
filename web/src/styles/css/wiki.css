@@ -682,10 +682,24 @@
   box-shadow: 0 0 0 6px color-mix(in srgb, var(--ant-color-primary) 3.5%, transparent);
 }
 
+/* compiled prose carries raw evidence tokens (CSV rows, query URLs) with
+   no break points — force-wrap them inside the reading surface too, or
+   one long line pushes past the article card; code blocks keep their
+   own scrolling behavior */
+.wiki-doc-surface p,
+.wiki-doc-surface li,
+.wiki-article-lead,
+.wiki-article-lead p,
+.wiki-claims-text {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 /* hover popover: the claim + verbatim excerpt + document link */
 .wiki-cite-pop {
   max-width: 360px;
   padding: 2px 0;
+  overflow: hidden;
 }
 /* evidence text carries unbroken tokens (CSV columns, long query URLs) —
    without a forced wrap they push past the popover box */
@@ -734,4 +748,46 @@
   flex: 1;
   min-width: 0;
   color: var(--wiki-text-2, var(--ant-color-text-secondary));
+}
+
+/* right-rail metadata card: aliases/tags/entities/relations and page
+   times under the outline — attribute display outside the reading flow */
+.wiki-meta-card {
+  margin-top: 14px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.wiki-meta-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--wiki-text-3);
+  margin-bottom: 4px;
+}
+.wiki-meta-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.wiki-meta-alias {
+  font-size: 11.5px;
+  line-height: 1.4;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--wiki-text) 6%, transparent);
+  color: var(--wiki-text-2);
+}
+.wiki-meta-rel {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--wiki-text-2);
+  cursor: pointer;
+}
+.wiki-meta-rel:hover {
+  color: var(--wiki-accent);
 }

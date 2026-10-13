@@ -348,6 +348,13 @@ const page: App.I18n.Schema['translation']['page'] = {
       versions: 'Versions',
       versionView: 'View',
       keyEntities: 'Key entities',
+      meta: {
+        aliases: 'Aliases',
+        tags: 'Tags',
+        relations: 'Relations',
+        times: 'Times',
+        created: 'Created'
+      },
       maturity: 'Maturity: {{sources}} sources · {{sections}}/{{planned}} sections',
       maturityHint: 'Compile coverage: cited sources and filled/planned sections; new material keeps filling the gaps',
       claimsToggle: 'Source claims · {{count}} (click to expand)',

@@ -348,6 +348,13 @@ const page: App.I18n.Schema['translation']['page'] = {
       versions: '版本历史',
       versionView: '查看',
       keyEntities: '关键实体',
+      meta: {
+        aliases: '别名',
+        tags: '标签',
+        relations: '关联',
+        times: '时间',
+        created: '创建于'
+      },
       maturity: '成熟度: {{sources}} 源 · {{sections}}/{{planned}} 节',
       maturityHint: '编译覆盖度：引用来源数与已成文章节数/规划节数，新素材会持续补齐缺失维度',
       claimsToggle: '来源主张 · {{count}} 条（点击展开）',

@@ -46,6 +46,7 @@ import {
   Upload
 } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Markdown from '@/components/DocumentDrawer/Markdown';
@@ -1120,27 +1121,10 @@ export function Component() {
                           </>
                         );
                       })()}
-                      {/* key entities live at the footer like blog tags — a
-                          10-chip row above the lead pushed the whole article
-                          down on entity-rich pages */}
-                      {(article.key_entities?.length || 0) > 0 && (
-                        <>
-                          <Divider />
-                          <div className='flex flex-wrap items-center gap-6px text-xs'>
-                            <span className='color-[var(--wiki-text-3)]'>{t('page.wiki.article.keyEntities')}</span>
-                            {article.key_entities!.map(name => (
-                              <Tag
-                                bordered={false}
-                                className='cursor-pointer'
-                                key={name}
-                                onClick={() => nav(`/wiki/kb/${article.kb_id}?tab=entities&entity=${encodeURIComponent(name)}`)}
-                              >
-                                {name}
-                              </Tag>
-                            ))}
-                          </div>
-                        </>
-                      )}
+                      {/* key entities, aliases, tags, relations and page
+                          times live in the right rail's metadata card —
+                          attribute display without touching the reading
+                          flow */}
                       {/* the verification floor, collapsed: every claim with
                           its document one click away — the prose above shows
                           provenance through the [n] chips, not bulk */}
@@ -1392,7 +1376,96 @@ export function Component() {
                   />
                 </div>
               </article>
-              <ArticleOutline content={article.content} />
+              <ArticleOutline
+                content={article.content}
+                footer={(() => {
+                  // the rail metadata card: aliases/tags/entities/relations
+                  // and page times — attribute info away from the prose
+                  const groups: { label: string; items: ReactNode[] }[] = [];
+                  if ((article.key_entities?.length || 0) > 0) {
+                    groups.push({
+                      label: t('page.wiki.article.keyEntities'),
+                      items: article.key_entities!.map(name => (
+                        <Tag
+                          bordered={false}
+                          className='cursor-pointer'
+                          key={name}
+                          onClick={() => nav(`/wiki/kb/${article.kb_id}?tab=entities&entity=${encodeURIComponent(name)}`)}
+                        >
+                          {name}
+                        </Tag>
+                      ))
+                    });
+                  }
+                  if ((article.aliases?.length || 0) > 0) {
+                    groups.push({
+                      label: t('page.wiki.article.meta.aliases'),
+                      items: article.aliases!.map(alias => (
+                        <span className='wiki-meta-alias' key={alias}>
+                          {alias}
+                        </span>
+                      ))
+                    });
+                  }
+                  if ((article.tags?.length || 0) > 0) {
+                    groups.push({
+                      label: t('page.wiki.article.meta.tags'),
+                      items: article.tags!.map(tag => (
+                        <Tag bordered={false} key={tag}>
+                          {tag}
+                        </Tag>
+                      ))
+                    });
+                  }
+                  const relations = [
+                    ...((structured?.relatedEntities ?? []).slice(0, 8).map(name => ({ name, kind: 'entity' as const }))),
+                    ...((structured?.relatedConcepts ?? []).slice(0, 8).map(name => ({ name, kind: 'concept' as const })))
+                  ].filter(r => r.name);
+                  if (relations.length > 0) {
+                    groups.push({
+                      label: t('page.wiki.article.meta.relations'),
+                      items: relations.map(r => (
+                        <a
+                          className='wiki-meta-rel'
+                          key={`${r.kind}:${r.name}`}
+                          onClick={e => {
+                            e.preventDefault();
+                            openWikiLink(r.kind, r.name);
+                          }}
+                        >
+                          {r.name}
+                        </a>
+                      ))
+                    });
+                  }
+                  if (groups.length === 0 && !article.updated_at && !article.created_at) return null;
+                  return (
+                    <div className='wiki-meta-card'>
+                      {groups.map(g => (
+                        <div className='wiki-meta-group' key={g.label}>
+                          <div className='wiki-meta-label'>{g.label}</div>
+                          <div className='wiki-meta-chips'>{g.items}</div>
+                        </div>
+                      ))}
+                      <div className='wiki-meta-group'>
+                        <div className='wiki-meta-label'>{t('page.wiki.article.meta.times')}</div>
+                        <div className='text-11px color-[var(--wiki-text-3)] leading-5'>
+                          {article.updated_at && (
+                            <div>
+                              {t('page.wiki.hub.lastUpdated')} {article.updated_at}
+                            </div>
+                          )}
+                          {article.created_at && (
+                            <div>
+                              {t('page.wiki.article.meta.created')} {article.created_at}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              />
             </div>
           )}
         </Spin>

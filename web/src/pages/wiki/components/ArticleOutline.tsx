@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 /**
@@ -7,9 +8,10 @@ import { useTranslation } from 'react-i18next';
  * plumbing.
  *
  * Rendered as a separate rail next to (not inside) the reading surface: a thin vertical track with an accent marker on
- * the active item, like Yuque/GitHub docs.
+ * the active item, like Yuque/GitHub docs. The optional footer renders under the outline in the same sticky column —
+ * the article's metadata card (aliases/tags/entities/relations/time) lives there, out of the reading flow.
  */
-export function ArticleOutline({ content }: { readonly content: string }) {
+export function ArticleOutline({ content, footer }: { readonly content: string; readonly footer?: ReactNode }) {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [active, setActive] = useState('');
@@ -91,6 +93,7 @@ export function ArticleOutline({ content }: { readonly content: string }) {
             </div>
           );
         })}
+        {footer}
       </div>
     </nav>
   );
