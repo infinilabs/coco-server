@@ -17,9 +17,12 @@ interface Props {
   loading?: boolean;
   record?: Record<string, any>;
   onSubmit: (params: any, before?: () => void, after?: () => void) => void;
+  /** persists the sibling search_settings section (enabled/search_type/…)
+   * before this form's integration update; thrown validation aborts the save */
+  onBeforeSave?: () => Promise<void> | void;
 }
 
-const BuiltinSearchForm = memo(({ loading, onSubmit, record }: Props) => {
+const BuiltinSearchForm = memo(({ loading, onSubmit, record, onBeforeSave }: Props) => {
   const [form] = Form.useForm();
   const { t } = useTranslation();
   const { defaultRequiredRule } = useFormRules();
@@ -188,6 +191,9 @@ const BuiltinSearchForm = memo(({ loading, onSubmit, record }: Props) => {
 
   const handleSubmit = async () => {
     const params = await form.validateFields();
+    // one button saves both sections: search_settings (enabled/search_type/…)
+    // first, then the built-in integration update below
+    if (onBeforeSave) await onBeforeSave();
     const { ai_overview, datasource, deep_research_assistant, deep_think_assistant, placeholder, welcome } = params;
     startLoading();
     onSubmit(

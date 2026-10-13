@@ -215,9 +215,9 @@ func (p *ProcessDocumentsProcessor) processMessage(msg queue.Message) error {
 		pipelineErr = err.Error()
 	}
 	tookMs := time.Since(started).Milliseconds()
-	// The framework records every processor the sub-chain executed; carried
-	// into the run record so the timeline can show which stages ran.
-	processors := subCtx.GetFlowProcess()
+	// Per-processor step stats recorded by the framework Process loop —
+	// persisted on the run record for document-level pipeline observability.
+	steps := subCtx.GetStepStats()
 
 	// Retrieve the (possibly processed) messages from the sub-context.
 	enriched, ok := subCtx.Get(p.config.MessageField).([]queue.Message)
@@ -231,7 +231,7 @@ func (p *ProcessDocumentsProcessor) processMessage(msg queue.Message) error {
 	// expand one input document into multiple output documents, so we iterate
 	// over the full slice rather than assuming a 1-to-1 mapping.
 	for _, em := range enriched {
-		if err := p.pushEnriched(em.Data, pipelineSucceeded, pipelineName, tookMs, pipelineErr, processors); err != nil {
+		if err := p.pushEnriched(em.Data, pipelineSucceeded, pipelineName, tookMs, pipelineErr, steps); err != nil {
 			log.Errorf("processor [%s] failed to push enriched document to output queue: %v", p.Name(), err)
 		}
 	}
@@ -252,7 +252,7 @@ func (p *ProcessDocumentsProcessor) passthrough(msg queue.Message) error {
 // pushEnriched stamps the terminal lifecycle outcome of an enrichment run
 // (W1) and pushes to the output queue. Falls back to the raw bytes if
 // (de)serialization fails.
-func (p *ProcessDocumentsProcessor) pushEnriched(data []byte, success bool, pipelineName string, tookMs int64, errMsg string, processors []string) error {
+func (p *ProcessDocumentsProcessor) pushEnriched(data []byte, success bool, pipelineName string, tookMs int64, errMsg string, steps []pipeline.StepStat) error {
 	if p.outputQueue == nil {
 		return nil
 	}
@@ -260,7 +260,7 @@ func (p *ProcessDocumentsProcessor) pushEnriched(data []byte, success bool, pipe
 	if err := util.FromJSONBytes(data, &doc); err != nil {
 		return queue.Push(p.outputQueue, data)
 	}
-	applyProcessingOutcome(&doc, success, pipelineName, tookMs, errMsg, processors)
+	applyProcessingOutcome(&doc, success, pipelineName, tookMs, errMsg, steps)
 	// W3 方案 c: mirror the (re-)chunked document into the standalone
 	// KnowledgeChunk index — the retrieval face for chunk-level legs
 	if len(doc.Chunks) > 0 {
@@ -291,7 +291,7 @@ func (p *ProcessDocumentsProcessor) pushPassthrough(data []byte, reason string) 
 
 // applyProcessingOutcome stamps the enrichment terminal state and prepends
 // a run record to Metadata["pipeline_runs"] (capped, newest first).
-func applyProcessingOutcome(doc *core.Document, success bool, pipelineName string, tookMs int64, errMsg string, processors []string) {
+func applyProcessingOutcome(doc *core.Document, success bool, pipelineName string, tookMs int64, errMsg string, steps []pipeline.StepStat) {
 	if success {
 		doc.Status = core.DocumentStatusCompleted
 		doc.ErrorMessage = ""
@@ -308,8 +308,18 @@ func applyProcessingOutcome(doc *core.Document, success bool, pipelineName strin
 		"at":       time.Now().UTC().Format(time.RFC3339),
 		"error":    truncateRunError(errMsg),
 	}
-	if len(processors) > 0 {
-		rec["processors"] = processors
+	// Per-processor steps (name/took_ms/error) for the timeline UI; only
+	// attached when the framework recorded any, keeping passthrough records lean.
+	if len(steps) > 0 {
+		stepArr := make([]interface{}, 0, len(steps))
+		for _, s := range steps {
+			m := util.MapStr{"name": s.Name, "took_ms": s.TookUs / 1000}
+			if s.Error != "" {
+				m["error"] = s.Error
+			}
+			stepArr = append(stepArr, m)
+		}
+		rec["steps"] = stepArr
 	}
 	prependRunRecord(doc, rec)
 }

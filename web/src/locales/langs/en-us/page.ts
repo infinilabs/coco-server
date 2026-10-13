@@ -816,6 +816,32 @@ const page: App.I18n.Schema['translation']['page'] = {
     edit: {
       title: 'Edit Datasource'
     },
+    doc: {
+      download: 'Download',
+      aiInsights: 'AI Insights',
+      aiSummary: 'Summary',
+      backToList: 'Back',
+      basicInfo: 'Basic Info',
+      docLink: 'Document Link',
+      lang: 'Language',
+      cover: 'Cover',
+      thumbnail: 'Thumbnail',
+      downloadOriginal: 'Download Original',
+      noAttachment: 'No attachments, and no generated cover / thumbnail for this document',
+      noAiResult: 'No AI artifacts (summary, insights) for this document — the corresponding processors may not be configured or have not run',
+      noChunks: 'No chunks for this document — structured chunking or embedding processors may not be configured or have not run',
+      noText: 'No text content extracted from this document',
+      openPreview: 'Original Preview',
+      parsingTitle: 'Document Parsing',
+      runStart: 'Started',
+      stepsJumpHint: 'Click a step name in the processing runs to jump to its artifact tab',
+      tabAi: 'AI Artifacts',
+      tabAttachments: 'Attachments',
+      tabChunks: 'Document Chunks',
+      tabRuns: 'Processing Runs',
+      tabText: 'Document Text',
+      viewDetail: 'View Detail'
+    },
     every: 'Every',
     file_paths_add: 'Add File Path',
     hours: 'hours',
@@ -1063,6 +1089,34 @@ const page: App.I18n.Schema['translation']['page'] = {
     seconds: 'seconds',
     site_urls: 'Site URLs',
     site_urls_add: 'Add URL',
+    stats: {
+      tabTitle: 'Statistics',
+      totalDocs: 'Total docs',
+      storage: 'Storage',
+      avgSize: 'Avg size',
+      coverage: 'Vector coverage',
+      trend: 'Ingestion trend',
+      trendEmpty: 'All documents arrived on a single day — no trend to show',
+      byType: 'By type',
+      byStatus: 'Lifecycle',
+      byLang: 'Languages',
+      byCat: 'Categories',
+      byModel: 'Embedding models',
+      byTag: 'Top tags',
+      vectorized: 'Vectorized',
+      notVectorized: 'Not vectorized',
+      hasFaq: 'FAQ',
+      wikiBound: 'Wiki bound',
+      vectorTip: 'Whether any document has embeddings (semantic search available)',
+      retryOne: 'Retry',
+      retryOneQueued: 'Re-queued for processing',
+      enabled: 'Enabled',
+      disabled: 'Disabled',
+      connector: 'Connector',
+      syncLabel: 'Sync',
+      syncOff: 'Off',
+      createdAt: 'Created'
+    },
     title: 'Datasource',
     labels: {
       owner: 'Owner',
@@ -1649,6 +1703,9 @@ const page: App.I18n.Schema['translation']['page'] = {
         default_hint: 'This is the system-wide default; a KB that binds its own assistant (KB settings → AI 智能体) overrides it. The builtin 知识管理助手 works out of the box (citation-backed, drafts only).'
       }
     },
+    memory_settings: {
+      title: 'Long-term Memory'
+    },
 
     search_settings: {
       title: 'Search Settings',
@@ -1953,12 +2010,22 @@ const page: App.I18n.Schema['translation']['page'] = {
       statusLegacy: 'Legacy (unstamped)',
       model: 'Embedding model',
       runsTitle: 'Run history (latest 5)',
+      runsCount: '{{count}} runs recorded',
+      recentRuns: 'Showing latest {{count}} runs only',
+      viewFullRuns: 'View full parsing details',
       noRuns: 'No runs recorded (legacy document or not yet processed)',
       chunksTitle: 'Parsing artifacts · chunks ({{total}} total)',
       breadcrumb: 'Breadcrumb',
       pages: 'Pages',
       excerpt: 'Excerpt',
-      vectorized: 'Vector'
+      vectorized: 'Vector',
+      passthroughHint: 'No pipeline configured; the document was ingested as-is',
+      ptNoDatasource: 'No datasource for this document',
+      ptDatasourceNotFound: 'Datasource not found',
+      ptNoPipeline: 'No pipeline configured',
+      ptPipelineNotFound: 'Pipeline not found (possibly deleted)',
+      ptPipelineInvalid: 'Invalid pipeline configuration',
+      ptPipelineInitFailed: 'Pipeline initialization failed'
     },
     labels: {
       type: 'Type',

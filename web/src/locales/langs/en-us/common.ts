@@ -29,6 +29,9 @@ const common: App.I18n.Schema['translation']['common'] = {
   },
   error: 'Error',
   errorHint: 'Please try again later',
+  mermaidRenderError: 'Diagram failed to render, original Mermaid source kept below',
+  diagram: 'Diagram',
+  sourceCode: 'Source',
   exception: {
     backToPrev: 'Go back',
     title404: 'Page not found',

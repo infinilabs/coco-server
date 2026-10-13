@@ -12,6 +12,12 @@ import { request } from '@/service/request';
  * actions (reprocess) live on the ops surface.
  */
 
+interface PipelineRunStep {
+  name?: string;
+  took_ms?: number;
+  error?: string;
+}
+
 interface PipelineRun {
   pipeline?: string;
   passthrough?: string;
@@ -19,6 +25,8 @@ interface PipelineRun {
   success?: boolean;
   at?: string;
   error?: string;
+  steps?: PipelineRunStep[];
+  /** pre-steps format kept for records indexed before the step-stats change */
   processors?: string[];
 }
 
@@ -133,7 +141,16 @@ export default function ProcessingPanel({ docId, headers }: { docId?: string; he
                 <span>{run.pipeline || run.passthrough || '-'}</span>
                 {run.took_ms ? <span>{run.took_ms}ms</span> : null}
                 {run.at ? <span className="text-gray-400">{new Date(run.at).toLocaleString()}</span> : null}
-                {(run.processors ?? []).length > 0 ? (
+                {(run.steps ?? []).length > 0 ? (
+                  <span className="flex items-center gap-2px flex-wrap">
+                    {run.steps!.map((s, j) => (
+                      <Tag key={`${s.name}-${j}`} className="mr-0" style={{ fontSize: 11 }} color={s.error ? 'red' : undefined}>
+                        {s.name}
+                        {s.took_ms ? ` ${s.took_ms}ms` : ''}
+                      </Tag>
+                    ))}
+                  </span>
+                ) : (run.processors ?? []).length > 0 ? (
                   <span className="flex items-center gap-2px flex-wrap">
                     {run.processors!.map(p => (
                       <Tag key={p} className="mr-0" style={{ fontSize: 11 }}>

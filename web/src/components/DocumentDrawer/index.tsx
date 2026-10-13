@@ -1,4 +1,4 @@
-import { Descriptions, Drawer, Tabs, Tag, Typography } from "antd";
+import { Button, Descriptions, Drawer, Tabs, Tag, Typography } from "antd";
 import styles from "./index.module.less";
 import Markdown from "./Markdown";
 import ProgressiveImage from "../common/ProgressiveImage";
@@ -10,6 +10,9 @@ export default function DocumentDrawer(props) {
 
     const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState('content');
+    const navigate = useNavigate();
+
+    const docId = data.id;
 
     // reopening the drawer for another document lands back on the content tab
     useEffect(() => {
@@ -25,7 +28,17 @@ export default function DocumentDrawer(props) {
                 width={isMobile ? '100%' : 724}
                 closeIcon={null}
                 extra={(
-                    <X className="color-[#bbb] cursor-pointer" onClick={onClose}/>
+                    <div className="flex items-center gap-8px">
+                        {docId && (
+                            <Button
+                                size="small"
+                                onClick={() => navigate(`/data-source/doc/${docId}`)}
+                            >
+                                {t('page.datasource.doc.viewDetail')}
+                            </Button>
+                        )}
+                        <X className="color-[#bbb] cursor-pointer" onClick={onClose}/>
+                    </div>
                 )}
                 rootClassName={styles.detail}
                 getContainer={getContainer}

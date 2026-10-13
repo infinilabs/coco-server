@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"infini.sh/coco/core"
+	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/util"
 )
 
@@ -74,18 +75,27 @@ func TestPipelineRunsCappedNewestFirst(t *testing.T) {
 
 func TestApplyProcessingOutcomeRecordsProcessors(t *testing.T) {
 	doc := core.Document{}
-	applyProcessingOutcome(&doc, true, "enrich_documents", 88, "", []string{"file_type_detection", "file_metadata", "document_text_attachment_extraction"})
+	applyProcessingOutcome(&doc, true, "enrich_documents", 88, "", []pipeline.StepStat{
+		{Name: "file_type_detection", TookUs: 1500},
+		{Name: "file_metadata", TookUs: 900, Error: "boom"},
+	})
 
 	rec := doc.Metadata["pipeline_runs"].([]interface{})[0].(util.MapStr)
-	processors, ok := rec["processors"].([]string)
+	steps, ok := rec["steps"].([]interface{})
 	require.True(t, ok)
-	assert.Equal(t, []string{"file_type_detection", "file_metadata", "document_text_attachment_extraction"}, processors)
+	require.Len(t, steps, 2)
+	first := steps[0].(util.MapStr)
+	assert.Equal(t, "file_type_detection", first["name"])
+	assert.Equal(t, int64(1), first["took_ms"], "TookUs converts to milliseconds")
+	failed := steps[1].(util.MapStr)
+	assert.Equal(t, "boom", failed["error"], "step error must be carried")
+	assert.NotContains(t, first, "error", "successful step stays lean")
 
-	// no processors recorded (e.g. empty chain) → field omitted, keeps records lean
+	// no steps recorded (e.g. empty chain) → field omitted, keeps records lean
 	empty := core.Document{}
 	applyProcessingOutcome(&empty, true, "enrich_documents", 1, "", nil)
 	rec = empty.Metadata["pipeline_runs"].([]interface{})[0].(util.MapStr)
-	assert.NotContains(t, rec, "processors")
+	assert.NotContains(t, rec, "steps")
 }
 
 func TestIngestDedupGateEnvSwitch(t *testing.T) {

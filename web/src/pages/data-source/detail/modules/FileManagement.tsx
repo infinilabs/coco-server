@@ -1,10 +1,12 @@
-import { CheckCircleFilled, CloseCircleFilled, DownOutlined, EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined } from '@ant-design/icons';
+import { CheckCircleFilled, CloseCircleFilled, DatabaseOutlined, DownOutlined, EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, RightOutlined } from '@ant-design/icons';
 import type { MenuProps, TableColumnsType, TableProps } from 'antd';
-import { Avatar, Button, Dropdown, Table, message } from 'antd';
+import { Avatar, Button, Dropdown, Popover, Table, Typography, message } from 'antd';
 import Search from 'antd/es/input/Search';
+import { useNavigate } from 'react-router-dom';
 
 import FontIcon from '@/components/common/font_icon';
 import InfiniIcon from '@/components/common/icon';
+import ProcessingTimeline from '@/components/DocumentDrawer/ProcessingTimeline';
 import {
   batchDeleteDocument,
   deleteDocument,
@@ -37,6 +39,7 @@ const FileManagement = props => {
 
   const responsive = useResponsive();
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const server = useAppSelector(getServer);
 
@@ -77,6 +80,9 @@ const FileManagement = props => {
   }, [datasource?.connector?.id]);
   const onMenuClick = ({ key, record }: any) => {
     switch (key) {
+      case 'view_detail':
+        navigate(`/data-source/doc/${record.id}`);
+        break;
       case '1':
         window?.$modal?.confirm({
           content: t('page.datasource.labels.deleteConfirm'),
@@ -137,11 +143,20 @@ const FileManagement = props => {
       });
     });
   };
+  // 批量操作菜单只含删除；行级菜单另加「查看详情」（跳文档详情整页）
   const items: MenuProps['items'] = [
     {
       key: '1',
       label: t('common.delete')
     }
+  ];
+  const rowMenuItems: MenuProps['items'] = [
+    {
+      key: 'view_detail',
+      label: t('page.datasource.doc.viewDetail')
+    },
+    { type: 'divider' },
+    ...items
   ];
   const onBatchMenuClick = useCallback(
     ({ key }: any) => {
@@ -363,8 +378,45 @@ const FileManagement = props => {
     {
       title: t('common.status'),
       dataIndex: 'processed',
-      render: (processed: boolean) => {
-        return processed === true ? <CheckCircleFilled className='text-[var(--ant-color-success)]' /> : <CloseCircleFilled className='text-[var(--ant-color-error)]' />
+      width: '80px',
+      render: (processed: boolean, record: any) => {
+        const icon =
+          processed === true ? (
+            <CheckCircleFilled className='text-[var(--ant-color-success)]' />
+          ) : (
+            <CloseCircleFilled className='text-[var(--ant-color-error)]' />
+          );
+        // the parsing popover (W13b artifact face): lazy-mounted on first
+        // open, destroyed on close so each visit refetches fresh state.
+        // 固定高度 + 内部滚动：antd 默认 placement=top，若浮层高度随异步
+        // 内容变化（小→大），autoAdjustOverflow 会在渲染后把它从上方翻到
+        // 下方产生可见跳动；首帧尺寸恒定则只定位一次
+        return (
+          <Popover
+            arrow={false}
+            content={
+              <div className='flex h-400px w-360px flex-col'>
+                <div className='mb-8px text-14px font-bold'>{t('page.datasource.doc.parsingTitle')}</div>
+                <div className='min-h-0 flex-1 overflow-y-auto'>
+                  <ProcessingTimeline docId={record?.id} maxRuns={3} />
+                </div>
+                <div className='mt-10px flex shrink-0 justify-end border-t-1 border-t-[var(--ant-color-border-secondary)] pt-8px'>
+                  <Typography.Link
+                    className='text-12px'
+                    onClick={() => navigate(`/data-source/doc/${record?.id}?tab=runs`)}
+                  >
+                    {t('page.preview.processing.viewFullRuns')} <RightOutlined className='text-10px' />
+                  </Typography.Link>
+                </div>
+              </div>
+            }
+            destroyOnHidden
+            title={null}
+            trigger='click'
+          >
+            <span className='cursor-pointer'>{icon}</span>
+          </Popover>
+        );
       }
     },
     {
@@ -373,7 +425,7 @@ const FileManagement = props => {
       render: (_, record) => {
         if (!isEditorOwner(record)) return null;
         return (
-          <Dropdown menu={{ items, onClick: ({ key }) => onMenuClick({ key, record }) }}>
+          <Dropdown menu={{ items: rowMenuItems, onClick: ({ key }) => onMenuClick({ key, record }) }}>
             <EllipsisOutlined className='cursor-pointer'/>
           </Dropdown>
         );
@@ -455,56 +507,69 @@ const FileManagement = props => {
       paths = [];
     }
     if (Array.isArray(paths) && paths.length > 0) {
-      if (datasource?.name) {
-        paths.unshift(datasource?.name);
-      }
-      return paths.map((item, index) => {
-        const isLast = index === paths.length - 1;
-        return (
-          <span
-            key={index}
-            style={{ opacity: isLast ? 1 : 0.5 }}
-          >
-            {isLast ? (
-              <span>{item}</span>
-            ) : (
-              <a
-                onClick={() => {
-                  setQueryParams(old => {
-                    const newParams = { ...old };
-                    if (index !== 0) {
-                      const path = paths.slice(1, index + 1);
-                      newParams.path = JSON.stringify(path);
-                    } else {
-                      delete newParams.path;
-                    }
-                    return {
-                      ...newParams,
-                      from: 0,
-                      size: 10
-                    };
-                  });
-                }}
+      // 数据源名称已在顶部基本信息卡展示：面包屑只保留根图标入口 + 文件夹路径
+      return (
+        <>
+          <DatabaseOutlined
+            className='cursor-pointer transition-colors hover:text-[var(--ant-color-primary)]'
+            onClick={() => {
+              setQueryParams(old => {
+                const newParams = { ...old };
+                delete newParams.path;
+                return {
+                  ...newParams,
+                  from: 0,
+                  size: 10
+                };
+              });
+            }}
+          />
+          <span className='mx-10px'>&gt;</span>
+          {paths.map((item, index) => {
+            const isLast = index === paths.length - 1;
+            return (
+              <span
+                key={index}
+                style={{ opacity: isLast ? 1 : 0.5 }}
               >
-                {item}
-              </a>
-            )}
-            {!isLast && <span className='mx-10px'>&gt;</span>}
-          </span>
-        );
-      });
+                {isLast ? (
+                  <span>{item}</span>
+                ) : (
+                  <a
+                    onClick={() => {
+                      setQueryParams(old => {
+                        return {
+                          ...old,
+                          path: JSON.stringify(paths.slice(0, index + 1)),
+                          from: 0,
+                          size: 10
+                        };
+                      });
+                    }}
+                  >
+                    {item}
+                  </a>
+                )}
+                {!isLast && <span className='mx-10px'>&gt;</span>}
+              </span>
+            );
+          })}
+        </>
+      );
     }
-    return datasource?.name;
+    return null;
   };
 
   if (!datasourceID) return <LookForward />;
 
   return (
     <ListContainer>
-      <div className='ml--16px mt-12px flex items-center text-lg font-bold'>
-        <div className='absolute mr-6px h-1.2em w-10px bg-[#1677FF]' />
-        <div className='pl-16px'>{renderTitle(datasource)}</div>
-      </div>
+      {renderTitle(datasource) ? (
+        <div className='ml--16px mt-12px flex items-center text-lg font-bold'>
+          <div className='absolute mr-6px h-1.2em w-10px bg-[#1677FF]' />
+          <div className='pl-16px'>{renderTitle(datasource)}</div>
+        </div>
+      ) : null}
       <div className='mb-4 mt-6 flex items-center justify-between'>
         <Search
           addonBefore={<FilterOutlined />}

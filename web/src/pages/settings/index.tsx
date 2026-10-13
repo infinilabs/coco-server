@@ -15,7 +15,7 @@ import Dedup from './modules/Dedup';
 import Environment from './modules/Environment';
 
 export function Component() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const { t } = useTranslation();
 
   const { hasAuth } = useAuth()
@@ -25,15 +25,15 @@ export function Component() {
     viewSystemSettings: hasAuth('coco#system/read'),
   }
 
-  const onChange = (key: string) => {
-    setSearchParams({ tab: key });
-  };
-
   type SettingsTab = { component: any; key: string; label: string };
 
-  // W18: the flat 14-tab list grouped into five domains (通用/检索/处理/安全/知识/智能).
-  // Hidden tabs drop out; groups collapse when empty; single-tab groups flatten
-  // (a group header for one item is noise).
+  // All tabs live behind `coco#system/read`; the connector tab keeps its own
+  // permission gate and first position.
+  //
+  // NOTE: W18 close-out originally grouped these into antd Tabs `type:'group'`
+  // items, but antd 6's Tabs (@rc-component/tabs `Tab` = {key, label}) has no
+  // group support — those items were silently dropped and nine tabs vanished
+  // from the page. Tabs render flat until antd ships grouped items again.
   const systemTabs: SettingsTab[] = permissions.viewSystemSettings
     ? [
         { component: AppearanceSettings, key: 'appearance', label: t(`page.settings.appearance.title`) },
@@ -46,65 +46,31 @@ export function Component() {
         { component: Environment, key: 'environment', label: t(`page.settings.environment.title`) },
         { component: WikiSettings, key: 'wiki_settings', label: t(`page.settings.wiki_settings.title`) },
         { component: MemorySettings, key: 'memory_settings', label: t(`page.settings.memory_settings.title`) },
-        { component: DefaultModel, key: 'default_model', label: t(`page.settings.default_model.title`) },
+        { component: DefaultModel, key: 'default_model', label: t(`page.settings.default_model.title`) }
       ]
     : [];
 
-  const byKey = (key: string): SettingsTab | undefined => systemTabs.find(tab => tab.key === key);
-  const pick = (...keys: string[]): SettingsTab[] =>
-    keys.map(k => byKey(k)).filter((tab): tab is SettingsTab => Boolean(tab));
-
-  // connector tab keeps its own permission gate and first position
   const items: any[] = [];
   if (permissions.viewConnector) {
     items.push({
       component: ConnectorSettings,
       key: 'connector',
-      label: t(`page.settings.connector.title`),
+      label: t(`page.settings.connector.title`)
     });
   }
+  items.push(...systemTabs);
 
-  const groups: Array<{ key: string; label: string; tabs: SettingsTab[] }> = [
-    { key: 'general', label: t(`page.settings.groups.general`), tabs: pick('appearance', 'app_settings', 'environment') },
-    { key: 'search', label: t(`page.settings.groups.search`), tabs: pick('search_settings', 'engine_ai') },
-    { key: 'processing', label: t(`page.settings.groups.processing`), tabs: pick('document_processing') },
-    { key: 'security', label: t(`page.settings.groups.security`), tabs: pick('data_security', 'dedup') },
-    { key: 'knowledge', label: t(`page.settings.groups.knowledge`), tabs: pick('wiki_settings', 'memory_settings') },
-    { key: 'ai', label: t(`page.settings.groups.ai`), tabs: pick('default_model') },
-  ];
+  // The `?tab=` query param seeds the initial tab only. Switching is driven by
+  // local state on purpose: routing tab clicks through setSearchParams trips
+  // the hash router's navigation blocker (POP navigations "fail silently") and
+  // bounces the user to login, so the URL is deliberately left untouched.
+  const [activeKey, setActiveKey] = useState<string>(() => searchParams.get('tab') || items?.[0]?.key);
 
-  for (const g of groups) {
-    if (g.tabs.length === 0) continue;
-    // single-tab groups flatten (a group header for one item is noise)
-    if (g.tabs.length === 1) {
-      items.push(g.tabs[0]);
-      continue;
-    }
-    items.push({
-      type: 'group',
-      label: g.label,
-      children: g.tabs,
-    } as any);
-  }
+  const onChange = (key: string) => {
+    setActiveKey(key);
+  };
 
-  const activeKey = useMemo(() => {
-    return searchParams.get('tab') || items?.[0]?.key
-  }, [])
-
-  const activeItem = useMemo(() => {
-    // group items nest their tabs under children — flatten one level
-    for (const item of items) {
-      if ('children' in item && Array.isArray(item.children)) {
-        const match = (item.children as Array<{ key: string }>).find(
-          (child: { key: string }) => child.key === activeKey
-        );
-        if (match) return match;
-        continue;
-      }
-      if (item.key === activeKey) return item;
-    }
-    return undefined;
-  }, [activeKey]);
+  const activeItem = items.find(item => item.key === activeKey);
 
   return (
     <ACard styles={{ body: { padding: 0 } }}>

@@ -776,6 +776,32 @@ const page: App.I18n.Schema['translation']['page'] = {
     edit: {
       title: '编辑数据源'
     },
+    doc: {
+      aiInsights: 'AI 洞察',
+      aiSummary: '摘要',
+      backToList: '返回',
+      basicInfo: '基本信息',
+      docLink: '文档连接',
+      download: '下载',
+      cover: '封面',
+      thumbnail: '缩略图',
+      downloadOriginal: '下载原文件',
+      lang: '语言',
+      noAiResult: '本文档暂无 AI 加工结果（摘要、洞察），可能未配置或未运行相应处理器',
+      noAttachment: '本文档无附件，也没有生成封面 / 缩略图',
+      noChunks: '本文档尚无分块数据，可能未配置结构化切块或向量化处理器',
+      noText: '本文档未提取到正文内容',
+      openPreview: '原文预览',
+      parsingTitle: '文档智能解析',
+      runStart: '开始时间',
+      stepsJumpHint: '点击解析记录中的步骤名称，可跳转到对应产物的页签',
+      tabAi: 'AI 加工结果',
+      tabAttachments: '文档附件',
+      tabChunks: '文档分块',
+      tabRuns: '解析记录',
+      tabText: '文档文本',
+      viewDetail: '查看详情'
+    },
     every: '每',
     commons: {
       error: {
@@ -1255,7 +1281,35 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     seconds: '秒',
     site_urls: '站点地址',
-    site_urls_add: '新增站点地址'
+    site_urls_add: '新增站点地址',
+    stats: {
+      tabTitle: '统计',
+      totalDocs: '文档总数',
+      storage: '存储量',
+      avgSize: '平均大小',
+      coverage: '向量化覆盖',
+      trend: '入库趋势',
+      trendEmpty: '入库集中在单日，无趋势可看',
+      byType: '类型分布',
+      byStatus: '生命周期',
+      byLang: '语言分布',
+      byCat: '分类分布',
+      byModel: '向量模型分布',
+      byTag: '高频标签',
+      vectorized: '已向量化',
+      notVectorized: '未向量化',
+      hasFaq: 'FAQ',
+      wikiBound: '已绑 Wiki',
+      vectorTip: '是否有文档已生成向量（语义检索可用）',
+      retryOne: '重试',
+      retryOneQueued: '已重新入队解析',
+      enabled: '启用',
+      disabled: '停用',
+      connector: '连接器',
+      syncLabel: '同步',
+      syncOff: '未启用',
+      createdAt: '创建于'
+    }
   },
   guide: {
     labels: {
@@ -1603,6 +1657,9 @@ const page: App.I18n.Schema['translation']['page'] = {
         default_hint_title: '生效规则',
         default_hint: '此处为全系统默认配置；某个知识库在「设置 → AI 智能体」单独绑定后，以该绑定为准。内置的「知识管理助手」开箱即用（引用溯源、只产草稿）。'
       }
+    },
+    memory_settings: {
+      title: '长期记忆'
     },
 
     search_settings: {
@@ -2104,12 +2161,22 @@ const page: App.I18n.Schema['translation']['page'] = {
       statusLegacy: '存量(未盖章)',
       model: '嵌入模型',
       runsTitle: '运行记录(最近 5 次)',
+      runsCount: '共 {{count}} 次运行',
+      recentRuns: '仅显示最近 {{count}} 次运行',
+      viewFullRuns: '查看完整解析详情',
       noRuns: '暂无运行记录(存量文档或尚未处理)',
       chunksTitle: '解析产物 · 块清单(共 {{total}} 块)',
       breadcrumb: '面包屑',
       pages: '页区间',
       excerpt: '摘录',
-      vectorized: '向量'
+      vectorized: '向量',
+      passthroughHint: '未配置处理管道，文档未经加工直接入库',
+      ptNoDatasource: '文档无归属数据源',
+      ptDatasourceNotFound: '数据源不存在',
+      ptNoPipeline: '未配置处理管道',
+      ptPipelineNotFound: '处理管道不存在(可能已删除)',
+      ptPipelineInvalid: '处理管道配置无效',
+      ptPipelineInitFailed: '处理管道初始化失败'
     },
     labels: {
       type: '类型',

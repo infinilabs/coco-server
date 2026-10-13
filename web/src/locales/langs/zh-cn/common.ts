@@ -29,6 +29,9 @@ const common: App.I18n.Schema['translation']['common'] = {
   },
   error: '错误',
   errorHint: '出错了，请稍后再试',
+  mermaidRenderError: '图表渲染失败，已保留原始 Mermaid 源码',
+  diagram: '图示',
+  sourceCode: '源码',
   exception: {
     backToPrev: '返回上一页',
     title404: '页面不存在',
