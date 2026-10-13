@@ -180,6 +180,10 @@ function safeDecodeURIComponent(s: string): string {
  * (`[12](#cite-12)`) so the reader renders them as interactive chips —
  * wikilinks `[[..]]`, existing markdown links `[x](..)` and code fences
  * are left alone.
+ *
+ * The prefix guard is a zero-width lookbehind (not a consumed char): consecutive
+ * markers like `[14][15]` must EACH match — a consuming prefix leaves the second
+ * marker unconverted, rendering it as body-size raw text next to the 10.5px chips.
  */
 export function linkifyCitations(body: string): string {
   if (!body) return body;
@@ -188,7 +192,7 @@ export function linkifyCitations(body: string): string {
     .split('```')
     .map((seg, i) =>
       i % 2 === 0
-        ? seg.replace(/(^|[^\[`\\])\[(\d{1,3})\](?!\()/g, (_m, pre: string, n: string) => `${pre}[${n}](#cite-${n})`)
+        ? seg.replace(/(?<![`\[\\])\[(\d{1,3})\](?!\()/g, (_m, n: string) => `[${n}](#cite-${n})`)
         : seg
     )
     .join('```');
