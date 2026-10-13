@@ -60,33 +60,38 @@ func TestClusterTopicsMergesByDocCoOccurrence(t *testing.T) {
 	}
 }
 
-func TestMergeTopicSectionsUpdatesByHeading(t *testing.T) {
+func TestMergeTopicSectionsWholeArticleUpdate(t *testing.T) {
 	existing := []core.WikiSection{
 		{ID: "s1", Heading: "概述", Body: "old", DocIDs: []string{"d1"}},
 		{ID: "s2", Heading: "时间线", Body: "keep"},
+		{ID: "s3", Heading: "陈年旧节", Body: "stale"},
 	}
 	incoming := []core.WikiSection{
-		{Heading: "概述", Body: "new", DocIDs: []string{"d1", "d2"}, UpdatedAt: 100},
+		{Heading: "概述", Body: "new", DocIDs: []string{"d1", "d2", "d1"}, UpdatedAt: 100},
 		{Heading: "数据与事实", Body: "fresh", DocIDs: []string{"d3"}, UpdatedAt: 100},
-		{Heading: "争议", Body: "", DocIDs: nil, UpdatedAt: 100}, // empty body: no new section
+		{Heading: "时间线", Body: "", UpdatedAt: 100}, // fill failed: existing prose survives
 	}
 	merged := mergeTopicSections(existing, incoming)
 	if len(merged) != 3 {
-		t.Fatalf("expected 3 sections (2 existing + 1 new), got %d", len(merged))
+		t.Fatalf("incoming outline is the article, got %d sections", len(merged))
 	}
 	if merged[0].Body != "new" {
-		t.Errorf("same-heading section must refresh body, got %q", merged[0].Body)
+		t.Errorf("same-heading section must take the rewritten body, got %q", merged[0].Body)
 	}
 	if len(merged[0].DocIDs) != 2 {
-		t.Errorf("doc ids must union, got %v", merged[0].DocIDs)
+		t.Errorf("doc ids must union and dedup, got %v", merged[0].DocIDs)
 	}
-	if merged[1].Body != "keep" {
-		t.Errorf("untouched section must keep its body, got %q", merged[1].Body)
+	if merged[2].Body != "keep" {
+		t.Errorf("empty fill must keep existing prose, got %q", merged[2].Body)
 	}
-	// empty body never wipes existing prose
-	merged2 := mergeTopicSections(merged, []core.WikiSection{{Heading: "时间线", Body: "", UpdatedAt: 200}})
-	if merged2[1].Body != "keep" {
-		t.Errorf("empty incoming body must not wipe prose, got %q", merged2[1].Body)
+	for _, s := range merged {
+		if s.Heading == "陈年旧节" {
+			t.Error("section dropped by the incoming outline must not linger")
+		}
+	}
+	// a fill that produced nothing at all must not wipe the page
+	if wiped := mergeTopicSections(merged, nil); len(wiped) != len(merged) {
+		t.Errorf("nil incoming must keep the outline, got %d sections", len(wiped))
 	}
 }
 

@@ -1090,7 +1090,11 @@ func matchDeptByDocIDs(ctx *orm.Context, kb *core.WikiKnowledgeBase, docIDs []st
 
 func compileGeneration(ctx *orm.Context, kbID, normKey string) int {
 	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
-	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(100).
+	// size must cover the KB's whole compile-proposal history: a truncated
+	// window undercounts the norm key, the anchored id collides with a
+	// filed proposal, and the create silently drops the draft (observed
+	// once the queue passed 100 entries)
+	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(2000).
 		Filter(orm.TermQuery("type", compileProposalType)))
 	if err != nil || res == nil {
 		return 0

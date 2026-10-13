@@ -1050,15 +1050,20 @@ func runTopicPipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *co
 // applying archives them and drops them from the tree. Hand-written pages
 // are never candidates.
 func fileLegacyCleanupProposal(ctx *orm.Context, kb *core.WikiKnowledgeBase, existing []core.WikiArticle, clusters []*topicCluster) {
-	absorbed := map[string]bool{}
-	for _, c := range clusters {
-		for _, id := range c.AbsorbIDs {
-			absorbed[id] = true
+	var stale []string
+	entityish := 0
+	for _, a := range existing {
+		if a.AIGenerated && (a.PageType == core.WikiPageTypeEntity || a.PageType == core.WikiPageTypeConcept) && a.Status != core.WikiArticleArchived {
+			entityish++
 		}
 	}
-	var stale []string
+	log.Infof("wiki topic compiler: cleanup scan — existing=%d live-entity/concept=%d", len(existing), entityish)
 	for _, a := range existing {
-		if absorbed[a.ID] || a.Status == core.WikiArticleArchived {
+		// pages a cluster promised to absorb are NOT skipped here: the
+		// absorb only fires when its proposal files and applies, and a
+		// dropped proposal would strand the page forever — re-archiving
+		// an already-absorbed page is a no-op
+		if a.Status == core.WikiArticleArchived {
 			continue
 		}
 		if !a.AIGenerated || (a.PageType != core.WikiPageTypeEntity && a.PageType != core.WikiPageTypeConcept) {
@@ -1067,9 +1072,10 @@ func fileLegacyCleanupProposal(ctx *orm.Context, kb *core.WikiKnowledgeBase, exi
 		if len(a.Outline) > 0 { // structured page, not a legacy stub
 			continue
 		}
-		if len(a.Sources) >= 3 && len([]rune(a.Content)) >= 500 {
-			continue // substantial page, leave it
-		}
+		// full sweep: every AI entity/concept page is pre-topic-era
+		// residue — content lives in the topic pages now and the entities
+		// stay in the ontology pool; history is cleaned wholesale, not
+		// graded for substantiality
 		stale = append(stale, a.ID)
 	}
 	if len(stale) == 0 {
@@ -1081,7 +1087,7 @@ func fileLegacyCleanupProposal(ctx *orm.Context, kb *core.WikiKnowledgeBase, exi
 		Type:         compileProposalType,
 		Status:       core.WikiGovernanceOpen,
 		ArticleTitle: "编译残页清理",
-		Reason:       fmt.Sprintf("归档 %d 个旧编译产生的薄存根页(单实体主张列表,已被主题页取代),清出左侧目录", len(stale)),
+		Reason:       fmt.Sprintf("归档 %d 个旧编译产生的实体/概念页(全部历史存档,内容已由主题页重新组织),清出左侧目录", len(stale)),
 	}
 	// day-anchored: one living cleanup proposal per KB, re-runs refresh it
 	proposal.ID = core.AnchoredProposalID("legacy-cleanup:"+kb.ID, compileProposalType, int(time.Now().Unix()/86400))
@@ -1091,7 +1097,9 @@ func fileLegacyCleanupProposal(ctx *orm.Context, kb *core.WikiKnowledgeBase, exi
 		"page_ids":       stale,
 	}
 	if err := orm.Create(ctx, proposal); err != nil {
-		// same-day twin occupies the anchor — refresh it with the fresh list
+		// same-day twin occupies the anchor: an open one is refreshed in
+		// place; a resolved one already archived its list — this run files
+		// a fresh proposal so a widened sweep still lands today
 		twin := core.WikiGovernanceProposal{}
 		twin.SetID(proposal.ID)
 		if found, gerr := orm.GetV2(ctx, &twin); gerr == nil && found && twin.Status == core.WikiGovernanceOpen {
@@ -1100,12 +1108,17 @@ func fileLegacyCleanupProposal(ctx *orm.Context, kb *core.WikiKnowledgeBase, exi
 			if uerr := orm.Update(ctx, &twin); uerr != nil {
 				log.Debugf("wiki topic compiler: cleanup twin refresh failed: %v", uerr)
 			}
+			return
 		}
-		return
+		proposal.SetID(util.GetUUID())
+		if err := orm.Create(ctx, proposal); err != nil {
+			log.Warnf("wiki topic compiler: cleanup proposal refile failed: %v", err)
+			return
+		}
 	}
 	if kb.GetOwnerID() != "" {
 		notifyOwner(kb.GetOwnerID(), "kb", kb.ID, "governance",
-			fmt.Sprintf("知识编译:%d 个旧薄页待清理(已被主题页取代),在治理队列确认后归档", len(stale)))
+			fmt.Sprintf("知识编译:%d 个旧实体/概念页待清理(内容已由主题页重新组织),在治理队列确认后归档", len(stale)))
 	}
 }
 
@@ -1192,8 +1205,15 @@ func fileTopicProposal(ctx *orm.Context, kb *core.WikiKnowledgeBase, d *topicDra
 		}
 	}
 	if err := orm.Create(ctx, proposal); err != nil {
-		log.Debugf("wiki topic compiler: proposal create failed for [%s]: %v", d.Title, err)
-		return false
+		// anchor collision with a resolved twin (a miscounted generation,
+		// a same-name cluster across runs) must not drop the draft — file
+		// under a fresh id instead
+		log.Warnf("wiki topic compiler: proposal create failed for [%s]: %v (refiling)", d.Title, err)
+		proposal.SetID(util.GetUUID())
+		if err := orm.Create(ctx, proposal); err != nil {
+			log.Warnf("wiki topic compiler: proposal refile failed for [%s]: %v", d.Title, err)
+			return false
+		}
 	}
 	if kb.GetOwnerID() != "" {
 		notifyOwner(kb.GetOwnerID(), "kb", kb.ID, "governance",

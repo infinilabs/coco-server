@@ -634,9 +634,25 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 		article := core.WikiArticle{}
 		article.ID = existingID
 		if ok, err := orm.GetV2(ctx, &article); err == nil && ok {
-			article.Content = strings.TrimSpace(article.Content) + "\n\n## 编译补充\n\n" + content
-			// the supplement cites sources too — merge them so the 来源文献
-			// panel and freshness tracking see the full picture
+			if !article.AIGenerated {
+				// governance never rewrites human prose — the page stays
+				// whole and the queue says so instead of stacking patches
+				return fmt.Sprintf("「%s」为人工撰写，跳过编译改写（提案 %s）", article.Title, p.ID), article.ID, nil
+			}
+			if article.PageType == core.WikiPageTypeTopic {
+				// topic pages own their shape (anchored outline + section
+				// merge in applyTopicProposal) — the legacy statement path
+				// must not trample them
+				return fmt.Sprintf("「%s」为主题页，由主题管线更新（提案 %s）", article.Title, p.ID), article.ID, nil
+			}
+			// whole-article rewrite: the fresh draft is a complete page
+			// (prose + one claims floor) composed from the full corpus, so
+			// the old text is replaced, not patched behind — appending a
+			// 编译补充 block per run stacked 补充/主张 pairs into gibberish
+			article.Content = content
+			// earlier runs may hold claims this draft no longer carries
+			// (dedup, source churn) — keep their source refs so provenance
+			// tracking sees the full picture
 			seen := map[string]bool{}
 			for _, s := range article.Sources {
 				seen[s.DocID] = true
@@ -661,8 +677,8 @@ func applyCompileProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 			if err := orm.Update(ctx, &article); err != nil {
 				return "", "", err
 			}
-			snapshotPipelineWrite(&article, fmt.Sprintf("知识编译追加 %d 条来源主张（治理提案 %s）", len(statements), p.ID))
-			return fmt.Sprintf("「%s」已追加编译补充(%d 条主张)", article.Title, len(statements)), article.ID, nil
+			snapshotPipelineWrite(&article, fmt.Sprintf("知识编译整页重写（治理提案 %s）", p.ID))
+			return fmt.Sprintf("「%s」已整页重写(%d 条主张)", article.Title, len(statements)), article.ID, nil
 		}
 	}
 
@@ -853,34 +869,44 @@ func docTitlesFor(ctx *orm.Context, sections []core.WikiSection, statements []co
 // outline at section granularity — update-first enrichment: same-heading
 // sections get their body refreshed and provenance unioned, new headings
 // append. An incoming empty body never wipes existing prose.
+// mergeTopicSections folds an incoming compiled outline into an existing
+// page as a whole-article update: the incoming outline IS the article —
+// its order and shape rule, section bodies are the rewritten prose,
+// existing prose survives only where the fill came back empty, and
+// provenance is unioned. Sections the new outline dropped are dropped
+// (the outline is anchored to the page's own headings, so an omission is
+// a deliberate reorganization, not an accident — this is also what heals
+// paraphrased twin sections earlier drift left behind).
 func mergeTopicSections(outline []core.WikiSection, incoming []core.WikiSection) []core.WikiSection {
+	merged := make([]core.WikiSection, 0, len(incoming))
 	for _, inc := range incoming {
-		matched := false
-		for i := range outline {
-			if headingSimilar(outline[i].Heading, inc.Heading) {
-				matched = true
-				if strings.TrimSpace(inc.Body) != "" {
-					outline[i].Body = strings.TrimSpace(inc.Body)
-					outline[i].UpdatedAt = inc.UpdatedAt
+		sec := inc
+		if strings.TrimSpace(sec.Body) == "" {
+			// fill came back empty — keep the page's existing prose for
+			// this section instead of shipping an empty shell
+			for _, old := range outline {
+				if headingSimilar(old.Heading, inc.Heading) && strings.TrimSpace(old.Body) != "" {
+					sec.Body = old.Body
+					sec.DocIDs = append(sec.DocIDs, old.DocIDs...)
+					break
 				}
-				seen := map[string]bool{}
-				for _, d := range outline[i].DocIDs {
-					seen[d] = true
-				}
-				for _, d := range inc.DocIDs {
-					if !seen[d] {
-						seen[d] = true
-						outline[i].DocIDs = append(outline[i].DocIDs, d)
-					}
-				}
-				break
 			}
 		}
-		if !matched && strings.TrimSpace(inc.Body) != "" {
-			outline = append(outline, inc)
+		seen := map[string]bool{}
+		docs := make([]string, 0, len(sec.DocIDs))
+		for _, d := range sec.DocIDs {
+			if d != "" && !seen[d] {
+				seen[d] = true
+				docs = append(docs, d)
+			}
 		}
+		sec.DocIDs = docs
+		merged = append(merged, sec)
 	}
-	return outline
+	if len(merged) == 0 {
+		return outline // a fill that produced nothing must not wipe the page
+	}
+	return merged
 }
 
 // absorbThinPages folds the compiled topic's thin AI pages into the topic
