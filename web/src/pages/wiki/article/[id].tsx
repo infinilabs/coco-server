@@ -70,7 +70,15 @@ import {
   updateWikiArticleAttachments,
   updateWikiArticleStatus
 } from '@/service/api';
-import { parseStructuredContent, parseWikiLink, splitCitationBlock, linkifyCitations, type CitationRef } from '../shared/content';
+import {
+  parseStructuredContent,
+  parseWikiLink,
+  splitCitationBlock,
+  linkifyCitations,
+  shortUrlLabel,
+  splitUrlTokens,
+  type CitationRef
+} from '../shared/content';
 import { WikiLinkTag, renderInlineWikiLinks } from '../shared/WikiLinkTag';
 import { EntityHoverCard } from '../shared/EntityHoverCard';
 import { EntityArticleSections } from '../components/EntityArticleSections';
@@ -108,6 +116,32 @@ function Section({ title, children }: { readonly title: string; readonly childre
   );
 }
 
+/** evidence text with inline URL tokens collapsed into short anchors —
+ * the verbatim long link adds nothing to the reading surface */
+function LinkifiedText({ text }: { text: string }) {
+  const tokens = splitUrlTokens(text);
+  if (tokens.length === 1 && 'text' in tokens[0]) return <>{text}</>;
+  return (
+    <>
+      {tokens.map((tk, i) =>
+        'url' in tk ? (
+          <a
+            key={i}
+            className='wiki-pop-url'
+            href={/^https?:\/\//i.test(tk.url) ? tk.url : `https://${tk.url}`}
+            rel='noreferrer'
+            target='_blank'
+          >
+            {shortUrlLabel(tk.url)}
+          </a>
+        ) : (
+          <span key={i}>{tk.text}</span>
+        )
+      )}
+    </>
+  );
+}
+
 /** interactive [n] citation marker of compiled prose: hover floats the
  * source claim (with the verbatim excerpt), click opens the document */
 function CitationChip({ n, citation }: { n: number; citation?: CitationRef }) {
@@ -118,16 +152,23 @@ function CitationChip({ n, citation }: { n: number; citation?: CitationRef }) {
   }
   const content = (
     <div className='wiki-cite-pop'>
-      <div className='wiki-cite-pop-claim'>{citation.claim}</div>
+      <div className='wiki-cite-pop-claim'>
+        <LinkifiedText text={citation.claim} />
+      </div>
       {citation.excerpt && (
         <div className='wiki-cite-pop-excerpt'>
           {/* raw evidence can be a whole CSV row — the popover hints at the
               source, the full text lives one click away in the document */}
-          {citation.excerpt.length > 220 ? `${citation.excerpt.slice(0, 220)}…` : citation.excerpt}
+          <LinkifiedText
+            text={citation.excerpt.length > 220 ? `${citation.excerpt.slice(0, 220)}…` : citation.excerpt}
+          />
         </div>
       )}
       {citation.docId && (
-        <a className='wiki-cite-pop-link' href={`#/preview/document/${citation.docId}`}>
+        <a
+          className='wiki-cite-pop-link'
+          href={`#/preview/document/${citation.docId}${citation.q ? `?q=${citation.q}` : ''}`}
+        >
           {t('page.wiki.article.openSource')} →
         </a>
       )}
@@ -1146,7 +1187,9 @@ export function Component() {
                                     {citationInfo.claims.map(c => (
                                       <div className='wiki-claims-item' key={c.n}>
                                         <span className='wiki-cite-chip wiki-cite-chip-plain'>{c.n}</span>
-                                        <span className='wiki-claims-text'>{c.claim}</span>
+                                        <span className='wiki-claims-text'>
+                                          <LinkifiedText text={c.claim} />
+                                        </span>
                                         {c.docId && (
                                           <a className='text-11px' href={`#/preview/document/${c.docId}`}>
                                             {t('page.wiki.article.openSource')}

@@ -727,6 +727,11 @@
   margin-top: 8px;
   font-size: 11.5px;
 }
+/* collapsed URL anchors inside evidence text: short label, full target on click */
+.wiki-pop-url {
+  font-size: inherit;
+  font-weight: inherit;
+}
 
 /* collapsed claims floor at the page end */
 .wiki-claims-panel {

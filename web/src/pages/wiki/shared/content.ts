@@ -124,6 +124,8 @@ export interface CitationRef {
   n: number;
   claim: string;
   docId?: string;
+  /** encoded deep-link query for the document preview (highlight the evidence) */
+  q?: string;
   excerpt?: string;
 }
 
@@ -135,7 +137,14 @@ const SOURCE_LINE = /^> 来源：.*$/gm;
 const BOILERPLATE_LEAD =
   /^>\s*本页由(?:知识编译|治理队列).*$\n?|^\*\*[^*]+\*\*\s*是知识管道从.*$\n?/gm;
 const CLAIM_ITEM = /^(\d+)\.\s+(.+)$/;
-const SOURCE_LINK = /\[源\]\(#\/preview\/document\/([A-Za-z0-9_-]+)(?:\?q=([^)\s]*))?[^)]*\)/;
+/* trailing `[源](#/preview/document/<id>?q=<encoded> "verbatim excerpt")`:
+   the excerpt runs from the first `"` to the line's final `"` — stopping the
+   match at the first `)` broke on excerpts containing parens (shop codes
+   like "(3373)"), left the whole raw link in the claim text and lost the
+   excerpt; excerpts may also carry inner quotes (JSON evidence) */
+const SOURCE_LINK =
+  /\[源\]\(#\/preview\/document\/([A-Za-z0-9_-]+)(?:\?q=([^"\s]*))?[^"]*"(.*)"\s*\)\s*$/;
+const SOURCE_LINK_BARE = /\[源\]\(#\/preview\/document\/([A-Za-z0-9_-]+)/;
 
 /**
  * Split a compiled page's content into its reading body and the numbered
@@ -154,25 +163,19 @@ export function splitCitationBlock(content: string): { body: string; claims: Cit
     for (const raw of split[split.length - 1].split('\n')) {
       const m = raw.match(CLAIM_ITEM);
       if (!m) continue;
-      const src = raw.match(SOURCE_LINK);
-      const excerptDecoded = src?.[2] ? safeDecodeURIComponent(src[2]) : undefined;
+      const src = raw.match(SOURCE_LINK) ?? raw.match(SOURCE_LINK_BARE);
       claims.push({
         n: Number(m[1]),
-        claim: m[2].replace(/\s*\[源\]\([^)]*\)\s*$/, '').trim(),
+        // strip the whole trailing source link — greedy to the line's last `)`
+        // so excerpts containing parens don't defeat the strip
+        claim: m[2].replace(/\s*\[源\]\(.*\)\s*$/, '').trim(),
         docId: src?.[1],
-        excerpt: excerptDecoded
+        q: src?.[2],
+        excerpt: src?.[3]
       });
     }
   }
   return { body: body.trim(), claims };
-}
-
-function safeDecodeURIComponent(s: string): string {
-  try {
-    return decodeURIComponent(s);
-  } catch {
-    return s;
-  }
 }
 
 /**
@@ -196,4 +199,50 @@ export function linkifyCitations(body: string): string {
         : seg
     )
     .join('```');
+}
+
+/* ---------------- evidence URL rendering ---------------- */
+
+export type TextToken = { text: string } | { url: string };
+
+/** absolute URLs plus bare domain paths (cdn.maximscakes.com.hk/x.jpg);
+    CJK punctuation and closing brackets end a token, trailing ASCII
+    sentence punctuation is trimmed by the splitter */
+const URL_TOKEN =
+  /(https?:\/\/[^\s，。；：？！“”‘’『』「」()[\]<>"']+|(?:[a-z0-9-]+\.)+(?:com|net|org|hk|cn|io|dev|app)(?:\/[^\s，。；：？！“”‘’『』「」()[\]<>"']*)?)/gi;
+
+/**
+ * Split evidence text into plain segments and URL tokens so the UI renders
+ * long links as short clickable anchors instead of wrapped raw text — the
+ * verbatim URL adds nothing to the reading surface.
+ */
+export function splitUrlTokens(text: string): TextToken[] {
+  if (!text) return [];
+  const tokens: TextToken[] = [];
+  let last = 0;
+  for (const m of text.matchAll(URL_TOKEN)) {
+    const idx = m.index ?? 0;
+    if (idx > last) tokens.push({ text: text.slice(last, idx) });
+    // a URL never ends a sentence: drop trailing . , ; : ! ? kept only for paths like .jpg
+    let url = m[0];
+    const trimmed = url.replace(/[.,;:!?]+$/, '');
+    if (trimmed) tokens.push({ url: trimmed });
+    last = idx + url.length;
+  }
+  if (last < text.length) tokens.push({ text: text.slice(last) });
+  return tokens.length ? tokens : [{ text }];
+}
+
+/** short display label for a URL token: hostname plus a clipped path */
+export function shortUrlLabel(url: string): string {
+  const full = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+  try {
+    const u = new URL(full);
+    const host = u.hostname.replace(/^www\./, '');
+    const path = u.pathname === '/' ? '' : u.pathname;
+    const label = host + path;
+    return label.length > 30 ? `${label.slice(0, 30)}…` : label;
+  } catch {
+    return url.length > 30 ? `${url.slice(0, 30)}…` : url;
+  }
 }
