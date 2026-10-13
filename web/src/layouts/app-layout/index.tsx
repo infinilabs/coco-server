@@ -168,7 +168,9 @@ export function Component() {
             <I18nextProvider i18n={searchWidgetI18n}>
               <SearchBox
                 attachments={headerAttachments}
-                className='!h-40px'
+                centeredPanel
+                className='!h-32px'
+                inputSize='middle'
                 minimize
                 onSearch={handleHeaderSearch}
                 onSuggestion={debouncedSuggestion}

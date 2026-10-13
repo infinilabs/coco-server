@@ -350,6 +350,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       keyEntities: 'Key entities',
       maturity: 'Maturity: {{sources}} sources · {{sections}}/{{planned}} sections',
       maturityHint: 'Compile coverage: cited sources and filled/planned sections; new material keeps filling the gaps',
+      claimsToggle: 'Source claims · {{count}} (click to expand)',
       submitReview: 'Submit Review',
       publish: 'Publish',
       archive: 'Archive',

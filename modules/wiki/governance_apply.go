@@ -20,7 +20,6 @@ import (
 
 	"infini.sh/coco/core"
 	langchain "infini.sh/coco/modules/assistant/langchain"
-	"infini.sh/coco/modules/common/fingerprint"
 	llmmodule "infini.sh/coco/modules/llm"
 )
 
@@ -861,7 +860,7 @@ func mergeTopicSections(outline []core.WikiSection, incoming []core.WikiSection)
 	for _, inc := range incoming {
 		matched := false
 		for i := range outline {
-			if fingerprint.Normalize(outline[i].Heading) == fingerprint.Normalize(inc.Heading) {
+			if headingSimilar(outline[i].Heading, inc.Heading) {
 				matched = true
 				if strings.TrimSpace(inc.Body) != "" {
 					outline[i].Body = strings.TrimSpace(inc.Body)

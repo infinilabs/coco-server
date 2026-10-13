@@ -70,6 +70,11 @@ export default function useSearchBox({
   // the `.searchbox` class is renamed or when multiple instances exist).
   // Typed as HTMLDivElement to match the root <div> it is attached to.
   const rootRef = useRef<HTMLDivElement | null>(null);
+  // Centered-panel portal container (centeredPanel mode only). Clicks inside
+  // it are as "inside" as clicks on the compact box — without this the
+  // document-level click-outside handler would close the panel on every
+  // suggestion click, because portal content is outside rootRef in the DOM.
+  const panelRootRef = useRef<HTMLDivElement | null>(null);
 
   const showExpandedPanel = useMemo(() => {
     return mainInputActive || filterState.type !== 'none';
@@ -400,7 +405,9 @@ export default function useSearchBox({
       const searchboxEl = rootRef.current;
       // Use composedPath() to get the actual target inside Shadow DOM
       const actualTarget = e.composedPath ? e.composedPath()[0] : e.target;
-      const isInsideSearchbox = !!searchboxEl && searchboxEl.contains(actualTarget);
+      const isInsideSearchbox =
+        (!!searchboxEl && searchboxEl.contains(actualTarget)) ||
+        (!!panelRootRef.current && panelRootRef.current.contains(actualTarget));
       if (isInsideSearchbox) {
         lastMouseDownInsideTime.current = Date.now();
         pendingInternalBlurRef.current = true;
@@ -454,6 +461,18 @@ export default function useSearchBox({
       setMainInputActive(false);
     }
   }, []);
+
+  // Centered-panel mode: the fullscreen mask sits INSIDE the panel root, so
+  // the click-outside handler can never fire for it — the mask closes through
+  // this callback instead. Mirrors what click-outside does (collapse state,
+  // arm the reopen guard) so the header input doesn't instantly re-expand.
+  const closeExpandedPanel = useCallback(() => {
+    setMainInputActive(false);
+    setFilterState({ type: 'none', index: -1 });
+    setSuggestions({});
+    lastClickOutsideTime.current = Date.now();
+    blurSearchInputs();
+  }, [blurSearchInputs]);
 
   const handleFilterInputFocus = useCallback((index: number) => {
     setFilterState({ type: 'filterInput', index });
@@ -624,7 +643,7 @@ export default function useSearchBox({
     showExpandedPanel, searchable,
     shouldFocusNewFilter,
     filterState, mainInputActive,
-    inputRef, textAreaRef, expandedInputRef, rootRef,
+    inputRef, textAreaRef, expandedInputRef, rootRef, panelRootRef,
     handleSearchActionClick,
     handleSearchActionDropdownClose,
     handleQueryParamsChange,
@@ -632,6 +651,7 @@ export default function useSearchBox({
     handleInputChange,
     handleInputFocus,
     handleInputBlur,
+    closeExpandedPanel,
     handleFilterInputFocus,
     handleFilterInputBlur,
     handleFilterActiveToggle,

@@ -8,6 +8,7 @@ import Suggestions from "./Suggestions";
 import ActionBar from "./ActionBar";
 import { ListFilter } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { SUGGESTION_TIPS } from "./Suggestions/Tips";
 import { DEFAULT_SEARCH_FUZZINESS, DEFAULT_SEARCH_SORT, normalizeSearchFuzziness, normalizeSearchSort } from "./ActionBar/SearchActions";
 
@@ -35,6 +36,14 @@ interface SearchBoxProps {
   /** appended to the root element — lets a host override geometry (e.g. the
    * app shell header embeds the box at 40px instead of the default 48px) */
   className?: string;
+  /** antd size of the compact input in minimize mode — lets a host shrink the
+   * box below the default 48px (the app shell header runs a 32px box) */
+  inputSize?: 'small' | 'middle' | 'large';
+  /** open the expanded panel as a viewport-centered dialog over a fullscreen
+   * mask (command-palette style) instead of the anchored dropdown below the
+   * box — meant for hosts embedding the box into a fixed bar (app shell
+   * header), where a dropdown would hug the bar's geometry */
+  centeredPanel?: boolean;
   [key: string]: any;
 }
 
@@ -56,7 +65,9 @@ export function SearchBox(props: SearchBoxProps) {
     fuzziness,
     sort,
     className,
-    onEmptyBackspace
+    onEmptyBackspace,
+    inputSize = 'large',
+    centeredPanel = false
   } = props;
   const sb = useSearchBox({
     queryParams,
@@ -210,11 +221,28 @@ export function SearchBox(props: SearchBoxProps) {
 
   const handleTextAreaKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     handleBackspaceClear(e);
+    if (e.key === 'Escape' && centeredPanel && sb.showExpandedPanel) {
+      e.preventDefault();
+      sb.closeExpandedPanel();
+      return;
+    }
     if (e.key !== 'Enter' || e.shiftKey) return;
     e.preventDefault();
     if (sb.showExpandedPanel && sb.suggestionType && sb.suggestionType !== SUGGESTION_TIPS) return;
     if (sb.searchable) triggerSearch();
-  }, [handleBackspaceClear, sb.showExpandedPanel, sb.suggestionType, sb.searchable, triggerSearch]);
+  }, [handleBackspaceClear, centeredPanel, sb.showExpandedPanel, sb.suggestionType, sb.searchable, sb.closeExpandedPanel, triggerSearch]);
+
+  // centered-panel mode is a modal: freeze the page behind the fullscreen
+  // mask so the dialog's own scroll areas are the only ones that move
+  useEffect(() => {
+    if (!centeredPanel || !sb.showExpandedPanel) return undefined;
+    const body = document.body;
+    const prevOverflow = body.style.overflow;
+    body.style.overflow = 'hidden';
+    return () => {
+      body.style.overflow = prevOverflow;
+    };
+  }, [centeredPanel, sb.showExpandedPanel]);
 
   const renderTextArea = (ref: any, className = "", onBlur?: any, maxRows = 6) => (
     <Input.TextArea
@@ -251,6 +279,47 @@ export function SearchBox(props: SearchBoxProps) {
     )
   };
 
+  // capped column layout: header embeds (minimize) and the centered dialog
+  // both pin the ActionBar and let only the suggestions area scroll — an
+  // uncapped panel could push its action bar below the fold forever
+  const cappedPanel = minimize || centeredPanel;
+
+  // shared body of the expanded panel — only the wrapper differs (anchored
+  // dropdown below the box vs centered dialog over a fullscreen mask)
+  const renderExpandedPanelBody = () => (
+    <div className={`${styles.gradientBorder} rounded-12px overflow-visible`}>
+      <div className={`py-12px rounded-12px bg-[rgba(255,255,255,0.95)] dark:bg-[rgba(31,33,37,0.95)] overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)] text-[rgba(0,0,0,0.88)] dark:text-[rgba(255,255,255,0.85)] ${centeredPanel ? 'flex flex-col max-h-[calc(85vh-32px)]' : minimize ? 'flex flex-col max-h-[calc(100vh-64px)]' : ''}`}>
+        {sb.attachments.length > 0 && (
+          <div className={`mb-14px px-8px shrink-0 ${minimize ? styles.compactAttachments : ''}`}>
+            <Attachments data={sb.attachments} onItemRemove={sb.handleAttachmentRemove} />
+          </div>
+        )}
+        <Filters
+          ref={filtersRef}
+          className={`mb-14px px-12px${cappedPanel ? ' shrink-0' : ''}`}
+          filters={sb.filters}
+          onFiltersChange={handleFiltersChange}
+          onFilterInputFocus={sb.handleFilterInputFocus}
+          onFilterInputBlur={sb.handleFilterInputBlur}
+          onFilterActiveToggle={sb.handleFilterActiveToggle}
+          onFilterDelete={sb.handleFilterDelete}
+          onFilterValueEdit={sb.handleFilterValueEdit}
+          onFilterComplete={sb.handleFilterComplete}
+          onFilterSearch={sb.handleFilterSearchChange}
+          filterSearchValue={sb.filterSearchValue}
+          focusIndex={sb.filterState.type === 'filterInput' ? sb.filterState.index : -1}
+          activeIndex={sb.filterState.type === 'filterActive' ? sb.filterState.index : -1}
+          shouldFocusNewFilter={sb.shouldFocusNewFilter}
+        />
+        {renderTextArea(sb.expandedInputRef, `!mb-14px !px-12px${cappedPanel ? ' shrink-0' : ''}`, sb.handleInputBlur)}
+        <div className={cappedPanel ? 'flex-1 min-h-0 overflow-y-auto' : undefined}>
+          <Suggestions {...suggestionProps} />
+        </div>
+        <ActionBar {...actionBarProps} className={cappedPanel ? 'shrink-0' : ''} />
+      </div>
+    </div>
+  );
+
   return (
     <div
       ref={sb.rootRef}
@@ -274,7 +343,7 @@ export function SearchBox(props: SearchBoxProps) {
               <Input
                 ref={sb.inputRef}
                 value={sb.query}
-                size="large"
+                size={inputSize}
                 onChange={sb.handleInputChange}
                 onSelect={sb.handleCursorPositionChange}
                 onClick={sb.handleCursorPositionChange}
@@ -300,7 +369,37 @@ export function SearchBox(props: SearchBoxProps) {
         </div>
       )}
       {/* Expanded Panel */}
-      {/* Keep `h-0 overflow-hidden` (NOT display:none) so the virtual scroller
+      {centeredPanel ? (
+        // command-palette form: fullscreen mask + viewport-centered dialog.
+        // Portaled to body so host stacking contexts (contain/transform on an
+        // ancestor) can neither clip nor re-anchor the fixed overlay. Stays
+        // mounted while closed — hidden via opacity/pointer-events, NOT
+        // display:none (kills the virtual scroller's measuring) and NOT
+        // visibility:hidden (the browser refuses to focus() a hidden element,
+        // so the focus handoff from the compact input into the dialog dies).
+        createPortal(
+          <div
+            className={`fixed inset-0 z-[2000] transition-opacity duration-150 ${sb.showExpandedPanel ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+            ref={sb.panelRootRef}
+          >
+            {/* the mask is inside the panel root, so the hook's click-outside
+                never fires for it — it closes through its own handler */}
+            <div
+              className="absolute inset-0 bg-[rgba(0,0,0,0.45)] dark:bg-[rgba(0,0,0,0.65)]"
+              onMouseDown={sb.closeExpandedPanel}
+            />
+            {/* anchored by its top edge, NOT vertically centered: suggestion
+                content loads in asynchronously, and a centered box would ride
+                up/down with every height change — pinned top means the input
+                row stays put and only the list grows downward */}
+            <div className="absolute left-1/2 top-[15vh] w-[min(720px,calc(100vw-48px))] -translate-x-1/2">
+              {renderExpandedPanelBody()}
+            </div>
+          </div>,
+          document.body
+        )
+      ) : (
+        /* Keep `h-0 overflow-hidden` (NOT display:none) so the virtual scroller
           inside Suggestions/ListContainer stays laid-out and keeps measuring
           item sizes even when hidden. Add `pointer-events-none` when closed to
           guarantee the zero-height absolutely-positioned panel can never
@@ -309,46 +408,11 @@ export function SearchBox(props: SearchBoxProps) {
           OPAQUE background or the compact input ghosts through it.
           `--ui-search--layout-bg-color` is never declared anywhere in host or
           widget, so the var-based bg resolves invalid and paints nothing; use
-          explicit near-opaque (95%) theme-aware colors instead. */}
-      <div className={`absolute left-0 top-0 z-100 w-full ${sb.showExpandedPanel ? '' : 'h-0 overflow-hidden pointer-events-none'} `}>
-        <div className={`${styles.gradientBorder} rounded-12px overflow-visible`}> 
-          {/* In minimize (header) the panel hangs off a fixed bar — nothing on
-              the page can scroll it into view, so on short viewports its
-              bottom ActionBar (with the attachment/upload button) could sit
-              below the fold forever. Cap the panel to the viewport and make
-              only the suggestions area scroll, so the ActionBar stays pinned
-              and reachable for any content size. */}
-          <div className={`py-12px rounded-12px bg-[rgba(255,255,255,0.95)] dark:bg-[rgba(31,33,37,0.95)] overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_20px_rgba(255,255,255,0.2)] ${minimize ? 'flex flex-col max-h-[calc(100vh-64px)]' : ''}`}>
-            {sb.attachments.length > 0 && (
-              <div className={`mb-14px px-8px shrink-0 ${minimize ? styles.compactAttachments : ''}`}>
-                <Attachments data={sb.attachments} onItemRemove={sb.handleAttachmentRemove} />
-              </div>
-            )}
-            <Filters
-              ref={filtersRef}
-              className={`mb-14px px-12px${minimize ? ' shrink-0' : ''}`}
-              filters={sb.filters}
-              onFiltersChange={handleFiltersChange}
-              onFilterInputFocus={sb.handleFilterInputFocus}
-              onFilterInputBlur={sb.handleFilterInputBlur}
-              onFilterActiveToggle={sb.handleFilterActiveToggle}
-              onFilterDelete={sb.handleFilterDelete}
-              onFilterValueEdit={sb.handleFilterValueEdit}
-              onFilterComplete={sb.handleFilterComplete}
-              onFilterSearch={sb.handleFilterSearchChange}
-              filterSearchValue={sb.filterSearchValue}
-              focusIndex={sb.filterState.type === 'filterInput' ? sb.filterState.index : -1}
-              activeIndex={sb.filterState.type === 'filterActive' ? sb.filterState.index : -1}
-              shouldFocusNewFilter={sb.shouldFocusNewFilter}
-            />
-            {renderTextArea(sb.expandedInputRef, `!mb-14px !px-12px${minimize ? ' shrink-0' : ''}`, sb.handleInputBlur)}
-            <div className={minimize ? 'flex-1 min-h-0 overflow-y-auto' : undefined}>
-              <Suggestions {...suggestionProps} />
-            </div>
-            <ActionBar {...actionBarProps} className={minimize ? 'shrink-0' : ''} />
-          </div>
+          explicit near-opaque (95%) theme-aware colors instead. */
+        <div className={`absolute left-0 top-0 z-100 w-full ${sb.showExpandedPanel ? '' : 'h-0 overflow-hidden pointer-events-none'} `}>
+          {renderExpandedPanelBody()}
         </div>
-      </div>
+      )}
     </div>
   );
 }

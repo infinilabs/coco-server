@@ -545,6 +545,20 @@ func planTopicOutline(ctx context.Context, model *core.ModelId, c *topicCluster,
 	if len(pageBriefs) > 0 {
 		existing = strings.Join(pageBriefs, "、")
 	}
+	// the update target's own headings anchor the outline: reuse their
+	// wording verbatim so re-compiles refresh sections instead of growing
+	// paraphrased twins
+	anchorRule := ""
+	for _, a := range existingPages {
+		if c.UpdateArticleID != "" && a.ID == c.UpdateArticleID && len(a.Outline) > 0 {
+			hs := make([]string, 0, len(a.Outline))
+			for _, s := range a.Outline {
+				hs = append(hs, s.Heading)
+			}
+			anchorRule = fmt.Sprintf("\n- 该主题将更新既有页面「%s」，其现有章节标题为：%s。大纲必须沿用这些标题的原措辞（可增删章节，不要改写、不要翻译）", a.Title, strings.Join(hs, "、"))
+			break
+		}
+	}
 	user := fmt.Sprintf(`为知识库主题页「%s」规划文章大纲。范围：%s。
 
 参考维度（按材料取舍，不要求全部）：概述、背景与上下文、核心机制或关键维度（可拆多节）、关键实体与关系、时间线（仅当材料含时间脉络）、数据与事实、争议与开放问题、来源与延伸。
@@ -552,13 +566,13 @@ func planTopicOutline(ctx context.Context, model *core.ModelId, c *topicCluster,
 - 4-8 个章节标题，标题语言跟随材料语言，必须覆盖材料实际支持的内容
 - 核心维度优先：材料最丰富的侧面拆成独立章节
 - 若该主题实质上是已有主题页的一部分，返回 update_title 为那个页面的完整标题；否则 update_title 留空
-- 已有主题页：%s
+- 已有主题页：%s%s
 
 主题核心实体：%s
 编号主张样例：
 %s
 
-只返回 JSON：{"update_title":"","sections":["...","..."]}`, c.Title, orDash(c.Scope), existing,
+只返回 JSON：{"update_title":"","sections":["...","..."]}`, c.Title, orDash(c.Scope), existing, anchorRule,
 		strings.Join(keyEntities, "、"), strings.Join(claims, "\n"))
 
 	fp := topicFingerprint(model, "outline", c.Title, claims)
@@ -672,15 +686,34 @@ func composeTopicDraft(ctx context.Context, model *core.ModelId, c *topicCluster
 			}
 		}
 	}
-	// an existing structured page contributes its headings: the FILL pass
-	// enriches the same shape instead of inventing a parallel one
-	headings := outline.Sections
+	// an existing structured page anchors the shape: its headings lead the
+	// FILL list verbatim (stable wording across re-compiles), and outline
+	// headings that merely paraphrase them drop out — without this an update
+	// appends renamed twins (8 sections becoming 16) instead of refreshing
+	var anchorHeadings []string
 	for _, a := range existing {
 		if c.UpdateArticleID != "" && a.ID == c.UpdateArticleID && len(a.Outline) > 0 {
 			for _, s := range a.Outline {
-				headings = append(headings, s.Heading)
+				anchorHeadings = append(anchorHeadings, s.Heading)
 			}
 		}
+	}
+	headings := outline.Sections
+	if len(anchorHeadings) > 0 {
+		fresh := make([]string, 0, len(outline.Sections))
+		for _, h := range outline.Sections {
+			dup := false
+			for _, ah := range anchorHeadings {
+				if headingSimilar(h, ah) {
+					dup = true
+					break
+				}
+			}
+			if !dup {
+				fresh = append(fresh, h)
+			}
+		}
+		headings = append(append([]string{}, anchorHeadings...), fresh...)
 	}
 	fill, err := fillTopicSections(ctx, model, c, headings)
 	if err != nil {
@@ -731,6 +764,49 @@ func composeTopicDraft(ctx context.Context, model *core.ModelId, c *topicCluster
 	}, nil
 }
 
+// headingSimilar judges two section headings as the same section across
+// compiles: exact after normalize, containment (a renamed prefix/suffix),
+// or rune-bigram overlap — LLM re-runs paraphrase headings, and without a
+// tolerant match an update appends a renamed twin instead of replacing
+// (observed: 8 sections becoming 16, one Chinese and one English each).
+func headingSimilar(a, b string) bool {
+	na, nb := fingerprint.Normalize(a), fingerprint.Normalize(b)
+	if na == nb {
+		return true
+	}
+	if len(na) == 0 || len(nb) == 0 {
+		return false
+	}
+	shorter := na
+	if len(nb) < len(na) {
+		shorter = nb
+	}
+	if len([]rune(shorter)) >= 4 && (strings.Contains(na, nb) || strings.Contains(nb, na)) {
+		return true
+	}
+	ba, bb := headingBigrams(na), headingBigrams(nb)
+	inter := 0
+	for g := range ba {
+		if bb[g] {
+			inter++
+		}
+	}
+	union := len(ba) + len(bb) - inter
+	return union > 0 && float64(inter)/float64(union) >= 0.5
+}
+
+func headingBigrams(s string) map[string]bool {
+	r := []rune(s)
+	out := make(map[string]bool, len(r))
+	for i := 0; i+1 < len(r); i++ {
+		out[string(r[i:i+2])] = true
+	}
+	if len(out) == 0 && len(r) > 0 {
+		out[string(r)] = true
+	}
+	return out
+}
+
 func sectionID(heading string) string {
 	fp, _, ok := fingerprint.Compute("section:" + fingerprint.Normalize(heading))
 	if !ok {
@@ -742,8 +818,9 @@ func sectionID(heading string) string {
 /* ---------------- render + maturity ---------------- */
 
 // RenderTopicContent renders the structured sections as the page markdown:
-// per-section prose with its source links, then the full claim list as the
-// verification floor. Content and Outline stay two views of one page.
+// cited prose only — the [n] markers carry provenance interactively (hover
+// chip in the reader), so no per-section source lines waste layout; the
+// full claim list trails as the verification floor.
 func RenderTopicContent(sections []core.WikiSection, claims []compileStatement, docTitles map[string]string) string {
 	var sb strings.Builder
 	sb.WriteString("> 本页由知识编译按大纲整理：正文各章节由 AI 依据来源主张撰写，等待人工审阅。\n\n")
@@ -752,17 +829,6 @@ func RenderTopicContent(sections []core.WikiSection, claims []compileStatement, 
 			continue
 		}
 		fmt.Fprintf(&sb, "## %s\n\n%s\n\n", s.Heading, s.Body)
-		if len(s.DocIDs) > 0 {
-			links := make([]string, 0, len(s.DocIDs))
-			for _, d := range s.DocIDs {
-				title := docTitles[d]
-				if title == "" {
-					title = d
-				}
-				links = append(links, fmt.Sprintf("[%s](#/preview/document/%s)", title, d))
-			}
-			fmt.Fprintf(&sb, "> 来源：%s\n\n", strings.Join(links, "、"))
-		}
 	}
 	if len(claims) > 0 {
 		sb.WriteString("## 来源主张\n\n")

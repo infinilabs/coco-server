@@ -350,6 +350,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       keyEntities: '关键实体',
       maturity: '成熟度: {{sources}} 源 · {{sections}}/{{planned}} 节',
       maturityHint: '编译覆盖度：引用来源数与已成文章节数/规划节数，新素材会持续补齐缺失维度',
+      claimsToggle: '来源主张 · {{count}} 条（点击展开）',
       submitReview: '提交审核',
       publish: '发布',
       archive: '归档',

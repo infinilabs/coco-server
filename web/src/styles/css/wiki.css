@@ -643,3 +643,87 @@
 .wiki-article-lead p {
   margin-bottom: 0;
 }
+
+/* ---------------- compiled-topic citations ---------------- */
+/* interactive [n] markers: compact superscript chips, hover floats the
+   source claim; paragraphs light up on hover so cited blocks read as
+   provenance-bearing units without a per-section source line */
+
+.wiki-cite-chip {
+  display: inline-block;
+  margin: 0 1px;
+  padding: 1px 4.5px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  vertical-align: super;
+  color: var(--wiki-text-3, var(--ant-color-text-tertiary));
+  background: color-mix(in srgb, var(--ant-color-primary) 7%, transparent);
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.wiki-cite-chip:hover,
+.wiki-doc-surface p:hover .wiki-cite-chip,
+.wiki-article-lead:hover .wiki-cite-chip {
+  color: var(--ant-color-primary);
+  background: color-mix(in srgb, var(--ant-color-primary) 16%, transparent);
+}
+.wiki-cite-chip-plain {
+  cursor: default;
+}
+
+/* text-block hover highlight: the cited block announces itself */
+.wiki-doc-surface p:hover,
+.wiki-article-lead:hover {
+  background: color-mix(in srgb, var(--ant-color-primary) 3.5%, transparent);
+  border-radius: 6px;
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--ant-color-primary) 3.5%, transparent);
+}
+
+/* hover popover: the claim + verbatim excerpt + document link */
+.wiki-cite-pop {
+  max-width: 340px;
+  padding: 2px 0;
+}
+.wiki-cite-pop-claim {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ant-color-text);
+}
+.wiki-cite-pop-excerpt {
+  margin-top: 6px;
+  padding-left: 8px;
+  border-left: 2px solid var(--ant-color-border-secondary);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ant-color-text-tertiary);
+}
+.wiki-cite-pop-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 11.5px;
+}
+
+/* collapsed claims floor at the page end */
+.wiki-claims-panel {
+  max-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 4px;
+}
+.wiki-claims-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.wiki-claims-text {
+  flex: 1;
+  min-width: 0;
+  color: var(--wiki-text-2, var(--ant-color-text-secondary));
+}

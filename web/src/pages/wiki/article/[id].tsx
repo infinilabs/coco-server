@@ -27,6 +27,7 @@ import {
 import {
   Avatar,
   Button,
+  Collapse,
   Divider,
   Drawer,
   Empty,
@@ -34,6 +35,7 @@ import {
   List,
   Modal,
   Popconfirm,
+  Popover,
   Select,
   Space,
   Result,
@@ -67,7 +69,7 @@ import {
   updateWikiArticleAttachments,
   updateWikiArticleStatus
 } from '@/service/api';
-import { parseStructuredContent, parseWikiLink } from '../shared/content';
+import { parseStructuredContent, parseWikiLink, splitCitationBlock, linkifyCitations, type CitationRef } from '../shared/content';
 import { WikiLinkTag, renderInlineWikiLinks } from '../shared/WikiLinkTag';
 import { EntityHoverCard } from '../shared/EntityHoverCard';
 import { EntityArticleSections } from '../components/EntityArticleSections';
@@ -102,6 +104,34 @@ function Section({ title, children }: { readonly title: string; readonly childre
       <div className='wiki-section-label'>{title}</div>
       {children}
     </div>
+  );
+}
+
+/** interactive [n] citation marker of compiled prose: hover floats the
+ * source claim (with the verbatim excerpt), click opens the document */
+function CitationChip({ n, citation }: { n: number; citation?: CitationRef }) {
+  const { t } = useTranslation();
+  if (!citation) {
+    // marker without a parsed claim (stale index) — keep it readable, no popover
+    return <sup className='wiki-cite-chip wiki-cite-chip-plain'>{n}</sup>;
+  }
+  const content = (
+    <div className='wiki-cite-pop'>
+      <div className='wiki-cite-pop-claim'>{citation.claim}</div>
+      {citation.excerpt && <div className='wiki-cite-pop-excerpt'>{citation.excerpt}</div>}
+      {citation.docId && (
+        <a className='wiki-cite-pop-link' href={`#/preview/document/${citation.docId}`}>
+          {t('page.wiki.article.openSource')} →
+        </a>
+      )}
+    </div>
+  );
+  return (
+    <Popover content={content} mouseEnterDelay={0.15} placement='top' rootClassName='wiki-cite-popover'>
+      <sup className='wiki-cite-chip' data-cite={citation.n}>
+        {citation.n}
+      </sup>
+    </Popover>
   );
 }
 
@@ -561,7 +591,17 @@ export function Component() {
     }
   };
 
-  const structured = useMemo(() => (article ? parseStructuredContent(article.content) : null), [article?.content]);
+  // compiled-topic citations: the 来源主张 tail and the per-section
+  // `> 来源：` lines become data — provenance lives on the interactive [n]
+  // chips, the reading body stays clean
+  const citationInfo = useMemo(
+    () => (article ? splitCitationBlock(article.content) : { body: '', claims: [] as CitationRef[] }),
+    [article?.content]
+  );
+  const structured = useMemo(
+    () => (article ? parseStructuredContent(linkifyCitations(citationInfo.body)) : null),
+    [citationInfo.body]
+  );
 
   // wikilink capsules (ontology O4): [[type:name]] in the content resolves
   // against linked_pages saved with the article — resolved links render as
@@ -629,6 +669,12 @@ export function Component() {
 
   const renderWikiLink = useCallback(
     (href: string) => {
+      // compiled-topic citation chip: [n] markers hover their source claim
+      // and click through to the cited document
+      if (href.startsWith('#cite-')) {
+        const n = Number(href.slice('#cite-'.length));
+        return <CitationChip citation={citationInfo.claims.find(c => c.n === n)} n={n} />;
+      }
       if (!href.startsWith('#wikilink?')) return undefined;
       const params = new URLSearchParams(href.slice('#wikilink?'.length));
       const type = params.get('t') || '';
@@ -644,7 +690,7 @@ export function Component() {
         />
       );
     },
-    [resolveWikiLink, openWikiLink, entityHoverCard, linkIndex]
+    [resolveWikiLink, openWikiLink, entityHoverCard, linkIndex, citationInfo]
   );
 
   const currentDiff = useMemo(
@@ -1072,6 +1118,42 @@ export function Component() {
                           <Markdown
                             content={mainContent}
                             renderLink={renderWikiLink}
+                          />
+                        </>
+                      )}
+                      {/* the verification floor, collapsed: every claim with
+                          its document one click away — the prose above shows
+                          provenance through the [n] chips, not bulk */}
+                      {citationInfo.claims.length > 0 && (
+                        <>
+                          <Divider />
+                          <Collapse
+                            ghost
+                            items={[
+                              {
+                                key: 'claims',
+                                label: (
+                                  <span className='text-13px font-500'>
+                                    {t('page.wiki.article.claimsToggle', { count: citationInfo.claims.length })}
+                                  </span>
+                                ),
+                                children: (
+                                  <div className='wiki-claims-panel'>
+                                    {citationInfo.claims.map(c => (
+                                      <div className='wiki-claims-item' key={c.n}>
+                                        <span className='wiki-cite-chip wiki-cite-chip-plain'>{c.n}</span>
+                                        <span className='wiki-claims-text'>{c.claim}</span>
+                                        {c.docId && (
+                                          <a className='text-11px' href={`#/preview/document/${c.docId}`}>
+                                            {t('page.wiki.article.openSource')}
+                                          </a>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )
+                              }
+                            ]}
                           />
                         </>
                       )}

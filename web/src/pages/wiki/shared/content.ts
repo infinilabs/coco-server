@@ -116,3 +116,74 @@ export function parseWikiLink(entry: string): WikiLink | null {
   if (!m) return null;
   return { type: m[1].trim(), label: m[2].trim() };
 }
+
+/* ---------------- compiled-topic citations ---------------- */
+
+/** one numbered source claim parsed out of a compiled page's 来源主张 list */
+export interface CitationRef {
+  n: number;
+  claim: string;
+  docId?: string;
+  excerpt?: string;
+}
+
+const CLAIMS_HEADING = /\n?##\s*来源主张\s*\n/;
+const SOURCE_LINE = /^> 来源：.*$/gm;
+const CLAIM_ITEM = /^(\d+)\.\s+(.+)$/;
+const SOURCE_LINK = /\[源\]\(#\/preview\/document\/([A-Za-z0-9_-]+)(?:\?q=([^)\s]*))?[^)]*\)/;
+
+/**
+ * Split a compiled page's content into its reading body and the numbered
+ * source-claim list trailing it: the per-section `> 来源：` lines go away
+ * (provenance lives on the interactive [n] chips) and the 来源主张 section
+ * becomes data for the hover popovers instead of layout bulk.
+ */
+export function splitCitationBlock(content: string): { body: string; claims: CitationRef[] } {
+  if (!content) return { body: '', claims: [] };
+  let body = content.replace(SOURCE_LINE, '');
+  const claims: CitationRef[] = [];
+  const split = body.split(CLAIMS_HEADING);
+  if (split.length > 1) {
+    body = split.slice(0, -1).join('\n');
+    for (const raw of split[split.length - 1].split('\n')) {
+      const m = raw.match(CLAIM_ITEM);
+      if (!m) continue;
+      const src = raw.match(SOURCE_LINK);
+      const excerptDecoded = src?.[2] ? safeDecodeURIComponent(src[2]) : undefined;
+      claims.push({
+        n: Number(m[1]),
+        claim: m[2].replace(/\s*\[源\]\([^)]*\)\s*$/, '').trim(),
+        docId: src?.[1],
+        excerpt: excerptDecoded
+      });
+    }
+  }
+  return { body: body.trim(), claims };
+}
+
+function safeDecodeURIComponent(s: string): string {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
+}
+
+/**
+ * Turn bare citation markers `[12]` in compiled prose into markdown links
+ * (`[12](#cite-12)`) so the reader renders them as interactive chips —
+ * wikilinks `[[..]]`, existing markdown links `[x](..)` and code fences
+ * are left alone.
+ */
+export function linkifyCitations(body: string): string {
+  if (!body) return body;
+  // transform only outside fenced code blocks (even-indexed segments)
+  return body
+    .split('```')
+    .map((seg, i) =>
+      i % 2 === 0
+        ? seg.replace(/(^|[^\[`\\])\[(\d{1,3})\](?!\()/g, (_m, pre: string, n: string) => `${pre}[${n}](#cite-${n})`)
+        : seg
+    )
+    .join('```');
+}

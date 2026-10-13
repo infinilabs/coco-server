@@ -102,3 +102,32 @@ func TestComputeTopicMaturityCoverage(t *testing.T) {
 		t.Errorf("score mismatch: %v", m.Score)
 	}
 }
+
+func TestHeadingSimilarAnchorsRenamedSections(t *testing.T) {
+	cases := []struct {
+		a, b string
+		want bool
+	}{
+		{"概述", "概述", true},
+		{"Product Data & Pricing Facts", "Product Data and Pricing Facts", true}, // paraphrase
+		{"产品数据与定价事实", "产品数据与定价", true},                                           // containment
+		{"Overview: Maxim's Cakes Online Product Catalogue", "Overview: Maxim's Cakes Online Catalogue", true},
+		{"时间线", "数据与事实", false}, // unrelated
+		{"争议与开放问题", "来源与延伸", false},
+	}
+	for _, c := range cases {
+		if got := headingSimilar(c.a, c.b); got != c.want {
+			t.Errorf("headingSimilar(%q,%q)=%v want %v", c.a, c.b, got, c.want)
+		}
+	}
+	// merge must replace a paraphrased twin, not append it
+	outline := []core.WikiSection{{ID: "s1", Heading: "Product Data & Pricing Facts", Body: "old"}}
+	incoming := []core.WikiSection{{ID: "s2", Heading: "Product Data and Pricing Facts", Body: "new", UpdatedAt: 1}}
+	merged := mergeTopicSections(outline, incoming)
+	if len(merged) != 1 {
+		t.Fatalf("paraphrased heading must merge in place, got %d sections", len(merged))
+	}
+	if merged[0].Body != "new" {
+		t.Errorf("body must refresh, got %q", merged[0].Body)
+	}
+}
