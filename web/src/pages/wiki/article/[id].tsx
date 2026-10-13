@@ -1024,21 +1024,6 @@ export function Component() {
                   <span className='wiki-window-title'>{article.title}</span>
                 </div>
                 <div className='wiki-doc-surface'>
-                  {(article.key_entities?.length || 0) > 0 && (
-                    <div className='mb-10px flex flex-wrap items-center gap-6px text-xs'>
-                      <span className='color-[var(--wiki-text-3)]'>{t('page.wiki.article.keyEntities')}</span>
-                      {article.key_entities!.map(name => (
-                        <Tag
-                          bordered={false}
-                          className='cursor-pointer'
-                          key={name}
-                          onClick={() => nav(`/wiki/kb/${article.kb_id}?tab=entities&entity=${encodeURIComponent(name)}`)}
-                        >
-                          {name}
-                        </Tag>
-                      ))}
-                    </div>
-                  )}
                   {structured && (
                     <>
                       {structured.intro.trim() && (
@@ -1125,6 +1110,27 @@ export function Component() {
                             content={mainContent}
                             renderLink={renderWikiLink}
                           />
+                        </>
+                      )}
+                      {/* key entities live at the footer like blog tags — a
+                          10-chip row above the lead pushed the whole article
+                          down on entity-rich pages */}
+                      {(article.key_entities?.length || 0) > 0 && (
+                        <>
+                          <Divider />
+                          <div className='flex flex-wrap items-center gap-6px text-xs'>
+                            <span className='color-[var(--wiki-text-3)]'>{t('page.wiki.article.keyEntities')}</span>
+                            {article.key_entities!.map(name => (
+                              <Tag
+                                bordered={false}
+                                className='cursor-pointer'
+                                key={name}
+                                onClick={() => nav(`/wiki/kb/${article.kb_id}?tab=entities&entity=${encodeURIComponent(name)}`)}
+                              >
+                                {name}
+                              </Tag>
+                            ))}
+                          </div>
                         </>
                       )}
                       {/* the verification floor, collapsed: every claim with
