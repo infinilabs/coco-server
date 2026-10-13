@@ -1163,10 +1163,13 @@ export function Component() {
                           />
                         </>
                       )}
-                      {/* unified source cards — 来源与附件 and 来源文献 used to
-                          render the same documents twice; one list now carries
-                          citation metadata, doc freshness and attachments */}
-                      {(article.sources.length > 0 || materials.length > 0) && (
+                      {/* source cards only when the interactive citation floor
+                          is absent — on compiled pages every document is one
+                          click away through the [n] chips and the claims
+                          panel, and this list would just repeat them; pages
+                          without parsed claims (hand-written) still need it
+                          as their only provenance surface */}
+                      {citationInfo.claims.length === 0 && (article.sources.length > 0 || materials.length > 0) && (
                         <>
                           <Divider />
                           <Section title={t('page.wiki.article.sections.sources')}>
