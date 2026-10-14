@@ -4,6 +4,8 @@ go 1.25.4
 
 replace github.com/cihub/seelog => ../framework/lib/seelog
 
+require infini.sh/coco-codecs v0.0.0-00010101000000-000000000000
+
 require (
 	code.gitea.io/sdk/gitea v0.22.0
 	github.com/EdlinOrg/prominentcolor v1.0.0
@@ -288,6 +290,8 @@ require (
 )
 
 replace github.com/tmc/langchaingo => github.com/infinilabs/langchaingo v0.0.0-20260617092532-cab644a9995a
+
+replace infini.sh/coco-codecs => ../coco-codecs
 
 replace infini.sh/framework => ../framework
 

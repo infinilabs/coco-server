@@ -36,7 +36,10 @@ type Plugin struct {
 }
 
 func init() {
-	pipeline.RegisterProcessorPlugin(ConnectorLocalFs, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(ConnectorLocalFs, New, nil)
+	// chain-root driver (batch scope): fetches from its datasource and
+	// emits into the indexing queue — no record contract beyond scope
+	pipeline.RegisterProcessorContract(ConnectorLocalFs, pipeline.RecordContract{Scope: pipeline.ScopeBatch})
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {

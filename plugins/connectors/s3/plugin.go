@@ -29,7 +29,10 @@ type Plugin struct {
 }
 
 func init() {
-	pipeline.RegisterProcessorPlugin(ConnectorS3, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(ConnectorS3, New, nil)
+	// chain-root driver (batch scope): fetches from its datasource and
+	// emits into the indexing queue — no record contract beyond scope
+	pipeline.RegisterProcessorContract(ConnectorS3, pipeline.RecordContract{Scope: pipeline.ScopeBatch})
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {

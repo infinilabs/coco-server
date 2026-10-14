@@ -10,6 +10,7 @@
 package pipeline
 
 import (
+	_ "infini.sh/coco-codecs" // register coco_document/coco_attachment record codecs
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/security"
 )

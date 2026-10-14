@@ -5,12 +5,18 @@
 package utils
 
 import (
+	"context"
 	"fmt"
 
 	log "github.com/cihub/seelog"
 	"golang.org/x/text/language"
+	codecs "infini.sh/coco-codecs"
 	"infini.sh/coco/core"
+	"infini.sh/coco/core/documentview"
 	"infini.sh/coco/modules/datasource"
+	"infini.sh/framework/core/event"
+	"infini.sh/framework/core/pipeline"
+	"infini.sh/framework/core/util"
 )
 
 // GetDatasource returns the datasource for the given document.
@@ -62,4 +68,105 @@ func ValidateAndNormalizeLLMLang(processorName, lang string) string {
 
 	// Normalize to BCP 47 format (e.g., "en_US" -> "en-US")
 	return tag.String()
+}
+
+// Dual-mode record adaptation (P3): the shared bridge between the legacy
+// messages convention and the record convention. Document processors keep
+// ONE per-document function; Process/ProcessBatch routes to it.
+
+// DocumentFn is a per-document processing step. Return handled=false to
+// leave the record untouched (the skip semantics of the legacy `continue`).
+type DocumentFn func(ctx context.Context, doc *core.Document) (handled bool, err error)
+
+// EachDocumentRecord adapts DocumentFn to the record convention: materialize
+// → fn → project. Records without a document subtree are skipped (they are
+// not this processor's family). Always projects handled documents back —
+// Fields stays the single authority.
+func EachDocumentRecord(ctx context.Context, records []*event.Event, fn DocumentFn) error {
+	for _, rec := range records {
+		if rec == nil {
+			continue
+		}
+		doc, err := documentview.Materialize(rec)
+		if err != nil {
+			// not a document-family record — skip, matching the legacy
+			// type-assertion warn-and-continue behavior
+			continue
+		}
+		handled, err := fn(ctx, doc)
+		if err != nil {
+			return err
+		}
+		if handled {
+			if err := documentview.Project(doc, rec); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// DocumentRecordContract is the standard record contract for Coco document
+// processors (D2): record scope, document namespace. granularity varies
+// per processor and is set by the caller.
+func DocumentRecordContract(granularity pipeline.Granularity) pipeline.RecordContract {
+	return pipeline.RecordContract{
+		Scope:       pipeline.ScopeRecord,
+		Namespace:   "document",
+		Granularity: granularity,
+	}
+}
+
+// AttachmentFn is a per-attachment processing step (handled=false skips).
+type AttachmentFn func(ctx context.Context, att *core.Attachment) (handled bool, err error)
+
+// EachAttachmentRecord adapts AttachmentFn to the record convention
+// (attachment namespace subtree "attachment").
+func EachAttachmentRecord(ctx context.Context, records []*event.Event, fn AttachmentFn) error {
+	for _, rec := range records {
+		if rec == nil {
+			continue
+		}
+		v, err := rec.Fields.GetValue(codecs.FieldAttachment)
+		if err != nil || v == nil {
+			continue // not an attachment-family record
+		}
+		if m, ok := v.(util.MapStr); ok && len(m) == 0 {
+			continue
+		}
+		b, err := util.ToJSONBytes(v)
+		if err != nil {
+			return err
+		}
+		att := &core.Attachment{}
+		if err := util.FromJSONBytes(b, att); err != nil {
+			continue
+		}
+		handled, err := fn(ctx, att)
+		if err != nil {
+			return err
+		}
+		if handled {
+			nb, err := util.ToJSONBytes(att)
+			if err != nil {
+				return err
+			}
+			nm := util.MapStr{}
+			if err := util.FromJSONBytes(nb, &nm); err != nil {
+				return err
+			}
+			rec.Fields[codecs.FieldAttachment] = nm
+		}
+	}
+	return nil
+}
+
+// AttachmentRecordContract is the standard contract for attachment-family
+// processors (record scope, attachment namespace).
+func AttachmentRecordContract(granularity pipeline.Granularity) pipeline.RecordContract {
+	return pipeline.RecordContract{
+		Scope:       pipeline.ScopeRecord,
+		Namespace:   "attachment",
+		Granularity: granularity,
+	}
 }

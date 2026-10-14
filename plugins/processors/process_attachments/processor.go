@@ -28,7 +28,8 @@ import (
 const ProcessorName = "process_attachments"
 
 func init() {
-	pipeline.RegisterProcessorPlugin(ProcessorName, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(ProcessorName, New, Config{})
+	pipeline.RegisterProcessorContract(ProcessorName, pipeline.RecordContract{Scope: pipeline.ScopeBatch})
 }
 
 // Config holds the configuration for ProcessAttachmentsProcessor.

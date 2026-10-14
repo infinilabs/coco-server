@@ -21,6 +21,7 @@ import (
 	utils "infini.sh/coco/plugins/processors"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
+	"infini.sh/framework/core/event"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/param"
@@ -52,7 +53,8 @@ type ExtractTagsProcessor struct {
 }
 
 func init() {
-	pipeline.RegisterProcessorPlugin(ProcessorName, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(ProcessorName, New, Config{})
+	pipeline.RegisterProcessorContract(ProcessorName, utils.DocumentRecordContract(pipeline.GranularityBatchCapable))
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
@@ -91,7 +93,99 @@ func (processor *ExtractTagsProcessor) Name() string {
 	return ProcessorName
 }
 
+// processDocument is the per-document core shared by both conventions.
+// Returns handled=false for skips (legacy `continue` semantics).
+func (processor *ExtractTagsProcessor) processDocument(llmCtx context.Context, llm llms.Model, doc *core.Document) (bool, error) {
+	aiInsights := doc.AiInsights.Text
+	if len(aiInsights) == 0 {
+		log.Debugf("[%s] document [%s/%s] has no ai_insights, skipping tag extraction", processor.Name(), doc.Title, doc.ID)
+		return false, nil
+	}
+	log.Infof("processor [%s] start extracting tags for document [%s/%s]", processor.Name(), doc.Title, doc.ID)
+	start := time.Now()
+	vocab := tagsVocabForDatasource(llmCtx, doc.Source.ID)
+	tags, err := extractTagsFromInsights(llmCtx, aiInsights, processor.config, llm, processor.removeThinkPattern, vocab)
+	if err != nil {
+		log.Errorf("[%s] failed to extract tags for document [%s/%s], error [%s]", processor.Name(), doc.Title, doc.ID, err)
+		return false, nil // per-document failure skips the doc, matching legacy
+	}
+	doc.Tags = tags
+	log.Infof("[%s] finished extracting tags for doc, %v, %v, elapsed: %v, tags: %v",
+		processor.Name(), doc.Title, doc.ID, util.Since(start), tags)
+	return true, nil
+}
+
+// resolveLLM resolves the language model once per invocation.
+func (processor *ExtractTagsProcessor) resolveLLM() (llms.Model, error) {
+	modelId := llmmodule.ResolveModel(core.LLMTypeLanguage, &core.ModelId{ProviderID: processor.config.ModelProviderID, ID: processor.config.ModelName})
+	if modelId == nil {
+		return nil, fmt.Errorf("[%s] no language model configured: set model_provider/model in pipeline config or configure a default language model in settings", processor.Name())
+	}
+	provider, err := common.GetModelProvider(modelId.ProviderID)
+	if err != nil {
+		return nil, err
+	}
+	return langchain.GetLLM(provider.BaseURL, provider.APIType, modelId.ID, provider.APIKey, ""), nil
+}
+
+// ProcessBatch is the record-convention batch channel: one LLM resolution,
+// per-record materialize→process→project. Runs before record segments in
+// stage-wise execution (for_each direct member).
+func (processor *ExtractTagsProcessor) ProcessBatch(ctx *pipeline.Context, records []*event.Event) error {
+	if len(records) == 0 {
+		return nil
+	}
+	// lazy LLM resolution: batches of skip-records (no ai_insights) must
+	// not require model configuration at all
+	var llm llms.Model
+	resolved := false
+	getLLM := func() (llms.Model, error) {
+		if resolved {
+			return llm, nil
+		}
+		var err error
+		llm, err = processor.resolveLLM()
+		if err != nil {
+			return nil, err
+		}
+		resolved = true
+		return llm, nil
+	}
+	llmCtx, cancelFunc := context.WithCancel(ctx.Context)
+	defer cancelFunc()
+	return utils.EachDocumentRecord(llmCtx, records, func(dctx context.Context, doc *core.Document) (bool, error) {
+		if global.ShuttingDown() {
+			return false, errors.New("shutting down")
+		}
+		if len(doc.AiInsights.Text) == 0 {
+			return false, nil // skip without touching model config
+		}
+		m, err := getLLM()
+		if err != nil {
+			return false, err
+		}
+		return processor.processDocument(dctx, m, doc)
+	})
+}
+
 func (processor *ExtractTagsProcessor) Process(ctx *pipeline.Context) error {
+	// record-scope fallback: batch_capable processors degrade to per-record
+	// when nested (if branches) — serve the current record directly
+	if _, ok := pipeline.CurrentRecord(ctx); ok {
+		llmCtx, cancelFunc := context.WithCancel(ctx.Context)
+		defer cancelFunc()
+		return utils.EachDocumentRecord(llmCtx, []*event.Event{mustCurrentRecord(ctx)}, func(dctx context.Context, doc *core.Document) (bool, error) {
+			if len(doc.AiInsights.Text) == 0 {
+				return false, nil
+			}
+			m, err := processor.resolveLLM()
+			if err != nil {
+				return false, err
+			}
+			return processor.processDocument(dctx, m, doc)
+		})
+	}
+
 	obj := ctx.Get(processor.config.MessageField)
 
 	if obj == nil {
@@ -112,17 +206,11 @@ func (processor *ExtractTagsProcessor) Process(ctx *pipeline.Context) error {
 		return nil
 	}
 
-	modelId := llmmodule.ResolveModel(core.LLMTypeLanguage, &core.ModelId{ProviderID: processor.config.ModelProviderID, ID: processor.config.ModelName})
-	if modelId == nil {
-		return fmt.Errorf("[%s] no language model configured: set model_provider/model in pipeline config or configure a default language model in settings", processor.Name())
-	}
-	provider, err := common.GetModelProvider(modelId.ProviderID)
+	llm, err := processor.resolveLLM()
 	if err != nil {
 		log.Error("failed to get model provider:", err)
 		return err
 	}
-
-	llm := langchain.GetLLM(provider.BaseURL, provider.APIType, modelId.ID, provider.APIKey, "")
 	llmCtx, cancelFunc := context.WithCancel(ctx.Context)
 	defer cancelFunc()
 
@@ -146,24 +234,14 @@ func (processor *ExtractTagsProcessor) Process(ctx *pipeline.Context) error {
 			continue
 		}
 
-		aiInsights := doc.AiInsights.Text
-		if len(aiInsights) == 0 {
-			log.Debugf("[%s] document [%s/%s] has no ai_insights, skipping tag extraction", processor.Name(), doc.Title, doc.ID)
-			continue
-		}
-
-		log.Infof("processor [%s] start extracting tags for document [%s/%s]", processor.Name(), doc.Title, doc.ID)
-		start := time.Now()
-		vocab := tagsVocabForDatasource(llmCtx, doc.Source.ID)
-		tags, err := extractTagsFromInsights(llmCtx, aiInsights, processor.config, llm, processor.removeThinkPattern, vocab)
+		handled, err := processor.processDocument(llmCtx, llm, &doc)
 		if err != nil {
-			log.Errorf("[%s] failed to extract tags for document [%s/%s], error [%s]", processor.Name(), doc.Title, doc.ID, err)
+			log.Error("error on handle document:", i, err)
 			continue
 		}
-		doc.Tags = tags
-		log.Infof("[%s] finished extracting tags for doc, %v, %v, elapsed: %v, tags: %v",
-			processor.Name(), doc.Title, doc.ID, util.Since(start), tags)
-		message.Data = util.MustToJSONBytes(doc)
+		if handled {
+			message.Data = util.MustToJSONBytes(doc)
+		}
 
 		// Enqueue immediately after processing
 		if processor.outputQueue != nil {
@@ -350,4 +428,10 @@ func normalizeTags(tags []string) []string {
 	}
 
 	return result
+}
+
+// mustCurrentRecord returns the current record (caller checked presence).
+func mustCurrentRecord(ctx *pipeline.Context) *event.Event {
+	rec, _ := pipeline.CurrentRecord(ctx)
+	return rec
 }

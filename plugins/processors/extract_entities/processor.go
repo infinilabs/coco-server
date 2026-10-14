@@ -24,6 +24,7 @@ import (
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/errors"
+	"infini.sh/framework/core/event"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/param"
@@ -71,7 +72,8 @@ type ExtractEntitiesProcessor struct {
 }
 
 func init() {
-	pipeline.RegisterProcessorPlugin(ProcessorName, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(ProcessorName, New, Config{})
+	pipeline.RegisterProcessorContract(ProcessorName, utils.DocumentRecordContract(pipeline.GranularityBatchCapable))
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
@@ -134,7 +136,104 @@ type extractionResult struct {
 	Entities []extractedEntity `json:"entities"`
 }
 
+// extract is the per-document core shared by both conventions.
+func (processor *ExtractEntitiesProcessor) extract(llmCtx context.Context, llm llms.Model, schema *wiki.OntologySchemaDoc, doc *core.Document) (bool, error) {
+	material := buildExtractionMaterial(doc)
+	if material == "" {
+		log.Debugf("[%s] document [%s/%s] has no extractable text, skipping", processor.Name(), doc.Title, doc.ID)
+		return false, nil
+	}
+	log.Infof("processor [%s] start extracting entities for document [%s/%s]", processor.Name(), doc.Title, doc.ID)
+	start := time.Now()
+	entityIDs, err := processor.extractAndLink(llmCtx, llm, doc, material, schema)
+	if err != nil {
+		log.Errorf("[%s] failed to extract entities for document [%s/%s], error [%s]", processor.Name(), doc.Title, doc.ID, err)
+		return false, nil // per-document failure skips the doc, matching legacy
+	}
+	if len(entityIDs) == 0 {
+		return false, nil
+	}
+	doc.EntityIDs = entityIDs
+	log.Infof("[%s] finished extracting entities for doc, %v, %v, elapsed: %v, entities: %v",
+		processor.Name(), doc.Title, doc.ID, util.Since(start), entityIDs)
+	return true, nil
+}
+
+// resolveLLM resolves the language model once per invocation.
+func (processor *ExtractEntitiesProcessor) resolveLLM() (llms.Model, error) {
+	modelId := llmmodule.ResolveModel(core.LLMTypeLanguage, &core.ModelId{ProviderID: processor.config.ModelProviderID, ID: processor.config.ModelName})
+	if modelId == nil {
+		return nil, fmt.Errorf("[%s] no language model configured: set model_provider/model in pipeline config or configure a default language model in settings", processor.Name())
+	}
+	provider, err := common.GetModelProvider(modelId.ProviderID)
+	if err != nil {
+		return nil, err
+	}
+	return langchain.GetLLM(provider.BaseURL, provider.APIType, modelId.ID, provider.APIKey, ""), nil
+}
+
+// ProcessBatch: record-convention batch channel, lazy LLM resolution.
+func (processor *ExtractEntitiesProcessor) ProcessBatch(ctx *pipeline.Context, records []*event.Event) error {
+	var llm llms.Model
+	resolved := false
+	getLLM := func() (llms.Model, error) {
+		if resolved {
+			return llm, nil
+		}
+		var err error
+		llm, err = processor.resolveLLM()
+		if err != nil {
+			return nil, err
+		}
+		resolved = true
+		return llm, nil
+	}
+	llmCtx, cancelFunc := context.WithCancel(ctx.Context)
+	defer cancelFunc()
+	// ontology schema resolves lazily too — skip-only batches must not
+	// require ORM availability
+	var schema *wiki.OntologySchemaDoc
+	schemaResolved := false
+	getSchema := func() *wiki.OntologySchemaDoc {
+		if schemaResolved {
+			return schema
+		}
+		schema = wiki.ResolveOntologySchema(ctx.Context, processor.config.WikiKbID)
+		schemaResolved = true
+		return schema
+	}
+	return utils.EachDocumentRecord(llmCtx, records, func(dctx context.Context, doc *core.Document) (bool, error) {
+		if global.ShuttingDown() {
+			return false, errors.New("shutting down")
+		}
+		if buildExtractionMaterial(doc) == "" {
+			return false, nil // skip before touching model config / ORM
+		}
+		m, err := getLLM()
+		if err != nil {
+			return false, err
+		}
+		return processor.extract(dctx, m, getSchema(), doc)
+	})
+}
+
 func (processor *ExtractEntitiesProcessor) Process(ctx *pipeline.Context) error {
+	// record-scope fallback: batch_capable degrades to per-record when nested
+	if rec, ok := pipeline.CurrentRecord(ctx); ok {
+		llmCtx, cancelFunc := context.WithCancel(ctx.Context)
+		defer cancelFunc()
+		return utils.EachDocumentRecord(llmCtx, []*event.Event{rec}, func(dctx context.Context, doc *core.Document) (bool, error) {
+			if buildExtractionMaterial(doc) == "" {
+				return false, nil
+			}
+			m, err := processor.resolveLLM()
+			if err != nil {
+				return false, err
+			}
+			return processor.extract(dctx, m, wiki.ResolveOntologySchema(dctx, processor.config.WikiKbID), doc)
+		})
+	}
+
 	obj := ctx.Get(processor.config.MessageField)
 	if obj == nil {
 		log.Warnf("processor [%s] receives an empty pipeline context", processor.Name())
@@ -149,15 +248,10 @@ func (processor *ExtractEntitiesProcessor) Process(ctx *pipeline.Context) error 
 		return nil
 	}
 
-	modelId := llmmodule.ResolveModel(core.LLMTypeLanguage, &core.ModelId{ProviderID: processor.config.ModelProviderID, ID: processor.config.ModelName})
-	if modelId == nil {
-		return fmt.Errorf("[%s] no language model configured: set model_provider/model in pipeline config or configure a default language model in settings", processor.Name())
-	}
-	provider, err := common.GetModelProvider(modelId.ProviderID)
+	llm, err := processor.resolveLLM()
 	if err != nil {
 		return err
 	}
-	llm := langchain.GetLLM(provider.BaseURL, provider.APIType, modelId.ID, provider.APIKey, "")
 	llmCtx, cancelFunc := context.WithCancel(ctx.Context)
 	defer cancelFunc()
 

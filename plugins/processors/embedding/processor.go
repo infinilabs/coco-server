@@ -14,8 +14,10 @@ import (
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
 	llmmodule "infini.sh/coco/modules/llm"
+	utils "infini.sh/coco/plugins/processors"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
+	"infini.sh/framework/core/event"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/param"
 	"infini.sh/framework/core/pipeline"
@@ -38,7 +40,8 @@ type DocumentEmbeddingProcessor struct {
 }
 
 func init() {
-	pipeline.RegisterProcessorPlugin(ProcessorName, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(ProcessorName, New, Config{})
+	pipeline.RegisterProcessorContract(ProcessorName, utils.DocumentRecordContract(pipeline.GranularityBatchCapable))
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
@@ -69,7 +72,42 @@ func (processor *DocumentEmbeddingProcessor) Name() string {
 	return ProcessorName
 }
 
+// embedDocument is the per-document core shared by both conventions.
+// generateEmbedding resolves its own model config lazily (docs without
+// chunks skip it entirely).
+func (processor *DocumentEmbeddingProcessor) embedDocument(ctx context.Context, doc *core.Document) (bool, error) {
+	modified, errs := generateEmbedding(ctx, doc, processor.config)
+	if len(errs) != 0 {
+		if modified {
+			log.Errorf("processor [%s] failed to generate embeddings for document [%s/%s] _partially_ due to error [%v]", processor.Name(), doc.Title, doc.ID, errs)
+		} else {
+			log.Errorf("processor [%s] failed to generate embeddings for document [%s/%s] due to error [%v]", processor.Name(), doc.Title, doc.ID, errs)
+		}
+	}
+	if modified {
+		log.Infof("processor [%s] embeddings of document [%s/%s] generated", processor.Name(), doc.Title, doc.ID)
+	}
+	return modified, nil
+}
+
+// ProcessBatch: record-convention batch channel.
+func (processor *DocumentEmbeddingProcessor) ProcessBatch(ctx *pipeline.Context, records []*event.Event) error {
+	return utils.EachDocumentRecord(ctx.Context, records, func(dctx context.Context, doc *core.Document) (bool, error) {
+		if global.ShuttingDown() {
+			return false, errors.New("shutting down")
+		}
+		return processor.embedDocument(dctx, doc)
+	})
+}
+
 func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) error {
+	// record-scope fallback: batch_capable degrades to per-record when nested
+	if rec, ok := pipeline.CurrentRecord(ctx); ok {
+		return utils.EachDocumentRecord(ctx.Context, []*event.Event{rec}, func(dctx context.Context, doc *core.Document) (bool, error) {
+			return processor.embedDocument(dctx, doc)
+		})
+	}
+
 	obj := ctx.Get(processor.config.MessageField)
 
 	if obj == nil {
@@ -108,21 +146,7 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 			continue
 		}
 
-		modified, errs := generateEmbedding(ctx.Context, &doc, processor.config)
-		/* Log out the corresponding state */
-		if len(errs) != 0 {
-			if modified {
-				log.Errorf("processor [%s] failed to generate embeddings for document [%s/%s] _partially_ due to error [%v]", processor.Name(), doc.Title, doc.ID, errs)
-			} else {
-				log.Errorf("processor [%s] failed to generate embeddings for document [%s/%s] due to error [%v]", processor.Name(), doc.Title, doc.ID, errs)
-			}
-		} else {
-			if modified {
-				log.Infof("processor [%s] embeddings of document [%s/%s] generated", processor.Name(), doc.Title, doc.ID)
-			} else {
-				log.Infof("processor [%s] skipped document [%s/%s]", processor.Name(), doc.Title, doc.ID)
-			}
-		}
+		modified, _ := processor.embedDocument(ctx.Context, &doc) // logging inside
 
 		if modified {
 			// Update messages[i].Data if doc gets modified
@@ -159,6 +183,12 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 func generateEmbedding(ctx context.Context, document *core.Document, processorConfig *Config) (bool, []error) {
 	var modified bool
 	var finalErrs []error
+
+	// nothing to embed — skip before resolving any model configuration
+	// (skip-only batches must not require embedder readiness)
+	if len(document.Chunks) == 0 && document.AiInsights.Text == "" {
+		return false, nil
+	}
 
 	embedder, modelId, err := getEmbedderClient(processorConfig)
 	if err != nil {

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	log "github.com/cihub/seelog"
+	codecs "infini.sh/coco-codecs"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/modules/document"
@@ -34,6 +35,16 @@ const pipelineRunsCap = 5
 type Config struct {
 	MessageField param.ParaKey      `config:"message_field"`
 	OutputQueue  *queue.QueueConfig `config:"output_queue"`
+
+	// Mode selects the sub-chain execution convention: "messages" (legacy,
+	// default until P8) or "records" (record scope — the sub-chain runs
+	// against *event.Event with the document subtree, processors use their
+	// ProcessBatch/record paths).
+	Mode string `config:"mode"`
+	// CompileCacheTTLInMs caches compiled sub-chains per pipeline name for
+	// this long (0 = disabled, per-message compile like today). The stored
+	// pipeline's semantics still take effect within TTL+change-latency.
+	CompileCacheTTLInMs int64 `config:"compile_cache_ttl_ms"`
 }
 
 // ProcessDocumentsProcessor routes each incoming document through a
@@ -41,13 +52,20 @@ type Config struct {
 // the processed document to the configured output queue.
 //
 // If no pipeline is configured, the document is passed through unchanged.
+type compiledEntry struct {
+	procs   *pipeline.Processors
+	expires time.Time
+}
+
 type ProcessDocumentsProcessor struct {
-	config      *Config
-	outputQueue *queue.QueueConfig
+	compileCache map[string]compiledEntry
+	config       *Config
+	outputQueue  *queue.QueueConfig
 }
 
 func init() {
-	pipeline.RegisterProcessorPlugin(ProcessorName, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(ProcessorName, New, Config{})
+	pipeline.RegisterProcessorContract(ProcessorName, pipeline.RecordContract{Scope: pipeline.ScopeBatch})
 }
 
 // New creates a new ProcessDocumentsProcessor from the given config.
@@ -176,30 +194,77 @@ func (p *ProcessDocumentsProcessor) processMessage(msg queue.Message) error {
 		return p.pushPassthrough(msg.Data, "no-pipeline-configured")
 	}
 
-	// Load the pipeline config (pipeline name == ES document ID).
-	pipelineCfg := pipeline.PipelineConfigV2{}
-	pipelineCfg.ID = pipelineName
-	exists, err = orm.GetV2(ormCtx, &pipelineCfg)
-	if err != nil || !exists {
-		log.Warnf("processor [%s] pipeline [%s] not found (err=%v), passing through", p.Name(), pipelineName, err)
-		return p.pushPassthrough(msg.Data, "pipeline-not-found")
+	// resolveCompiled returns the compiled sub-chain, using the TTL cache
+	// when enabled (stores refetch on expiry — the version-aware compile
+	// cache, task #132).
+	resolveCompiled := func() (*pipeline.Processors, string) {
+		if p.config.CompileCacheTTLInMs > 0 {
+			if e, ok := p.compileCache[pipelineName]; ok && time.Now().Before(e.expires) {
+				return e.procs, ""
+			}
+		}
+		pipelineCfg := pipeline.PipelineConfigV2{}
+		pipelineCfg.ID = pipelineName
+		exists2, err2 := orm.GetV2(ormCtx, &pipelineCfg)
+		if err2 != nil || !exists2 {
+			return nil, "pipeline-not-found"
+		}
+		processorCfgs, err2 := pipelineCfg.GetProcessorsConfig()
+		if err2 != nil {
+			return nil, "pipeline-config-invalid"
+		}
+		var procs2 *pipeline.Processors
+		if p.config.Mode == "records" {
+			// record-scope compile: the stored chain runs against document-
+			// namespace records (its processors use their record paths)
+			procs2, err2 = pipeline.NewPipelineWithScope(processorCfgs, pipeline.ScopeInfo{
+				Kind:      pipeline.ScopeRecord,
+				Namespace: "document",
+				Strict:    pipelineCfg.StrictContract != nil && *pipelineCfg.StrictContract,
+			}, true)
+		} else {
+			procs2, err2 = pipeline.NewPipeline(processorCfgs)
+		}
+		if err2 != nil {
+			return nil, "pipeline-init-failed"
+		}
+		if p.config.CompileCacheTTLInMs > 0 {
+			p.compileCache[pipelineName] = compiledEntry{procs: procs2, expires: time.Now().Add(time.Duration(p.config.CompileCacheTTLInMs) * time.Millisecond)}
+		}
+		return procs2, ""
 	}
-
-	// Compile the processor chain from the stored config.
-	processorCfgs, err := pipelineCfg.GetProcessorsConfig()
-	if err != nil {
-		log.Errorf("processor [%s] failed to build processor configs for pipeline [%s]: %v", p.Name(), pipelineName, err)
-		return p.pushPassthrough(msg.Data, "pipeline-config-invalid")
-	}
-
-	procs, err := pipeline.NewPipeline(processorCfgs)
-	if err != nil {
-		log.Errorf("processor [%s] failed to instantiate pipeline [%s]: %v", p.Name(), pipelineName, err)
-		return p.pushPassthrough(msg.Data, "pipeline-init-failed")
+	procs, failure := resolveCompiled()
+	if failure != "" {
+		log.Warnf("processor [%s] pipeline [%s] %s, passing through", p.Name(), pipelineName, failure)
+		return p.pushPassthrough(msg.Data, failure)
 	}
 
 	// Run the enrichment pipeline synchronously in the current goroutine.
-	subCtx := pipeline.AcquireContext(pipelineCfg)
+	subCtx := pipeline.AcquireContext(pipelineCfg0(p.Name()))
+	if p.config.Mode == "records" {
+		// record convention: decode once, run the chain in record scope,
+		// encode once at exit — the sub-chain's processors see document.*
+		rec, derr := codecs.DocumentCodec{}.Decode(msg.Data)
+		if derr != nil {
+			return p.pushPassthrough(msg.Data, "record-decode-failed")
+		}
+		subCtx.Set(pipeline.RecordContextKey, rec)
+		subCtx.Started()
+		if rerr := procs.Process(subCtx); rerr != nil {
+			log.Errorf("processor [%s] records-mode pipeline error: %v", p.Name(), rerr)
+		}
+		encoded, eerr := codecs.DocumentCodec{}.Encode(rec)
+		if eerr != nil {
+			return p.pushPassthrough(msg.Data, "record-encode-failed")
+		}
+		msg.Data = encoded
+		msg.Size = len(encoded)
+		pipeline.ReleaseContext(subCtx)
+		if err := p.pushEnriched(msg.Data, true, pipelineName, 0, "", nil); err != nil {
+			log.Errorf("processor [%s] failed to push enriched document to output queue: %v", p.Name(), err)
+		}
+		return nil
+	}
 	subCtx.Set(p.config.MessageField, []queue.Message{msg})
 	// Downstream processors consult the framework pipeline state via ShouldContinue.
 	// This synchronous caller does not rely on runtime lifecycle semantics itself,
@@ -453,4 +518,9 @@ func bumpExistingUpdated(id string) {
 	if err := orm.Save(ormCtx, &doc); err != nil {
 		log.Debugf("processor [%s] failed to bump duplicate [%s] updated timestamp: %v", ProcessorName, id, err)
 	}
+}
+
+// pipelineCfg0 builds a minimal PipelineConfigV2 for sub-contexts.
+func pipelineCfg0(name string) pipeline.PipelineConfigV2 {
+	return pipeline.PipelineConfigV2{Name: name}
 }
