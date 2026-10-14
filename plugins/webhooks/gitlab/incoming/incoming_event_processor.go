@@ -62,7 +62,10 @@ type Processor struct {
 const processorName = "gitlab_incoming_message"
 
 func init() {
-	pipeline.RegisterProcessorPlugin(processorName, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(processorName, New, nil)
+	// chain-root driver (batch scope): fetches from its datasource and
+	// emits into the indexing queue — no record contract beyond scope
+	pipeline.RegisterProcessorContract(processorName, pipeline.RecordContract{Scope: pipeline.ScopeBatch})
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {

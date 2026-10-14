@@ -56,9 +56,9 @@ const (
 	// parallel page per recompile. Source-document overlap is the
 	// ground truth — a cluster built on the same docs enriches the page
 	// those docs built, whatever it got named.
-	topicMatchDocOverlap = 0.6  // min shared-doc ratio to claim a page
-	topicTwinDocOverlap  = 0.7  // twin absorb: near-total doc sharing…
-	topicTwinKeyOverlap  = 0.4  // …plus key-entity agreement
+	topicMatchDocOverlap = 0.6 // min shared-doc ratio to claim a page
+	topicTwinDocOverlap  = 0.7 // twin absorb: near-total doc sharing…
+	topicTwinKeyOverlap  = 0.4 // …plus key-entity agreement
 )
 
 var topicCacheKVKey = "wiki-compile-topic-cache"
