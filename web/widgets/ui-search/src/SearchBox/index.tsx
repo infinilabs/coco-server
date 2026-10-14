@@ -229,14 +229,21 @@ export function SearchBox(props: SearchBoxProps) {
     sb.rootRef
   ]);
 
-  // Backspace on an empty query (no attachments either) asks the host to clear
-  // its active filter conditions; preventDefault only when the host did clear
-  // something, so plain editing behavior is untouched otherwise.
+  // Backspace on an empty query (no attachments either) pops the LAST filter
+  // chip — one Backspace, one filter — so the keyboard flow can undo the
+  // construction step by step. Only when no chips are left does it fall back
+  // to the host-wide clear (onEmptyBackspace). preventDefault fires only when
+  // something was actually removed, so plain editing behavior is untouched.
   const handleBackspaceClear = useCallback((e: React.KeyboardEvent<HTMLElement>) => {
     if (e.key !== 'Backspace' || e.metaKey || e.ctrlKey || e.altKey) return;
     if ((sb.query || '').length > 0 || sb.attachments.length > 0) return;
+    if (sb.filters.length > 0) {
+      e.preventDefault();
+      sb.handleFilterDelete(sb.filters.length - 1);
+      return;
+    }
     if (onEmptyBackspace?.()) e.preventDefault();
-  }, [sb.query, sb.attachments, onEmptyBackspace]);
+  }, [sb.query, sb.attachments, sb.filters, sb.handleFilterDelete, onEmptyBackspace]);
 
   const handleTextAreaKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     handleBackspaceClear(e);
