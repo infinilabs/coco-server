@@ -202,7 +202,7 @@ export function Component() {
     {
       title: t('page.assistant.labels.type'),
       dataIndex: 'type',
-      minWidth: 50,
+      minWidth: 90,
       render: (value: string, record: Assistant) => {
         return ['simple', 'deep_think', 'deep_research'].includes(value) ? t(`page.assistant.mode.${value}`) : '-';
       }
@@ -210,7 +210,7 @@ export function Component() {
     {
       title: t('page.assistant.labels.datasource'),
       dataIndex: ['datasource', 'enabled'],
-      minWidth: 50,
+      minWidth: 90,
       render: (value: boolean, record: Assistant) => {
         return t(`common.enableOrDisable.${value ? 'enable' : 'disable'}`);
       }
@@ -218,7 +218,7 @@ export function Component() {
     {
       title: t('page.assistant.labels.mcp_servers'),
       dataIndex: ['mcp_servers', 'enabled'],
-      minWidth: 50,
+      minWidth: 90,
       render: (value: boolean, record: Assistant) => {
         return t(`common.enableOrDisable.${value ? 'enable' : 'disable'}`);
       }
@@ -281,14 +281,6 @@ export function Component() {
       }
     }
   ];
-
-  // rowSelection object indicates the need for row selection
-  const rowSelection: TableProps<Assistant>['rowSelection'] = {
-    onChange: (selectedRowKeys: React.Key[], selectedRows: Assistant[]) => { },
-    getCheckboxProps: (record: Assistant) => ({
-      name: record.name
-    })
-  };
 
   const initialData = {
     data: [],
@@ -361,10 +353,10 @@ export function Component() {
         className='flex-col-stretch sm:flex-1-hidden card-wrapper'
         ref={tableWrapperRef}
       >
-        <div className='mb-4 mt-4 flex items-center justify-between'>
+        <div className='mb-4 mt-4 flex flex-wrap items-center justify-between gap-12px'>
           <Search
             addonBefore={<FilterOutlined />}
-            className='max-w-500px'
+            className='w-full max-w-360px sm:!w-300px'
             enterButton={t('common.refresh')}
             value={keyword}
             onChange={e => setKeyword(e.target.value)}
@@ -391,10 +383,10 @@ export function Component() {
           dataSource={data.data}
           loading={loading}
           rowKey='id'
-          rowSelection={{ ...rowSelection }}
+          scroll={{ ...scrollConfig, x: 'max-content' }}
           size='middle'
           pagination={{
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+            showTotal: total => t('common.totalItems', { total: String(total) }),
             pageSize: queryParams.size,
             current: Math.floor(queryParams.from / queryParams.size) + 1,
             total: data.total?.value || data?.total,

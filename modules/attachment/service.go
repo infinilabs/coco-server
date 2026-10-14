@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
+	"strings"
 	"time"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/common/fingerprint"
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
@@ -71,6 +73,13 @@ func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, hea
 				attachment.Metadata[k] = v
 			}
 		}
+	}
+
+	// Image attachments get their perceptual hash at the single creation
+	// choke (W12): the bytes are in hand here and nowhere else on the write
+	// path. 0 means "not an image / undecodable" and is left as-is.
+	if strings.HasPrefix(mimeType, "image/") {
+		attachment.ImagePhash = int64(fingerprint.ImagePhash(data))
 	}
 
 	//save attachment metadata

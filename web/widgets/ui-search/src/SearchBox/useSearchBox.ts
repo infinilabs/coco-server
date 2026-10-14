@@ -36,14 +36,14 @@ interface UseSearchBoxParams {
   setAttachments?: (attachments: any) => void;
 }
 
-export default function useSearchBox({ 
-  queryParams, 
-  onSearch, 
-  onSuggestion, 
-  filterFieldsMeta = {}, 
+export default function useSearchBox({
+  queryParams,
+  onSearch,
+  onSuggestion,
+  filterFieldsMeta = {},
   onUpload,
   attachments = [],
-  setAttachments, 
+  setAttachments,
 }: UseSearchBoxParams) {
   const [currentQueryParams, setCurrentQueryParams] = useState<any>(queryParams);
   const { query, filter = {}, filters = [], action_type, search_type = ACTION_TYPE_SEARCH_KEYWORD, fuzziness = DEFAULT_SEARCH_FUZZINESS, sort = DEFAULT_SEARCH_SORT } = currentQueryParams;
@@ -70,6 +70,11 @@ export default function useSearchBox({
   // the `.searchbox` class is renamed or when multiple instances exist).
   // Typed as HTMLDivElement to match the root <div> it is attached to.
   const rootRef = useRef<HTMLDivElement | null>(null);
+  // Centered-panel portal container (centeredPanel mode only). Clicks inside
+  // it are as "inside" as clicks on the compact box — without this the
+  // document-level click-outside handler would close the panel on every
+  // suggestion click, because portal content is outside rootRef in the DOM.
+  const panelRootRef = useRef<HTMLDivElement | null>(null);
 
   const showExpandedPanel = useMemo(() => {
     return mainInputActive || filterState.type !== 'none';
@@ -175,33 +180,43 @@ export default function useSearchBox({
   const handleSearch = useCallback((searchQuery: any, searchFilters: any, actionType: any, searchType: any, searchFuzziness = DEFAULT_SEARCH_FUZZINESS, searchSort = DEFAULT_SEARCH_SORT) => {
     const normalizedFuzziness = normalizeSearchFuzziness(searchFuzziness);
     const normalizedSort = normalizeSearchSort(searchSort);
-    if (attachments.length > 0) {
+    const newFilter: Record<string, any> = {};
+    // Rebuild filter from current filters array
+    if (Array.isArray(searchFilters) && searchFilters.length > 0) {
+      searchFilters.forEach((item: any) => {
+        const field = item.field?.field_name;
+        if (field && item.value) {
+          const key = item.operator === 'not' ? `!${field}` : field;
+          const values = Array.isArray(item.value) ? item.value : [item.value];
+          newFilter[key] = Array.from(new Set([...(newFilter[key] || []), ...values]));
+        }
+      });
+    }
+    // Multimodal search: a plain search with attachments stays a search — the
+    // server joins each attachment's AI-extracted text (vision descriptions,
+    // document text) into the query. Only an explicit AI action (deepthink /
+    // deepresearch) carries attachments into chat.
+    const isPlainSearch = !actionType || actionType === ACTION_TYPE_SEARCH;
+    if (attachments.length > 0 && !isPlainSearch) {
       onSearch?.({
         query: searchQuery,
         attachments: attachments,
         mode: 'chat'
       })
     } else {
-      const newFilter: Record<string, any> = {};
-      // Rebuild filter from current filters array
-      if (Array.isArray(searchFilters) && searchFilters.length > 0) {
-        searchFilters.forEach((item: any) => {
-          const field = item.field?.field_name;
-          if (field && item.value) {
-            const key = item.operator === 'not' ? `!${field}` : field;
-            const values = Array.isArray(item.value) ? item.value : [item.value];
-            newFilter[key] = Array.from(new Set([...(newFilter[key] || []), ...values]));
-          }
-        });
-      }
+      // only fully uploaded attachments have server IDs worth searching; the
+      // key is always present (possibly '') so a re-search after removing a
+      // chip overwrites any stale attachments param in the merged state
+      const searchableAttachmentIds = attachments.filter((a: any) => a.status === 'uploaded').map((a: any) => a.id).join(',');
       onSearch?.({
         query: searchQuery,
         filter: newFilter,
+        attachments: searchableAttachmentIds,
         action_type: actionType,
         search_type: searchType,
         fuzziness: normalizedFuzziness,
         sort: normalizedSort,
-        mode: !actionType || actionType === ACTION_TYPE_SEARCH ? 'search' : 'chat'
+        mode: isPlainSearch ? 'search' : 'chat'
       }, true, true);
     }
     setMainInputActive(false);
@@ -231,6 +246,16 @@ export default function useSearchBox({
   const handleInputChange = useCallback((e: any) => {
     handleQueryParamsChange('query', e.target.value);
     setCursorPosition(e.target.selectionStart);
+  }, [handleQueryParamsChange]);
+
+  // Programmatic completion (Tab on a keyword suggestion): the query changes
+  // outside the input's change event, so cursorPosition must be pushed to the
+  // new end too — a stale cursor inside a '/'-containing keyword makes
+  // extractSlashFieldQuery misread the query as a "/field" pattern and the
+  // dropdown/Enter silently break.
+  const completeQueryText = useCallback((text: string) => {
+    handleQueryParamsChange('query', text);
+    setCursorPosition(text.length);
   }, [handleQueryParamsChange]);
 
   const handleSuggestionItemClick = useCallback((handler: any) => {
@@ -323,6 +348,18 @@ export default function useSearchBox({
     handleSearch(query, filters, action_type, search_type, fuzziness, sort);
   }, [query, filters, action_type, search_type, fuzziness, sort, handleSearch]);
 
+  // Tab while a filter is being edited (value/operator lists): commit the
+  // chip and hand focus back to the main input so the keyboard flow keeps
+  // going — the user types the query and Enter searches. Deliberately does
+  // NOT run a search, unlike handleFilterComplete (which nothing currently
+  // triggers) — Tab advances the construction, Enter executes it.
+  const handleFilterTabComplete = useCallback(() => {
+    setFilterState({ type: 'none', index: -1 });
+    setSuggestions({});
+    setMainInputActive(true);
+    focusExpandedInputOnNextFrame();
+  }, [focusExpandedInputOnNextFrame]);
+
   // Delete a filter by index
   const handleFilterDelete = useCallback((index: number) => {
     if (index < 0 || index >= filters.length) return;
@@ -390,7 +427,9 @@ export default function useSearchBox({
       const searchboxEl = rootRef.current;
       // Use composedPath() to get the actual target inside Shadow DOM
       const actualTarget = e.composedPath ? e.composedPath()[0] : e.target;
-      const isInsideSearchbox = !!searchboxEl && searchboxEl.contains(actualTarget);
+      const isInsideSearchbox =
+        (!!searchboxEl && searchboxEl.contains(actualTarget)) ||
+        (!!panelRootRef.current && panelRootRef.current.contains(actualTarget));
       if (isInsideSearchbox) {
         lastMouseDownInsideTime.current = Date.now();
         pendingInternalBlurRef.current = true;
@@ -444,6 +483,18 @@ export default function useSearchBox({
       setMainInputActive(false);
     }
   }, []);
+
+  // Centered-panel mode: the fullscreen mask sits INSIDE the panel root, so
+  // the click-outside handler can never fire for it — the mask closes through
+  // this callback instead. Mirrors what click-outside does (collapse state,
+  // arm the reopen guard) so the header input doesn't instantly re-expand.
+  const closeExpandedPanel = useCallback(() => {
+    setMainInputActive(false);
+    setFilterState({ type: 'none', index: -1 });
+    setSuggestions({});
+    lastClickOutsideTime.current = Date.now();
+    blurSearchInputs();
+  }, [blurSearchInputs]);
 
   const handleFilterInputFocus = useCallback((index: number) => {
     setFilterState({ type: 'filterInput', index });
@@ -614,14 +665,16 @@ export default function useSearchBox({
     showExpandedPanel, searchable,
     shouldFocusNewFilter,
     filterState, mainInputActive,
-    inputRef, textAreaRef, expandedInputRef, rootRef,
+    inputRef, textAreaRef, expandedInputRef, rootRef, panelRootRef,
     handleSearchActionClick,
     handleSearchActionDropdownClose,
     handleQueryParamsChange,
     handleCursorPositionChange,
+    completeQueryText,
     handleInputChange,
     handleInputFocus,
     handleInputBlur,
+    closeExpandedPanel,
     handleFilterInputFocus,
     handleFilterInputBlur,
     handleFilterActiveToggle,
@@ -631,6 +684,7 @@ export default function useSearchBox({
     handleFilterValueToggle,
     handleOperatorChange,
     handleFilterComplete,
+    handleFilterTabComplete,
     handleFilterDelete,
     handleFilterValueEdit,
     filterSearchValue,

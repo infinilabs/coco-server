@@ -607,7 +607,14 @@ export function Component() {
                   const isDocumentProcessingEnabled = getFieldValue(['document_processing_config', 'enabled']);
                   return (
                     <Form.Item
-                      label="Pipeline"
+                      label={
+                        <span className="inline-flex items-center gap-4px">
+                          Pipeline
+                          <Button type="link" className="!px-0 !h-auto !text-12px" onClick={() => nav('/pipeline/list')}>
+                            {t('page.pipeline.manageLink')}
+                          </Button>
+                        </span>
+                      }
                       name={['document_processing_config', 'pipeline']}
                       style={{ display: isDocumentProcessingEnabled ? 'block' : 'none' }}
                     >

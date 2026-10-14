@@ -1,0 +1,125 @@
+/* Copyright © INFINI LTD. All rights reserved.
+ * Web: https://infini.ltd */
+
+package document
+
+import (
+	"infini.sh/coco/core"
+	"infini.sh/framework/core/elastic"
+	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/util"
+)
+
+// Fingerprint persistence (D1.5): every document write stamps the content
+// fingerprint the dedup engine already computes — via one orm pre-hook, so
+// the document API, the datasource API and MCP writes all pass through it.
+// Connector ingestion indexes straight to the engine through the framework's
+// indexing_merge/bulk_indexing processors and never touches orm, so the hook
+// cannot fire there — BatchCollect and the webhook ingester stamp the same
+// fingerprint (modules/common/fingerprint) at the queue-push source instead.
+// Documents ingested before that source-side stamping carry no fingerprint
+// until a one-off backfill runs (open item, knowledge-hub workplan).
+// Retrieval then folds visible duplicates: same hash in one result page
+// collapses onto the highest-ranked copy with a "there are N more copies"
+// note. Deep cleanup stays in the dedup report where a human decides.
+
+// registerFingerprintHook stamps documents on every orm write. Recomputed
+// each time: same content yields the same fingerprint (idempotent),
+// changed content must never keep the stale one. OpSave matters because
+// PUT /document/:id goes through orm.Save, not create/update — a hook on
+// the latter two alone would silently skip plain document edits.
+func registerFingerprintHook() {
+	orm.RegisterDataOperationPreHook(100, func(ctx *orm.Context, _ orm.Operation, model interface{}) (*orm.Context, interface{}, error) {
+		if doc, ok := model.(*core.Document); ok {
+			ensureDocumentFingerprint(doc)
+		}
+		return ctx, model, nil
+	}, orm.OpCreate, orm.OpUpdate, orm.OpSave)
+}
+
+// ensureDocumentFingerprint computes hash+simhash from the content when
+// there is enough of it; blank or too-short content clears the fields —
+// a write that shrinks content below the floor must not keep the previous
+// write's fingerprint, or unrelated docs would keep folding together.
+func ensureDocumentFingerprint(doc *core.Document) {
+	if doc == nil {
+		return
+	}
+	hash, sim, ok := contentFingerprint(doc.Content)
+	if !ok {
+		doc.ContentHash, doc.ContentSimhash = "", 0
+		return
+	}
+	// int64 reinterpretation: the persisted field is signed so high-bit
+	// simhash values stay storable in the engine's long type
+	doc.ContentHash, doc.ContentSimhash = hash, int64(sim)
+}
+
+// foldDuplicateHits collapses same-content-hash hits within one result
+// page onto the first (highest-ranked) occurrence and annotates it with
+// the copies; hits without a fingerprint (legacy docs, wiki/assistant pseudo
+// hits) pass through untouched. The total stays as reported by the engine —
+// this is presentation-level folding, the dedup report remains the deep
+// cleanup surface.
+//
+// W12 upgrades: the fold payload carries the member list (title/source/
+// size/updated straight from the in-page hits — no extra queries), the tier
+// label and 100% similarity (a shared content hash IS an exact copy); and a
+// pair the operator explicitly marked "not a duplicate" NEVER folds —
+// folding respects the review, the same way the dedup report does.
+func foldDuplicateHits(hits []elastic.DocumentWithMeta[core.Document], dismissed map[string]bool) []elastic.DocumentWithMeta[core.Document] {
+	seen := map[string]int{} // content_hash → index of the representative
+	out := make([]elastic.DocumentWithMeta[core.Document], 0, len(hits))
+	for i := range hits {
+		hash := hits[i].Source.ContentHash
+		if hash == "" {
+			out = append(out, hits[i])
+			continue
+		}
+		first, ok := seen[hash]
+		if !ok {
+			seen[hash] = len(out)
+			out = append(out, hits[i])
+			continue
+		}
+		if dismissed[dedupPairKey(out[first].ID, hits[i].ID)] {
+			out = append(out, hits[i]) // operator said "not duplicates" — respect it
+			continue
+		}
+		if out[first].Source.Metadata == nil {
+			out[first].Source.Metadata = util.MapStr{}
+		}
+		dupes, _ := out[first].Source.Metadata["fingerprint_duplicates"].(util.MapStr)
+		if dupes == nil {
+			dupes = util.MapStr{
+				"tier":       "exact",
+				"similarity": 100,
+			}
+			out[first].Source.Metadata["fingerprint_duplicates"] = dupes
+		}
+		dupes["count"] = toInt(dupes["count"]) + 1
+		ids, _ := dupes["ids"].([]string)
+		dupes["ids"] = append(ids, hits[i].ID)
+		members, _ := dupes["members"].([]interface{})
+		dupes["members"] = append(members, util.MapStr{
+			"id":      hits[i].ID,
+			"title":   hits[i].Source.Title,
+			"source":  hits[i].Source.Source.Name,
+			"size":    hits[i].Source.Size,
+			"updated": hits[i].Source.Updated,
+		})
+	}
+	return out
+}
+
+func toInt(v interface{}) int {
+	switch n := v.(type) {
+	case int:
+		return n
+	case int64:
+		return int(n)
+	case float64:
+		return int(n)
+	}
+	return 0
+}

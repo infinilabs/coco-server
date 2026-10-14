@@ -15,6 +15,16 @@ const DefaultAppSettingsKey = "default_app_settings"
 const DefaultSearchSettingsKey = "default_search_settings"
 const DefaultModelKey = "default_model"
 const DefaultDocumentProcessingKey = "default_document_processing"
+const DefaultDataSecurityKey = "default_data_security"
+const DefaultEngineAIKey = "default_engine_ai"
+const DefaultAppearanceSettingsKey = "default_appearance_settings"
+
+// DefaultSearchIntegrationID is the built-in integration that powers the
+// in-app search page (/#/search). It is seeded by the setup wizard
+// (config/setup/*/misc.tpl) and is reserved: it cannot be deleted, disabled
+// or re-created, and it is hidden from the integration management list — the
+// app itself depends on it, so users can't break it by mistake.
+const DefaultSearchIntegrationID = "full-screen-widget-default"
 
 const AttachmentKVBucket = "file_attachments"
 const AttachmentStatsBucket = "attachment_stats"

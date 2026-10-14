@@ -46,6 +46,8 @@ export const serverSlice = createSlice({
   },
   selectors: {
     getApplicationSetting: app => app.applicationSetting,
+    /** branding/appearance section of the public application settings (logo, title, slogan, theme colors…) */
+    getAppearance: app => app.applicationSetting?.appearance,
     getProviderInfo: app => app.providerInfo,
     getServer: app => app.providerInfo?.endpoint || `${window.location.origin}${window.location.pathname}`,
     getDefaultModel: app => app.defaultModel,
@@ -63,6 +65,7 @@ export const {
 // Selectors returned by `slice.selectors` take the root state as their first argument.
 export const {
   getApplicationSetting,
+  getAppearance,
   getProviderInfo,
   getServer,
   getDefaultModel,

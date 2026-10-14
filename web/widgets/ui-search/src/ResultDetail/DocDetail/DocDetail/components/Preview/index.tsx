@@ -32,7 +32,6 @@ const Preview: FC<{ loadingHeight?: string } & DocDetailProps> = (props) => {
       return (
         <Image
           {...props}
-          onLoadingChange={onLoadingChange}
           onLoadError={(error) => {
             setError(error);
           }}

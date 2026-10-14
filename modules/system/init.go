@@ -44,8 +44,16 @@ func init() {
 		api.Feature(core.FeatureRemoveSensitiveField))
 	api.HandleUIMethod(api.PUT, "/settings", handler.updateServerSettings, api.RequirePermission(updatePermission))
 
+	// live probes of the external dependencies the document pipeline needs
+	// (tika, libreoffice, poppler, chrome) plus the configured engine health
+	api.HandleUIMethod(api.GET, "/environment/_check", handler.checkEnvironment, api.RequirePermission(readPermission))
+
 	//list all icons for connectors
 	api.HandleUIMethod(api.GET, "/icons/list", handler.getIcons, api.AllowPublicAccess())
+
+	//browser-friendly guide for the MCP endpoint; the JSON-RPC protocol itself
+	//is served by the framework streamable-HTTP server on the same path (POST)
+	api.HandleUIMethod(api.GET, "/mcp", handler.serveMCPHelpPage, api.RequireLogin())
 
 	api.RegisterAppSetting("setup_required", func() interface{} {
 		return !isSetupDone()
@@ -53,7 +61,31 @@ func init() {
 
 	api.RegisterAppSetting("search_settings", func() interface{} {
 		info := common.AppConfig()
-		return info.SearchSettings
+		// search is the product's core entry — a fresh instance (no saved
+		// section) has it enabled by default so /search is reachable without
+		// the operator first visiting settings. An explicit saved.Enabled=false
+		// is an operator decision and is respected.
+		settings := core.SearchSettings{Enabled: true}
+		if info.SearchSettings != nil {
+			saved := *info.SearchSettings
+			settings.Enabled = saved.Enabled
+			settings.SearchType = saved.SearchType
+			settings.WikiProjection = saved.WikiProjection
+			settings.ChunkRoute = saved.ChunkRoute
+		}
+		// the app's own search page always renders the built-in fullscreen
+		// widget (edited in the search settings tab) — ignore any stale saved
+		// reference to another integration so the UI and the page can never
+		// point at different configs
+		settings.Integration = core.DefaultSearchIntegrationID
+		return settings
+	})
+
+	// branding: readable pre-login so the login page and the search home can
+	// pick up logo/title/theme colors without authentication
+	api.RegisterAppSetting("appearance", func() interface{} {
+		info := common.AppConfig()
+		return info.Appearance
 	})
 
 }

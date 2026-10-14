@@ -8,6 +8,7 @@ import (
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/modules/common/fingerprint"
 	"infini.sh/coco/modules/datasource"
 	"infini.sh/framework/core/api"
 	httprouter "infini.sh/framework/core/api/router"
@@ -15,6 +16,7 @@ import (
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/kv"
+	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/param"
 	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/queue"
@@ -120,7 +122,39 @@ func (processor *ConnectorProcessorBase) BatchCollect(ctx *pipeline.Context, con
 			panic("datasource has been deleted, skip further collect")
 		}
 
+		// sync run journal (W8): per-document progress — the shared choke
+		// every connector passes through; the journal lives in
+		// modules/common (the neutral import floor). Counted before the
+		// skip gate: a fingerprint-skipped document was still seen and
+		// handled by this run.
+		common.RecordSyncBatch(datasource.ID, 1)
+
+		// sync skip gate: the deterministic doc id resolves the indexed
+		// copy, and a matching source fingerprint means the source has not
+		// changed since its last successful enrichment — drop the message
+		// here so the re-collect cycle neither re-runs the enrichment chain
+		// nor refills the queues. Failed or never-enriched documents always
+		// re-enter (retry); a deleted document no longer resolves and
+		// falls through to normal ingest.
+		if doc.ID != "" && doc.SourceFingerprint != "" && engineDocUnchanged(doc.ID, doc.SourceFingerprint) {
+			log.Infof("collect: skipping unchanged document [%v] [%v]", doc.ID, doc.URL)
+			continue
+		}
+
 		log.Infof("collect: [%v] [%v] [%v] [%v] [%v]", connector.Name, datasource.Name, doc.ID, doc.Category, doc.Title)
+
+		// stamp the dedup fingerprint at the source (D1.5): this queue
+		// feeds the framework's indexing_merge/bulk_indexing processors,
+		// which index straight to the engine and never touch orm — the
+		// document module's pre-hook cannot fire for connector-sourced
+		// documents. Same math as the hook (modules/common/fingerprint);
+		// !ok clears the fields so a shrunken re-ingest drops its stale
+		// fingerprint instead of keeping the previous write's
+		if h, s, ok := fingerprint.Compute(doc.Content); ok {
+			doc.ContentHash, doc.ContentSimhash = h, int64(s)
+		} else {
+			doc.ContentHash, doc.ContentSimhash = "", 0
+		}
 
 		data := util.MustToJSONBytes(doc)
 		err := queue.Push(processor.Queue, data)
@@ -128,6 +162,29 @@ func (processor *ConnectorProcessorBase) BatchCollect(ctx *pipeline.Context, con
 			panic(err)
 		}
 	}
+}
+
+// engineDocUnchanged reports whether the indexed copy of this document
+// completed enrichment with the same source fingerprint the connector just
+// observed. Errors and misses return false so collection falls through to
+// a normal ingest — the gate may skip work, never lose it.
+func engineDocUnchanged(docID, sourceFingerprint string) bool {
+	ctx := orm.NewContext()
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(ctx, &core.Document{})
+
+	existing := core.Document{}
+	existing.ID = docID
+	exists, err := orm.GetV2(ctx, &existing)
+	if err != nil || !exists {
+		return false
+	}
+	if existing.SourceFingerprint != sourceFingerprint {
+		return false
+	}
+	// a failed or half-processed document must retry even though the
+	// source itself never changed
+	return existing.Processed && existing.Status != core.DocumentStatusFailed
 }
 
 func (processor *ConnectorProcessorBase) SaveLastModifiedTime(datasourceID string, lastModifiedTime string) error {

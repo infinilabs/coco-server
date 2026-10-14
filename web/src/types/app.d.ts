@@ -298,6 +298,7 @@ declare namespace App {
           batchDelete: string;
           cancel: string;
           check: string;
+          console: string;
           close: string;
           columnSetting: string;
           comingSoon: string;
@@ -312,6 +313,9 @@ declare namespace App {
           edit: string;
           error: string;
           errorHint: string;
+          mermaidRenderError: string;
+          diagram: string;
+          sourceCode: string;
           expandColumn: string;
           index: string;
           keywordSearch: string;
@@ -507,6 +511,18 @@ declare namespace App {
           logoutWithModalMsg: string;
           refreshToken: string;
           tokenExpired: string;
+        };
+        menu: {
+          administration: string;
+          group: {
+            chat: string;
+            data: string;
+            kb: string;
+            others: string;
+            processing: string;
+            search: string;
+            system: string;
+          };
         };
         route: Record<I18nRouteKey, string>;
         system: {

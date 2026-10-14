@@ -1,6 +1,7 @@
 @layer base, properties;
 @import './reset.css' layer(base);
 @import './nprogress.css';
+@import './wiki.css';
 html,
 body,
 #root {
@@ -41,4 +42,67 @@ html.grayscale {
 }
 .dark::view-transition-new(root) {
   z-index: 9999;
+}
+
+/* wiki toc tree: Yuque-style density — 30px contiguous rows, 14px text, 20px indent
+ * (the sidebar panel chrome itself lives in wiki.css as .wiki-sidebar) */
+.wiki-toc-tree.ant-tree .ant-tree-treenode {
+  margin-bottom: 0;
+  line-height: 30px;
+}
+/* the titleRender dropdown trigger is display:flex (block-level); in antd's
+ * block content-wrapper it wrapped below the node icon onto a second line —
+ * lay the wrapper out as a flex row so icon + title share one line */
+.wiki-toc-tree.ant-tree .ant-tree-node-content-wrapper {
+  display: flex;
+  align-items: center;
+  min-height: 30px;
+  /* antd's 8px leaves the icon floating far from the caret; 4px balances
+   * arrow→icon→text spacing */
+  padding-inline: 4px;
+}
+.wiki-toc-tree.ant-tree .ant-tree-iconEle {
+  flex-shrink: 0;
+}
+.wiki-toc-tree.ant-tree .ant-tree-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+}
+.wiki-toc-tree.ant-tree .ant-tree-switcher,
+.wiki-toc-tree.ant-tree .ant-tree-iconEle {
+  width: 20px;
+  height: 30px;
+  line-height: 30px;
+}
+.wiki-toc-tree.ant-tree .ant-tree-switcher .ant-tree-switcher-icon {
+  font-size: 12px;
+  /* quiet like the type icons but still visible on dark; brightens on hover */
+  opacity: 0.65;
+}
+.wiki-toc-tree.ant-tree .ant-tree-treenode:hover .ant-tree-switcher .ant-tree-switcher-icon {
+  opacity: 1;
+}
+.wiki-toc-tree.ant-tree .ant-tree-indent .ant-tree-indent-unit {
+  width: 20px;
+}
+/* quiet icons: inherit the row text color at reduced presence instead of a
+ * color code per type; adapts to hover/selected/dark automatically (emoji
+ * kb icons are left alone) */
+.wiki-toc-tree.ant-tree .ant-tree-iconEle .anticon {
+  opacity: 0.55;
+}
+.wiki-toc-tree.ant-tree .wiki-toc-kb-icon {
+  font-size: 14px;
+}
+
+/* wiki article read view: the body renders in its own surface (rounded panel on
+ * the shell background, see wiki-article-page) with long-form reading typography */
+.wiki-article-body .markdown-body {
+  font-size: 15px;
+  line-height: 1.8;
+}
+/* outline clicks land headings below the viewport top instead of flush against it */
+.wiki-article-body :is(h1, h2, h3) {
+  scroll-margin-top: 24px;
 }

@@ -14,6 +14,7 @@ import (
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/modules/common/fingerprint"
 	"infini.sh/coco/plugins/connectors"
 	cmn "infini.sh/coco/plugins/connectors/common"
 	"infini.sh/framework/core/config"
@@ -92,6 +93,13 @@ func (p *Plugin) scanPath(ctx *pipeline.Context, basePath string, connector *cor
 		if err != nil {
 			log.Warnf("[%v connector] Error accessing path %q: %v", ConnectorLocalFs, currentPath, err)
 			return err
+		}
+
+		// OS metadata junk carries no knowledge — skipping it here keeps it
+		// out of the queue, the corpus and the enrichment spend entirely
+		name := d.Name()
+		if junkSourceFiles[name] || (!d.IsDir() && strings.HasPrefix(name, "._")) {
+			return nil
 		}
 
 		fileInfo, err := d.Info()
@@ -200,7 +208,20 @@ func (p *Plugin) saveDocument(ctx *pipeline.Context, currentPath, basePath strin
 
 	doc.ID = util.MD5digest(fmt.Sprintf("%s-%s", datasource.ID, currentPath))
 
+	// collect-time change fingerprint (size + nanosecond mtime): the sync
+	// skip gate in BatchCollect compares it against the indexed copy and
+	// drops re-collected messages for unchanged files before they reach the
+	// enrichment queue
+	doc.SourceFingerprint = fingerprint.SourceFS(fileInfo)
+
 	p.Collect(ctx, connector, datasource, doc)
+}
+
+// junkSourceFiles are OS-generated metadata files no one is indexing.
+var junkSourceFiles = map[string]bool{
+	".DS_Store":   true,
+	"Thumbs.db":   true,
+	"desktop.ini": true,
 }
 
 // buildParentCategoryArray constructs a hierarchical path array for the file

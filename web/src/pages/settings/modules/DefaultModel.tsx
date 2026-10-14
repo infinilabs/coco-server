@@ -172,6 +172,14 @@ const DefaultModel = memo(() => {
             type="embedding"
             onRefresh={onModelRefresh}
           />
+          <ModelSelectItem
+            label={t('page.guide.rerankModel.title')}
+            desc={t('page.guide.rerankModel.desc')}
+            name="rerank_model"
+            modelProviderList={modelProviderList}
+            type="rerank"
+            onRefresh={onModelRefresh}
+          />
           <Form.Item label=' '>
             <Button
               className='p-0'
@@ -240,7 +248,7 @@ const DefaultModel = memo(() => {
 
 export default DefaultModel;
 
-const ModelSelectItem = ({ label, desc, name, modelProviderList = [], type, onRefresh }: { label: string, desc?: string, name: string, modelProviderList?: any[], type?: string, onRefresh?: () => void }) => {
+export const ModelSelectItem = ({ label, desc, name, modelProviderList = [], type, onRefresh }: { label: string, desc?: string, name: string, modelProviderList?: any[], type?: string, onRefresh?: () => void }) => {
 
   const providers = useMemo(() => {
     if (!type) return modelProviderList;

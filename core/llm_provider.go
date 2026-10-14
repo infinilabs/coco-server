@@ -51,6 +51,7 @@ const (
 	LLMTypeLanguage  LLMType = "language"
 	LLMTypeVision    LLMType = "vision"
 	LLMTypeEmbedding LLMType = "embedding"
+	LLMTypeRerank    LLMType = "rerank"
 )
 
 // GetModel returns the static model definition for the given model name.

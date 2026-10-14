@@ -195,6 +195,16 @@ func getContentType(ext string) string {
 	// XLSX (includes .xls for backward compatibility)
 	case ".xls", ".xlsx":
 		return "xlsx"
+	// Web archives and ebook/mindmap documents (W2 L0.5): native or Tika
+	// routes exist; without this mapping they carried no content category
+	case ".epub":
+		return "epub"
+	case ".xmind":
+		return "xmind"
+	case ".mhtml", ".mht":
+		return "mhtml"
+	case ".html", ".htm", ".xhtml":
+		return "html"
 	default:
 		return ""
 	}
@@ -208,7 +218,8 @@ func categorizeContentType(contentType string) string {
 	case "video":
 		return "video"
 	// Markdown
-	case "markdown", "pdf", "docx", "pptx", "xlsx":
+	case "markdown", "pdf", "docx", "pptx", "xlsx",
+		"epub", "xmind", "mhtml", "html":
 		return "doc"
 	default:
 		return ""

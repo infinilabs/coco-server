@@ -20,6 +20,7 @@ import (
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
 	llmmodule "infini.sh/coco/modules/llm"
+	"infini.sh/coco/modules/skill"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/util"
 )
@@ -387,9 +388,10 @@ func wrapToolCallReporters(agentTools []langchaingoTools.Tool, onComplete func(t
 // conversationalToolPromptSuffixWithCurrentTime mirrors langchaingo's default
 // conversational-agent suffix and prepends the shared current-time context. The
 // default suffix is unexported upstream, but overriding only the suffix keeps the
-// default tool descriptions and tool-use instructions intact.
+// default tool descriptions and tool-use instructions intact. Enabled skills
+// ride along so they can shape tool-use behavior (e.g. how to iterate searches).
 func conversationalToolPromptSuffixWithCurrentTime() string {
-	return langchain.PromptWithCurrentTime("") + "\n\n" + conversationalToolPromptSuffix
+	return langchain.PromptWithCurrentTime("") + "\n\n" + conversationalToolPromptSuffix + skill.BuildSkillsSection()
 }
 
 // formatToolCallChunk renders one tool invocation as a single Markdown bullet

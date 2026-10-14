@@ -17,7 +17,12 @@ import (
 	"infini.sh/coco/modules/integration"
 	_ "infini.sh/coco/modules/integration"
 	_ "infini.sh/coco/modules/llm"
+	_ "infini.sh/coco/modules/mcpep"
+	_ "infini.sh/coco/modules/memory"
+	_ "infini.sh/coco/modules/pipeline"
+	_ "infini.sh/coco/modules/skill"
 	_ "infini.sh/coco/modules/system"
+	_ "infini.sh/coco/modules/wiki"
 	"infini.sh/framework/core/orm"
 )
 
@@ -29,6 +34,7 @@ func (this *Coco) Setup() {
 
 	orm.MustRegisterSchemaWithIndexName(core.Session{}, "session"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.Document{}, "document"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.KnowledgeChunk{}, "knowledge-chunk"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.ChatMessage{}, "message"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.Attachment{}, "attachment"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.Connector{}, "connector"+suffix)
@@ -37,6 +43,19 @@ func (this *Coco) Setup() {
 	orm.MustRegisterSchemaWithIndexName(core.ModelProvider{}, "model-provider"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.Assistant{}, "assistant"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.MCPServer{}, "mcp-server"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.Skill{}, "skill"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.WikiWorkspace{}, "wiki-workspace"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.WikiKnowledgeBase{}, "wiki-kb"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.WikiArticle{}, "wiki-article"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.WikiToc{}, "wiki-toc"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.WikiVersion{}, "wiki-version"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.WikiBookmark{}, "wiki-bookmark"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.WikiComment{}, "wiki-comment"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.WikiNotification{}, "wiki-notification"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.WikiGovernanceProposal{}, "wiki-governance"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.WikiLike{}, "wiki-like"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.WikiEntity{}, "wiki-entity"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.WikiOntologySchema{}, "wiki-ontology-schema"+suffix)
 }
 
 func (this *Coco) Start() error {

@@ -37,6 +37,18 @@ function useTheme() {
 
   useEffect(() => {
     toggleCssDarkMode(darkMode);
+    // theme flips (and the first paint) only rewrite CSS vars — composited
+    // layers (watermark canvas, sticky rails, keepalive transforms) can keep a
+    // stale raster and render a blank or half-blended frame. After the fresh
+    // frame has painted, tear the body down once to force every layer to
+    // re-rasterize with the current tokens.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        document.body.style.display = 'none';
+        void document.body.offsetHeight;
+        document.body.style.display = '';
+      })
+    );
   }, [darkMode]);
 
   // console.info(`%c${info}`, `color: ${colors.primary}`);

@@ -34,6 +34,7 @@ export type SearchResultListItem = SearchResultCommon & {
   meta?: string[];
   breadcrumbs?: string[];
   author?: string;
+  /** raw timestamp — rendered as a short relative time ("10 天前"), exact time on hover */
   date?: string;
   cover?: string;
   thumbnailAlt?: string;

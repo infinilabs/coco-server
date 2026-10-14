@@ -146,6 +146,9 @@ func (h *APIHandler) suggestDocuments(w http.ResponseWriter, req *http.Request, 
 		category     = h.GetParameterOrDefault(req, "category", "")
 		subcategory  = h.GetParameterOrDefault(req, "subcategory", "")
 		richCategory = h.GetParameterOrDefault(req, "rich_category", "")
+		// typeahead always runs the fast keyword leg — the configured
+		// default strategy (search_settings.search_type) applies to the
+		// actual search, not to per-keystroke suggestions
 		searchType   = h.GetParameterOrDefault(req, "search_type", "keyword")
 		fuzzinessStr = h.GetParameterOrDefault(req, "fuzziness", "3")
 	)

@@ -160,7 +160,7 @@ func generateEmbedding(ctx context.Context, document *core.Document, processorCo
 	var modified bool
 	var finalErrs []error
 
-	embedder, err := getEmbedderClient(processorConfig)
+	embedder, modelId, err := getEmbedderClient(processorConfig)
 	if err != nil {
 		return false, []error{err}
 	}
@@ -187,6 +187,13 @@ func generateEmbedding(ctx context.Context, document *core.Document, processorCo
 				modified = true
 			}
 		}
+	}
+
+	// Stamp the embedding model identity (W1): a later default-model change
+	// can detect stale vectors per document and offer batch reprocessing
+	// instead of silently mixing models in one index.
+	if modified {
+		document.EmbeddingModel = modelId.ProviderID + "/" + modelId.ID
 	}
 
 	return modified, finalErrs
@@ -245,16 +252,17 @@ func validateEmbeddingDimension(embedding []float32, source string) error {
 }
 
 // According to the specified configuration, init the "EmbedderClient" and
-// return it.
-func getEmbedderClient(cfg *Config) (embeddings.EmbedderClient, error) {
+// return it, along with the resolved model identity (for the W1 embedding
+// model stamp).
+func getEmbedderClient(cfg *Config) (embeddings.EmbedderClient, *core.ModelId, error) {
 	modelId := llmmodule.ResolveModel(core.LLMTypeEmbedding, &core.ModelId{ProviderID: cfg.ModelProviderID, ID: cfg.ModelName})
 	if modelId == nil {
-		return nil, fmt.Errorf("no embedding model configured: set model_provider/model in pipeline config or configure a default embedding model in settings")
+		return nil, nil, fmt.Errorf("no embedding model configured: set model_provider/model in pipeline config or configure a default embedding model in settings")
 	}
 	provider, err := common.GetModelProvider(modelId.ProviderID)
 	if err != nil {
 		log.Error("failed to get model provider: ", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	model := langchain.GetEmbeddingLLM(provider.BaseURL, provider.APIType, modelId.ID, provider.APIKey, core.RequiredEmbeddingDimension)
@@ -264,8 +272,8 @@ func getEmbedderClient(cfg *Config) (embeddings.EmbedderClient, error) {
 	if !ok {
 		errorMsg := fmt.Sprintf("Model [%s/%s] does not support embeddings", cfg.ModelProviderID, cfg.ModelName)
 		log.Error(errorMsg)
-		return nil, errors.New(errorMsg)
+		return nil, nil, errors.New(errorMsg)
 	}
 
-	return embedder, nil
+	return embedder, modelId, nil
 }

@@ -63,10 +63,8 @@ type Config struct {
 
 func New(c *config.Config) (pipeline.Processor, error) {
 	cfg := Config{
-		MessageField:         core.PipelineContextDocuments,
-		TikaEndpoint:         "http://127.0.0.1:9998",
-		TikaTimeoutInSeconds: 120,
-		ImageContentFormat:   "data_uri",
+		MessageField:       core.PipelineContextDocuments,
+		ImageContentFormat: "data_uri",
 	}
 	if err := c.Unpack(&cfg); err != nil {
 		return nil, err

@@ -14,6 +14,7 @@ import (
 	"infini.sh/coco/core"
 	common2 "infini.sh/coco/modules/assistant/common"
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/modules/skill"
 	"infini.sh/framework/core/util"
 )
 
@@ -181,6 +182,12 @@ func GenerateResponse(taskCtx context.Context, provider *core.ModelProvider, mod
 		}
 	}
 
+	if v, ok := inputValues["memory_section"]; ok {
+		if text, ok := v.(string); ok && text != "" {
+			contextPrompt += text
+		}
+	}
+
 	if v, ok := inputValues["references"]; ok {
 		contextPrompt += util.SubString(fmt.Sprintf("\nReferences:\n%v\n", v), 0, 4096*2) //TODO
 	}
@@ -341,9 +348,11 @@ func GenerateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatM
 	inputValues map[string]any, sender core.MessageSender) error {
 	_ = sender.SendChunkMessage(core.MessageTypeAssistant, common.Response, string(""), 0)
 
-	// Prepare the system message
+	// Prepare the system message — the assistant persona plus any enabled
+	// skills (managed in the console, re-read per request so toggles apply
+	// to the next message without a restart)
 	content := []llms.MessageContent{
-		SystemTextParts(params.AssistantCfg.RolePrompt),
+		SystemTextParts(params.AssistantCfg.RolePrompt + skill.BuildSkillsSection()),
 	}
 
 	//response

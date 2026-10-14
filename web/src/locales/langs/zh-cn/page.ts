@@ -1,4 +1,567 @@
 const page: App.I18n.Schema['translation']['page'] = {
+  wiki: {
+    overview: {
+      articles: '文章数',
+      aiGenerated: 'AI 生成',
+      datasources: '数据源',
+      recent: '最近更新',
+      search: '搜索知识'
+    },
+    graph: {
+      wikilinkRelation: '关联引用',
+      empty: '暂无可绘制的文章与实体',
+      articles: '文章',
+      entities: '实体',
+      reset: '重置缩放',
+      unresolved: '未解析链接',
+      viaRelation: '关系扩展',
+      properties: '属性',
+      relations: '出向关系',
+      incoming: '入向关系',
+      noRelations: '暂无关系',
+      openArticle: '打开实体页面',
+      confidence: '置信度',
+      clickArticleHint: '点击文章节点可跳转',
+      dragHint3d: '拖拽旋转 · 滚轮缩放 · 放大后显示聚焦区域名称 · 点击实体显示关系与相邻实体'
+    },
+    settings: {
+      autoApprove: '自动审批',
+      autoApproveHint: '开启后:新抽取的实体直接发布,知识编译/目录/重建等治理提案自动应用,编译页面直接发布——知识库无需人工审核自动更新。纠错与知识缺口信号始终保留人工处理',
+      basic: '基本信息',
+      agent: 'AI 智能体',
+      agentTooltip: '绑定后,该知识库的「AI 生成」与「AI 编辑」将使用此智能体配置的模型',
+      danger: '危险操作',
+      deleteKb: '删除知识库',
+      saved: '设置已保存',
+      tocLayout: '目录布局(部门)',
+      tocLayoutHint: '企业知识库:研发/销售/售前/市场等部门各成顶层目录,部门内按维度再分。路径前缀按被引文档的目录路径匹配,逗号分隔,如「研发, rd」。留空则由编译器按维度自动组织',
+      tocLayoutAdd: '添加部门',
+      tocLayoutDeptPlaceholder: '部门名称,如 研发',
+      tocLayoutPrefixPlaceholder: '路径前缀,逗号分隔,如 研发, rd',
+      tocLayoutDimPlaceholder: '维度名,逗号分隔,按 组织/产品/专题,如 技术方案, 架构决策, 专题研究',
+      tocLayoutTitleRequired: '请输入部门名称'
+    },
+    tree: {
+      newFolder: '新建文件夹',
+      addFolder: '在当前知识库新建文件夹',
+      rename: '重命名',
+      addSubfolder: '新建子文件夹',
+      delete: '从目录移除',
+    },
+    notification: {
+      title: '消息中心',
+      markAll: '全部已读',
+      all: '全部',
+      unread: '未读',
+      empty: '暂无消息'
+    },
+    outline: { title: '本页目录' },
+    assistantGroup: { chat: '对话使用', search: 'AI 搜索', deepThink: '深度思考', deepResearch: '深度研究', dataProcessing: '数据加工' },
+    comments: {
+      title: '评论',
+      placeholder: '写下你的评论…',
+      submit: '发表评论',
+      empty: '暂无评论',
+      deleteConfirm: '删除这条评论？',
+      anonymous: '匿名'
+    },
+    members: {
+      hint: '协作通过共享管理：可按用户或角色授予查看 / 编辑 / 分享权限。',
+      ownerOnly: '仅所有者或分享管理员可管理协作者（所有者：{{owner}}）。'
+    },
+    workspace: {
+      all: '全部工作区',
+      create: '新建工作区',
+      namePlaceholder: '工作区名称'
+    },
+    bookmarks: { title: '我的收藏' },
+    recent: { title: '最近浏览' },
+    editor: {
+      heading: '章节标题',
+      bold: '粗体',
+      list: '无序列表',
+      link: '链接',
+      wikilink: '维基链接 [[type:name]]',
+      italic: '斜体', strike: '删除线', quote: '引用', code: '代码块', table: '表格', entityPicker: '插入实体链接',
+      wordcount: '约 {{count}} 字', noMatchingEntity: '无匹配实体',
+      imageUploaded: '已上传并插入 {{count}} 张图片', imageFailed: '图片上传失败', uploading: '图片上传中',
+      sectionTitle: '章节标题',
+      text: '文本',
+      item: '条目',
+      linkText: '链接文字'
+    },
+    articles: {
+      filterPlaceholder: '按标题或摘要筛选',
+      allStatuses: '全部状态',
+      deleteConfirm: '删除这篇文章？版本、评论及其目录条目将一并移除。'
+    },
+    hub: {
+      title: '知识中心',
+      eyebrow: '知识库 · AI 生成 · 引用可溯源',
+      subtitle: '由 AI 生成并维护、带引用溯源的知识库',
+      newKb: '新建知识库',
+      search: '搜索文章与知识库',
+      empty: '还没有知识库',
+      articlesUnit: '篇文章',
+      membersUnit: '位成员',
+      lastUpdated: '更新于',
+      deleteKbConfirm: '确定删除知识库「{{name}}」？其下文章将一并移除。'
+    },
+    createKb: {
+      title: '新建知识库',
+      name: '名称',
+      description: '描述',
+      icon: '图标',
+      visibility: '可见性',
+      assistant: 'AI 助手',
+      datasources: '数据源',
+      datasourcesPlaceholder: '选择要绑定的已同步数据源'
+    },
+    createArticle: {
+      title: '标题',
+      pageType: '页面类型',
+      summary: '摘要'
+    },
+    visibility: { public: '公开', private: '私有', team: '团队' },
+    aiStatus: { ready: 'AI 就绪', processing: 'AI 处理中', queued: 'AI 排队中', updating: 'AI 更新中' },
+    pageType: { concept: '概念', entity: '实体', source: '来源', topic: '主题', map: '公司地图' },
+    status: { draft: '草稿', reviewed: '已审核', published: '已发布', archived: '已归档', proposed: '待审', retired: '已下线' },
+    confidence: { high: '高', medium: '中', low: '低' },
+    role: { owner: '所有者', editor: '编辑者', viewer: '查看者', agent: '智能体' },
+    changeType: { 'ai-generated': 'AI 生成', 'human-edited': '人工编辑', 'auto-updated': '自动更新' },
+    generate: {
+      title: 'AI 生成',
+      hintPlaceholder: '聚焦提示（可选），如：美心港店供应商政策',
+      start: '开始生成',
+      cancel: '停止',
+      phase: {
+        scope: '圈定语料',
+        cluster: '规划页面',
+        outline: '生成大纲',
+        draft: '逐章撰写',
+        deliver: '落库交付'
+      },
+      generatedArticles: '已生成草稿',
+      done: '已生成 {{count}} 篇草稿页',
+      failed: '失败页面（已跳过）'
+    },
+    aiEdit: {
+      title: 'AI 编辑',
+      start: '应用',
+      instruction: '编辑指令',
+      instructionPlaceholder: '如：精简措辞，保留引用与双链',
+      selection: '选中片段（可选）',
+      selectionPlaceholder: '粘贴要改写的原文片段；留空则改写全文',
+      stream: 'AI 输出',
+      done: '已应用为版本 v{{version}}'
+    },
+        entity: {
+          hoverDetails: '查看详情',
+          properties: '属性',
+          relations: '关系',
+          forward: '→',
+          inverse: '←',
+          noRelations: '暂无关系记录',
+          backlinks: '被引用',
+          noBacklinks: '暂无文章引用此实体',
+          relationCount: '{{forward}} 条正向 · {{inverse}} 条逆向关系'
+        },
+
+        entityManager: {
+          merge: '合并所选',
+          mergeConfirm: '将 {{count}} 个实体合并为一个？被并入的名称转为别名，来源与关系全部保留',
+          merged: '已合并，保留「{{name}}」',
+          batchSelected: '已选 {{count}} 项',
+          batchSetStatus: '批量设置状态为',
+          batchConfirm: '将 {{count}} 个实体状态设为 {{status}}？',
+          batchApply: '执行',
+          batchClear: '取消选择',
+          batchDone: '已更新 {{count}} 个实体',
+          batchPartial: '已更新 {{updated}} 个，跳过 {{skipped}} 个',
+          batchFailed: '批量操作失败',
+          statusReviewed: '已审阅 reviewed',
+          statusPublished: '已发布 published',
+          statusRetired: '已下线 retired（等同删除）',
+          statusProposed: '待审 proposed',
+          title: '实体管理',
+          searchPlaceholder: '搜索名称或别名…',
+          typeFilter: '按类型',
+          statusFilter: '按状态',
+          columns: { name: '名称', type: '类型', status: '状态', relations: '关系数' },
+          newTitle: '新建实体',
+          editTitle: '编辑实体 — {{name}}',
+          detailTitle: '实体详情 — {{name}}',
+          viewArticle: '打开文章',
+          viewInGraph: '在图谱中查看',
+          subtype: '子类型',
+          aliases: '别名',
+          properties: '属性',
+          relations: '关系',
+          addRelation: '+ 添加关系(先选关系类型)…',
+          pickTarget: '选择目标实体',
+          noTargets: '没有候选实体',
+          advance: '转为 {{status}}',
+          advanceConfirm: '将状态流转为 {{status}}?'
+        },
+
+    wikiLink: {
+      unresolved: '未解析链接 —— 点击可提议实体'
+    },
+    repair: {
+      hint: '{{count}} 个知识链接未解析到实体',
+      action: '一键提议实体',
+      title: '提议创建实体',
+      description: '将以下未解析的知识链接创建为待审实体(默认状态 proposed),随后自动重新绑定链接。发布仍需人工审阅。',
+      confirm: '创建并重绑',
+      success: '已创建 {{count}} 个待审实体并重新绑定链接',
+      failed: '创建实体失败,请检查类型是否在本体词表中'
+    },
+    like: { add: '点赞', remove: '取消点赞' },
+    bookmark: { add: '收藏该文章', remove: '已收藏' },
+    governance: {
+      selectAll: '全选',
+      batchApply: '批量修复',
+      batchApplyConfirm: '将逐条执行 {{count}} 条修复，编译类每条约 30-60 秒；后台执行，可离开本页',
+      batchRunning: '批量修复中 {{done}}/{{total}}{{current}}',
+      batchApplyDone: '批量修复完成：成功 {{done}}，失败 {{failed}}，跳过 {{skipped}}',
+      batchApplyAllDone: '批量修复完成：{{count}} 条全部成功',
+      batchApplyRunning: '已有批量修复在后台执行，请稍候',
+      batchSelected: '已选 {{count}} 项',
+      batchResolve: '批量标记已处理',
+      batchResolveConfirm: '将 {{count}} 条提议标记为已处理？',
+      batchDismiss: '批量忽略',
+      batchDismissConfirm: '将 {{count}} 条提议忽略？扫描器在情况变化前不会重复提交',
+      batchClear: '取消选择',
+      batchDone: '已处理 {{count}} 条',
+      batchPartial: '已处理 {{updated}} 条，跳过 {{skipped}} 条（状态不允许）',
+      batchFailed: '批量操作失败',
+      title: '知识治理',
+      subtitle: 'AI 定期巡检知识库并提交提议。带「执行修复」按钮的提议可一键闭环:修复自动落地,提议自动关闭。',
+      statusOpen: '待处理',
+      statusResolved: '已处理',
+      statusDismissed: '已忽略',
+      statusAll: '全部',
+      resolve: '标记已处理',
+      apply: '执行修复',
+      applyConfirm: '执行该提议对应的修复动作,完成后提议自动标记为已处理?',
+      applied: '已执行:{{action}}',
+      applyFailed: '修复执行失败',
+      dismiss: '忽略',
+      resolveConfirm: '确认该提议已处理?仅记录决定,不执行修复。',
+      dismissConfirm: '忽略该提议?扫描器在情况变化前不会重复提交。',
+      duplicateOf: '疑似重复于,点击查看',
+      pendingVersion: '有待审的自动更新版本 v{{version}}',
+      empty: '队列干净,没有待处理的提议',
+      type: { stale: '内容过期', duplicate: '疑似重复', conflict: '内容冲突', low_quality: '低质量', orphan: '未入目录树', entity_duplicate: '实体疑似重复', entity_conflict: '实体类型冲突', knowledge_gap: '知识缺口', correction: '答案纠正', knowledge_compile: '知识编译', tree_organize: '目录组织建议', drift: '本体漂移', article_refresh: '引用更新', document_amendment: '文档修订' },
+      hint: '{{count}} 条提议等待处理',
+      treePreview: '建议的目录结构:{{count}} 篇页面 · {{folders}} 个部门',
+      targetFolder: '目标目录',
+
+      compilePreview: '将生成「{{kind}}」页面 · {{count}} 条主张',
+      topicPreview: '主题页草稿:{{count}} 节 · {{claims}} 条主张',
+      updateTarget: '更新既有页',
+      absorb: '收编 {{count}} 个薄页',
+      sectionSources: '{{count}} 个来源',
+      existingType: '现有类型',
+      mentionedAs: '文档中提及为',
+      refreshDoc: '查看变更的来源文档 →',    },
+    correction: {
+      title: '报告纠正',
+      ok: '提交纠正',
+      routeHint: '问题类型',
+      hints: {
+        fact_missing: '缺事实(该写的没写)',
+        fact_outdated: '事实过期(内容已过时)',
+        preference: '偏好(反复出现的偏好)',
+        technique: '技术(验证过的做法)',
+        source_conflict: '来源冲突(两个来源说法不一)'
+      },
+      comment: '纠正内容',
+      commentPlaceholder: '正确的情况是什么?引用来源更好。',
+      success: '已提交到治理队列,人工审核后会更新知识库',
+      reviewHint: '纠正会作为治理提议进入人工审核队列,不会直接改知识。'
+    },
+    saveFromChat: {
+      title: '保存到知识库',
+      ok: '保存为草稿',
+      kb: '目标知识库',
+      kbPlaceholder: '选择要沉淀到的知识库',
+      articleTitle: '文章标题',
+      summary: '摘要(可选)',
+      success: '已保存为草稿,可在知识库中审阅发布',
+      draftHint: '回答将以 AI 草稿形式进入知识库,发布仍需人工审阅。'
+    },
+    diff: {
+      view: '对比',
+      vsPrev: '版本变更 v{{older}} → v{{newer}}',
+      added: '新增 {{count}} 行',
+      removed: '删除 {{count}} 行'
+    },
+    fileManager: {
+      datasources: '数据源',
+      noDatasources: '尚未绑定数据源',
+      compileStage: '阶段: {{stage}}',
+      compileStages: { map: '抽取', reduce: '归并', cluster: '聚类主题', compose: '撰写主题页', done: '完成' },
+      compileBatches: '批次 {{done}}/{{total}}（缓存 {{cached}}，失败 {{failed}}）',
+      compileTopics: '主题 {{done}}/{{total}}',
+      compileCounts: '文档 {{docs}} · 抽取 {{extracts}} · 归并 {{reduced}} · 提案 {{proposals}}',
+      compileStatus: { running: '编译中', done: '已完成', failed: '失败', cancelled: '已取消', idle: '未运行' },
+      compileCurrent: '正在处理: {{current}}',
+      compileTitle: '知识编译',
+      compileStart: '开始编译',
+      compileCancel: '取消编译',
+      compileIdle: '尚未运行。编译会读取原材料、抽取实体与主张，生成治理提案（自动审批开启时直接应用）',
+      compileAlready: '该知识库已有编译在执行',
+      compileStartFailed: '编译启动失败',
+      compileCancel: '取消编译',
+      title: '知识库文件',
+      manualUpload: '手动上传',
+      upload: '上传文件',
+      uploadHint: '上传的文件作为知识库原材料进入同一管道：抽取实体/生成摘要/编译更新相关文章与实体',
+      uploadDone: '已上传 {{count}} 个文件，管道处理中将自动更新相关内容',
+      uploadPartial: '已上传 {{created}} 个，{{failed}} 个失败',
+      uploadFailed: '上传失败',
+      columns: { title: '标题', size: '大小', created: '日期', hangFrom: '挂载于', articles: '关联文章' }
+    },
+    kb: {
+      newArticle: '新建文章',
+      aiGenerate: 'AI 生成',
+      toc: '目录',
+      notFound: '知识库不存在',
+      notFoundHint: '这篇文章已被删除，或链接指向了不存在的页面',
+      docsUnit: '篇文档',
+      lastSynced: '同步于',
+      human: '人工',
+      tabs: { articles: '文章', datasources: '数据源', members: '成员', overview: '概览', graph: '图谱', entities: '实体', settings: '设置', files: '原材料' },
+      columns: {
+        title: '标题',
+        status: '状态',
+        pageType: '页面类型',
+        tags: '标签',
+        ai: '来源',
+        updatedAt: '更新时间'
+      }
+    },
+    article: {
+      notFound: '文章不存在',
+      edit: '编辑',
+      versions: '版本历史',
+      versionView: '查看',
+      keyEntities: '关键实体',
+      meta: {
+        aliases: '别名',
+        tags: '标签',
+        relations: '关联',
+        times: '时间',
+        created: '创建于'
+      },
+      maturity: '成熟度: {{sources}} 源 · {{sections}}/{{planned}} 节',
+      maturityHint: '编译覆盖度：引用来源数与已成文章节数/规划节数，新素材会持续补齐缺失维度',
+      claimsToggle: '来源主张 · {{count}} 条（点击展开）',
+      submitReview: '提交审核',
+      publish: '发布',
+      archive: '归档',
+      statusFlowHint: '状态流转（草稿 → 已审核 → 已发布）',
+      contentEditor: '正文（结构化 Markdown）',
+      preview: '预览',
+      openSource: '打开来源',
+      copyLink: '复制链接',
+      linkCopied: '链接已复制',
+      exportMd: '导出 Markdown',
+      sections: {
+        definition: '定义',
+        characteristics: '关键特征',
+        applications: '应用场景',
+        relatedConcepts: '关联概念',
+        relatedEntities: '关联实体',
+        mentions: '来源引用',
+        sources: '来源文献',
+        materials: '来源与附件',
+        attachments: '附件'
+      },
+      attachments: {
+        empty: '暂无附件,可上传文件挂到本页',
+        upload: '上传附件',
+        uploaded: '已上传 {{count}} 个附件',
+        uploadFailed: '附件上传失败',
+        removeFailed: '附件移除失败',
+        removeConfirm: '从本页移除该附件?'
+      }
+    },
+
+    search: {
+      title: '知识搜索',
+      placeholder: '搜索文章与知识库…',
+      empty: '没有匹配结果',
+      articles: '文章',
+      kbs: '知识库'
+    }
+  },
+  searchStudio: {
+    title: '检索实验室',
+    subtitle: '多路召回与 RRF 融合,参数现场可调',
+    queryPlaceholder: '输入查询,同时跑文本、语义、Wiki、图谱多路召回',
+    queryRequired: '请输入查询词',
+    run: '试跑',
+    rerun: '重跑',
+    runFailed: '试跑失败',
+    datasource: '数据源',
+    datasourceAll: '全部可访问数据源',
+    size: '返回条数',
+    fuzziness: '模糊度',
+    textWeight: 'BM25 权重',
+    semanticWeight: 'kNN 权重',
+    formula: '融合公式:score = Σ weight_route/(k+rank_route),排名从 1 开始,未召回的路由不计分',
+    docTitle: '标题',
+    docSource: '数据源',
+    rawScore: '原始分',
+    contribution: '各路贡献',
+    textRoute: 'BM25 路',
+    semanticRoute: 'kNN 路',
+    wikiRoute: '策展 Wiki',
+    graphRoute: '图谱路',
+    rewriteRoute: '改写路',
+    rewriteTitle: '查询改写',
+    rewriteApplied: '已改写',
+    rewriteOff: '未启用',
+    rewriteCached: '缓存命中',
+    evalTitle: '评估集(金标题)',
+    evalSubtitle: '人工标注的 query → 期望文档,对线上管线跑分——检索侧任何改动,前后各跑一遍',
+    evalQueryPlaceholder: '输入一条用户会怎么问的查询',
+    evalPickPlaceholder: '输入关键词搜索,勾选这条查询必须命中的文档',
+    evalPickHint: '输入关键词搜索文档',
+    evalNotePlaceholder: '备注(可选)',
+    evalAdd: '添加用例',
+    evalSaved: '用例已保存(同一查询会覆盖更新)',
+    evalSaveFailed: '保存用例失败',
+    evalQueryRequired: '请输入查询',
+    evalExpectedRequired: '请至少选择一个期望命中的文档',
+    evalLoadFailed: '评估集加载失败',
+    evalRun: '跑评估',
+    evalRunDone: '评估完成',
+    evalRunFailed: '评估执行失败',
+    evalQueryCol: '查询',
+    evalExpectedCol: '期望文档',
+    evalNoteCol: '备注',
+    evalCasesCol: '用例数',
+    evalHitRank: '命中位次',
+    evalOutsideTop4: 'Top-4 外',
+    evalMiss: '未命中',
+    evalTopReturns: '返回 Top-4',
+    evalTook: '耗时',
+    evalError: '错误',
+    evalTop4Col: 'Top-4 命中',
+    evalTop4Rate: 'Top-4 命中率',
+    evalAvgTook: '平均耗时',
+    evalRunAt: '跑分时间',
+    evalTrend: '最近跑分',
+    evalEmpty: '还没有评估用例——添加第一条:一句用户会问的话 + 它必须命中的文档',
+    evalDeleteConfirm: '删除这条评估用例?',
+    evalGapHint: '零命中的用例会自动提交「知识缺口」提议到治理队列(仅推荐,人工裁决)。',
+    rerankTitle: 'Rerank 重排',
+    rrfRank: 'RRF 位次',
+    rerankRank: '重排名次',
+    relevance: '相关度',
+    weightOf: '{{route}} 权重',
+    fusedTitle: 'RRF 融合结果',
+    noResults: '无结果',
+    empty: '输入查询并点「试跑」,查看各路召回的排名、原始分与融合得分'
+  },
+  faq: {
+    tabTitle: 'FAQ 条目',
+    title: 'FAQ 知识条目',
+    hint: '索引内容=标准问+相似问;负例问题绝不入索引(问到即整条出局),答案只在精确命中时直接返回。',
+    refresh: '刷新',
+    newEntry: '新建条目',
+    empty: '暂无 FAQ 条目',
+    standard: '标准问题',
+    standardPlaceholder: '用户会怎么问这个问题',
+    answerCol: '答案',
+    similarCol: '相似问(每行一个)',
+    negativeCol: '负例问题(每行一个)',
+    linesHint: '每行一个问题,留空跳过',
+    linesPlaceholder: '每行一个问题',
+    negativeHint: '问到与负例完全一致时,该条目直接出局',
+    actions: '操作',
+    delete: '删除',
+    deleteConfirm: '删除这条 FAQ 条目?',
+    created: '已创建',
+    duplicate: '相同问题集已存在,跳过',
+    deleted: '已删除',
+    loadFailed: '加载失败',
+    createOk: '创建',
+    testTitle: '试搜',
+    testPlaceholder: '输入一个问题,验证召回/负例/直答',
+    testRun: '试搜',
+    exactHit: '精确命中 · 标准答案可直接采用',
+    rankedHits: '排序命中 {{n}} 条',
+    noHit: '无命中(可能被负例过滤)',
+  },
+  searchOps: {
+    title: '检索运营',
+    subtitle: '大家在搜什么、哪条策略在跑、哪里召回落空、花了多少毫秒——迭代回路的数据面',
+    refresh: '刷新',
+    loadFailed: '加载失败',
+    totalSearches: '检索次数',
+    zeroHitRate: '零命中率',
+    avgTook: '平均耗时',
+    maxTook: '最大耗时',
+    strategies: '策略分布',
+    strategy: '策略',
+    searches: '次数',
+    zeroHits: '零命中',
+    rewritten: '改写次数',
+    rewriteHint: '查询改写路(D8)共启用 {{total}} 次,其中零命中 {{missed}} 次——对照总零命中率即改写增益的观测面。',
+    lowRecall: '低召回榜',
+    query: '查询',
+    misses: '未命中次数',
+    lastSeen: '最近出现',
+    gapFiled: '已提交缺口提议',
+    noData: '暂无数据',
+    lowRecallHint: '同一查询零命中 ≥3 次会自动提交「知识缺口」提议到治理队列,由人工决定补什么页。',
+    zeroHitCaveat: '零命中一族信号目前为演示级:pinyin 分析器对几乎任何非空查询都能在文本腿命中,零命中率被系统性低估,低召回榜与缺口回流在真实流量下很少触发——分析器收紧前请勿作为运营依据。',
+    indexHealth: '索引体检',
+    indexName: '存储',
+    indexStatus: '状态',
+    indexDocs: '文档数',
+    ingestionTitle: '接入任务',
+    ingestionSubtitle: '摄取管道的生命周期分布与失败清单——失败可一键批量重试',
+    statusIndexing: '处理中',
+    statusCompleted: '已完成',
+    statusFailed: '失败',
+    statusLegacy: '存量(未盖章)',
+    failedTitle: '失败清单',
+    autoRefresh: '自动刷新',
+    queueIndexing: '待索引队列',
+    queueProcessed: '待入库队列',
+    queueAttachment: '附件队列',
+    oldestIndexing: '最早待处理',
+    liveJustNow: '刚刚',
+    liveMinutesAgo: '{{minutes}} 分钟前',
+    liveHoursAgo: '{{hours}} 小时前',
+    processingDetail: '处理日志',
+    tabContent: '内容',
+    failedDocTitle: '文档',
+    failedDatasource: '数据源',
+    failedError: '失败原因',
+    failedUpdated: '更新时间',
+    retryFailed: '批量重试失败文档',
+    retryConfirm: '将把所有失败文档清空产物后重新入队处理,继续吗?',
+    retryDone: '已重试 {{retried}} 篇,{{still}} 篇未能重试',
+    syncTitle: '同步状态',
+    syncName: '数据源',
+    syncType: '类型',
+    syncEnabled: '启用',
+    syncInterval: '同步间隔',
+    syncLastDispatch: '上次调度',
+    syncCursor: '增量游标',
+    syncRunState: '最近运行',
+    syncRunProgress: '{{batches}} 批 / {{documents}} 篇',
+    syncStale: '疑似僵死',
+    syncSuperseded: '未记终态',
+    syncRunning: '运行中',
+    syncNever: '从未运行',
+  },
   apitoken: {
     columns: {
       expire_in: '过期时间',
@@ -15,6 +578,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   assistant: {
+    categoryPlaceholder: '选择或输入分类',
     delete: {
       confirm: 'Are you sure you want to delete this ai assistant "{{name}}"?'
     },
@@ -135,6 +699,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       internal_datasource_ids: '数据源'
     },
     mode: {
+      data_processing: '数据加工',
       deep_think: '深度思考',
       deep_research: '深度研究',
       simple: '简单模式',
@@ -210,6 +775,32 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     edit: {
       title: '编辑数据源'
+    },
+    doc: {
+      aiInsights: 'AI 洞察',
+      aiSummary: '摘要',
+      backToList: '返回',
+      basicInfo: '基本信息',
+      docLink: '文档连接',
+      download: '下载',
+      cover: '封面',
+      thumbnail: '缩略图',
+      downloadOriginal: '下载原文件',
+      lang: '语言',
+      noAiResult: '本文档暂无 AI 加工结果（摘要、洞察），可能未配置或未运行相应处理器',
+      noAttachment: '本文档无附件，也没有生成封面 / 缩略图',
+      noChunks: '本文档尚无分块数据，可能未配置结构化切块或向量化处理器',
+      noText: '本文档未提取到正文内容',
+      openPreview: '原文预览',
+      parsingTitle: '文档智能解析',
+      runStart: '开始时间',
+      stepsJumpHint: '点击解析记录中的步骤名称，可跳转到对应产物的页签',
+      tabAi: 'AI 加工结果',
+      tabAttachments: '文档附件',
+      tabChunks: '文档分块',
+      tabRuns: '解析记录',
+      tabText: '文档文本',
+      viewDetail: '查看详情'
     },
     every: '每',
     commons: {
@@ -690,7 +1281,35 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     seconds: '秒',
     site_urls: '站点地址',
-    site_urls_add: '新增站点地址'
+    site_urls_add: '新增站点地址',
+    stats: {
+      tabTitle: '统计',
+      totalDocs: '文档总数',
+      storage: '存储量',
+      avgSize: '平均大小',
+      coverage: '向量化覆盖',
+      trend: '入库趋势',
+      trendEmpty: '入库集中在单日，无趋势可看',
+      byType: '类型分布',
+      byStatus: '生命周期',
+      byLang: '语言分布',
+      byCat: '分类分布',
+      byModel: '向量模型分布',
+      byTag: '高频标签',
+      vectorized: '已向量化',
+      notVectorized: '未向量化',
+      hasFaq: 'FAQ',
+      wikiBound: '已绑 Wiki',
+      vectorTip: '是否有文档已生成向量（语义检索可用）',
+      retryOne: '重试',
+      retryOneQueued: '已重新入队解析',
+      enabled: '启用',
+      disabled: '停用',
+      connector: '连接器',
+      syncLabel: '同步',
+      syncOff: '未启用',
+      createdAt: '创建于'
+    }
   },
   guide: {
     labels: {
@@ -719,6 +1338,10 @@ const page: App.I18n.Schema['translation']['page'] = {
     embeddingModel: {
       title: 'Embedding 模型',
       desc: '用于将内容转换为向量，以支持语义搜索与相似度匹配'
+    },
+    rerankModel: {
+      title: 'Rerank 模型',
+      desc: '混合检索融合后对候选重排序(OpenAI 兼容 /rerank 接口,如 Qwen3-Reranker);未配置时保持 RRF 顺序'
     },
     llm: {
       desc: '选择默认使用的 AI 模型，用于对话、图像理解与语义搜索等基础能力。后续可在设置中随时调整。',
@@ -922,6 +1545,13 @@ const page: App.I18n.Schema['translation']['page'] = {
     title: '欢迎'
   },
   mcpserver: {
+    server: {
+      title: 'Coco MCP 服务端',
+      help: '接入指南',
+      copyConfig: '复制客户端配置',
+      copied: 'MCP 客户端配置已复制到剪贴板'
+    },
+
     delete: {
       confirm: 'Are you sure you want to delete this ai MCP server "{{name}}"?'
     },
@@ -940,6 +1570,38 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   settings: {
+    appearance: {
+      app_logo: '应用 ICON',
+      brand: '品牌',
+      labels: {
+        base_text: '正文文字',
+        container_bg: '容器背景',
+        dark: '深色',
+        dark_mode: '深色模式',
+        error: '错误',
+        functional: '功能色',
+        image_too_large: '图片超过 1MB,请压缩后重试',
+        layout_bg: '布局背景',
+        light: '浅色',
+        light_mode: '浅色模式',
+        logo: '应用 ICON',
+        logo_icon: '应用 ICON',
+        logo_icon_hint: '顶部 AI 搜索 / AI 聊天 / AI 知识库 切换栏左侧的图标,建议 128×128 正方形,显示约 30px',
+        login_background: '背景颜色',
+        login_background_hint: '登录页左侧背景,建议尺寸 560×1090,≤ 1MB',
+        login_background_image: '背景图片',
+        primary: '品牌色',
+        success: '成功',
+        theme_enforced: '主题颜色由管理员统一配置,将对所有用户强制生效(用户本地的自定义颜色会被覆盖)',
+        title: '站点标题',
+        title_hint: '作为浏览器标签页标题的后缀展示,并显示在顶栏 Logo 旁边',
+        warning: '警告'
+      },
+      login_page: '登录页',
+      search_page: '搜索页',
+      theme_colors: '主题颜色',
+      title: '外观设置'
+    },
     app_settings: {
       chat_settings: {
         labels: {
@@ -986,11 +1648,48 @@ const page: App.I18n.Schema['translation']['page'] = {
       top_p_desc: '与随机性类似，但不要和随机性一起更改',
       type: '类型'
     },
+    wiki_settings: {
+      title: 'AI 知识库',
+      labels: {
+        assistant: '整理智能体',
+        assistant_desc: '「AI 生成」与「AI 编辑」默认使用的智能体；知识库单独绑定的智能体优先于此处',
+        assistant_placeholder: '选择默认智能体',
+        default_hint_title: '生效规则',
+        default_hint: '此处为全系统默认配置；某个知识库在「设置 → AI 智能体」单独绑定后，以该绑定为准。内置的「知识管理助手」开箱即用（引用溯源、只产草稿）。'
+      }
+    },
+    memory_settings: {
+      title: '长期记忆'
+    },
+
     search_settings: {
       title: '搜索设置',
       labels: {
+        wiki_projection: 'Wiki 腿切文档索引',
+        wiki_projection_desc: '开启后 wiki 检索腿从文档索引的投影行读取(需先运行 /wiki/_backfill_projection);关闭走 wiki_article 索引。',
+        chunk_route: '块级检索路(RRF 第七路)',
+        chunk_route_desc: '开启后独立块索引作为额外 RRF 路参与融合(需先 _reprocess 投影足量文档);命中携带面包屑与引用链。',
+
+        banner_height: '横幅最大高度',
+        banner_height_hint: '搜索首页横幅的最大高度(宽度按原图比例自适应);默认 64px',
+        builtin_widget: 'AI 搜索组件(内置)',
+        builtin_widget_hint: '站内 AI 搜索复用这套内置的全屏组件,此处只展示与 AI 搜索相关的参数,修改立即生效。该内置组件不会出现在集成列表中',
         enabled: '启用状态',
-        integration: '组件'
+        integration: '组件',
+        search_background: '搜索页背景',
+        search_background_dark: '背景图(深色模式)',
+        search_background_hint: '搜索首页背景,建议 ≥ 1920×1080,≤ 1MB',
+        search_background_light: '背景图(浅色模式)',
+        search_type: '默认搜索模式',
+        welcome_font_size: '欢迎语字号',
+        welcome_gradient: '渐变文字效果(按品牌色渐变,关闭则为纯色)',
+        search_type_desc: '用户未显式指定搜索模式时 /query/_search 使用的策略；hybrid_rrf 会启用融合检索（含 Wiki 页、图谱与查询改写）；更改后对新搜索立即生效'
+      },
+      options: {
+        keyword: '关键词（BM25）',
+        semantic: '语义',
+        hybrid: '混合',
+        hybrid_rrf: '混合融合（hybrid_rrf）'
       }
     },
     default_model: {
@@ -1006,6 +1705,99 @@ const page: App.I18n.Schema['translation']['page'] = {
       },
       title: '默认模型'
     },
+    dedup: {
+    confirm: '确认分组',
+    confirmTip: '确认后,该组的重复副本将在搜索结果中折叠展示',
+    unconfirm: '取消确认',
+    groupConfirmed: '已确认分组——搜索结果将折叠该组',
+    groupUnconfirmed: '已取消确认——该组不再折叠',
+      title: '内容查重',
+      desc: '确定性指纹(sha256 + simhash)跨全部数据源分组疑似重复。系统只做推荐——排除或删除全部由人决定,标记过"非重复"的对永不再报。',
+      scan: '重新扫描',
+      similarity: '相似度',
+      keep: '建议保留',
+      keepTag: '保留',
+      dismiss: '非重复',
+      dismissTip: '将该组内所有配对标为非重复——永不再报',
+      dismissed: '已标记为非重复',
+      exclude: '保留但排除检索',
+      excluded: '已排除',
+      delete: '删除',
+      deleteConfirm: '确定永久删除该文档?',
+      acted: '操作已执行',
+      clean: '未发现疑似重复。',
+      noDeletePermission: '需要文档删除权限',
+      noUpdatePermission: '需要文档更新权限',
+      stats: {
+        scanned: '已扫描',
+        fingerprinted: '已指纹',
+        groups: '疑似分组',
+        dismissed: '已忽略配对'
+      },
+      tiers: {
+        identical_content: '内容完全相同',
+        near_identical: '内容近似相同',
+        highly_similar: '内容高度相似',
+        suspected_versions: '疑似新旧版本'
+      },
+      columns: {
+        title: '标题',
+        source: '来源',
+        size: '大小',
+        updated: '更新时间',
+        actions: '操作'
+      }
+    },
+    engine_ai: {
+      title: '引擎 AI',
+      labels: {
+        engine_ai: '引擎 AI 能力',
+        engine_ai_desc: 'Coco 统一策展引擎的 AI 管道:文档入库时由引擎向量化,语义/混合检索由引擎完成融合——模型在此配置一次,写入与查询两侧同时生效',
+        enabled: '启用引擎 AI',
+        embedding_model: 'Embedding 模型',
+        embedding_model_desc: '两条引擎管道共用;留空时回落到默认 Embedding 模型',
+        batch_size: '入库批量',
+        batch_size_desc: '入库时每次嵌入调用合并的输入数',
+        rank_constant: 'RRF 融合常数',
+        rank_constant_desc: '引擎侧 RRF 融合的 k 值(得分 = 1/(k+排名))',
+        text_field: '文本字段',
+        vector_field: '向量字段'
+      },
+      status: {
+        title: '引擎同步状态',
+        in_sync: '已同步',
+        out_of_sync: '未同步',
+        desired: '期望配置(Coco 生成)',
+        actual: '引擎已部署',
+        ingest_pipeline: '入库管道',
+        search_pipeline: '检索管道',
+        document_index: '文档索引',
+        callout: '引擎调用地址',
+        sync_now: '立即同步到引擎',
+        synced: '引擎管道已同步'
+      }
+    },
+    data_security: {
+      title: '数据安全',
+      maskingTitle: '动态脱敏',
+      maskingEnabled: '召回内容交模型前脱敏',
+      maskingDesc: '命中规则的内容在拼入模型上下文(RAG 引用、企业搜索工具)前按正则替换;规则按顺序应用,身份证等长号码规则应排在手机号之前',
+      noRules: '暂无规则',
+      addRule: '添加规则',
+      addPresets: '常用预设',
+      tryIt: '试一试',
+      tryPlaceholder: '粘贴一段样例文本,例如:联系 13812345678 或 user@example.com',
+      tryOutput: '脱敏后的文本(实时预览)',
+      name: '名称',
+      pattern: '正则(RE2)',
+      replacement: '替换为',
+      enabled: '启用',
+      fieldTitle: '字段级访问控制',
+      fieldDesc: '按角色收敛返回字段,叠加在数据源与文档权限之上;支持 ES _source 排除语法,如 payload.*(清空对象)、raw_content(整个移除);admin 不受限',
+      rolePlaceholder: '选择角色',
+      addRestriction: '添加角色限制'
+    },
+
     document_processing: {
       labels: {
         default_pipeline_for_attachment: '聊天附件处理',
@@ -1016,7 +1808,48 @@ const page: App.I18n.Schema['translation']['page'] = {
       },
       title: '文档处理'
     },
+    environment: {
+      title: '运行环境',
+      labels: {
+        tika_service: 'Tika 服务',
+        tika_desc:
+          '文档解析与 OCR 使用的 Tika 服务器地址。留空使用默认值;若个别 Pipeline 显式配置了地址,则该配置优先。',
+        tika_invalid: '必须是合法的 http(s) 地址',
+        tika_timeout: '超时',
+        overridden_title: '部分 Pipeline 显式覆盖了 Tika 地址',
+        overridden_desc:
+          '以下 Pipeline 显式配置了 tika_endpoint,不会使用上面的全局配置:{{pipelines}}。如需统一,请在对应 Pipeline 中清空该配置。',
+        checks_title: '依赖检测',
+        recheck: '重新检测',
+        install_hint: '安装提示'
+      }
+    },
     setupLater: '稍后设置'
+  },
+  memory_settings: {
+    title: '我的记忆',
+    hint: '蒸馏产出的记忆一律先待确认——确认前绝不进入任何提示词;拒绝保留抑制记录,删除彻底移除。仅自己可见。',
+    kind: '类型',
+    content: '内容',
+    status: '状态',
+    updated: '更新时间',
+    actions: '操作',
+    pending: '待确认',
+    confirmed: '已生效',
+    rejected: '已拒绝',
+    all: '全部',
+    confirm: '确认',
+    reject: '拒绝',
+    confirmTitle: '确认这条记忆?',
+    confirmHint: '确认后,该记忆将进入你的助手上下文(常驻类每次注入,事实/任务类按查询召回)。',
+    rejectTitle: '拒绝这条记忆?',
+    rejectHint: '拒绝后该记忆永不注入,记录保留作审计。',
+    settled: '已处理',
+    delete: '删除',
+    deleteConfirm: '彻底删除这条记忆?',
+    deleted: '已删除',
+    empty: '暂无记忆(会话蒸馏或手动提交后出现在这里)',
+    loadFailed: '加载失败',
   },
   webhook: {
     form: {
@@ -1047,6 +1880,162 @@ const page: App.I18n.Schema['translation']['page'] = {
       secret: '请输入'
     }
   },
+  ontology: {
+    pageSections: '页面结构 (page_sections)',
+    pageSectionsHint: '生成页面遵循的区块顺序:key 可填 sources(来源引用)/aliases(别名)/properties(类型化属性)/relations:<关系名>(按关系列出关联实体),或自定义 key 渲染为待补充空区块。不配置则使用默认结构',
+    sectionKey: '区块 key,如 relations:contact',
+    sectionTitle: '显示标题,如 关键联系人',
+    viewEntities: '查看实体',
+    title: '本体词表',
+    subtitle: '声明实体类型、类型化属性与关系词表;实体写入按此校验。全局词表为默认,知识库可覆盖。',
+    rules: {
+      title: '知识编译规则',
+      desc: '策展层的编译方式与争议裁决:概念页源数下限约束检索闸门,来源优先级为重复/冲突提议给推荐方向。',
+      conceptMinSources: '概念页最少源数',
+      conflictStrategy: '冲突策略',
+      strategyMark: '标记(提交提议,双方保留)',
+      strategyIsolate: '隔离(低优先级方不进检索)',
+      sourcePriority: '来源优先级(高→低)',
+      sourcePriorityPlaceholder: '输入数据源 ID,回车添加,顺序即优先级'
+    },
+    tenantScope: '全局词表(默认)',
+    addType: '新增类型',
+    save: '保存词表',
+    saved: '词表已保存',
+    typeName: '类型名',
+    typeLabel: '显示名',
+    removeType: '删除该类型',
+    removeTypeConfirm: '确认删除类型 {{name}}?已存在该类型的实体不受影响,但将无法新建。',
+    properties: '属性',
+    relations: '关系',
+    propKey: '属性键',
+    propLabel: '显示名',
+    enumHint: '枚举值,逗号分隔',
+    required: '必填',
+    relName: '关系名',
+    cardinality: '基数',
+    inverse: '逆关系',
+    bareType: '该类型暂无属性与关系',
+    empty: '暂无词表,点击"新增类型"开始定义本体'
+  },
+  pipeline: {
+        templates: {
+          title: '从常规任务开始',
+          use: '使用此模板',
+          'general-enrich': {
+            title: '知识加工全链路(8 节)',
+            description: '类型识别 → 元数据 → 封面 → 解析切分 → AI 摘要 → 标签 → 实体抽取 → 向量化,文档一次入库即含倒排与向量双字段'
+          },
+          pdf: {
+            title: 'PDF 文档处理',
+            description: '抽取 PDF 正文与内嵌附件,AI 摘要、标签提取并生成向量'
+          },
+          word: {
+            title: 'Word 文档处理',
+            description: '抽取 Word 文档正文,AI 摘要与标签提取'
+          },
+          image: {
+            title: '图片处理',
+            description: '图片元数据、封面生成、视觉模型描述与 OCR、人脸检测'
+          },
+          video: {
+            title: '视频处理',
+            description: '视频文件的类型识别、元数据与 AI 摘要(暂无转写/抽帧处理器)'
+          },
+          attachment: {
+            title: '附件处理(2 节)',
+            description: '附件通道的全文抽取与封面生成'
+          }
+        },
+
+    title: '解析管道',
+    deleteConfirm: '确定删除管道 "{{name}}"?',
+    columns: {
+      name: '名称',
+      enabled: '启用',
+      processors: '处理器',
+      description: '描述'
+    },
+    manageLink: '管理管道',
+    editor: {
+      newTitle: '新建管道',
+      editTitle: '编辑管道 — {{name}}',
+      back: '返回',
+      saveFailed: '保存失败',
+      name: '名称',
+      nameAsId: '名称即管道 ID —— 数据源与文档处理设置按名称引用管道,创建后不可修改',
+      description: '描述',
+      advanced: '高级设置',
+      enabled: '启用',
+      singleton: '单例',
+      autoStart: '自动启动',
+      keepRunning: '持续运行',
+      retryDelay: '重试间隔 (ms)',
+      chainTitle: '处理器链',
+      catalog: '处理器目录',
+      cardsView: '卡片',
+      insertProcessor: '+ 插入处理器…',
+      addBranch: '+ 条件分支',
+      deleteEntryConfirm: '从链中移除该条目?',
+      invalidEntryJSON: '条目 JSON 无效 —— 必须是单个对象',
+      invalidChainJSON: '链 JSON 无效 —— 必须是条目数组',
+      emptyChain: '空链 —— 从目录插入、用 AI 生成,或粘贴 JSON',
+      studioTitle: '测试与 AI',
+      sampleDocuments: '样例文档 (JSON 数组)',
+      documentTemplate: '文档模板',
+      attachmentTemplate: '附件模板',
+      aiRequirementPlaceholder: '自然语言要求,如:识别语言并生成摘要;改进模式下写要改什么',
+      aiGenerate: 'AI 生成',
+      aiRefine: 'AI 改进当前链',
+      runTest: '运行测试 (逐步)',
+      stepDebug: '逐步调试',
+      noTestYet: '运行测试后在此查看每步字段变化',
+      noChanges: '无变化',
+      messages: '{{count}} 条消息',
+      testDone: '测试完成 —— 下方查看逐步变化',
+      testFailed: '测试失败',
+      validationError: 'AI 生成的链无法构建',
+      aiDone: 'AI 已更新链 —— 已在样例上自动试跑',
+      aiFailed: 'AI 请求失败',
+      refineNeedsChain: '当前链为空 —— 请先用 AI 生成',
+      invalidDocuments: '样例文档必须是 JSON 对象数组',
+      sample: '样本',
+      filterProcessors: '过滤处理器…',
+      insert: '插入'
+    }
+  },
+  skill: {
+    title: '技能管理',
+    subtitle: '启用后注入所有助手系统提示词的可管理技能片段 —— 开关下一条消息即生效，无需重启',
+    search: '搜索技能',
+    empty: '暂无技能',
+    builtin: '内置',
+    create: '新建技能',
+    edit: '编辑技能',
+    delete: {
+      confirm: '确定删除该技能？'
+    },
+    export: {
+      copied: 'MCP 客户端配置已复制到剪贴板'
+    },
+    name: {
+      readonly: '内置技能的名称不可修改'
+    },
+    instructions: {
+      hint: '注入系统提示词的 Markdown 指令。描述助手应该“如何工作”（角色、方法步骤、守则），而不是新增工具。'
+    },
+    labels: {
+      title: '标题',
+      name: '标识名',
+      description: '描述',
+      category: '分类',
+      instructions: '指令',
+      enabled: '启用'
+    },
+    toast: {
+      updated: '技能已更新'
+    }
+  },
   modelprovider: {
     labels: {
       name: '名称',
@@ -1074,7 +2063,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       chatModel: '对话模型',
       languageModel: '语言模型',
       visionModel: '视觉模型',
-      embeddingModel: 'Embedding 模型'
+      embeddingModel: 'Embedding 模型',
+      rerankModel: 'Rerank 模型'
     },
     hints: {
       selectOrInputModel: '选择或输入一个模型',
@@ -1159,14 +2149,52 @@ const page: App.I18n.Schema['translation']['page'] = {
   },
   setupLater: '稍后设置',
   preview: {
+    attachments: { open: '查看附件列表', title: '附件' },
     title: '文档预览',
+    processing: {
+      title: '加工',
+      open: '查看加工过程与产物',
+
+      statusIndexing: '处理中',
+      statusCompleted: '已完成',
+      statusFailed: '失败',
+      statusLegacy: '存量(未盖章)',
+      model: '嵌入模型',
+      runsTitle: '运行记录(最近 5 次)',
+      runsCount: '共 {{count}} 次运行',
+      recentRuns: '仅显示最近 {{count}} 次运行',
+      viewFullRuns: '查看完整解析详情',
+      noRuns: '暂无运行记录(存量文档或尚未处理)',
+      chunksTitle: '解析产物 · 块清单(共 {{total}} 块)',
+      breadcrumb: '面包屑',
+      pages: '页区间',
+      excerpt: '摘录',
+      vectorized: '向量',
+      passthroughHint: '未配置处理管道，文档未经加工直接入库',
+      ptNoDatasource: '文档无归属数据源',
+      ptDatasourceNotFound: '数据源不存在',
+      ptNoPipeline: '未配置处理管道',
+      ptPipelineNotFound: '处理管道不存在(可能已删除)',
+      ptPipelineInvalid: '处理管道配置无效',
+      ptPipelineInitFailed: '处理管道初始化失败'
+    },
     labels: {
       type: '类型',
       size: '大小',
+      format: '格式',
+      source: '数据源',
+      connector: '连接器',
       createdBy: '创建者',
       createdAt: '创建时间',
       updatedAt: '最后更新时间',
+      location: '位置',
+      link: '链接',
+      tag: '标签',
+      noMoreInfo: '暂无更多信息',
       preview: '预览',
+      previewUnavailableTitle: '该文档暂无预览',
+      previewUnavailableDescription: '可能是文档格式不支持或内容暂不可用',
+      openSourceFromPreview: '打开来源',
       aiInterpretation: 'AI 解读'
     },
     buttons: {
@@ -1174,7 +2202,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       reload: '重新加载',
       continueVisiting: '继续访问',
       cancel: '取消',
-      download: '下载'
+      download: '下载',
+      back: '返回'
     },
     hints: {
       failed: '抱歉，出错了',
