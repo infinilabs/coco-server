@@ -119,7 +119,10 @@ type topicDraft struct {
 	Sections    []core.WikiSection
 	Claims      []compileStatement
 	KeyEntities []string
-	Planned     int
+	// entity name -> declared ontology type (person/organization/…), one
+	// LLM call per page; absent names fall back to concept at apply time
+	KeyEntityTypes map[string]string
+	Planned        int
 }
 
 /* ---------------- CLUSTER (pure) ---------------- */
@@ -280,6 +283,63 @@ func keyEntityNames(c *topicCluster) []string {
 		}
 	}
 	return names
+}
+
+// classifyKeyEntities types the page's key entities against the KB's
+// ontology vocabulary with one small LLM call, so promoted entities land
+// with a real type (person/organization/event…) instead of the concept
+// fallback. Best-effort: any error returns nil and the apply side degrades
+// every untyped entity to concept.
+func classifyKeyEntities(ctx context.Context, model *core.ModelId, kbID, title string, names []string) map[string]string {
+	if len(names) == 0 || kbID == "" {
+		return nil
+	}
+	doc := ResolveOntologySchema(ctx, kbID)
+	if doc == nil || len(doc.EntityTypes) == 0 {
+		return nil
+	}
+	declared := make([]string, 0, len(doc.EntityTypes))
+	for _, t := range doc.EntityTypes {
+		declared = append(declared, fmt.Sprintf("%s(%s)", t.Name, orDash(t.Label)))
+	}
+	user := fmt.Sprintf(`主题页「%s」提取出以下关键实体，请为每个实体判断本体类型。
+
+可选类型（只能从中选择）:
+%s
+
+实体列表:
+%s
+
+只输出一个 JSON 对象，键为实体名、值为类型名，不要输出任何其他内容。`,
+		title, strings.Join(declared, "、"), strings.Join(names, "\n"))
+	raw, err := topicLLMCall(ctx, model, "你是知识库编辑，负责为实体标注本体类型，只输出 JSON。", user, topicLLMOutlineTTL)
+	if err != nil {
+		log.Warnf("wiki topic compiler: entity typing LLM failed: %v", err)
+		return nil
+	}
+	// fence-tolerant slice: keep only the outermost JSON object
+	raw = strings.TrimSpace(raw)
+	if i := strings.Index(raw, "{"); i > 0 {
+		raw = raw[i:]
+	}
+	if j := strings.LastIndex(raw, "}"); j >= 0 && j < len(raw)-1 {
+		raw = raw[:j+1]
+	}
+	out := map[string]string{}
+	if err := util.FromJSONBytes([]byte(raw), &out); err != nil {
+		log.Warnf("wiki topic compiler: entity typing unparsable: %v", err)
+		return nil
+	}
+	typed := make(map[string]string, len(names))
+	for _, name := range names {
+		if t := strings.TrimSpace(out[name]); t != "" && doc.typeDef(t) != nil {
+			typed[name] = t
+		}
+	}
+	if len(typed) == 0 {
+		return nil
+	}
+	return typed
 }
 
 /* ---------------- LLM plumbing ---------------- */
@@ -763,7 +823,7 @@ func orDash(s string) string {
 // composeTopicDraft runs OUTLINE → FILL for one cluster and assembles the
 // structured draft: WikiSections with per-section provenance, the pooled
 // claims for the evidence chain, and the page's key entities.
-func composeTopicDraft(ctx context.Context, model *core.ModelId, c *topicCluster, existing []core.WikiArticle) (*topicDraft, error) {
+func composeTopicDraft(ctx context.Context, model *core.ModelId, kbID string, c *topicCluster, existing []core.WikiArticle) (*topicDraft, error) {
 	outline, err := planTopicOutline(ctx, model, c, existing)
 	if err != nil {
 		return nil, err
@@ -850,11 +910,16 @@ func composeTopicDraft(ctx context.Context, model *core.ModelId, c *topicCluster
 	for _, s := range c.Statements {
 		claims = append(claims, compileStatement{DocID: s.DocID, Excerpt: s.Excerpt, Claim: s.Text})
 	}
-	return &topicDraft{
+	d := &topicDraft{
 		Cluster: c, Title: c.Title, Scope: c.Scope, UpdateTitle: updateTitle,
 		Sections: sections, Claims: claims, KeyEntities: keyEntityNames(c),
 		Planned: len(sections),
-	}, nil
+	}
+	// type the key entities against the KB vocabulary now (model is in
+	// scope, the call is cheap) — the apply side just upserts with the
+	// stored types instead of re-running an LLM at approval time
+	d.KeyEntityTypes = classifyKeyEntities(ctx, model, kbID, d.Title, d.KeyEntities)
+	return d, nil
 }
 
 // headingSimilar judges two section headings as the same section across
@@ -932,25 +997,46 @@ func RenderTopicContent(sections []core.WikiSection, claims []compileStatement, 
 	return strings.TrimSpace(sb.String())
 }
 
+// collapseInline flattens a text blob onto a single line and strips double
+// quotes: claim lines are single-line markdown, but raw excerpts (vision
+// descriptions especially) carried real newlines that split the trailing
+// [源](…) link mid-attribute — the frontend parser then lost the excerpt and
+// leaked the excerpt body into the claim list as ghost numbered rows.
+func collapseInline(s string) string {
+	return strings.ReplaceAll(strings.Join(strings.Fields(s), " "), `"`, "'")
+}
+
+// shortPhrase picks a compact highlight query from an excerpt: the document
+// preview matches it verbatim, so the full 120-rune excerpt (never an exact
+// substring) was dead weight — and URL-encoding costs ~9 bytes per CJK char,
+// which is what bloated compiled pages past 100KB.
+func shortPhrase(s string) string {
+	r := []rune(s)
+	if len(r) > 24 {
+		return string(r[:24])
+	}
+	return s
+}
+
 // renderClaimList is the numbered, source-linked claim list every compiled
 // draft keeps — the verification floor under the prose.
 func renderClaimList(statements []compileStatement) string {
 	var sb strings.Builder
 	for i, s := range statements {
-		claim := strings.TrimSpace(s.Claim)
+		claim := collapseInline(strings.TrimSpace(s.Claim))
 		if claim == "" {
-			claim = strings.TrimSpace(s.Excerpt)
+			claim = collapseInline(strings.TrimSpace(s.Excerpt))
 		}
 		if claim == "" {
 			continue
 		}
 		fmt.Fprintf(&sb, "%d. %s", i+1, claim)
 		if s.DocID != "" {
-			excerpt := strings.TrimSpace(s.Excerpt)
+			excerpt := collapseInline(strings.TrimSpace(s.Excerpt))
 			if len([]rune(excerpt)) > 120 {
 				excerpt = string([]rune(excerpt)[:120]) + "…"
 			}
-			fmt.Fprintf(&sb, " [源](#/preview/document/%s?q=%s \"%s\")", s.DocID, url.QueryEscape(excerpt), excerpt)
+			fmt.Fprintf(&sb, " [源](#/preview/document/%s?q=%s \"%s\")", s.DocID, url.QueryEscape(shortPhrase(excerpt)), excerpt)
 		}
 		sb.WriteString("\n")
 	}
@@ -1022,7 +1108,7 @@ func runTopicPipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *co
 		if job != nil {
 			job.Current = c.Title
 		}
-		draft, err := composeTopicDraft(ctx, model, c, existing)
+		draft, err := composeTopicDraft(ctx, model, kb.ID, c, existing)
 		if err != nil {
 			if job != nil {
 				job.log("compose failed [%s]: %v", c.Title, err)
@@ -1167,6 +1253,9 @@ func fileTopicProposal(ctx *orm.Context, kb *core.WikiKnowledgeBase, d *topicDra
 		"absorb_ids":        d.Cluster.AbsorbIDs,
 		"planned":           d.Planned,
 		"model":             model.ProviderID + "/" + model.ID,
+	}
+	if len(d.KeyEntityTypes) > 0 {
+		proposal.Evidence["key_entity_types"] = d.KeyEntityTypes
 	}
 	if d.UpdateTitle != "" && updateID == "" {
 		proposal.Evidence["update_title"] = d.UpdateTitle

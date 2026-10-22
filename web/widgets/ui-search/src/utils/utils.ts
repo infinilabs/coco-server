@@ -23,6 +23,14 @@ export function normalizeCoverIconUrl(data: EsSearchResult, baseUrl: string) {
     if (typeof value !== 'string' || !value) return value;
     const text = value.toLowerCase();
     if (text.startsWith('/') || text.startsWith('#/')) {
+      // "/assets/…" paths are frontend-bundled statics (web/public): they are
+      // served by the SPA origin itself (vite publicDir in dev, the built
+      // dist in prod), NOT by the API server. Prefixing them with the API
+      // base (/proxy-default in dev) turns them into backend 404s, which
+      // AuthImage then swaps for the generic fallback icon.
+      if (text.startsWith('/assets/')) {
+        return value;
+      }
       return `${resolvedBaseUrl}/${value}`.replace(/([^:]\/)\/+/g, '$1');
     }
     return value;

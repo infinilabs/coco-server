@@ -1,4 +1,5 @@
 import { ArrowRight, FlaskConical, RefreshCw, Search } from 'lucide-react';
+import PageHeaderTitle from '@/components/stateless/common/PageHeaderTitle';
 import { Button, Card, Col, Input, InputNumber, Row, Select, Slider, Space, Spin, Table, Tag, Tooltip, Typography, message } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -202,12 +203,12 @@ export function Component() {
     <div className="flex flex-col gap-16px">
       <Card
         title={
-          <Space size={8}>
-            <FlaskConical className="w-18px h-18px" />
-            <span>{t('page.searchStudio.title')}</span>
-          </Space>
+          <PageHeaderTitle
+            description={t('page.searchStudio.subtitle')}
+            icon={<FlaskConical className="w-18px h-18px" />}
+            title={t('page.searchStudio.title')}
+          />
         }
-        extra={<Typography.Text type="secondary" className="text-12px">{t('page.searchStudio.subtitle')}</Typography.Text>}
       >
         <Space.Compact style={{ width: '100%' }} className="mb-16px">
           <Input

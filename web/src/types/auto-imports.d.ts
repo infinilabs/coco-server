@@ -73,6 +73,7 @@ declare global {
   const NotionSVG: typeof import('../components/icons/index.jsx')['NotionSVG']
   const Outlet: typeof import('react-router-dom')['Outlet']
   const PERMISSION_MAPPING: typeof import('../components/Resource/Shares')['PERMISSION_MAPPING']
+  const PageHeaderTitle: typeof import('../components/stateless/common/PageHeaderTitle')['default']
   const PinToggler: typeof import('../components/stateless/common/PinToggler')['default']
   const PrincipalSelect: typeof import('../components/Resource/PrincipalSelect')['default']
   const ProcessingPanel: typeof import('../components/ProcessingPanel/index')['default']

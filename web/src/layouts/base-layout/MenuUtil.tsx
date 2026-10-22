@@ -11,19 +11,20 @@ import { $t } from '@/locales';
 const WORKSPACE_MENU_KEYS: readonly string[] = ['home', 'search', 'chat', 'wiki'];
 
 /**
- * Administration menu groups, in display order. Route keys not listed here land
- * in a trailing "others" group, so a new page never disappears from the menu.
+ * Administration menu groups, in display order, organized by the application
+ * each feature serves (AI search / AI chat / knowledge base), then the shared
+ * data-ingestion base and platform administration. Route keys not listed here
+ * land in a trailing "others" group, so a new page never disappears.
  */
 const ADMIN_MENU_GROUPS: { key: string; labelKey: string; routeKeys: readonly string[] }[] = [
-  { key: 'menu-group-chat', labelKey: 'menu.group.chat', routeKeys: ['ai-assistant', 'skill', 'integration'] },
-  { key: 'menu-group-data', labelKey: 'menu.group.data', routeKeys: ['data-source', 'webhook'] },
-  { key: 'menu-group-processing', labelKey: 'menu.group.processing', routeKeys: ['pipeline'] },
-  { key: 'menu-group-search', labelKey: 'menu.group.search', routeKeys: ['search-studio', 'search-ops'] },
-  { key: 'menu-group-kb', labelKey: 'menu.group.kb', routeKeys: ['ontology'] },
+  { key: 'menu-group-app-search', labelKey: 'menu.group.appSearch', routeKeys: ['search-studio', 'search-ops', 'search-settings'] },
+  { key: 'menu-group-app-chat', labelKey: 'menu.group.appChat', routeKeys: ['ai-assistant', 'skill', 'memory-settings'] },
+  { key: 'menu-group-app-kb', labelKey: 'menu.group.appKb', routeKeys: ['ontology', 'wiki-settings'] },
+  { key: 'menu-group-data', labelKey: 'menu.group.data', routeKeys: ['data-source', 'pipeline', 'connector-settings', 'engine-ai', 'data-security', 'content-dedup', 'webhook'] },
   {
     key: 'menu-group-system',
     labelKey: 'menu.group.system',
-    routeKeys: ['model-provider', 'api-token', 'user', 'role', 'settings', 'webhook', 'security', 'guide']
+    routeKeys: ['model-provider', 'mcp-server', 'api-token', 'user', 'role', 'security', 'integration', 'settings', 'guide']
   }
 ];
 

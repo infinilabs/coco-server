@@ -137,9 +137,8 @@ const Dedup = memo(() => {
   const tierLabel = (g: DedupGroup) => t(`page.settings.dedup.tiers.${g.tier_label}`);
 
   return (
-    <div className="py-24px">
+    <div>
       <Spin spinning={loading}>
-        <div className="m-b-16px color-[var(--ant-color-text-tertiary)]">{t('page.settings.dedup.desc')}</div>
         <Row gutter={16} className="m-b-16px">
           <Col span={5}>
             <Card size="small">

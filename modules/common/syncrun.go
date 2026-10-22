@@ -5,9 +5,12 @@ package common
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 
 	"infini.sh/framework/core/kv"
+	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
 )
 
@@ -32,6 +35,7 @@ const syncRunBucket = "/datasource/syncruns"
 const (
 	SyncRunRunning    = "running"
 	SyncRunSuperseded = "superseded" // ended unrecorded; a newer run took over
+	SyncRunCompleted  = "completed"  // dispatch pipeline ended (fetch done or killed by its timeout)
 )
 
 // SyncRun is the journal record.
@@ -97,6 +101,49 @@ func ReadSyncRun(datasourceID string) (*SyncRun, error) {
 func SyncRunStale(run *SyncRun, maxAge time.Duration) bool {
 	return run != nil && run.State == SyncRunRunning &&
 		time.Since(time.UnixMilli(run.UpdatedAt)) > maxAge
+}
+
+// CloseSyncRunIfIdle closes a "running" journal whose dispatch pipeline is no
+// longer registered in the transient-task table. Without this, the record
+// stays "running" forever after the fetch phase ends (the journal is only
+// written at dispatch start and per BatchCollect), and the status surface
+// reads every datasource as stale ("疑似僵死") during the — often hours-long —
+// processing window that follows a successful fetch. Called from the
+// dispatcher's keep-running loop, right before it decides whether a new
+// dispatch is due.
+func CloseSyncRunIfIdle(datasourceID string) {
+	run, err := ReadSyncRun(datasourceID)
+	if err != nil || run == nil || run.State != SyncRunRunning {
+		return
+	}
+	if dispatchPipelineActive(datasourceID) {
+		return
+	}
+	now := time.Now().UnixMilli()
+	run.State = SyncRunCompleted
+	run.UpdatedAt = now
+	run.FinishedAt = now
+	_ = writeSyncRun(datasourceID, run)
+}
+
+// dispatchPipelineActive reports whether the transient task backing this
+// datasource's dispatch pipeline ("dynamic-datasource-task-<id>") is still
+// registered. RegisterTransientTask stores the task synchronously before the
+// goroutine starts and the goroutine deletes it on exit, so "absent" reliably
+// means the pipeline has ended (completed, failed or killed by its timeout).
+func dispatchPipelineActive(datasourceID string) bool {
+	prefix := fmt.Sprintf("[dynamic-datasource-task-%v]", datasourceID)
+	active := false
+	task.Tasks.Range(func(_, v interface{}) bool {
+		if t, ok := v.(*task.ScheduleTask); ok && t != nil &&
+			strings.Contains(t.Description, prefix) &&
+			t.State != task.Finished {
+			active = true
+			return false
+		}
+		return true
+	})
+	return active
 }
 
 func writeSyncRun(datasourceID string, run *SyncRun) error {

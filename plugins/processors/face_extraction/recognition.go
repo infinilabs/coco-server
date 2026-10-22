@@ -15,6 +15,7 @@ import (
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
 	llmmodule "infini.sh/coco/modules/llm"
+	utils "infini.sh/coco/plugins/processors"
 	"infini.sh/coco/plugins/processors/fileproc"
 )
 
@@ -93,6 +94,9 @@ Notes:
 		{Role: llms.ChatMessageTypeHuman, Parts: parts},
 	}
 
+	llmCtx, llmCancel := utils.PipelineLLMContext(ctx)
+	defer llmCancel()
+	ctx = llmCtx
 	completion, err := llm.GenerateContent(ctx, content)
 	if err != nil {
 		return nil, fmt.Errorf("vision model API call failed: %w", err)

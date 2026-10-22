@@ -4,8 +4,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       articles: 'Articles',
       aiGenerated: 'AI Generated',
       datasources: 'Datasources',
-      recent: 'Recently Updated',
-      search: 'Search Knowledge'
+      recent: 'Recent docs'
     },
     graph: {
       wikilinkRelation: 'Linked',
@@ -43,7 +42,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     tree: {
       newFolder: 'New Folder',
-      addFolder: 'New folder in this KB',
+      addFolder: 'New folder',
       rename: 'Rename',
       addSubfolder: 'New subfolder',
       delete: 'Remove from TOC',
@@ -71,6 +70,9 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     workspace: {
       all: 'All Workspaces',
+      title: 'Workspace',
+      searchPlaceholder: 'Search workspaces',
+      hint: 'Assigned KBs can be filtered via the topbar workspace switcher',
       create: 'New Workspace',
       namePlaceholder: 'Workspace name'
     },
@@ -96,6 +98,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       deleteConfirm: 'Delete this article? Versions, comments and its TOC entry are removed too.'
     },
     hub: {
+      home: 'Home',
       title: 'Knowledge Hub',
       eyebrow: 'Knowledge base · AI generated · Citation-backed',
       subtitle: 'Knowledge bases generated and maintained by AI — every claim traced to its source',
@@ -313,7 +316,6 @@ const page: App.I18n.Schema['translation']['page'] = {
       compileIdle: 'Not run yet. Compile reads the materials, extracts entities and claims, and files governance proposals (auto-applied when auto-approve is on)',
       compileAlready: 'A compile is already running for this KB',
       compileStartFailed: 'Failed to start compile',
-      compileCancel: 'Cancel compile',
       title: 'KB files',
       manualUpload: 'Manual upload',
       upload: 'Upload files',
@@ -499,6 +501,7 @@ const page: App.I18n.Schema['translation']['page'] = {
   },
   searchOps: {
     title: 'Search Ops',
+    tabOverview: 'Overview',
     subtitle: 'What people searched, which strategies ran, where recall came up empty and what it cost — the data face of the iteration loop',
     refresh: 'Refresh',
     loadFailed: 'Load failed',
@@ -506,6 +509,26 @@ const page: App.I18n.Schema['translation']['page'] = {
     zeroHitRate: 'Zero-hit rate',
     avgTook: 'Avg latency',
     maxTook: 'Max latency',
+    latencyPercentiles: 'Latency percentiles (p50/p95/p99)',
+    queryLogs: 'Query log',
+    queryLogsHint: 'Per-search detail: who searched what, when, with which strategy, how many hits and how long — start here to triage "no results" or "too slow"',
+    filterAll: 'All',
+    filterZeroHit: 'Zero-hit only',
+    filterSlow: 'Slow ≥1s',
+    logSearchPlaceholder: 'Filter by Query',
+    logTime: 'Time',
+    logQuery: 'Query',
+    logHits: 'Hits',
+    logTook: 'Took',
+    logRewritten: 'Rewritten',
+    logUser: 'User',
+    logLegKeyword: 'Keyword leg',
+    logLegSemantic: 'Semantic leg',
+    logLegRewrite: 'Rewrite leg (LLM)',
+    logEngineTook: 'Engine took',
+    logTopHit: 'Top hit',
+    logExecutions: 'Executions',
+    logError: 'Error',
     strategies: 'Strategy distribution',
     strategy: 'Strategy',
     searches: 'Count',
@@ -532,9 +555,6 @@ const page: App.I18n.Schema['translation']['page'] = {
     statusLegacy: 'Legacy (unstamped)',
     failedTitle: 'Failed Documents',
     autoRefresh: 'Auto refresh',
-    queueIndexing: 'Pending index',
-    queueProcessed: 'Pending merge',
-    queueAttachment: 'Attachment queue',
     oldestIndexing: 'Oldest in-flight',
     liveJustNow: 'just now',
     liveMinutesAgo: '{{minutes}}m ago',
@@ -555,14 +575,17 @@ const page: App.I18n.Schema['translation']['page'] = {
     syncInterval: 'Interval',
     syncLastDispatch: 'Last dispatch',
     syncCursor: 'Increment cursor',
+    syncNever: 'never ran',
+    syncRunning: 'running',
+    syncCompleted: 'sync completed',
+    syncStale: 'possibly dead',
+    syncSuperseded: 'ended unrecorded',
     syncRunState: 'Last run',
     syncRunProgress: '{{batches}} batches / {{documents}} docs',
-    syncStale: 'likely stuck',
-    syncSuperseded: 'ended unrecorded',
-    syncRunning: 'running',
-    syncNever: 'never ran',
   },
   apitoken: {
+    title: 'API Token',
+    subtitle: 'Manage tokens used by external systems to call the Coco API',
     columns: {
       expire_in: 'Expire In',
       name: 'Name',
@@ -578,6 +601,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   assistant: {
+    title: 'AI Assistants',
+    subtitle: 'Manage conversational assistants: models, prompts and knowledge bindings',
     categoryPlaceholder: 'Select or input a category',
     delete: {
       confirm: 'Are you sure you want to delete this ai assistant "{{name}}"?'
@@ -723,6 +748,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   connector: {
+    title: 'Connectors',
+    subtitle: 'Connect third-party connectors and sync their data into Coco',
     columns: {
       category: 'Category',
       description: 'Description',
@@ -766,6 +793,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   datasource: {
+    subtitle: 'Connect local and external data sources; manage connections, syncing and search scope',
     columns: {
       enabled: 'Enabled',
       latest_sync_time: 'Latest Sync Time',
@@ -1097,6 +1125,10 @@ const page: App.I18n.Schema['translation']['page'] = {
       coverage: 'Vector coverage',
       trend: 'Ingestion trend',
       trendEmpty: 'All documents arrived on a single day — no trend to show',
+      range7d: '7d',
+      range30d: '30d',
+      range90d: '90d',
+      rangeAll: 'All',
       byType: 'By type',
       byStatus: 'Lifecycle',
       byLang: 'Languages',
@@ -1216,21 +1248,71 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   home: {
-    server: {
-      address: 'Server address',
-      addressDesc:
-        'In the connect settings of Coco AI, adding the Server address to the service list will allow you to access the service in Coco AI.',
-      downloadCocoAI: 'Download Coco AI',
-      title: `{{user}}'s Coco Server`
-    },
-    settings: {
-      aiAssistant: 'AI Assistant',
-      aiAssistantDesc:
-        'Set a personalized AI assistant to handle tasks efficiently and provide intelligent suggestions.',
-      dataSource: 'Data Source',
-      dataSourceDesc: 'Add data sources to the service list for unified search and analysis.',
-      llm: 'LLMs',
-      llmDesc: 'Connect the large model to enable AI chat, intelligent search, and a work assistant.'
+    workbench: {
+      apps: {
+        chat: 'AI Chat',
+        chatDesc: 'Chat with AI assistants grounded on your knowledge base and data sources.',
+        chatStat: '{{n}} chats in 7 days',
+        enter: 'Open',
+        search: 'AI Search',
+        searchDesc: 'Unified search across data sources with AI-crafted answers and citations.',
+        searchStat7d: '{{n}} searches in 7 days',
+    statDeltaTip: 'vs the previous 7 days',
+        wiki: 'Knowledge Base',
+        wikiDesc: 'Turn knowledge into a searchable, citable wiki.',
+        wikiStat: '{{kbs}} KBs · {{articles}} articles'
+      },
+      checklist: {
+        access: 'Connect a client',
+        accessDesc: 'Connect clients through integrations, MCP servers, or the Coco App.',
+        datasource: 'Add data sources',
+        datasourceDesc: 'Connect business systems so data can be searched and analyzed.',
+        model: 'Configure LLMs',
+        modelDesc: 'Connect an LLM to enable AI chat and intelligent search.',
+        pipeline: 'Create a pipeline',
+        pipelineDesc: 'Set up document processing for your data sources.',
+        title: 'Get started'
+      },
+      greeting: 'Welcome back, {{user}}',
+      activity: {
+        docsAdded: '+{{n}} in 7 days',
+        feedEmpty: 'No activity yet',
+        feedEmptyHint: 'New documents, sync runs and wiki updates will show up here',
+        feedFailed: 'Failed to load activity, click to retry',
+        feed: 'Recent activity',
+        syncDone: 'Sync finished, +{{n}} docs',
+        zeroHit: 'Zero-hit {{pct}}%',
+        zeroHitTip: '{{n}} of {{total}} searches returned no results — check Search Ops',
+        status: {
+          completed: 'Completed',
+          failed: 'Failed',
+          indexing: 'Processing',
+          legacy: 'Legacy'
+        },
+        syncRunning: '{{n}} syncing',
+        yesterday: 'Yesterday',
+        kind: {
+          assistant: 'New assistant',
+          document: 'Document added',
+          sync: 'Sync completed',
+          wiki: 'Wiki updated'
+        },
+        timeJustNow: 'just now',
+        timeMinutesAgo: '{{n}} min ago',
+        trend: 'New documents · last 7 days',
+        uncategorized: 'Uncategorized',
+        articles: '{{n}} articles'
+      },
+      metrics: {
+        assistants: 'AI Assistants',
+        datasources: 'Data Sources',
+        documents: 'Documents',
+        kbs: 'Knowledge Bases'
+      },
+      subtitle: 'AI Search · AI Chat · Knowledge Hub',
+      dist: {
+        title: 'Documents by data source'
+      }
     }
   },
   integratedStoreModal: {
@@ -1262,6 +1344,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     title: 'Integration Store'
   },
   integration: {
+    title: 'Integrations',
+    subtitle: 'Manage search widgets and third-party integrations',
     code: {
       desc: 'Insert this  code into your website between <body> and </body> to start using integration.',
       enabled_tips: `Please enable the integration, update and save it, than you can preview!`,
@@ -1397,6 +1481,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     title: 'Welcome'
   },
   mcpserver: {
+    title: 'MCP Server',
+    subtitle: 'Manage the MCP server and tool integrations to extend assistant capabilities',
     server: {
       title: 'Coco MCP Server',
       help: 'Connection guide',
@@ -1457,7 +1543,20 @@ const page: App.I18n.Schema['translation']['page'] = {
     cardinality: 'Cardinality',
     inverse: 'Inverse',
     bareType: 'No properties or relations yet',
-    empty: 'No schema on file — start by adding a type'
+    empty: 'No schema on file — start by adding a type',
+    unsavedTitle: 'Unsaved changes',
+    allSaved: 'All changes saved',
+    discard: 'Discard changes',
+    scopeSwitchConfirm: 'You have unsaved changes — switching scope will discard them. Switch anyway?',
+    saveFailed: 'Failed to save the schema, please retry',
+    loadFailed: 'Failed to load the schema',
+    retry: 'Retry',
+    iconHint: 'Icon: a single emoji',
+    typeSummary: 'Props {{p}} · Relations {{r}} · Sections {{s}}',
+    validationError: '{{n}} type(s) have configuration issues — fix the highlighted fields before saving',
+    entityCounting: 'Counting entities of this type…',
+    entityCount: '{{n}} entities already use this type: existing ones stay, but no new entity of this type can be created.',
+    entityNone: 'No entities of this type yet.'
   },
   pipeline: {
         templates: {
@@ -1490,6 +1589,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         },
 
     title: 'Processing Pipelines',
+    subtitle: 'Orchestrate document pipelines: parsing, chunking, embedding and ingestion',
     deleteConfirm: 'Delete pipeline "{{name}}"?',
     columns: {
       name: 'Name',
@@ -1579,6 +1679,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   modelprovider: {
+    title: 'Model Providers',
+    subtitle: 'Connect LLM providers and models for chat, processing and retrieval',
     delete: {
       confirm: 'Are you sure you want to delete this model provider?'
     },
@@ -1613,7 +1715,13 @@ const page: App.I18n.Schema['translation']['page'] = {
       inferenceMode: 'Whether this model supports inference mode'
     }
   },
+  security: {
+    title: 'Security',
+    subtitle: 'Manage authentication, user accounts and role permissions',
+  },
   settings: {
+    title: 'System Settings',
+    subtitle: 'System-level configuration: appearance, defaults and environment',
     appearance: {
       app_logo: 'App Icon',
       brand: 'Brand',
@@ -1664,6 +1772,16 @@ const page: App.I18n.Schema['translation']['page'] = {
         },
         title: 'Chart Settings'
       },
+      server_settings: {
+        download: 'Download Coco AI',
+        endpoint: 'Server address',
+        endpoint_hint:
+          'In the connect settings of Coco AI, adding the Server address to the service list will allow you to access the service in Coco AI.',
+        endpoint_managed_hint: 'The server address is managed by your organization and cannot be modified.',
+        name: 'Server name',
+        name_placeholder: 'The name shown in the Coco App service list',
+        title: 'Server Connection'
+      },
       title: 'App Settings'
     },
     connector: {
@@ -1695,6 +1813,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     wiki_settings: {
       title: 'AI Wiki',
+      subtitle: 'Configure the curation assistant and default behaviors of AI Wiki',
       labels: {
         assistant: 'Curation assistant',
         assistant_desc: 'The assistant used by AI generation & AI editing by default; a knowledge-base-level binding takes precedence',
@@ -1709,6 +1828,13 @@ const page: App.I18n.Schema['translation']['page'] = {
 
     search_settings: {
       title: 'Search Settings',
+      subtitle: 'Entry switch, retrieval type and the built-in search widget for AI search',
+      tabs: {
+        basics: 'Basics & Widget',
+        retrieval: 'Retrieval Tuning',
+        results: 'Results & Suggestions',
+        security: 'Intervention & Security'
+      },
       labels: {
         wiki_projection: 'Wiki leg from document index',
         wiki_projection_desc: 'When on, the wiki retrieval leg reads projected rows from the document index (run /wiki/_backfill_projection first); off reads the wiki_article index.',
@@ -1718,7 +1844,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         banner_height: 'Banner max height',
         banner_height_hint: 'Max height of the search home banner (width adapts to the image ratio); default 64px',
         builtin_widget: 'AI Search Widget (Built-in)',
-        builtin_widget_hint: 'The in-app AI search reuses this built-in fullscreen widget; only search-relevant parameters are shown here and changes apply immediately. The built-in integration never appears in the integration list',
+        builtin_widget_hint: 'The in-app AI search page is served by this built-in widget; only search-relevant parameters are shown here. Changes take effect after saving, no restart needed. The built-in widget never appears in the integration list',
         enabled: 'Enabled',
         integration: 'Integration',
         search_background: 'Search Background',
@@ -1728,14 +1854,138 @@ const page: App.I18n.Schema['translation']['page'] = {
         search_type: 'Default search mode',
         welcome_font_size: 'Welcome font size',
         welcome_gradient: 'Gradient text (brand-color gradient; off = solid color)',
-        search_type_desc: 'The strategy /query/_search runs when the request does not set one explicitly; hybrid_rrf enables fused retrieval (wiki pages, graph and query rewrite); takes effect for new searches immediately'
+        search_type_desc: 'The strategy /query/_search runs when the request does not set one explicitly; hybrid_rrf enables fused retrieval (wiki pages, graph and query rewrite); takes effect for new searches immediately',
+        strategy: 'Retrieval Strategy',
+        strategy_hint: 'Controls recall and ranking of the keyword/hybrid legs; applies to the in-app search, widgets and the search studio alike',
+        default_sort: 'Default sort',
+        default_sort_desc: 'Applies when the request carries no explicit sort; hybrid_rrf fused ranking is never re-ordered',
+        match_operator: 'Match operator',
+        match_operator_desc: 'AND requires every term to match (higher precision), OR matches any term (higher recall)',
+        minimum_should_match: 'Minimum should match',
+        minimum_should_match_desc: 'Raw ES minimum_should_match spec, e.g. 75%, 2 or 2<75%; leave empty to disable',
+        min_score: 'Min score',
+        min_score_desc: 'Drops results scoring below the threshold, 0 disables; keyword/hybrid legs only',
+        field_weights: 'Field weights',
+        field_weights_desc: 'Searchable fields with their relevance boosts (a higher title weight favors title hits); leave empty for the built-in defaults',
+        field: 'Field',
+        weight: 'Weight',
+        add_field_weight: 'Add field',
+        presentation: 'Result Presentation',
+        presentation_hint: 'Controls pagination and returned fields of search results; applies to the app search, widgets and the search studio',
+        page_size: 'Page size',
+        page_size_desc: 'Default number of results when the request specifies none (1-100), default 10',
+        max_page_size: 'Max page size',
+        max_page_size_desc: 'No single request may fetch more than this per page (10-1000), default 100',
+        suggestions: 'Search Suggestions',
+        suggestions_hint: 'Controls the document suggestion dropdown in the search box; field-name/value suggestions (studio debugging) are not affected',
+        suggest_enabled: 'Enable suggestions',
+        suggest_enabled_desc: 'When off, the search box no longer returns document suggestions',
+        suggest_size: 'Suggestion count',
+        suggest_size_desc: 'Number of suggestions when the request specifies none (1-50), default 10',
+        aggregations: 'Aggregations & Filters',
+        aggregations_hint: 'Aggregations describe the recall window distribution (datasources/types/tags…); each aggregation\u2019s buckets feed the result sidebar filters',
+        aggregation_bucket_cap: 'Buckets per aggregation',
+        aggregations_enabled: 'Enable aggregations',
+        aggregations_enabled_desc: 'When off, /query/_aggregations returns an empty response and the filter sidebar collapses',
+        aggregation_bucket_sort: 'Bucket ordering',
+        aggregation_bucket_sort_desc: 'How aggregation buckets are ordered',
+        hot_searches_enabled: 'Enable hot searches',
+        hot_searches_enabled_desc: 'Aggregate recent top queries from the search log (zero-hit queries excluded), shown below the search box on the search home (/query/_hot)',
+        hot_searches_size: 'Hot search count',
+        hot_searches_size_desc: 'Default number of hot queries returned (1-20), default 10; ?size= overrides',
+        recommend_topics_enabled: 'Enable recommended topics',
+        recommend_topics_enabled_desc: 'When off, recommendations are hidden on the frontend; configured topics are kept and restored when re-enabled',
+        recommend_topics: 'Recommended topics',
+        recommend_topics_desc: 'Operator-curated recommended queries shown on the search home and results sidebar (clicking one runs the search); falls back to the static recommend: block in coco.yml when unset',
+        recommend_topics_placeholder: 'Type a query and press Enter to add (up to 20)',
+        recommend_topics_add: 'Add topic',
+        recommend_topics_max: 'Up to 20 topics',
+        related_searches_enabled: 'Enable related searches',
+        related_searches_enabled_desc: 'Lexical neighbors from the search log shown in the results-page sidebar as query-conditioned suggestions',
+        aggregation_bucket_cap_desc: 'Upper bound of buckets returned by the datasources/types/tags aggregations (1-50), default 15; category, owner and color keep engine defaults, and the time filter is fixed at 3 ranges',
+        aggregation_fields: 'Aggregation dimensions',
+        aggregation_fields_desc: 'Toggle aggregation dimensions individually: a disabled dimension disappears from the result sidebar filters and its aggregation is no longer requested',
+        agg_field_category: 'Category',
+        agg_field_source: 'Datasource',
+        agg_field_type: 'Type',
+        agg_field_tags: 'Tags',
+        agg_field_owner: 'Owner',
+        agg_field_time: 'Updated time',
+        agg_field_color: 'Color (images)',
+        advanced: 'Advanced',
+        advanced_hint: 'Pagination protection: deep pagination (from+size) beyond the window clamps the offset instead of hitting the engine max_result_window error',
+        max_result_window: 'Result window cap',
+        max_result_window_desc: 'Maximum from + size window (100-100000), default 10000 (matches the ES engine default)',
+        result_source_includes: 'Result field whitelist',
+        result_source_includes_desc: "Only return these fields per hit (ES _source.includes) to trim payloads; empty keeps the full document",
+        field_group_identity: 'Identity',
+        field_group_classify: 'Classification',
+        field_group_body: 'Body',
+        field_group_ownership: 'Ownership',
+        fuzziness: 'Default fuzziness',
+        fuzziness_desc: 'Default typo-tolerance distance of the text leg (1-5), default 3; an explicit ?fuzziness= on the request wins (0 = exact matching)',
+        query_timeout_ms: 'Query timeout (ms)',
+        query_timeout_ms_desc: 'Per-query engine execution cap (100-60000ms) so a slow query gives up early; 0 = off',
+        semantic_ai: 'Fusion & AI',
+        semantic_ai_hint: 'Recall-leg switches and AI-enhanced behavior of the hybrid_rrf fusion; the wiki projection requires a backfill first, and fusion scores are out of the threshold scope',
+        semantic_min_score: 'Semantic score threshold',
+        semantic_min_score_desc: 'Semantic/hybrid recall hits scoring below the threshold are dropped, 0 disables',
+        rrf_rank_constant: 'RRF rank constant K',
+        rrf_rank_constant_desc: 'Rank constant of the hybrid_rrf client-side fusion, default 60; an explicit ?rrf_k= request parameter wins',
+        rerank_enabled: 'Enable rerank',
+        rerank_enabled_desc: 'When off, the fused result keeps the RRF order and no rerank model is called',
+        intervention: 'Result Intervention',
+        intervention_hint: 'Blocked content never surfaces in any recall leg (suggestions included); pinned rules match the query exactly (case-insensitive) and pinned docs still honor permissions',
+        blocked_doc_ids: 'Blocked documents',
+        blocked_doc_ids_desc: 'Type a document ID and press Enter; blocked documents disappear from search results',
+        blocked_datasource_ids: 'Blocked datasources',
+        blocked_datasource_ids_desc: 'Type a datasource ID; the whole datasource stops participating in search',
+        pinned_rules: 'Pinned rules',
+        pinned_rules_desc: 'When the query matches exactly, the listed documents are placed on top (up to 20 rules)',
+        pinned_query: 'Query',
+        pinned_docs: 'Type to search and pick pinned documents',
+        doc_select_placeholder: 'Type to search and pick documents',
+        doc_add_btn: 'Add documents',
+        doc_picker_title: 'Pick documents',
+        doc_picker_search: 'Search documents by keyword',
+        doc_col_title: 'Title',
+        doc_col_id: 'Doc ID',
+        doc_col_created: 'Created',
+        add_pinned_rule: 'Add pinned rule',
+        search_security: 'Search Security',
+        search_security_hint: 'The masking rules themselves live in Data Security; this decides whether search results go through the same rules',
+        apply_masking: 'Apply masking to results',
+        apply_masking_desc: 'When on, hit titles/summaries/content are masked with the Data Security rules',
+        blocked_query_patterns: 'Blocked queries',
+        blocked_query_patterns_desc: 'A matching query short-circuits to an empty result without hitting the engine; keyword or regex modes available',
+        blocked_mode_contains: 'Keyword contains',
+        blocked_mode_exact: 'Exact match',
+        blocked_mode_regex: 'Regex',
+        blocked_words_placeholder: 'Type a word and press Enter',
+        blocked_add: 'Add pattern',
+        blocked_effective: 'Effective patterns: ',
+        blocked_test_label: 'Rule test',
+        blocked_test_placeholder: 'Type a test query for a live preview',
+        blocked_verdict_block: 'Blocked',
+        blocked_verdict_allow: 'Allowed',
+        blocked_invalid_regex: 'Invalid regex'
       },
       options: {
         keyword: 'Keyword (BM25)',
         semantic: 'Semantic',
         hybrid: 'Hybrid',
-        hybrid_rrf: 'Hybrid fusion (hybrid_rrf)'
+        hybrid_rrf: 'Hybrid fusion (hybrid_rrf)',
+        relevance: 'Relevance',
+        created_desc: 'Newest first',
+        created_asc: 'Oldest first',
+        match_or: 'Any term (OR)',
+        match_and: 'All terms (AND)',
+        aggregation_bucket_sort_count: 'By count',
+        aggregation_bucket_sort_value: 'By name'
       }
+    },
+    default_params: {
+      title: 'Default Parameters'
     },
     default_model: {
       labels: {
@@ -1826,6 +2076,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     data_security: {
       title: 'Data Security',
+      subtitle: 'Dynamic masking and field-level restrictions keep sensitive data out of models and results',
       maskingTitle: 'Dynamic Masking',
       maskingEnabled: 'Mask recalled content before models',
       maskingDesc: 'Content matching a rule is regex-replaced before it is assembled into model context (RAG references, enterprise search tool); rules apply in order — put long-number rules like ID cards before the phone rule',
@@ -1854,7 +2105,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         output_language_desc:
           'Controls the output language of AI-generated content in the pipeline, including summaries, tags, and analysis results.'
       },
-      title: 'Document Processing'
+      title: 'Default Parsing Pipelines'
     },
     environment: {
       title: 'Environment',

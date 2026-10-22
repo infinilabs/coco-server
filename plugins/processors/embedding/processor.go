@@ -76,7 +76,13 @@ func (processor *DocumentEmbeddingProcessor) Name() string {
 // generateEmbedding resolves its own model config lazily (docs without
 // chunks skip it entirely).
 func (processor *DocumentEmbeddingProcessor) embedDocument(ctx context.Context, doc *core.Document) (bool, error) {
-	modified, errs := generateEmbedding(ctx, doc, processor.config)
+	// langchaingo's embedding HTTP client has no overall timeout and the
+	// pipeline context carries no deadline — bound the call like every
+	// other pipeline LLM step, or one stalled provider connection hangs
+	// the whole serial consumer (observed live).
+	llmCtx, llmCancel := utils.PipelineLLMContext(ctx)
+	modified, errs := generateEmbedding(llmCtx, doc, processor.config)
+	llmCancel()
 	if len(errs) != 0 {
 		if modified {
 			log.Errorf("processor [%s] failed to generate embeddings for document [%s/%s] _partially_ due to error [%v]", processor.Name(), doc.Title, doc.ID, errs)

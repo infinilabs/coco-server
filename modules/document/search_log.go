@@ -5,8 +5,10 @@ package document
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -35,6 +37,8 @@ const (
 	knowledgeGapThreshold = 3
 	// lowRecallBoardSize caps the low-recall board rows.
 	lowRecallBoardSize = 20
+	// searchLogBrowseLimit caps the raw-log drill-down page size.
+	searchLogBrowseLimit = 200
 )
 
 // normalizeSearchQuery folds a query to its aggregatable form: trimmed,
@@ -50,13 +54,29 @@ func searchQueryHash(query string) string {
 	return util.MD5digest("knowledge_gap:" + normalizeSearchQuery(query))
 }
 
+// searchDiagnostics carries the per-leg evidence a search-log row needs to
+// answer "why slow / why these results" without a reproduction. Nil-safe
+// everywhere: callers without leg-level knowledge pass nil.
+type searchDiagnostics struct {
+	LegKeywordMS  int64
+	LegSemanticMS int64
+	LegRewriteMS  int64
+	EngineTookMS  int64
+	TopHit        string
+	TopScore      float64
+	Error         string
+}
+
 // recordSearchLog persists one completed search asynchronously; failures
-// only log — telemetry must never take a search down.
-func recordSearchLog(ctx context.Context, query, searchType, userID string, total int64, took time.Duration, rewritten bool) {
+// only log — telemetry must never take a search down. Failed searches
+// (diag.Error set) ARE persisted — they used to vanish, leaving timeouts
+// invisible — but they must not pollute the zero-hit recall signals.
+func recordSearchLog(ctx context.Context, query, searchType, userID string, total int64, took time.Duration, rewritten bool, diag *searchDiagnostics) {
 	normalized := normalizeSearchQuery(query)
 	if normalized == "" || searchType == "" {
 		return
 	}
+	failed := diag != nil && diag.Error != ""
 	octx := orm.NewContextWithParent(ctx)
 	octx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 	// refresh: the knowledge-gap check below reads the log it just wrote —
@@ -65,12 +85,25 @@ func recordSearchLog(ctx context.Context, query, searchType, userID string, tota
 	orm.WithModel(octx, &core.SearchLog{})
 	entry := &core.SearchLog{
 		Query:      normalized,
+		Raw:        strings.TrimSpace(query),
 		SearchType: searchType,
 		Total:      total,
 		TookMS:     took.Milliseconds(),
-		ZeroHit:    total == 0,
+		ZeroHit:    !failed && total == 0,
 		Rewritten:  rewritten,
 		UserID:     userID,
+	}
+	if diag != nil {
+		entry.LegKeywordMS = diag.LegKeywordMS
+		entry.LegSemanticMS = diag.LegSemanticMS
+		entry.LegRewriteMS = diag.LegRewriteMS
+		entry.EngineTookMS = diag.EngineTookMS
+		entry.TopHit = diag.TopHit
+		entry.TopScore = diag.TopScore
+		entry.Error = diag.Error
+		if len(entry.Error) > 500 {
+			entry.Error = entry.Error[:500]
+		}
 	}
 	if err := orm.Create(octx, entry); err != nil {
 		log.Warnf("search log create failed: %v", err)
@@ -156,8 +189,18 @@ func (h *APIHandler) searchOpsOverview(w http.ResponseWriter, req *http.Request,
 	octx := orm.NewContextWithParent(req.Context())
 	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	orm.WithModel(octx, &core.SearchLog{})
-	res, err := orm.SearchV2(octx, orm.NewQuery().Size(searchLogScanLimit).
-		SortBy(orm.Sort{Field: "created", SortType: orm.DESC}))
+	query := orm.NewQuery().Size(searchLogScanLimit).
+		SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
+	// ?days=N limits the aggregate to the trailing N days (e.g. the home
+	// workbench shows 7-day health, the ops page keeps the full history);
+	// the scan then covers 2×N so the previous window can be counted for
+	// the period-over-period comparison
+	days := 0
+	if v, err := strconv.Atoi(strings.TrimSpace(req.URL.Query().Get("days"))); err == nil && v > 0 {
+		days = v
+		query = query.Filter(orm.Range("created").Gte(fmt.Sprintf("now-%dd", days*2)))
+	}
+	res, err := orm.SearchV2(octx, query)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -168,7 +211,23 @@ func (h *APIHandler) searchOpsOverview(w http.ResponseWriter, req *http.Request,
 		return
 	}
 
-	stats := aggregateSearchLogs(logs)
+	var stats searchOpsStats
+	if days > 0 {
+		boundary := time.Now().Add(-time.Duration(days) * 24 * time.Hour)
+		current := make([]core.SearchLog, 0, len(logs))
+		prevCount := int64(0)
+		for _, lg := range logs {
+			if lg.Created != nil && lg.Created.Before(boundary) {
+				prevCount++
+			} else {
+				current = append(current, lg)
+			}
+		}
+		stats = aggregateSearchLogs(current)
+		stats.TotalSearchesPrev = prevCount
+	} else {
+		stats = aggregateSearchLogs(logs)
+	}
 	stats.SignalsCaveat = zeroHitSignalsCaveat
 	markFiledGaps(req.Context(), &stats)
 	h.WriteJSON(w, stats, http.StatusOK)
@@ -200,10 +259,19 @@ func markFiledGaps(ctx context.Context, stats *searchOpsStats) {
 // so the numbers are unit-testable without a store.
 type searchOpsStats struct {
 	TotalSearches int64   `json:"total_searches"`
-	ZeroHits      int64   `json:"zero_hit_searches"`
-	ZeroHitRate   float64 `json:"zero_hit_rate"`
-	AvgTookMS     int64   `json:"avg_took_ms"`
-	MaxTookMS     int64   `json:"max_took_ms"`
+	// TotalSearchesPrev is the count of the preceding equal-length window
+	// (only filled when ?days=N is passed; 0 means "no comparison")
+	TotalSearchesPrev int64   `json:"total_searches_prev,omitempty"`
+	ZeroHits          int64   `json:"zero_hit_searches"`
+	ZeroHitRate       float64 `json:"zero_hit_rate"`
+	AvgTookMS         int64   `json:"avg_took_ms"`
+	MaxTookMS         int64   `json:"max_took_ms"`
+	// Latency percentiles over the same scanned window: the average hides
+	// tail pain, p95/p99 are what users feel and what "is search slow"
+	// triage starts from.
+	LatencyP50MS int64 `json:"latency_p50_ms"`
+	LatencyP95MS int64 `json:"latency_p95_ms"`
+	LatencyP99MS int64 `json:"latency_p99_ms"`
 	// Rewrite counts searches where the D8 rewrite leg fired and how many
 	// of those still came back empty — the zero-hit rate among rewritten
 	// searches vs the overall one is the leg's observable lift.
@@ -252,6 +320,7 @@ func aggregateSearchLogs(logs []core.SearchLog) searchOpsStats {
 	zeroByQuery := map[string]*searchOpsLowMiss{}
 	zeroOrder := []string{}
 	var tookTotal int64
+	tooks := make([]int64, 0, len(logs))
 
 	for i := range logs {
 		entry := &logs[i]
@@ -262,6 +331,7 @@ func aggregateSearchLogs(logs []core.SearchLog) searchOpsStats {
 			stats.RewrittenMiss++
 		}
 		tookTotal += entry.TookMS
+		tooks = append(tooks, entry.TookMS)
 		if entry.TookMS > stats.MaxTookMS {
 			stats.MaxTookMS = entry.TookMS
 		}
@@ -294,6 +364,10 @@ func aggregateSearchLogs(logs []core.SearchLog) searchOpsStats {
 
 	stats.ZeroHitRate = float64(stats.ZeroHits) / float64(stats.TotalSearches)
 	stats.AvgTookMS = tookTotal / int64(len(logs))
+	sort.Slice(tooks, func(i, j int) bool { return tooks[i] < tooks[j] })
+	stats.LatencyP50MS = percentileOf(tooks, 50)
+	stats.LatencyP95MS = percentileOf(tooks, 95)
+	stats.LatencyP99MS = percentileOf(tooks, 99)
 	for _, name := range typeOrder {
 		row := byType[name]
 		row.AvgTookMS /= int64(row.Count)
@@ -313,6 +387,71 @@ func aggregateSearchLogs(logs []core.SearchLog) searchOpsStats {
 		stats.LowRecall = stats.LowRecall[:lowRecallBoardSize]
 	}
 	return stats
+}
+
+// percentileOf returns the p-th percentile of a pre-sorted slice (nearest-
+// rank, 0-based index rounding down; empty slice → 0).
+func percentileOf(sorted []int64, p int) int64 {
+	if len(sorted) == 0 {
+		return 0
+	}
+	idx := (len(sorted) - 1) * p / 100
+	return sorted[idx]
+}
+
+// searchOpsLogs serves GET /search/ops/search-logs: the raw query log with
+// optional filters — the per-query drill-down half of query analysis (the
+// overview is the aggregate, this answers "which exact searches were slow /
+// empty / rewritten, by whom, when"). Filters combine with AND:
+// q (substring on the normalized query), search_type, zero_hit, min_took_ms.
+func (h *APIHandler) searchOpsLogs(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	params := req.URL.Query()
+	q := strings.ToLower(strings.TrimSpace(params.Get("q")))
+	searchType := strings.TrimSpace(params.Get("search_type"))
+	zeroHit := strings.TrimSpace(params.Get("zero_hit"))
+
+	size := 50
+	if v, err := strconv.Atoi(params.Get("size")); err == nil && v > 0 {
+		size = v
+	}
+	if size > searchLogBrowseLimit {
+		size = searchLogBrowseLimit
+	}
+
+	clauses := []*orm.Clause{}
+	if q != "" {
+		// the stored query is lowercased (normalizeSearchQuery) so the
+		// pattern must be too, or keyword wildcards never match
+		clauses = append(clauses, orm.WildcardQuery("query", "*"+q+"*"))
+	}
+	if searchType != "" {
+		clauses = append(clauses, orm.TermQuery("search_type", searchType))
+	}
+	if zeroHit == "true" || zeroHit == "false" {
+		clauses = append(clauses, orm.TermQuery("zero_hit", zeroHit == "true"))
+	}
+	if v, err := strconv.Atoi(strings.TrimSpace(params.Get("min_took_ms"))); err == nil && v > 0 {
+		clauses = append(clauses, orm.Range("took_ms").Gte(v))
+	}
+
+	octx := orm.NewContextWithParent(req.Context())
+	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(octx, &core.SearchLog{})
+	query := orm.NewQuery().Size(size).SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
+	if len(clauses) > 0 {
+		query = query.Filter(clauses...)
+	}
+	res, err := orm.SearchV2(octx, query)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	logs, total, err := elastic.DecodeHits[core.SearchLog](res)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	h.WriteJSON(w, util.MapStr{"items": logs, "total": total}, http.StatusOK)
 }
 
 func btoi(b bool) int64 {

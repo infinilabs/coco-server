@@ -1046,11 +1046,10 @@ export function Component() {
               </Space>
             </div>
           ) : (
-            // no items-start: the outline rail must stretch to the row height so
-            // its sticky inner block can follow the scroll for the whole article.
-            // justify-center keeps article + outline as one centered composition
-            // (the rail hugs the text instead of drifting to the container edge)
-            <div className='flex flex-row justify-center gap-6'>
+            // left-aligned to the page title: the header text sits after the
+            // 32px back button + 12px gap, the card carries the same 44px
+            // offset so both left edges land on one vertical line
+            <div className='flex flex-row justify-start gap-6 pl-[44px]'>
               <article className='wiki-window wiki-article-body max-w-860px min-w-0 w-full self-start 2xl:max-w-940px'>
                 {/* document window chrome: traffic lights + title strip, mrdoc hero mock style */}
                 <div className='wiki-window-bar'>
@@ -1420,7 +1419,10 @@ export function Component() {
                 </div>
               </article>
               <ArticleOutline
-                content={article.content}
+                // mirror the reading body (claims tail stripped) — raw stored
+                // content can carry ghost `### 1. …` lines from legacy wrapped
+                // excerpts and they'd pollute the rail
+                content={citationInfo.body}
                 footer={(() => {
                   // the rail metadata card: aliases/tags/entities/relations
                   // and page times — attribute info away from the prose

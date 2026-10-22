@@ -4,8 +4,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       articles: '文章数',
       aiGenerated: 'AI 生成',
       datasources: '数据源',
-      recent: '最近更新',
-      search: '搜索知识'
+      recent: '最近更新'
     },
     graph: {
       wikilinkRelation: '关联引用',
@@ -43,7 +42,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     tree: {
       newFolder: '新建文件夹',
-      addFolder: '在当前知识库新建文件夹',
+      addFolder: '新建文件夹',
       rename: '重命名',
       addSubfolder: '新建子文件夹',
       delete: '从目录移除',
@@ -71,6 +70,9 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     workspace: {
       all: '全部工作区',
+      title: '所属工作区',
+      searchPlaceholder: '搜索工作区',
+      hint: '归属后可在顶栏切换器中按工作区过滤知识库',
       create: '新建工作区',
       namePlaceholder: '工作区名称'
     },
@@ -96,6 +98,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       deleteConfirm: '删除这篇文章？版本、评论及其目录条目将一并移除。'
     },
     hub: {
+      home: '首页',
       title: '知识中心',
       eyebrow: '知识库 · AI 生成 · 引用可溯源',
       subtitle: '由 AI 生成并维护、带引用溯源的知识库',
@@ -313,7 +316,6 @@ const page: App.I18n.Schema['translation']['page'] = {
       compileIdle: '尚未运行。编译会读取原材料、抽取实体与主张，生成治理提案（自动审批开启时直接应用）',
       compileAlready: '该知识库已有编译在执行',
       compileStartFailed: '编译启动失败',
-      compileCancel: '取消编译',
       title: '知识库文件',
       manualUpload: '手动上传',
       upload: '上传文件',
@@ -499,6 +501,7 @@ const page: App.I18n.Schema['translation']['page'] = {
   },
   searchOps: {
     title: '检索运营',
+    tabOverview: '概览',
     subtitle: '大家在搜什么、哪条策略在跑、哪里召回落空、花了多少毫秒——迭代回路的数据面',
     refresh: '刷新',
     loadFailed: '加载失败',
@@ -506,6 +509,26 @@ const page: App.I18n.Schema['translation']['page'] = {
     zeroHitRate: '零命中率',
     avgTook: '平均耗时',
     maxTook: '最大耗时',
+    latencyPercentiles: '延迟分位 (p50/p95/p99)',
+    queryLogs: '查询日志',
+    queryLogsHint: '最近搜索的逐条明细：谁在什么时候搜了什么、走了哪条策略、命中多少、耗时多少——排查「搜不到 / 搜得慢」从这里下钻',
+    filterAll: '全部',
+    filterZeroHit: '仅零命中',
+    filterSlow: '慢查询 ≥1s',
+    logSearchPlaceholder: '按 Query 过滤',
+    logTime: '时间',
+    logQuery: 'Query',
+    logHits: '命中数',
+    logTook: '耗时',
+    logRewritten: '改写',
+    logUser: '用户',
+    logLegKeyword: '关键词腿',
+    logLegSemantic: '语义腿',
+    logLegRewrite: '改写腿 (LLM)',
+    logEngineTook: '引擎耗时',
+    logTopHit: 'Top 命中',
+    logExecutions: '执行次数',
+    logError: '错误',
     strategies: '策略分布',
     strategy: '策略',
     searches: '次数',
@@ -532,9 +555,6 @@ const page: App.I18n.Schema['translation']['page'] = {
     statusLegacy: '存量(未盖章)',
     failedTitle: '失败清单',
     autoRefresh: '自动刷新',
-    queueIndexing: '待索引队列',
-    queueProcessed: '待入库队列',
-    queueAttachment: '附件队列',
     oldestIndexing: '最早待处理',
     liveJustNow: '刚刚',
     liveMinutesAgo: '{{minutes}} 分钟前',
@@ -560,9 +580,12 @@ const page: App.I18n.Schema['translation']['page'] = {
     syncStale: '疑似僵死',
     syncSuperseded: '未记终态',
     syncRunning: '运行中',
+    syncCompleted: '同步完成',
     syncNever: '从未运行',
   },
   apitoken: {
+    title: 'API Token',
+    subtitle: '管理外部系统调用 Coco API 所用的令牌',
     columns: {
       expire_in: '过期时间',
       name: '名称',
@@ -578,6 +601,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   assistant: {
+    title: 'AI 助手',
+    subtitle: '管理可对话的 AI 助手：模型、提示词与知识绑定',
     categoryPlaceholder: '选择或输入分类',
     delete: {
       confirm: 'Are you sure you want to delete this ai assistant "{{name}}"?'
@@ -717,6 +742,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   connector: {
+    title: '连接器',
+    subtitle: '接入第三方连接器，把外部系统数据同步进 Coco',
     columns: {
       category: '类型',
       description: '描述',
@@ -760,6 +787,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   datasource: {
+    title: '数据源',
+    subtitle: '接入本地与外部数据源，统一管理连接、同步与搜索范围',
     columns: {
       enabled: '启用状态',
       latest_sync_time: '最近同步',
@@ -1290,6 +1319,10 @@ const page: App.I18n.Schema['translation']['page'] = {
       coverage: '向量化覆盖',
       trend: '入库趋势',
       trendEmpty: '入库集中在单日，无趋势可看',
+      range7d: '近7天',
+      range30d: '近30天',
+      range90d: '近90天',
+      rangeAll: '全部',
       byType: '类型分布',
       byStatus: '生命周期',
       byLang: '语言分布',
@@ -1368,19 +1401,71 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   home: {
-    server: {
-      address: '服务器地址',
-      addressDesc: '在 Coco AI 的连接设置中，将服务器地址添加到服务列表，你就可以在 Coco AI 中访问该服务了。',
-      downloadCocoAI: '下载 Coco AI',
-      title: '{{user}} 的 Coco Server'
-    },
-    settings: {
-      aiAssistant: 'AI 助手',
-      aiAssistantDesc: '设置个性化的人工智能助手，以高效处理任务并提供智能建议。',
-      dataSource: '数据源',
-      dataSourceDesc: '将数据源添加到服务列表，以进行统一搜索和分析。',
-      llm: '大模型',
-      llmDesc: '连接大模型以启用人工智能聊天、智能搜索和工作助手功能。'
+    workbench: {
+      apps: {
+        chat: 'AI 对话',
+        chatDesc: '与 AI 助手对话，基于知识库与数据源回答问题。',
+        chatStat: '近 7 日对话 {{n}} 次',
+        enter: '进入',
+        search: 'AI 搜索',
+        searchDesc: '跨数据源统一搜索，AI 整理答案与引用。',
+        searchStat7d: '近 7 日搜索 {{n}} 次',
+    statDeltaTip: '较上一个 7 日周期',
+        wiki: '知识库',
+        wikiDesc: '将知识沉淀为可检索、可引用的 Wiki。',
+        wikiStat: '{{kbs}} 个知识库 · {{articles}} 篇文章'
+      },
+      checklist: {
+        access: '接入一个客户端',
+        accessDesc: '通过嵌入组件、MCP Server 或 Coco App 接入本服务。',
+        datasource: '添加数据源',
+        datasourceDesc: '连接业务系统，让数据可被搜索与分析。',
+        model: '配置大模型',
+        modelDesc: '连接 LLM 以启用 AI 聊天与智能搜索。',
+        pipeline: '创建解析管道',
+        pipelineDesc: '为数据源配置文档加工流程。',
+        title: '开始配置'
+      },
+      greeting: '欢迎回来，{{user}}',
+      activity: {
+        docsAdded: '7 日 +{{n}}',
+        feedEmpty: '暂无动态',
+        feedEmptyHint: '文档入库、同步完成、Wiki 更新会显示在这里',
+        feedFailed: '动态加载失败，点击重试',
+        feed: '最近动态',
+        syncDone: '同步完成 +{{n}} 篇',
+        zeroHit: '零命中 {{pct}}%',
+        zeroHitTip: '{{n}}/{{total}} 次搜索没有返回结果，可到「搜索运维」排查原因',
+        status: {
+          completed: '已完成',
+          failed: '失败',
+          indexing: '处理中',
+          legacy: '旧版'
+        },
+        syncRunning: '{{n}} 个同步中',
+        yesterday: '昨天',
+        kind: {
+          assistant: '新建助手',
+          document: '文档入库',
+          sync: '同步完成',
+          wiki: 'Wiki 更新'
+        },
+        timeJustNow: '刚刚',
+        timeMinutesAgo: '{{n}} 分钟前',
+        trend: '近 7 日新增文档',
+        uncategorized: '未分类',
+        articles: '{{n}} 篇文章'
+      },
+      metrics: {
+        assistants: 'AI 助手',
+        datasources: '数据源',
+        documents: '文档',
+        kbs: '知识库'
+      },
+      subtitle: 'AI 搜索 · AI 对话 · 知识中枢',
+      dist: {
+        title: '数据源文档分布'
+      }
     }
   },
   integratedStoreModal: {
@@ -1412,6 +1497,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     title: '集成商店'
   },
   integration: {
+    title: '集成管理',
+    subtitle: '管理搜索组件与第三方集成',
     code: {
       desc: '将这段代码插入到你的网站<body>和</body>之间，即可开始使用组件。',
       enabled_tips: '请将组件启用状态设置为开启并更新保存，才能预览!',
@@ -1545,6 +1632,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     title: '欢迎'
   },
   mcpserver: {
+    title: 'MCP Server',
+    subtitle: '管理 MCP 服务端与工具接入，扩展助手能力',
     server: {
       title: 'Coco MCP 服务端',
       help: '接入指南',
@@ -1569,7 +1658,13 @@ const page: App.I18n.Schema['translation']['page'] = {
       type: '类型'
     }
   },
+  security: {
+    title: '安全',
+    subtitle: '管理登录认证、用户账号与角色权限',
+  },
   settings: {
+    title: '系统设置',
+    subtitle: '外观、默认参数与运行环境等系统级配置',
     appearance: {
       app_logo: '应用 ICON',
       brand: '品牌',
@@ -1619,6 +1714,15 @@ const page: App.I18n.Schema['translation']['page'] = {
         },
         title: '聊天设置'
       },
+      server_settings: {
+        download: '下载 Coco AI',
+        endpoint: '服务器地址',
+        endpoint_hint: '在 Coco AI 的连接设置中，将服务器地址添加到服务列表，你就可以在 Coco AI 中访问该服务了。',
+        endpoint_managed_hint: '服务器地址由组织统一管理，不可修改。',
+        name: '服务名称',
+        name_placeholder: '显示在 Coco App 服务列表中的名称',
+        title: '服务连接'
+      },
       title: '应用设置'
     },
     connector: {
@@ -1650,6 +1754,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     wiki_settings: {
       title: 'AI 知识库',
+      subtitle: '配置 AI Wiki 的整理智能体与默认生成行为',
       labels: {
         assistant: '整理智能体',
         assistant_desc: '「AI 生成」与「AI 编辑」默认使用的智能体；知识库单独绑定的智能体优先于此处',
@@ -1664,6 +1769,13 @@ const page: App.I18n.Schema['translation']['page'] = {
 
     search_settings: {
       title: '搜索设置',
+      subtitle: 'AI 搜索入口、检索类型与内置搜索组件的统一配置',
+      tabs: {
+        basics: '基础与组件',
+        retrieval: '检索调优',
+        results: '结果与建议',
+        security: '干预与安全'
+      },
       labels: {
         wiki_projection: 'Wiki 腿切文档索引',
         wiki_projection_desc: '开启后 wiki 检索腿从文档索引的投影行读取(需先运行 /wiki/_backfill_projection);关闭走 wiki_article 索引。',
@@ -1673,7 +1785,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         banner_height: '横幅最大高度',
         banner_height_hint: '搜索首页横幅的最大高度(宽度按原图比例自适应);默认 64px',
         builtin_widget: 'AI 搜索组件(内置)',
-        builtin_widget_hint: '站内 AI 搜索复用这套内置的全屏组件,此处只展示与 AI 搜索相关的参数,修改立即生效。该内置组件不会出现在集成列表中',
+        builtin_widget_hint: '站内 AI 搜索页面由该内置组件承载，此处只展示与 AI 搜索相关的参数，保存后立即生效、无需重启。该组件为内置实现，不会出现在集成列表中',
         enabled: '启用状态',
         integration: '组件',
         search_background: '搜索页背景',
@@ -1683,14 +1795,138 @@ const page: App.I18n.Schema['translation']['page'] = {
         search_type: '默认搜索模式',
         welcome_font_size: '欢迎语字号',
         welcome_gradient: '渐变文字效果(按品牌色渐变,关闭则为纯色)',
-        search_type_desc: '用户未显式指定搜索模式时 /query/_search 使用的策略；hybrid_rrf 会启用融合检索（含 Wiki 页、图谱与查询改写）；更改后对新搜索立即生效'
+        search_type_desc: '用户未显式指定搜索模式时 /query/_search 使用的策略；hybrid_rrf 会启用融合检索（含 Wiki 页、图谱与查询改写）；更改后对新搜索立即生效',
+        strategy: '检索策略',
+        strategy_hint: '控制关键词/混合检索路的召回与排序行为，对站内搜索、组件与检索实验室同时生效',
+        default_sort: '默认排序',
+        default_sort_desc: '用户未显式指定排序时生效；hybrid_rrf 融合排序不受影响',
+        match_operator: '匹配方式',
+        match_operator_desc: 'AND 要求所有分词都命中（结果更准），OR 命中任一分词即可（结果更全）',
+        minimum_should_match: '最小匹配',
+        minimum_should_match_desc: 'ES minimum_should_match 规格，如 75%、2、2<75%；留空不启用',
+        min_score: '最低得分',
+        min_score_desc: '过滤得分低于阈值的结果，0 为关闭；仅对关键词/混合检索生效',
+        field_weights: '字段权重',
+        field_weights_desc: '检索字段及其相关性权重（如标题权重高于正文会优先标题命中）；留空使用内置默认',
+        field: '字段',
+        weight: '权重',
+        add_field_weight: '添加字段',
+        presentation: '结果呈现',
+        presentation_hint: '控制搜索结果的分页与返回字段；对站内搜索、组件与检索实验室同时生效',
+        page_size: '每页条数',
+        page_size_desc: '请求未指定条数时返回的默认条数（1-100），默认 10',
+        max_page_size: '单页上限',
+        max_page_size_desc: '任何请求的单页条数都不会超过该上限（10-1000），默认 100',
+        suggestions: '搜索建议',
+        suggestions_hint: '控制搜索框输入时的文档建议下拉；字段名/字段值建议（检索实验室调试用）不受影响',
+        suggest_enabled: '启用搜索建议',
+        suggest_enabled_desc: '关闭后搜索框不再返回文档建议',
+        suggest_size: '建议条数',
+        suggest_size_desc: '请求未指定条数时返回的建议数量（1-50），默认 10',
+        aggregations: '聚合与筛选',
+        aggregations_hint: '聚合统计搜索召回窗口的分布（数据源/类型/标签等），每个聚合的桶作为结果页侧边栏的筛选项',
+        aggregation_bucket_cap: '每组桶上限',
+        aggregations_enabled: '启用聚合',
+        aggregations_enabled_desc: '关闭后 /query/_aggregations 返回空结果，结果页侧边栏筛选收起',
+        aggregation_bucket_sort: '桶排序',
+        aggregation_bucket_sort_desc: '聚合桶的排序方式',
+        hot_searches_enabled: '启用热搜',
+        hot_searches_enabled_desc: '从搜索日志聚合近期高频查询（不含零结果查询），展示在搜索首页搜索框下方（/query/_hot）',
+        hot_searches_size: '热搜条数',
+        hot_searches_size_desc: '热搜默认返回条数（1-20），默认 10；请求 ?size= 可覆盖',
+        recommend_topics_enabled: '启用推荐主题',
+        recommend_topics_enabled_desc: '关闭后前端不再展示推荐主题，已配置的主题会保留，重新开启即恢复',
+        recommend_topics: '推荐主题',
+        recommend_topics_desc: '人工配置的推荐搜索词，展示在搜索首页与结果页侧栏（点击直接发起搜索）；未配置时回落到 coco.yml 的 recommend: 静态配置',
+        recommend_topics_placeholder: '输入搜索词后回车添加（最多 20 个）',
+        recommend_topics_add: '添加主题',
+        recommend_topics_max: '最多 20 个',
+        related_searches_enabled: '启用相关搜索',
+        related_searches_enabled_desc: '基于搜索日志的词面关联，在结果页侧栏展示与当前查询相关的历史搜索',
+        aggregation_bucket_cap_desc: '数据源/类型/标签等聚合返回的桶数上限（1-50），默认 15；分类、创建者、颜色按引擎默认展示，更新时间固定为 3 个时间区间',
+        aggregation_fields: '聚合维度启停',
+        aggregation_fields_desc: '逐个维度控制聚合桶：关闭后结果页侧边栏不再显示该筛选项，搜索请求也不再下发对应聚合',
+        agg_field_category: '分类',
+        agg_field_source: '数据源',
+        agg_field_type: '类型',
+        agg_field_tags: '标签',
+        agg_field_owner: '创建者',
+        agg_field_time: '更新时间',
+        agg_field_color: '颜色（图片）',
+        advanced: '高级',
+        advanced_hint: '分页保护：深分页（from+条数）超过窗口上限时自动截断起始位置，避免触发引擎 max_result_window 报错',
+        max_result_window: '结果窗口上限',
+        max_result_window_desc: 'from + 条数 的最大窗口（100-100000），默认 10000（与 ES 引擎默认一致）',
+        result_source_includes: '返回字段白名单',
+        result_source_includes_desc: '只返回指定字段（ES _source.includes），减小响应体积；留空返回完整文档',
+        field_group_identity: '标识',
+        field_group_classify: '分类',
+        field_group_body: '正文',
+        field_group_ownership: '归属',
+        fuzziness: '容错距离默认值',
+        fuzziness_desc: '文本检索的拼写容错距离（1-5），默认 3；请求带 ?fuzziness= 时以请求为准（0=精确匹配）',
+        query_timeout_ms: '查询超时（毫秒）',
+        query_timeout_ms_desc: '引擎单次查询的执行时间上限（100-60000ms），防止慢查询拖垮搜索；0=不限制',
+        semantic_ai: '融合与 AI',
+        semantic_ai_hint: 'hybrid_rrf 融合检索的检索路开关与 AI 增强行为；wiki 腿切换需先运行投影回填，融合分值不适用相似度阈值',
+        semantic_min_score: '语义相似度阈值',
+        semantic_min_score_desc: '低于该相似度分数的语义/混合召回结果会被过滤，0 为关闭',
+        rrf_rank_constant: 'RRF 融合常数 K',
+        rrf_rank_constant_desc: 'hybrid_rrf 客户端融合的排名常数，默认 60；请求显式携带 rrf_k 时以请求为准',
+        rerank_enabled: '启用重排序',
+        rerank_enabled_desc: '关闭后融合结果保持 RRF 顺序，不再调用 rerank 模型',
+        intervention: '结果干预',
+        intervention_hint: '屏蔽的内容不会出现在任何检索路（含搜索建议）；置顶规则按查询精确匹配（不区分大小写），置顶文档仍受权限约束',
+        blocked_doc_ids: '屏蔽文档',
+        blocked_doc_ids_desc: '输入文档 ID，回车确认；被屏蔽的文档从搜索结果中隐藏',
+        blocked_datasource_ids: '屏蔽数据源',
+        blocked_datasource_ids_desc: '输入数据源 ID，整个数据源不参与搜索',
+        pinned_rules: '置顶规则',
+        pinned_rules_desc: '查询词完全匹配时，将指定文档置顶展示（最多 20 条规则）',
+        pinned_query: '查询词',
+        pinned_docs: '输入关键词搜索并选择置顶文档',
+        doc_select_placeholder: '输入关键词搜索并选择文档',
+        doc_add_btn: '添加文档',
+        doc_picker_title: '选择文档',
+        doc_picker_search: '输入关键词搜索文档',
+        doc_col_title: '标题',
+        doc_col_id: '文档 ID',
+        doc_col_created: '创建时间',
+        add_pinned_rule: '添加规则',
+        search_security: '搜索安全',
+        search_security_hint: '脱敏规则本体在「数据安全」页配置；这里控制搜索结果是否套用同一套规则',
+        apply_masking: '结果脱敏联动',
+        apply_masking_desc: '开启后搜索结果的标题/摘要/内容套用数据安全的脱敏规则',
+        blocked_query_patterns: '查询屏蔽词',
+        blocked_query_patterns_desc: '命中的查询直接返回空结果，不触发引擎检索；可选关键词或正则模式',
+        blocked_mode_contains: '关键词包含',
+        blocked_mode_exact: '精确匹配',
+        blocked_mode_regex: '正则表达式',
+        blocked_words_placeholder: '输入屏蔽词后回车',
+        blocked_add: '添加屏蔽词',
+        blocked_effective: '实际下发：',
+        blocked_test_label: '规则测试',
+        blocked_test_placeholder: '输入测试查询，实时预判拦截/放行',
+        blocked_verdict_block: '拦截',
+        blocked_verdict_allow: '放行',
+        blocked_invalid_regex: '无效正则'
       },
       options: {
         keyword: '关键词（BM25）',
         semantic: '语义',
         hybrid: '混合',
-        hybrid_rrf: '混合融合（hybrid_rrf）'
+        hybrid_rrf: '混合融合（hybrid_rrf）',
+        relevance: '相关度优先',
+        created_desc: '最新优先',
+        created_asc: '最早优先',
+        match_or: '任一匹配（OR）',
+        match_and: '全部匹配（AND）',
+        aggregation_bucket_sort_count: '按计数',
+        aggregation_bucket_sort_value: '按名称'
       }
+    },
+    default_params: {
+      title: '默认参数'
     },
     default_model: {
       labels: {
@@ -1779,6 +2015,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     data_security: {
       title: '数据安全',
+      subtitle: '动态脱敏与字段级访问限制，防止敏感信息进入模型与结果',
       maskingTitle: '动态脱敏',
       maskingEnabled: '召回内容交模型前脱敏',
       maskingDesc: '命中规则的内容在拼入模型上下文(RAG 引用、企业搜索工具)前按正则替换;规则按顺序应用,身份证等长号码规则应排在手机号之前',
@@ -1806,7 +2043,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         processing_pipeline: '处理 Pipeline',
         output_language_desc: '控制 Pipeline 中 AI 生成内容的输出语言，包括摘要、标签与分析结果等。'
       },
-      title: '文档处理'
+      title: '默认解析管道'
     },
     environment: {
       title: '运行环境',
@@ -1916,7 +2153,20 @@ const page: App.I18n.Schema['translation']['page'] = {
     cardinality: '基数',
     inverse: '逆关系',
     bareType: '该类型暂无属性与关系',
-    empty: '暂无词表,点击"新增类型"开始定义本体'
+    empty: '暂无词表,点击"新增类型"开始定义本体',
+    unsavedTitle: '有未保存的修改',
+    allSaved: '所有修改已保存',
+    discard: '放弃更改',
+    scopeSwitchConfirm: '当前有未保存的修改,切换作用域将丢弃这些修改。确定切换?',
+    saveFailed: '词表保存失败,请重试',
+    loadFailed: '词表加载失败',
+    retry: '重试',
+    iconHint: '图标,填一个 emoji',
+    typeSummary: '属性 {{p}} · 关系 {{r}} · 区块 {{s}}',
+    validationError: '{{n}} 个类型存在配置问题,请修正标红项后再保存',
+    entityCounting: '正在统计该类型下的实体…',
+    entityCount: '该类型下已有 {{n}} 个实体:删除后已存在实体不受影响,但无法再新建该类型实体。',
+    entityNone: '当前没有该类型的实体。'
   },
   pipeline: {
         templates: {
@@ -1949,6 +2199,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         },
 
     title: '解析管道',
+    subtitle: '编排文档加工管道：解析、切分、向量化与入库',
     deleteConfirm: '确定删除管道 "{{name}}"?',
     columns: {
       name: '名称',
@@ -2037,6 +2288,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     }
   },
   modelprovider: {
+    title: '模型服务',
+    subtitle: '接入 LLM 供应商与模型，供对话、加工与检索使用',
     labels: {
       name: '名称',
       base_url: 'Base URL',

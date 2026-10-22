@@ -5,10 +5,14 @@
 package document
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	log "github.com/cihub/seelog"
 
@@ -17,6 +21,106 @@ import (
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 )
+
+// fused-page cache: one query's fused+reranked list is reused across the
+// page fetches of a scrolling session. The rerank model's scores jitter
+// slightly between calls (and min-max normalization amplifies it), so
+// re-fusing per page request shuffled the global order — adjacent scroll
+// pages then repeated/skipped hits. A short-TTL snapshot guarantees every
+// page of one query slices the SAME list.
+type fusedCacheEntry struct {
+	fused        []elastic.DocumentWithMeta[core.Document]
+	total        int64
+	took         int
+	aggregations map[string]elastic.AggregationResponse
+	note         string
+	rwApplied    bool
+	expires      time.Time
+}
+
+const (
+	fusedCacheTTL  = 2 * time.Minute
+	fusedCacheSize = 128
+)
+
+var (
+	fusedCacheMu    sync.Mutex
+	fusedCacheStore = map[string]fusedCacheEntry{}
+	fusedCacheKeys  []string // FIFO eviction order
+)
+
+func fusedCacheGet(key string) *fusedCacheEntry {
+	fusedCacheMu.Lock()
+	defer fusedCacheMu.Unlock()
+	e, ok := fusedCacheStore[key]
+	if !ok {
+		return nil
+	}
+	if time.Now().After(e.expires) {
+		delete(fusedCacheStore, key)
+		return nil
+	}
+	return &e
+}
+
+func fusedCachePut(key string, e fusedCacheEntry) {
+	fusedCacheMu.Lock()
+	defer fusedCacheMu.Unlock()
+	if _, exists := fusedCacheStore[key]; !exists {
+		fusedCacheKeys = append(fusedCacheKeys, key)
+	}
+	e.expires = time.Now().Add(fusedCacheTTL)
+	fusedCacheStore[key] = e
+	for len(fusedCacheKeys) > fusedCacheSize {
+		oldest := fusedCacheKeys[0]
+		fusedCacheKeys = fusedCacheKeys[1:]
+		delete(fusedCacheStore, oldest)
+	}
+}
+
+// fusedCacheKey fingerprints everything the fusion depends on, EXCLUDING
+// from/size/skip_log (pagination must hit the same entry) and INCLUDING the
+// URL filter params, the request body DSL, and the settings-driven knobs.
+func fusedCacheKey(req *http.Request, query string, cfg RRFConfig) string {
+	vals := req.URL.Query()
+	volatile := map[string]bool{"from": true, "size": true, "skip_log": true}
+	keys := make([]string, 0, len(vals))
+	for k := range vals {
+		if !volatile[k] {
+			keys = append(keys, k)
+		}
+	}
+	sort.Strings(keys)
+	parts := make([]string, 0, len(keys)+3)
+	parts = append(parts, "q="+query)
+	for _, k := range keys {
+		parts = append(parts, k+"="+strings.Join(vals[k], ","))
+	}
+	parts = append(parts, fmt.Sprintf("k=%g", cfg.K))
+	for _, name := range rrfRouteNames {
+		parts = append(parts, fmt.Sprintf("w_%s=%g", name, cfg.weight(name)))
+	}
+	if body, err := util.ReadBody(req); err == nil && len(body) > 0 {
+		parts = append(parts, fmt.Sprintf("body=%x", sha256.Sum256(body)))
+	}
+	return strings.Join(parts, "|")
+}
+
+// cloneFusedHits deep-copies hits (JSON round-trip) so the cache stays
+// pristine: the search handler later mutates hits in place (icon refinement,
+// content masking) and those mutations must not leak into cached pages.
+func cloneFusedHits(hits []elastic.DocumentWithMeta[core.Document]) []elastic.DocumentWithMeta[core.Document] {
+	out := make([]elastic.DocumentWithMeta[core.Document], len(hits))
+	for i := range hits {
+		b, err := util.ToJSONBytes(hits[i])
+		if err != nil {
+			out[i] = hits[i]
+			continue
+		}
+		util.MustFromJSONBytes(b, &out[i])
+	}
+	return out
+}
 
 // parseRRFParams reads the fusion knobs from query parameters so the tuned
 // values travel with the request, not with server state. A weight parameter
@@ -28,7 +132,7 @@ func (h *APIHandler) parseRRFParams(req *http.Request) RRFConfig {
 		Weights: map[string]float64{
 			rrfRouteText:     defaultRRFWeight,
 			rrfRouteSemantic: defaultRRFWeight,
-			rrfRouteWiki:     defaultRRFWeight,
+			rrfRouteWiki:     defaultWikiRRFWeight, // curated layer outranks single-leg raw hits
 			rrfRouteGraph:    defaultRRFWeight,
 			rrfRouteEntity:   defaultRRFWeight,
 			rrfRouteChunk:    defaultRRFWeight,
@@ -39,6 +143,10 @@ func (h *APIHandler) parseRRFParams(req *http.Request) RRFConfig {
 		if f, err := strconv.ParseFloat(strings.TrimSpace(v), 64); err == nil {
 			cfg.K = f
 		}
+	} else if k := searchSettingsSnapshot().EffectiveRRFRankConstant(); k > 0 {
+		// 搜索设置 · 语义与 AI: the operator's fusion-K default fills in
+		// when the request carries no explicit ?rrf_k=
+		cfg.K = float64(k)
 	}
 	// rewrite=0/off mutes the rewrite leg without touching its weight —
 	// same effect as rewrite_weight=0, friendlier to toggle per request
@@ -73,7 +181,9 @@ func (h *APIHandler) parseRRFParams(req *http.Request) RRFConfig {
 // the model-rewritten query as an extra keyword route (D8). The returned
 // note carries the rewrite/rerank verdicts for the Warning header, and the
 // bool reports whether the rewrite leg fired (search-log telemetry).
-func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrationID, category, subcategory, richCategory string, fuzziness int) (*elastic.SearchResponseWithMeta[core.Document], string, bool, error) {
+// diag (nil-safe) collects the per-leg timings and the engine-side took for
+// the search log.
+func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrationID, category, subcategory, richCategory string, fuzziness int, diag *searchDiagnostics) (*elastic.SearchResponseWithMeta[core.Document], string, bool, error) {
 	cfg := h.parseRRFParams(req)
 
 	from := h.GetIntOrDefault(req, "from", 0)
@@ -87,13 +197,45 @@ func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrat
 	if size > maxSearchPageSize {
 		size = maxSearchPageSize
 	}
-	window := rrfRecallWindow(from, size)
+	// FIXED recall window, NOT from+size: the route lists and the RRF
+	// fusion must be identical for every page, otherwise the fused order
+	// shifts as the window grows and slicing [from:from+size] out of a
+	// from-dependent fusion made scroll pages overlap/duplicate (same
+	// root cause as the semanticRouteClient slice in search.go).
+	window := maxRRFWindow
+
+	// snapshot cache: pages of one scrolling session slice the same
+	// fused+reranked list (see fusedCacheEntry)
+	cacheKey := fusedCacheKey(req, query, cfg)
+	if e := fusedCacheGet(cacheKey); e != nil {
+		end := from + size
+		if end > len(e.fused) {
+			end = len(e.fused)
+		}
+		if from > len(e.fused) {
+			from = len(e.fused)
+		}
+		out := &elastic.SearchResponseWithMeta[core.Document]{
+			Took:         e.took,
+			Aggregations: e.aggregations,
+		}
+		out.Hits.Total = map[string]interface{}{"value": e.total, "relation": "eq"}
+		out.Hits.Hits = cloneFusedHits(e.fused[from:end])
+		if len(out.Hits.Hits) > 0 {
+			out.Hits.MaxScore = out.Hits.Hits[0].Score
+		}
+		return out, e.note, e.rwApplied, nil
+	}
 
 	// resolve the rewrite first: its text feeds an extra keyword route, and
 	// cache hits return before any route runs
 	rw := rewriteResult{Query: query}
 	if cfg.weight(rrfRouteRewrite) > 0 {
+		rwStart := time.Now()
 		rw = rewriteSearchQuery(req.Context(), query)
+		if diag != nil {
+			diag.LegRewriteMS = time.Since(rwStart).Milliseconds()
+		}
 	}
 
 	routes := []rrfRouteHits{}
@@ -121,11 +263,25 @@ func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrat
 		routes = append(routes, rrfRouteHits{Name: name, Hits: resp.Hits.Hits})
 	}
 
-	resp, err := h.rrfRoute(req, "keyword", query, datasource, integrationID, category, subcategory, richCategory, fuzziness, window)
-	addRoute(rrfRouteText, resp, err)
-	resp, err = h.rrfRoute(req, "semantic", query, datasource, integrationID, category, subcategory, richCategory, fuzziness, window)
-	addRoute(rrfRouteSemantic, resp, err)
-	resp, err = h.wikiRoute(req, query, window)
+	timedRoute := func(name, leg string) *elastic.SearchResponseWithMeta[core.Document] {
+		start := time.Now()
+		resp, err := h.rrfRoute(req, name, query, datasource, integrationID, category, subcategory, richCategory, fuzziness, window)
+		if diag != nil {
+			ms := time.Since(start).Milliseconds()
+			switch leg {
+			case "keyword":
+				diag.LegKeywordMS += ms
+			case "semantic":
+				diag.LegSemanticMS += ms
+			}
+		}
+		addRoute(name, resp, err)
+		return resp
+	}
+
+	timedRoute("keyword", "keyword")
+	timedRoute("semantic", "semantic")
+	resp, err := h.wikiRoute(req, query, window)
 	addRoute(rrfRouteWiki, resp, err)
 	graphResp, _, err := h.graphRoute(req, query, window)
 	addRoute(rrfRouteGraph, graphResp, err)
@@ -143,8 +299,16 @@ func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrat
 		}
 	}
 	if rw.Applied {
+		rewrittenStart := time.Now()
 		resp, err = h.rrfRoute(req, "keyword", rw.Query, datasource, integrationID, category, subcategory, richCategory, fuzziness, window)
+		if diag != nil {
+			diag.LegKeywordMS += time.Since(rewrittenStart).Milliseconds()
+		}
 		addRoute(rrfRouteRewrite, resp, err)
+	}
+
+	if diag != nil {
+		diag.EngineTookMS = int64(took)
 	}
 
 	// One failing route (e.g. no embedding service for the query text)
@@ -163,6 +327,15 @@ func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrat
 	if rerankNote != "" {
 		notes = append(notes, rerankNote)
 	}
+
+	fusedCachePut(cacheKey, fusedCacheEntry{
+		fused:        cloneFusedHits(fused),
+		total:        total,
+		took:         took,
+		aggregations: aggregations,
+		note:         strings.Join(notes, "; "),
+		rwApplied:    rw.Applied,
+	})
 
 	out := &elastic.SearchResponseWithMeta[core.Document]{
 		Took:         took,

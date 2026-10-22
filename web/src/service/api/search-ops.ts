@@ -17,10 +17,15 @@ export interface SearchOpsLowMiss {
 
 export interface SearchOpsOverview {
   total_searches: number;
+  total_searches_prev?: number;
   zero_hit_searches: number;
   zero_hit_rate: number;
   avg_took_ms: number;
   max_took_ms: number;
+  /** latency percentiles over the overview scan window */
+  latency_p50_ms?: number;
+  latency_p95_ms?: number;
+  latency_p99_ms?: number;
   /** D8: searches where the query-rewrite leg fired, and how many still missed */
   rewritten_searches: number;
   rewritten_zero_hit_searches: number;
@@ -28,6 +33,40 @@ export interface SearchOpsOverview {
   low_recall: SearchOpsLowMiss[];
   /** standing annotation qualifying the zero-hit family; empty when unqualified */
   signals_caveat?: string;
+}
+
+/** one completed search, the raw drill-down row behind the overview aggregates */
+export interface SearchLogEntry {
+  id: string;
+  /** stored lowercased/trimmed/whitespace-collapsed — the aggregation/filter key */
+  query: string;
+  /** the user's input as typed (rows before this field existed have none) */
+  raw?: string;
+  search_type: string;
+  total: number;
+  took_ms: number;
+  zero_hit: boolean;
+  rewritten: boolean;
+  user_id?: string;
+  created?: string;
+  /** diagnostics: per-leg timings, engine-side took, top hit and failure text */
+  leg_keyword_ms?: number;
+  leg_semantic_ms?: number;
+  leg_rewrite_ms?: number;
+  engine_took_ms?: number;
+  top_hit?: string;
+  top_score?: number;
+  /** set when the search itself failed; failed rows have zero_hit=false by construction */
+  error?: string;
+}
+
+/** raw query log with optional AND-combined filters */
+export function fetchSearchLogs(params?: { q?: string; search_type?: string; zero_hit?: boolean; min_took_ms?: number; size?: number }) {
+  return request<{ items: SearchLogEntry[]; total: number }>({
+    method: 'get',
+    url: '/search/ops/search-logs',
+    params
+  });
 }
 
 export interface IndexHealthEntry {
@@ -47,10 +86,11 @@ export function fetchIndexHealth() {
 }
 
 /** aggregated search telemetry: strategy distribution, low-recall board, latency */
-export function fetchSearchOpsOverview() {
+export function fetchSearchOpsOverview(params?: { days?: number }) {
   return request<SearchOpsOverview>({
     method: 'get',
-    url: '/search/ops/overview'
+    url: '/search/ops/overview',
+    params
   });
 }
 
@@ -64,13 +104,10 @@ export interface ProcessingFailedDoc {
   reprocessurl?: string;
 }
 
-/** real-time ingestion signals: queue backlogs and the oldest in-flight document */
+/** real-time ingestion signals: the oldest in-flight document.
+ * NOTE: backend `live.queues` (disk_queue Depth) is deliberately not typed here —
+ * in consumer mode it is a cumulative write counter, not a backlog (misleading) */
 export interface ProcessingLive {
-  queues: {
-    indexing_documents: number;
-    documents_processed: number;
-    attachment_processing: number;
-  };
   /** `updated` stamp of the earliest status=indexing document; empty when idle. A stale timestamp means a stuck pipeline */
   oldest_indexing?: string;
 }

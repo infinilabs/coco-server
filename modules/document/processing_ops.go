@@ -282,8 +282,11 @@ func (h *APIHandler) syncStatusHandler(w http.ResponseWriter, req *http.Request,
 	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.DataSource{})
 
+	// NOTE: do NOT filter `must_not type=connector` here — connector-backed
+	// datasources legitimately carry type=connector (createDatasource), so
+	// that filter excludes every real datasource and the UI shows "never
+	// ran" for all of them. Connectors themselves live in their own index.
 	builder := orm.NewQuery().Size(500).
-		Filter(orm.MustNotQuery(orm.TermQuery("type", "connector"))).
 		SortBy(orm.Sort{Field: "name", SortType: orm.ASC})
 	res, err := orm.SearchV2(ctx, builder)
 	if err != nil {

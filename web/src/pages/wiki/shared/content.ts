@@ -137,6 +137,30 @@ const SOURCE_LINE = /^> 来源：.*$/gm;
 const BOILERPLATE_LEAD =
   /^>\s*本页由(?:知识编译|治理队列).*$\n?|^\*\*[^*]+\*\*\s*是知识管道从.*$\n?/gm;
 const CLAIM_ITEM = /^(\d+)\.\s+(.+)$/;
+
+/**
+ * Legacy compiled pages carried excerpts with real newlines: the trailing
+ * `[源](… "excerpt")` link split across lines (parser lost the excerpt/doc)
+ * and the excerpt body leaked in as ghost numbered rows (vision descriptions
+ * open with `1. **主要 subjects**…`, matching CLAIM_ITEM). Re-join any line
+ * whose predecessor still has an unterminated `[源](` link — the link is the
+ * last thing on a claim line, so "starts the link but doesn't yet end with
+ * `)`" means the claim is still being wrapped. New compiles emit flattened
+ * single-line claims, this only rescues stored pages.
+ */
+function joinWrappedClaimLines(section: string): string[] {
+  const out: string[] = [];
+  for (const raw of section.split('\n')) {
+    const line = raw.trim();
+    const prev = out[out.length - 1];
+    if (prev && prev.includes('[源](') && !prev.trimEnd().endsWith(')')) {
+      out[out.length - 1] = `${prev} ${line}`.trim();
+    } else if (line) {
+      out.push(line);
+    }
+  }
+  return out;
+}
 /* trailing `[源](#/preview/document/<id>?q=<encoded> "verbatim excerpt")`:
    the excerpt runs from the first `"` to the line's final `"` — stopping the
    match at the first `)` broke on excerpts containing parens (shop codes
@@ -160,7 +184,7 @@ export function splitCitationBlock(content: string): { body: string; claims: Cit
   const split = body.split(CLAIMS_HEADING);
   if (split.length > 1) {
     body = split.slice(0, -1).join('\n');
-    for (const raw of split[split.length - 1].split('\n')) {
+    for (const raw of joinWrappedClaimLines(split[split.length - 1])) {
       const m = raw.match(CLAIM_ITEM);
       if (!m) continue;
       const src = raw.match(SOURCE_LINK) ?? raw.match(SOURCE_LINK_BARE);

@@ -4,28 +4,63 @@ import {
   DeleteOutlined,
   EditOutlined,
   FolderAddOutlined,
+  HomeOutlined,
   MoreOutlined,
   PlusOutlined,
   ReloadOutlined,
-  SafetyCertificateOutlined
+  SearchOutlined,
+  TeamOutlined
 } from '@ant-design/icons';
-import { Badge, Button, ConfigProvider, Dropdown, Empty, Input, Modal, Tooltip, Tree } from 'antd';
+import { Badge, Button, ConfigProvider, Drawer, Dropdown, Empty, Input, Modal, Tooltip, Tree } from 'antd';
+import { BookCheck, Check, ChevronDown, ChevronRight, createLucideIcon, Search } from 'lucide-react';
 import type { DataNode } from 'antd/es/tree';
-import { useEffect, useMemo, useState } from 'react';
+import { type FC, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/business/auth';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getWikiToc, searchWikiGovernance, searchWikiKbs, searchWikiNotifications, updateWikiToc } from '@/service/api';
+import { useResponsive } from 'ahooks';
+import { getWikiToc, createWikiWorkspace, searchWikiGovernance, searchWikiKbs, searchWikiNotifications, searchWikiWorkspaces, updateWikiToc } from '@/service/api';
 import { dropPositionFromAntd, findNode, moveNode, removeNode, toAntdTreeData, tocIdForArticle } from '../shared/toc';
-import { CreateKbModal } from './CreateKbModal';
-import { NotificationDrawer } from './NotificationDrawer';
 
 /**
- * Persistent left navigation for the wiki app: knowledge bases as roots with their TOC (articles/folders) lazily loaded
- * underneath. State lives at module level so the tree — expansion, loaded TOCs — survives navigation between the wiki
- * pages.
+ * Persistent shell for the wiki app, laid out like the AI-chat screen: a
+ * collapsible left sider (workspace search + knowledge-base TOC tree) and a
+ * slim topbar on the right whose left side carries the cross-KB entry
+ * switcher (knowledge base / governance) plus the notification bell, with
+ * the global "new KB" action on its right edge. State lives at module level
+ * so the tree — expansion, loaded TOCs — survives navigation between the
+ * wiki pages.
  */
 const CACHE_TTL = 5000;
+
+// sidebar toggle glyphs — pixel-identical copies of the chat header's
+// LeftSvg/RightSvg (ui-search ChatHeaderLayout) so the wiki topbar toggle
+// reads exactly like the AI-chat one: closed → chevron pointing right
+// (expand), open → chevron pointing left (collapse)
+const SidebarExpandSvg: FC<{ className?: string }> = ({ className }) => (
+  <svg viewBox="0 0 48 48" width="1em" height="1em" filter="none" className={className}>
+    <g>
+      <path d="M6 9C6 7.34315 7.34315 6 9 6H39C40.6569 6 42 7.34315 42 9V39C42 40.6569 40.6569 42 39 42H9C7.34315 42 6 40.6569 6 39V9Z" fill="none" stroke="currentColor" strokeWidth="4" strokeLinejoin="round"></path><path d="M32 6V42" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none"></path><path d="M16 20L20 24L16 28" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none"></path><path d="M26 6H38" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none"></path>
+    </g>
+  </svg>
+);
+
+const SidebarCollapseSvg: FC<{ className?: string }> = ({ className }) => (
+  <svg viewBox="0 0 48 48" width="1em" height="1em" filter="none" className={className}>
+    <g>
+      <rect x="6" y="6" width="36" height="36" rx="3" fill="none" stroke="currentColor" strokeWidth="4" strokeLinejoin="round"></rect><path d="M18 6V42" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none"></path><path d="M11 6H36" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none"></path><path d="M32 20L28 24L32 28" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none"></path>
+    </g>
+  </svg>
+);
+
+// refresh glyph — same lucide definition as the chat sidebar's
+// RefreshIcon (ui-search icons/RefreshIcon.tsx) so both sidebars read alike
+const RefreshIcon = createLucideIcon('RefreshIcon', [
+  ['path', { d: 'M42 8V24', transform: 'scale(0.5)', strokeWidth: '4', key: 'arrow-top' }],
+  ['path', { d: 'M6 24L6 40', transform: 'scale(0.5)', strokeWidth: '4', key: 'arrow-bottom' }],
+  ['path', { d: 'M6 24C6 33.9411 14.0589 42 24 42C28.8556 42 33.2622 40.0774 36.5 36.9519', transform: 'scale(0.5)', strokeWidth: '4', key: 'arc-bottom' }],
+  ['path', { d: 'M42.0007 24C42.0007 14.0589 33.9418 6 24.0007 6C18.9152 6 14.3223 8.10896 11.0488 11.5', transform: 'scale(0.5)', strokeWidth: '4', key: 'arc-top' }]
+]);
 
 const wikiNav = {
   kbs: [] as Api.Wiki.Kb[],
@@ -34,7 +69,10 @@ const wikiNav = {
   tocsAt: {} as Record<string, number>,
   /** kbId → (articleId → page_type), served alongside the toc for tree icons */
   pageTypes: {} as Record<string, Record<string, string>>,
-  expandedKeys: [] as React.Key[]
+  expandedKeys: [] as React.Key[],
+  // workspace selection survives route changes: each wiki page mounts its own
+  // WikiShell, so component state would reset to 'all' on every navigation
+  workspaceId: 'all' as string
 };
 
 /** kb:<id> key for the KB that contains a toc node id */
@@ -81,32 +119,73 @@ function insertBeside(
   return result;
 }
 
+/** every node key in the tree — used to expand-all while filtering */
+function collectAllKeys(nodes: DataNode[]): React.Key[] {
+  const keys: React.Key[] = [];
+  const walk = (list: DataNode[]) => {
+    list.forEach(n => {
+      keys.push(n.key);
+      if (n.children) walk(n.children);
+    });
+  };
+  walk(nodes);
+  return keys;
+}
+
+/** data the shell shares with the page it hosts (hub consumes the workspace filter) */
+export interface WikiShellContext {
+  workspaceId: string;
+  workspaces: { id: string; name: string }[];
+  /** bumped whenever the shell refetches KBs — lets hosted pages re-sync */
+  kbVersion: number;
+  /** force a shell KB refetch (tree + kbVersion bump); hosted pages call it
+      after they mutate KBs themselves (e.g. the hub's create card) */
+  refreshKbs: () => void;
+}
+
 interface Props {
   /** currently open KB (kb page / article's ?kb=) for selection highlight */
   readonly kbId?: string;
   /** currently open article id, highlighted via its toc node when loaded */
   readonly articleId?: string;
-  readonly children: React.ReactNode;
+  readonly children: React.ReactNode | ((ctx: WikiShellContext) => React.ReactNode);
 }
 
 export function WikiShell({ kbId, articleId, children }: Props) {
   const { t } = useTranslation();
   const nav = useNavigate();
+  const location = useLocation();
+  const responsive = useResponsive();
+  const isMobile = !responsive.md;
   const [kbs, setKbs] = useState(wikiNav.kbs);
   const [tocs, setTocs] = useState(wikiNav.tocs);
   const [pageTypes, setPageTypes] = useState(wikiNav.pageTypes);
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>(wikiNav.expandedKeys);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
   const [unread, setUnread] = useState(0);
   const [openGovernance, setOpenGovernance] = useState(0);
   const [renaming, setRenaming] = useState<{ key: string; value: string } | null>(null);
+  const [collapsed, setCollapsed] = useState(isMobile);
+  // refresh icon spins for ~1s after a click, mirroring the chat sidebar
+  const [isRefresh, setIsRefresh] = useState(false);
+  const [treeFilter, setTreeFilter] = useState('');
+  const [workspaces, setWorkspaces] = useState<{ id: string; name: string }[]>([]);
+  const [workspaceId, setWorkspaceIdState] = useState<string>(wikiNav.workspaceId);
+  const [wsCreateOpen, setWsCreateOpen] = useState(false);
+  const [wsName, setWsName] = useState('');
+  const [wsOpen, setWsOpen] = useState(false);
+  const [wsFilter, setWsFilter] = useState('');
+  // bumped after each shell KB refetch so hosted pages (hub card wall) re-sync
+  const [kbVersion, setKbVersion] = useState(0);
+  // expansion state to restore when the tree filter is cleared
+  const savedExpandedKeys = useRef<React.Key[] | null>(null);
   const { hasAuth } = useAuth();
-  const canCreateKb = hasAuth('coco#wiki_kb/create');
   const canUpdateKb = hasAuth('coco#wiki_kb/update');
 
-  const persist = (next: Partial<typeof wikiNav>) => {
-    Object.assign(wikiNav, next);
+  // keep the selection in the module store so it survives the remount each
+  // wiki page navigation performs on this shell
+  const setWorkspaceId = (v: string) => {
+    wikiNav.workspaceId = v;
+    setWorkspaceIdState(v);
   };
 
   const fetchKbs = (force = false) => {
@@ -116,6 +195,7 @@ export function WikiShell({ kbId, articleId, children }: Props) {
       wikiNav.kbs = list;
       wikiNav.kbsAt = Date.now();
       setKbs(list);
+      setKbVersion(v => v + 1);
     });
   };
 
@@ -150,21 +230,44 @@ export function WikiShell({ kbId, articleId, children }: Props) {
     });
   };
 
+  const fetchWorkspaces = () => {
+    searchWikiWorkspaces().then(res => setWorkspaces((res as any) || []));
+  };
+
+  const onCreateWorkspace = () => {
+    if (!wsName.trim()) return;
+    createWikiWorkspace(wsName.trim()).then(res => {
+      if ((res as any)?._id) {
+        setWsName('');
+        setWsCreateOpen(false);
+        fetchWorkspaces();
+      }
+    });
+  };
+
   useEffect(() => {
     fetchKbs();
     fetchUnread();
     fetchGovernanceCount();
+    fetchWorkspaces();
     if (kbId) fetchToc(kbId);
   }, [kbId]);
 
-  // expand + highlight down to the open article once its KB toc is loaded
+  // expand + highlight down to the open article once its KB toc is loaded;
+  // on a KB page (no article) still open the KB root so the freshly loaded
+  // toc is visible — otherwise the tree reads as "collapsed" on entry
   useEffect(() => {
-    if (!articleId || !kbId || !tocs[kbId]) return;
-    const tocId = tocIdForArticle(tocs[kbId], articleId);
-    if (!tocId) return;
-    const path = pathToNode(tocs[kbId], tocId) || [];
-    const keys = [`kb:${kbId}`, ...path];
-    const merged = Array.from(new Set([...wikiNav.expandedKeys, ...keys]));
+    if (!kbId || !tocs[kbId]) return;
+    if (articleId) {
+      const tocId = tocIdForArticle(tocs[kbId], articleId);
+      if (!tocId) return;
+      const path = pathToNode(tocs[kbId], tocId) || [];
+      const merged = Array.from(new Set([...wikiNav.expandedKeys, `kb:${kbId}`, ...path]));
+      wikiNav.expandedKeys = merged;
+      setExpandedKeys(merged);
+      return;
+    }
+    const merged = Array.from(new Set([...wikiNav.expandedKeys, `kb:${kbId}`]));
     wikiNav.expandedKeys = merged;
     setExpandedKeys(merged);
   }, [articleId, kbId, tocs]);
@@ -178,18 +281,19 @@ export function WikiShell({ kbId, articleId, children }: Props) {
     updateWikiToc(kbOwnerId, next);
   };
 
-  const addFolder = (parentKey: string | null) => {
-    if (!kbId || !tocs[kbId]) return;
+  const addFolder = (parentKey: string | null, targetKb?: string) => {
+    const kb = targetKb || kbId;
+    if (!kb || !tocs[kb]) return;
     const folder: Api.Wiki.TocNode = {
       id: `folder-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
       title: t('page.wiki.tree.newFolder'),
       type: 'folder',
       children: []
     };
-    const next = insertBeside(tocs[kbId], parentKey, parentKey ? 'inside' : 'after', folder);
-    commitToc(kbId, next);
+    const next = insertBeside(tocs[kb], parentKey, parentKey ? 'inside' : 'after', folder);
+    commitToc(kb, next);
     setExpandedKeys(prev => {
-      const merged = Array.from(new Set([...prev, `kb:${kbId}`, ...(parentKey ? [parentKey] : []), folder.id]));
+      const merged = Array.from(new Set([...prev, `kb:${kb}`, ...(parentKey ? [parentKey] : []), folder.id]));
       wikiNav.expandedKeys = merged;
       return merged;
     });
@@ -238,29 +342,104 @@ export function WikiShell({ kbId, articleId, children }: Props) {
 
   const treeData: DataNode[] = useMemo(
     () =>
-      kbs.map(kb => ({
-        key: `kb:${kb.id}`,
-        title: kb.name,
-        // marks the KB root row so the stylesheet can read it as a section header
-        className: 'wiki-toc-kb',
-        // custom kb emoji lives in the icon slot next to the folder/article icons
-        icon: kb.icon ? <span className='wiki-toc-kb-icon'>{kb.icon}</span> : <BookOutlined />,
-        children: tocs[kb.id] ? toAntdTreeData(tocs[kb.id], pageTypes[kb.id]) : undefined
-      })),
-    [kbs, tocs, pageTypes]
+      // the topbar workspace switcher scopes the whole app: tree roots follow
+      // the same filter as the hub card wall ('all' = unfiltered)
+      kbs
+        .filter(kb => workspaceId === 'all' || kb.workspace_id === workspaceId)
+        .map(kb => ({
+          key: `kb:${kb.id}`,
+          title: kb.name,
+          // marks the KB root row so the stylesheet can read it as a section header
+          className: 'wiki-toc-kb',
+          // custom kb emoji lives in the icon slot next to the folder/article icons
+          icon: kb.icon ? <span className='wiki-toc-kb-icon'>{kb.icon}</span> : <BookOutlined />,
+          children: tocs[kb.id] ? toAntdTreeData(tocs[kb.id], pageTypes[kb.id]) : undefined
+        })),
+    [kbs, tocs, pageTypes, workspaceId]
   );
+
+  // sidebar search filters the tree in place: keep self-matching rows (a
+  // matching KB root keeps its whole toc) plus branches with matching
+  // descendants
+  const displayTreeData: DataNode[] = useMemo(() => {
+    const q = treeFilter.trim().toLowerCase();
+    if (!q) return treeData;
+    const walk = (nodes: DataNode[]): DataNode[] =>
+      nodes.reduce<DataNode[]>((acc, node) => {
+        const kids = node.children ? walk(node.children) : undefined;
+        const selfMatch = String(node.title ?? '')
+          .toLowerCase()
+          .includes(q);
+        if (selfMatch || (kids && kids.length > 0)) {
+          acc.push({ ...node, children: kids && kids.length > 0 ? kids : node.children });
+        }
+        return acc;
+      }, []);
+    return walk(treeData);
+  }, [treeData, treeFilter]);
+
+  // while filtering, expand everything so matches are visible; restore the
+  // pre-filter expansion once the filter is cleared
+  useEffect(() => {
+    if (treeFilter.trim()) {
+      if (savedExpandedKeys.current === null) savedExpandedKeys.current = wikiNav.expandedKeys;
+      const keys = collectAllKeys(displayTreeData);
+      wikiNav.expandedKeys = keys;
+      setExpandedKeys(keys);
+    } else if (savedExpandedKeys.current !== null) {
+      wikiNav.expandedKeys = savedExpandedKeys.current;
+      setExpandedKeys(savedExpandedKeys.current);
+      savedExpandedKeys.current = null;
+    }
+  }, [treeFilter, displayTreeData]);
 
   const titleRender = (node: DataNode) => {
     const key = String(node.key);
     const title = String(node.title ?? '');
     const owner = key.startsWith('kb:') ? null : kbIdOfTocNode(key);
     const nodeObj = owner ? findNode(wikiNav.tocs[owner], key) : null;
-    if (!nodeObj)
+    if (!nodeObj) {
+      // KB root row: no toc node behind it — offer "new root folder" via
+      // right-click or the "..." affordance (replaces the old sider toolbar
+      // button that could only create folders in the *current* KB)
+      if (key.startsWith('kb:')) {
+        const kbForFolder = key.slice(3);
+        const kbMenu: any = {
+          items: [
+            canUpdateKb && { key: 'addFolder', icon: <FolderAddOutlined />, label: t('page.wiki.tree.addFolder') }
+          ].filter(Boolean),
+          onClick: ({ key: action }: any) => {
+            if (action === 'addFolder') addFolder(null, kbForFolder);
+          }
+        };
+        return (
+          <Dropdown
+            menu={kbMenu}
+            trigger={['contextMenu']}
+          >
+            <span className='min-w-0 flex flex-1 items-center justify-between gap-4px'>
+              <span className='wiki-toc-title'>{title}</span>
+              {canUpdateKb && (
+                <Dropdown
+                  menu={kbMenu}
+                  trigger={['click']}
+                >
+                  <MoreOutlined
+                    className='text-gray-400 hover:text-gray-600'
+                    onClick={e => e.stopPropagation()}
+                  />
+                </Dropdown>
+              )}
+            </span>
+          </Dropdown>
+        );
+      }
       return (
         <span className='wiki-toc-title'>
-          {key.startsWith('kb:') ? title : <span className='truncate'>{title}</span>}
+          <span className='truncate'>{title}</span>
         </span>
       );
+    }
     // actions via right-click on the row or left-click on the "..." affordance —
     // a plain left-click on the row must just select/navigate
     const menu = nodeMenu(key, nodeObj.type === 'folder');
@@ -356,6 +535,9 @@ export function WikiShell({ kbId, articleId, children }: Props) {
   };
 
   const onRefresh = () => {
+    // spin the glyph for ~1s like the chat sidebar's refresh does
+    setIsRefresh(true);
+    setTimeout(() => setIsRefresh(false), 1000);
     wikiNav.tocs = {};
     wikiNav.tocsAt = {};
     wikiNav.pageTypes = {};
@@ -364,8 +546,92 @@ export function WikiShell({ kbId, articleId, children }: Props) {
     fetchKbs(true);
     fetchUnread();
     fetchGovernanceCount();
+    fetchWorkspaces();
     if (kbId) fetchToc(kbId);
   };
+
+  // the hub card wall is now the sider's "workspace home" entry
+  const isHub = location.pathname === '/wiki/list' || location.pathname === '/wiki';
+
+  const siderBody = (
+    <>
+      {/* search + refresh share one row, mirroring the chat sidebar's
+          HistoryList header (input flex-1, bordered square refresh at right) */}
+      <div className='wiki-sider-search flex items-center gap-6px'>
+        <Input
+          allowClear
+          className='min-w-0 flex-1'
+          prefix={<SearchOutlined className='text-gray-400' />}
+          placeholder={t('page.wiki.search.placeholder')}
+          value={treeFilter}
+          onChange={e => setTreeFilter(e.target.value)}
+        />
+        <Tooltip title={t('common.refresh')}>
+          {/* chat sidebar refresh look: 32px bordered square + spinning glyph */}
+          <Button
+            type='default'
+            className='size-8 p-0 flex items-center justify-center border-[#F0F0F0] dark:border-[#303030] rounded-12px'
+            onClick={onRefresh}
+          >
+            <RefreshIcon strokeWidth={2} className={`size-4 ${isRefresh ? 'animate-spin' : ''}`} />
+          </Button>
+        </Tooltip>
+      </div>
+      {/* workspace home — the hub card wall lives here now (the topbar
+          Segmented only carries governance + notifications) */}
+      <div className='wiki-sider-home'>
+        <button
+          type='button'
+          className={`flex w-full cursor-pointer items-center gap-2 rounded-lg border-0 bg-transparent px-2 py-1.5 text-left text-sm transition-colors hover:bg-[#EDEDED] dark:hover:bg-[#353F4D] ${
+            isHub ? 'font-medium' : ''
+          }`}
+          style={{
+            backgroundColor: isHub ? 'var(--ant-color-primary-bg)' : undefined,
+            color: 'var(--ant-color-text)'
+          }}
+          onClick={() => nav('/wiki/list')}
+        >
+          <HomeOutlined className='h-4 w-4' />
+          <span className='flex-1 truncate'>{t('page.wiki.hub.home')}</span>
+        </button>
+      </div>
+      <div className='wiki-sidebar-body'>
+        {kbs.length === 0 ? (
+          <Empty
+            description={t('page.wiki.hub.empty')}
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
+        ) : (
+          <Tree
+            blockNode
+            draggable={{ icon: false }}
+            // whole rows are the drag surface already — the default HolderOutlined
+            // grip on every line only eats width
+            expandedKeys={expandedKeys}
+            loadData={onLoadData as any}
+            selectedKeys={selectedKeys}
+            titleRender={titleRender}
+            treeData={displayTreeData}
+            onDrop={onTreeDrop as any}
+            onExpand={onExpand}
+            onSelect={onSelect}
+            className='wiki-toc-tree'
+            // without showIcon antd hides node icons entirely (ant-tree-icon-hide)
+            showIcon
+            // linear expand/collapse chevrons (lucide) instead of antd's
+            // filled caret — matches the outlined folder/article icons
+            switcherIcon={({ expanded }: { expanded?: boolean }) =>
+              expanded ? (
+                <ChevronDown className='h-3.5 w-3.5 opacity-70' />
+              ) : (
+                <ChevronRight className='h-3.5 w-3.5 opacity-70' />
+              )
+            }
+          />
+        )}
+      </div>
+    </>
+  );
 
   return (
     // themed space: the wiki keeps the app theme untouched (colors stay unified
@@ -377,117 +643,222 @@ export function WikiShell({ kbId, articleId, children }: Props) {
         }
       }}
     >
-      <div className='wiki-page h-full min-h-0 flex flex-col gap-12px p-12px lg:!flex-row'>
-        <aside className='wiki-sidebar'>
-          <div className='wiki-sidebar-head'>
-            <span className='wiki-sidebar-brand'>
-              <BookOutlined />
-              {t('route.wiki')}
-            </span>
-            <div className='wiki-sidebar-tools'>
-              <Tooltip title={t('page.wiki.governance.title')}>
-                <Badge
-                  count={openGovernance}
-                  offset={[-2, 2]}
-                  size='small'
+      <div className='wiki-page wiki-shell h-full min-h-0'>
+        {!isMobile && (
+          <aside className={`wiki-sider ${collapsed ? 'wiki-sider-collapsed' : ''}`}>{siderBody}</aside>
+        )}
+        <div className='flex h-full min-w-0 flex-1 flex-col'>
+          <header className='wiki-topbar'>
+            {/* sider toggle — same look as the chat header's history toggle:
+                bordered default-size button + panel glyphs */}
+            <Button
+              icon={collapsed ? <SidebarExpandSvg className='h-4 w-4' /> : <SidebarCollapseSvg className='h-4 w-4' />}
+              onClick={() => setCollapsed(v => !v)}
+              className='!rounded-12px border-[#F0F0F0] dark:border-[#303030] shrink-0'
+            />
+            {/* workspace switcher — chat-style trigger + custom panel (same
+                look as the assistant switcher): bordered rounded button that
+                opens a popover with search + check-marked list; sits at the
+                topbar's left edge and filters the hub card wall */}
+            <div className='relative'>
+              <Button
+                className='w-170px !rounded-12px border-[#F0F0F0] !px-8px dark:border-[#303030]'
+                onClick={() => {
+                  setWsOpen(v => !v);
+                  setWsFilter('');
+                }}
+              >
+                <TeamOutlined className='text-gray-400' />
+                <span className='flex-1 truncate text-left text-sm'>
+                  {workspaceId === 'all'
+                    ? t('page.wiki.workspace.all')
+                    : workspaces.find(w => w.id === workspaceId)?.name || ''}
+                </span>
+                <ChevronDown className='h-4 w-4 opacity-60' />
+              </Button>
+              {wsOpen && (
+                <div
+                  className='absolute left-0 top-full z-50 mt-2 w-64 rounded-xl border border-solid border-[#F0F0F0] p-3 shadow-lg dark:border-[#303030]'
+                  style={{
+                    backgroundColor: 'var(--ant-color-bg-elevated)',
+                    color: 'var(--ant-color-text)',
+                    transformOrigin: 'top center',
+                    animation: 'expandDown 0.2s ease-out'
+                  }}
                 >
-                  <Button
-                    icon={<SafetyCertificateOutlined />}
-                    size='small'
-                    type='text'
-                    onClick={() => nav('/wiki/governance')}
+                  <div
+                    className='mb-2 flex items-center justify-between text-sm font-semibold'
+                    style={{ color: 'var(--ant-color-text)' }}
+                  >
+                    <div className='truncate'>{`${t('page.wiki.workspace.title')}（${workspaces.length}）`}</div>
+                    <Tooltip title={t('common.refresh')}>
+                      <Button
+                        icon={<ReloadOutlined className='text-14px' />}
+                        size='small'
+                        type='text'
+                        onClick={fetchWorkspaces}
+                      />
+                    </Tooltip>
+                  </div>
+                  <Input
+                    allowClear
+                    autoFocus
+                    className='h-8 rounded-12px border-[#F0F0F0] dark:border-[#303030]'
+                    placeholder={t('page.wiki.workspace.searchPlaceholder')}
+                    prefix={<Search className='h-4 w-4 text-[#999] dark:text-[#666]' />}
+                    style={{ backgroundColor: 'var(--ant-color-fill-quaternary)' }}
+                    value={wsFilter}
+                    onChange={e => setWsFilter(e.target.value)}
                   />
-                </Badge>
-              </Tooltip>
-              <Tooltip title={t('page.wiki.notification.title')}>
-                <Badge
-                  count={unread}
-                  offset={[-2, 2]}
-                  size='small'
-                >
-                  <Button
-                    icon={<BellOutlined />}
-                    size='small'
-                    type='text'
-                    onClick={() => setNotifOpen(true)}
-                  />
-                </Badge>
-              </Tooltip>
-              <Tooltip title={t('page.wiki.tree.addFolder')}>
-                <Button
-                  disabled={!kbId || !tocs[kbId] || !canUpdateKb}
-                  icon={<FolderAddOutlined />}
-                  size='small'
-                  type='text'
-                  onClick={() => addFolder(null)}
-                />
-              </Tooltip>
-              <Tooltip title={t('common.refresh')}>
-                <Button
-                  icon={<ReloadOutlined />}
-                  size='small'
-                  type='text'
-                  onClick={onRefresh}
-                />
-              </Tooltip>
-              {canCreateKb && (
-                <Tooltip title={t('page.wiki.hub.newKb')}>
-                  <Button
-                    icon={<PlusOutlined />}
-                    size='small'
-                    type='text'
-                    onClick={() => setCreateOpen(true)}
-                  />
-                </Tooltip>
+                  <div className='custom-scrollbar mt-2 max-h-60 overflow-auto'>
+                    <div className='flex flex-col gap-1'>
+                      <button
+                        className={`flex w-full cursor-pointer items-center gap-2 rounded-lg border-0 bg-transparent px-2 py-1.5 text-left text-sm transition-colors hover:bg-[#EDEDED] dark:hover:bg-[#353F4D] ${
+                          workspaceId === 'all' ? 'font-medium' : ''
+                        }`}
+                        style={{
+                          backgroundColor: workspaceId === 'all' ? 'var(--ant-color-primary-bg)' : undefined,
+                          color: workspaceId === 'all' ? 'var(--ant-color-primary)' : 'var(--ant-color-text)'
+                        }}
+                        type='button'
+                        onClick={() => {
+                          setWorkspaceId('all');
+                          setWsOpen(false);
+                        }}
+                      >
+                        <BookOutlined className='h-4 w-4' />
+                        <div className='flex-1 truncate'>{t('page.wiki.workspace.all')}</div>
+                        {workspaceId === 'all' && (
+                          <Check
+                            className='ml-auto h-4 w-4'
+                            style={{ color: 'var(--ant-color-primary)' }}
+                          />
+                        )}
+                      </button>
+                      {workspaces
+                        .filter(w => w.name.toLowerCase().includes(wsFilter.trim().toLowerCase()))
+                        .map(w => {
+                          const isActive = workspaceId === w.id;
+                          return (
+                            <button
+                              className={`flex w-full cursor-pointer items-center gap-2 rounded-lg border-0 bg-transparent px-2 py-1.5 text-left text-sm transition-colors hover:bg-[#EDEDED] dark:hover:bg-[#353F4D] ${
+                                isActive ? 'font-medium' : ''
+                              }`}
+                              key={w.id}
+                              style={{
+                                backgroundColor: isActive ? 'var(--ant-color-primary-bg)' : undefined,
+                                color: isActive ? 'var(--ant-color-primary)' : 'var(--ant-color-text)'
+                              }}
+                              type='button'
+                              onClick={() => {
+                                setWorkspaceId(w.id);
+                                setWsOpen(false);
+                              }}
+                            >
+                              <TeamOutlined className='h-4 w-4' />
+                              <div className='flex-1 truncate'>{w.name}</div>
+                              {isActive && (
+                                <Check
+                                  className='ml-auto h-4 w-4'
+                                  style={{ color: 'var(--ant-color-primary)' }}
+                                />
+                              )}
+                            </button>
+                          );
+                        })}
+                      {wsFilter.trim() &&
+                        workspaces.filter(w => w.name.toLowerCase().includes(wsFilter.trim().toLowerCase()))
+                          .length === 0 && (
+                          <div
+                            className='py-8 text-center text-sm'
+                            style={{ color: 'var(--ant-color-text-quaternary)' }}
+                          >
+                            {t('common.noData')}
+                          </div>
+                        )}
+                    </div>
+                  </div>
+                  <div className='mt-2 border-t border-solid border-[#F0F0F0] pt-2 dark:border-[#303030]'>
+                    <button
+                      className='flex w-full cursor-pointer items-center gap-2 rounded-lg border-0 bg-transparent px-2 py-1.5 text-left text-sm transition-colors hover:bg-[#EDEDED] dark:hover:bg-[#353F4D]'
+                      style={{ color: 'var(--ant-color-text)' }}
+                      type='button'
+                      onClick={() => {
+                        setWsOpen(false);
+                        setWsCreateOpen(true);
+                      }}
+                    >
+                      <PlusOutlined />
+                      {t('page.wiki.workspace.create')}
+                    </button>
+                  </div>
+                </div>
               )}
+              {wsOpen && <div className='fixed inset-0 z-40' onClick={() => setWsOpen(false)} />}
+            </div>
+            {/* governance + notifications as bordered icon buttons (same look
+                as the sider toggle), names surface on hover via tooltip */}
+            <Tooltip title={t('page.wiki.governance.title')}>
+              <Badge
+                count={openGovernance}
+                size='small'
+              >
+                <Button
+                  icon={<BookCheck className='h-4 w-4' />}
+                  onClick={() => nav('/wiki/governance')}
+                  className='!rounded-12px border-[#F0F0F0] dark:border-[#303030]'
+                />
+              </Badge>
+            </Tooltip>
+            <Tooltip title={t('page.wiki.notification.title')}>
+              <Badge
+                count={unread}
+                size='small'
+              >
+                <Button
+                  icon={<BellOutlined />}
+                  onClick={() => nav('/wiki/notifications')}
+                  className='!rounded-12px border-[#F0F0F0] dark:border-[#303030]'
+                />
+              </Badge>
+            </Tooltip>
+            <div className='flex-1' />
+          </header>
+          <div className='wiki-content min-h-0 flex-1 overflow-auto'>
+            <div className='mx-auto h-full max-w-1280px w-full 2xl:max-w-1440px'>
+              {typeof children === 'function'
+                ? children({ workspaceId, workspaces, kbVersion, refreshKbs: () => fetchKbs(true) })
+                : children}
             </div>
           </div>
-          <div className='wiki-sidebar-body'>
-            {kbs.length === 0 ? (
-              <Empty
-                description={t('page.wiki.hub.empty')}
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-              />
-            ) : (
-              <Tree
-                blockNode
-                draggable={{ icon: false }}
-                // whole rows are the drag surface already — the default HolderOutlined
-                // grip on every line only eats width
-                expandedKeys={expandedKeys}
-                loadData={onLoadData as any}
-                selectedKeys={selectedKeys}
-                titleRender={titleRender}
-                treeData={treeData}
-                onDrop={onTreeDrop as any}
-                onExpand={onExpand}
-                onSelect={onSelect}
-                className="wiki-toc-tree"
-                // without showIcon antd hides node icons entirely (ant-tree-icon-hide)
-                showIcon
-              />
-            )}
-          </div>
-        </aside>
-        <div className='min-w-0 flex-1 overflow-auto'>
-          <div className='mx-auto h-full max-w-1280px w-full 2xl:max-w-1440px'>{children}</div>
         </div>
+        {isMobile && (
+          <Drawer
+            classNames={{ body: '!p-0px' }}
+            closable={false}
+            onClose={() => setCollapsed(true)}
+            open={!collapsed}
+            placement='left'
+            width={280}
+          >
+            {siderBody}
+          </Drawer>
+        )}
         {renameDialog}
-
-        <CreateKbModal
-          open={createOpen}
-          onClose={() => setCreateOpen(false)}
-          onCreated={() => {
-            fetchKbs(true);
-          }}
-        />
-        <NotificationDrawer
-          open={notifOpen}
-          onClose={() => {
-            setNotifOpen(false);
-            fetchUnread();
-          }}
-        />
+        <Modal
+          cancelText={t('common.cancel')}
+          okText={t('common.create')}
+          open={wsCreateOpen}
+          title={t('page.wiki.workspace.create')}
+          onCancel={() => setWsCreateOpen(false)}
+          onOk={onCreateWorkspace}
+        >
+          <Input
+            placeholder={t('page.wiki.workspace.namePlaceholder')}
+            value={wsName}
+            onChange={e => setWsName(e.target.value)}
+          />
+        </Modal>
       </div>
     </ConfigProvider>
   );

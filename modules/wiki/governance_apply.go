@@ -427,9 +427,9 @@ func applyRebuildProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 	if len(article.Sources) > 0 {
 		sb.WriteString("## 来源主张\n\n")
 		for i, s := range article.Sources {
-			line := strings.TrimSpace(s.Excerpt)
+			line := collapseInline(strings.TrimSpace(s.Excerpt))
 			if line == "" {
-				line = strings.TrimSpace(s.Title)
+				line = collapseInline(strings.TrimSpace(s.Title))
 			}
 			if line == "" {
 				continue
@@ -983,6 +983,10 @@ func applyTopicProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (strin
 		util.FromJSONBytes(util.MustToJSONBytes(raw), &statements)
 	}
 	keyEntities := evidenceStrings(p.Evidence["key_entities"])
+	entityTypes := map[string]string{}
+	if raw, ok := p.Evidence["key_entity_types"]; ok {
+		util.FromJSONBytes(util.MustToJSONBytes(raw), &entityTypes)
+	}
 	aliases := evidenceStrings(p.Evidence["aliases"])
 	absorbIDs := evidenceStrings(p.Evidence["absorb_ids"])
 	planned := len(sections)
@@ -1062,6 +1066,9 @@ func applyTopicProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (strin
 			if absorbed > 0 {
 				outcome += fmt.Sprintf("，收编 %d 个薄页", absorbed)
 			}
+			if n := promoteTopicEntities(ctx, p.KbID, article.KeyEntities, entityTypes); n > 0 {
+				outcome += fmt.Sprintf("，晋升 %d 个实体", n)
+			}
 			snapshotPipelineWrite(&article, fmt.Sprintf("知识编译更新主题页 %d 节（治理提案 %s）", len(sections), p.ID))
 			return outcome, article.ID, nil
 		}
@@ -1116,6 +1123,9 @@ func applyTopicProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (strin
 	outcome := fmt.Sprintf("已生成主题页「%s」(%d 节,%d 条主张)", article.Title, len(sections), len(statements))
 	if absorbed > 0 {
 		outcome += fmt.Sprintf("，收编 %d 个薄页", absorbed)
+	}
+	if n := promoteTopicEntities(ctx, p.KbID, keyEntities, entityTypes); n > 0 {
+		outcome += fmt.Sprintf("，晋升 %d 个实体", n)
 	}
 	return outcome, article.ID, nil
 }

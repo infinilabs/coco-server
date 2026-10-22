@@ -72,6 +72,11 @@ export function Component() {
     return 'search';
   }, [location.pathname]);
 
+  // the search page renders its own box in both modes (a large centered one on
+  // Home, the compact top box on Results), so the shell box would only stack a
+  // second search entry on top — it stays exclusive to the chat/wiki apps.
+  const searchOwnBoxVisible = activeApp === 'search';
+
   const goApp = (key: string) => {
     const target = { search: '/search', chat: '/chat?mode=chat', wiki: '/wiki/list' }[key];
     if (target && `#${location.pathname}${location.search}` !== `#${target}`) {
@@ -157,11 +162,12 @@ export function Component() {
             onChange={value => goApp(value as string)}
           />
         </div>
-        {/* the shell-wide search entry — the full AI-search box, present on
-            every app page except the search app itself (which carries its own
-            box); submit lands on the search results (chat-mode submits land on
-            the chat app with attachments handed over) */}
-        {showSearchBox && activeApp !== 'search' && !compact && (
+        {/* the shell-wide search entry — the full AI-search box, shown on the
+            chat/wiki app pages only; the search app draws its own box in both
+            modes, and a second top entry would just duplicate it. Submit
+            lands on the search results (chat-mode submits land on the chat
+            app with attachments handed over) */}
+        {showSearchBox && !searchOwnBoxVisible && !compact && (
           <div className='mx-12px w-340px max-w-340px flex-none'>
             {/* the widget resolves its labels against its own i18n instance —
                 without this provider the keys render raw next to the host's */}

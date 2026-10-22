@@ -627,8 +627,8 @@ declare module 'ui-search/source' {
     extension: string | undefined
   ) => string;
   export const extensionFromMime: (mime: string | undefined | null) => string | undefined;
-  // facet field keys — an aggregation must be named after its filter field for
-  // facet clicks to filter on it (used by hosts building their own agg DSL)
+  // filter field keys — an aggregation must be named after its filter field for
+  // filter clicks to filter on it (used by hosts building their own agg DSL)
   export const OWNER_FILTER_FIELD: '_system.owner_id';
   export const TIME_FILTER_FIELD: 'updated_range';
 }

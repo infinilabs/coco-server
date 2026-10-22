@@ -1,4 +1,5 @@
 import { ExclamationCircleOutlined, PlusOutlined } from '@ant-design/icons';
+import PageHeaderTitle from '@/components/stateless/common/PageHeaderTitle';
 import { BookOpen, CheckCircle2, Download, ListChecks, Pencil, Plug, Search as SearchIcon, ShieldCheck, Trash } from 'lucide-react';
 import { Button, Card, Drawer, Empty, Form, Input, Popconfirm, Select, Space, Switch, Tag, message } from 'antd';
 import { useState } from 'react';
@@ -139,17 +140,13 @@ export function Component() {
   };
 
   return (
-    <div className="min-h-500px h-full p-16px">
-      <Card
-        bordered={false}
-        className="card-wrapper"
+    <ListContainer>
+      <ACard
+        className="flex-col-stretch sm:flex-1-hidden card-wrapper"
         loading={loading && data.length === 0}
+        title={<PageHeaderTitle description={t('page.skill.subtitle')} icon={<ListChecks size={16} />} title={t('page.skill.title')} />}
       >
-        <div className="mb-16px flex flex-wrap items-center justify-between gap-12px">
-          <div>
-            <div className="text-18px font-500">{t('page.skill.title')}</div>
-            <div className="text-13px color-[var(--ant-color-text-tertiary)]">{t('page.skill.subtitle')}</div>
-          </div>
+        <div className="mb-16px flex flex-wrap items-center justify-end gap-12px">
           <Space wrap>
             <Input
               allowClear
@@ -261,7 +258,7 @@ export function Component() {
             ))}
           </div>
         )}
-      </Card>
+      </ACard>
 
       <Drawer
         destroyOnClose
@@ -334,6 +331,6 @@ export function Component() {
           </Form.Item>
         </Form>
       </Drawer>
-    </div>
+    </ListContainer>
   );
 }

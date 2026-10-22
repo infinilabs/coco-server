@@ -34,13 +34,12 @@ const local: App.I18n.Schema['translation'] = {
   menu: {
     administration: '管理',
     group: {
-      chat: '智能',
-      data: '数据',
-      kb: '知识',
+      appChat: 'AI 对话',
+      appKb: '知识库',
+      appSearch: 'AI 搜索',
+      data: '知识加工',
       others: '其他',
-      processing: '加工',
-      search: '检索',
-      system: '系统'
+      system: '系统管理'
     }
   },
   page,

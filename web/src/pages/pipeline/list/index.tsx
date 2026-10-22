@@ -1,4 +1,5 @@
 import { PlusOutlined } from '@ant-design/icons';
+import PageHeaderTitle from '@/components/stateless/common/PageHeaderTitle';
 import { Boxes, Pencil, Trash } from 'lucide-react';
 import { Button, Card, Popconfirm, Space, Switch, Table, message } from 'antd';
 import { useEffect, useState } from 'react';
@@ -140,18 +141,21 @@ export function Component() {
     <Card
       className="card-wrapper"
       title={
-        <span className="flex items-center gap-8px">
-          <Boxes size={18} />
-          {t('page.pipeline.title')}
-          <span className="text-13px font-normal text-[var(--ant-color-text-tertiary)]">{t('common.totalItems', { total })}</span>
-        </span>
+        <PageHeaderTitle
+          description={t('page.pipeline.subtitle')}
+          icon={<Boxes size={18} />}
+          title={t('page.pipeline.title')}
+        />
       }
       extra={
-        permissions.create && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/pipeline/new')}>
-            {t('common.add')}
-          </Button>
-        )
+        <Space>
+          <span className="text-13px text-[var(--ant-color-text-tertiary)]">{t('common.totalItems', { total })}</span>
+          {permissions.create && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/pipeline/new')}>
+              {t('common.add')}
+            </Button>
+          )}
+        </Space>
       }
     >
       <Table rowKey="id" loading={loading} columns={columns} dataSource={data} pagination={false} />

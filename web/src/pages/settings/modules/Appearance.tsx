@@ -6,6 +6,7 @@ import { setApplicationSetting } from '@/store/slice/server';
 import { setRecommendColor, updateThemeColors } from '@/store/slice/theme';
 
 import ImageUploadItem from './ImageUploadItem';
+import SaveBar from './SaveBar';
 
 // built-in values shown as placeholders — anything left empty keeps these
 const DEFAULT_COLORS = {
@@ -98,6 +99,7 @@ const AppearanceSettings = memo(() => {
   const { endLoading, loading, startLoading } = useLoading();
 
   const [values, setValues] = useState<any>(() => structuredClone(EMPTY_APPEARANCE));
+  const [dirty, setDirty] = useState(false);
 
   const {
     data,
@@ -111,29 +113,36 @@ const AppearanceSettings = memo(() => {
     run();
   });
 
-  useEffect(() => {
-    if (data?.appearance) {
-      setValues((state: any) => {
-        // deep-merge saved values over the empty shape so fields missing from
-        // older saves still have their slot
+  // deep-merge saved values over the empty shape so fields missing from
+  // older saves still have their slot — shared by the load effect and discard
+  const applyData = (payload: any) => {
+    if (payload?.appearance) {
+      setValues(() => {
         const merged: any = structuredClone(EMPTY_APPEARANCE);
         for (const key of Object.keys(merged)) {
           if (typeof merged[key] === 'string') {
-            merged[key] = data.appearance[key] || '';
+            merged[key] = payload.appearance[key] || '';
           } else {
-            Object.assign(merged[key], data.appearance[key] || {});
+            Object.assign(merged[key], payload.appearance[key] || {});
             for (const sub of Object.keys(merged[key])) {
               if (typeof merged[key][sub] === 'string') continue;
-              Object.assign(merged[key][sub], data.appearance[key]?.[sub] || {});
+              Object.assign(merged[key][sub], payload.appearance[key]?.[sub] || {});
             }
           }
         }
         return merged;
       });
     }
+  };
+
+  useEffect(() => {
+    applyData(data);
+    setDirty(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(data)]);
 
   const setValue = (path: string[], value: string) => {
+    setDirty(true);
     setValues((state: any) => {
       const next = structuredClone(state);
       let target = next;
@@ -179,8 +188,14 @@ const AppearanceSettings = memo(() => {
       const app = await fetchApplicationSetting();
       await dispatch(setApplicationSetting(app.data));
       window.$message?.success(t('common.updateSuccess'));
+      setDirty(false);
     }
     endLoading();
+  };
+
+  const handleDiscard = () => {
+    applyData(data);
+    setDirty(false);
   };
 
   const renderModeColors = (mode: 'dark' | 'light') => {
@@ -324,11 +339,7 @@ const AppearanceSettings = memo(() => {
           </Form.Item>
 
           {permissions.update && (
-            <Form.Item label=" ">
-              <Button type="primary" onClick={() => handleSubmit()}>
-                {t('common.update')}
-              </Button>
-            </Form.Item>
+            <SaveBar dirty={dirty} loading={loading} onDiscard={handleDiscard} onSave={() => handleSubmit()} />
           )}
         </Form>
       </Spin>

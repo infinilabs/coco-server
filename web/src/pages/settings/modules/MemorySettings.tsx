@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Button, Card, Empty, Modal, Popconfirm, Segmented, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Empty, Modal, Popconfirm, Segmented, Space, Table, Tag, message } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -46,7 +46,7 @@ export default function MemorySettings() {
       const res: any = await request({ method: 'get', url: '/memory/_mine', params });
       setItems((res?.data?.items as MemoryItem[]) ?? []);
     } catch (e: any) {
-      message.error(e?.response?.data?.message ?? e?.message ?? t('page.settings.memory_settings.loadFailed'));
+      message.error(e?.response?.data?.message ?? e?.message ?? t('page.memory_settings.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -59,18 +59,18 @@ export default function MemorySettings() {
   const settle = useCallback(
     (id: string, action: 'confirm' | 'reject') => {
       Modal.confirm({
-        title: t(`page.settings.memory_settings.${action}Title`),
+        title: t(`page.memory_settings.${action}Title`),
         content:
           action === 'confirm'
-            ? t('page.settings.memory_settings.confirmHint')
-            : t('page.settings.memory_settings.rejectHint'),
+            ? t('page.memory_settings.confirmHint')
+            : t('page.memory_settings.rejectHint'),
         onOk: async () => {
           try {
             await request({ method: 'put', url: `/memory/${id}/_${action}` });
-            message.success(t('page.settings.memory_settings.settled'));
+            message.success(t('page.memory_settings.settled'));
             load();
           } catch (e: any) {
-            message.error(e?.response?.data?.message ?? e?.message ?? t('page.settings.memory_settings.loadFailed'));
+            message.error(e?.response?.data?.message ?? e?.message ?? t('page.memory_settings.loadFailed'));
           }
         }
       });
@@ -82,10 +82,10 @@ export default function MemorySettings() {
     async (id: string) => {
       try {
         await request({ method: 'delete', url: `/memory/${id}` });
-        message.success(t('page.settings.memory_settings.deleted'));
+        message.success(t('page.memory_settings.deleted'));
         load();
       } catch (e: any) {
-        message.error(e?.response?.data?.message ?? e?.message ?? t('page.settings.memory_settings.loadFailed'));
+        message.error(e?.response?.data?.message ?? e?.message ?? t('page.memory_settings.loadFailed'));
       }
     },
     [load, t]
@@ -94,37 +94,37 @@ export default function MemorySettings() {
   const columns = useMemo(
     () => [
       {
-        title: t('page.settings.memory_settings.kind'),
+        title: t('page.memory_settings.kind'),
         dataIndex: 'kind',
         width: 110,
         render: (v: string) => <Tag color={KIND_COLORS[v] ?? 'default'}>{v}</Tag>
       },
       {
-        title: t('page.settings.memory_settings.content'),
+        title: t('page.memory_settings.content'),
         dataIndex: 'content',
         ellipsis: true
       },
       {
-        title: t('page.settings.memory_settings.status'),
+        title: t('page.memory_settings.status'),
         dataIndex: 'status',
         width: 100,
         render: (v: string) =>
           v === 'confirmed' ? (
-            <Tag color="green">{t('page.settings.memory_settings.confirmed')}</Tag>
+            <Tag color="green">{t('page.memory_settings.confirmed')}</Tag>
           ) : v === 'rejected' ? (
-            <Tag color="red">{t('page.settings.memory_settings.rejected')}</Tag>
+            <Tag color="red">{t('page.memory_settings.rejected')}</Tag>
           ) : (
-            <Tag color="orange">{t('page.settings.memory_settings.pending')}</Tag>
+            <Tag color="orange">{t('page.memory_settings.pending')}</Tag>
           )
       },
       {
-        title: t('page.settings.memory_settings.updated'),
+        title: t('page.memory_settings.updated'),
         dataIndex: 'updated',
         width: 170,
         render: (v: string) => (v ? new Date(v).toLocaleString() : '-')
       },
       {
-        title: t('page.settings.memory_settings.actions'),
+        title: t('page.memory_settings.actions'),
         key: 'actions',
         width: 200,
         render: (_: unknown, r: MemoryItem) => (
@@ -132,17 +132,17 @@ export default function MemorySettings() {
             {r.status === 'pending' && canManage ? (
               <>
                 <Button size="small" type="primary" onClick={() => settle(r.id, 'confirm')}>
-                  {t('page.settings.memory_settings.confirm')}
+                  {t('page.memory_settings.confirm')}
                 </Button>
                 <Button size="small" onClick={() => settle(r.id, 'reject')}>
-                  {t('page.settings.memory_settings.reject')}
+                  {t('page.memory_settings.reject')}
                 </Button>
               </>
             ) : null}
             {canManage ? (
-              <Popconfirm title={t('page.settings.memory_settings.deleteConfirm')} onConfirm={() => remove(r.id)}>
+              <Popconfirm title={t('page.memory_settings.deleteConfirm')} onConfirm={() => remove(r.id)}>
                 <Button size="small" danger>
-                  {t('page.settings.memory_settings.delete')}
+                  {t('page.memory_settings.delete')}
                 </Button>
               </Popconfirm>
             ) : null}
@@ -154,19 +154,16 @@ export default function MemorySettings() {
   );
 
   return (
-    <Card size="small" title={t('page.settings.memory_settings.title')}>
-      <Typography.Text type="secondary" className="text-12px">
-        {t('page.settings.memory_settings.hint')}
-      </Typography.Text>
+    <div>
       <div className="mt-8px mb-8px">
         <Segmented
           value={statusFilter}
           onChange={(v) => setStatusFilter(v as string)}
           options={[
-            { label: t('page.settings.memory_settings.pending'), value: 'pending' },
-            { label: t('page.settings.memory_settings.confirmed'), value: 'confirmed' },
-            { label: t('page.settings.memory_settings.rejected'), value: 'rejected' },
-            { label: t('page.settings.memory_settings.all'), value: 'all' }
+            { label: t('page.memory_settings.pending'), value: 'pending' },
+            { label: t('page.memory_settings.confirmed'), value: 'confirmed' },
+            { label: t('page.memory_settings.rejected'), value: 'rejected' },
+            { label: t('page.memory_settings.all'), value: 'all' }
           ]}
         />
       </div>
@@ -177,8 +174,8 @@ export default function MemorySettings() {
         columns={columns}
         dataSource={items}
         pagination={{ pageSize: 10, hideOnSinglePage: true }}
-        locale={{ emptyText: <Empty description={t('page.settings.memory_settings.empty')} /> }}
+        locale={{ emptyText: <Empty description={t('page.memory_settings.empty')} /> }}
       />
-    </Card>
+    </div>
   );
 }

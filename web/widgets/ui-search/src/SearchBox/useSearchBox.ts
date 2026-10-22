@@ -34,6 +34,7 @@ interface UseSearchBoxParams {
   onUpload?: (files: File[], cb: (res: any) => void) => void;
   attachments?: any[];
   setAttachments?: (attachments: any) => void;
+  defaultSearchType?: string;
 }
 
 export default function useSearchBox({
@@ -44,9 +45,12 @@ export default function useSearchBox({
   onUpload,
   attachments = [],
   setAttachments,
+  defaultSearchType,
 }: UseSearchBoxParams) {
   const [currentQueryParams, setCurrentQueryParams] = useState<any>(queryParams);
-  const { query, filter = {}, filters = [], action_type, search_type = ACTION_TYPE_SEARCH_KEYWORD, fuzziness = DEFAULT_SEARCH_FUZZINESS, sort = DEFAULT_SEARCH_SORT } = currentQueryParams;
+  const { query, filter = {}, filters = [], action_type, search_type, fuzziness = DEFAULT_SEARCH_FUZZINESS, sort = DEFAULT_SEARCH_SORT } = currentQueryParams;
+  // 搜索设置 · 默认搜索模式: explicit URL param > the host's configured default > keyword
+  const effectiveSearchType = search_type || defaultSearchType || ACTION_TYPE_SEARCH_KEYWORD;
   const [suggestions, setSuggestions] = useState<any>({});
   const [mainInputActive, setMainInputActive] = useState(false);
   const [filterState, setFilterState] = useState({ type: 'none', index: -1 });
@@ -232,8 +236,8 @@ export default function useSearchBox({
   }, [attachments, onSearch, resetRefOnNextFrame]);
 
   const triggerSearch = useCallback(() => {
-    handleSearch(query, filters, action_type, search_type, fuzziness, sort);
-  }, [handleSearch, query, filters, action_type, search_type, fuzziness, sort]);
+    handleSearch(query, filters, action_type, effectiveSearchType, fuzziness, sort);
+  }, [handleSearch, query, filters, action_type, effectiveSearchType, fuzziness, sort]);
 
   const handleAttachmentUpload = useCallback((files: File[], cb: (res: any) => void) => {
     if (onUpload) onUpload(files, cb);
@@ -345,8 +349,8 @@ export default function useSearchBox({
   const handleFilterComplete = useCallback(() => {
     setFilterState({ type: 'none', index: -1 });
     setSuggestions({});
-    handleSearch(query, filters, action_type, search_type, fuzziness, sort);
-  }, [query, filters, action_type, search_type, fuzziness, sort, handleSearch]);
+    handleSearch(query, filters, action_type, effectiveSearchType, fuzziness, sort);
+  }, [query, filters, action_type, effectiveSearchType, fuzziness, sort, handleSearch]);
 
   // Tab while a filter is being edited (value/operator lists): commit the
   // chip and hand focus back to the main input so the keyboard flow keeps
@@ -659,7 +663,7 @@ export default function useSearchBox({
   }, []);
 
   return {
-    query, filters, action_type, search_type, fuzziness, sort,
+    query, filters, action_type, search_type: effectiveSearchType, fuzziness, sort,
     suggestions, loadNextSuggestion,
     attachments,
     showExpandedPanel, searchable,

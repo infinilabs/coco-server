@@ -59,13 +59,10 @@ export function Component() {
     // })
   }
 
-  const activeKey = useMemo(() => {
-    return searchParams.get('tab') || items?.[0]?.key
-  }, [])
-
-  const activeItem = useMemo(() => {
-    return items.find((item) => item.key === activeKey);
-  }, [activeKey])
+  // activeKey 必须跟随 searchParams 变化：useMemo 空依赖会冻结在首渲染值，
+  // 点击 tab 只改了 URL、内容区不切换（多 tab 下的静默 bug）
+  const activeKey = searchParams.get('tab') || items?.[0]?.key
+  const activeItem = items.find((item) => item.key === activeKey)
 
   return (
     <div className="flex flex-col gap-16px pb-16px">

@@ -70,7 +70,21 @@ func (h *APIHandler) suggest(w http.ResponseWriter, req *http.Request, ps httpro
 	case core.SuggestTagFieldValues:
 		response = h.suggestFieldValues(w, req, query, from, size)
 	default:
-		response = h.suggestDocuments(w, req, query, from, size)
+		// search-box document suggestions honor 搜索设置 · 搜索建议:
+		// disabled → an empty (but well-shaped) response so the box just
+		// shows nothing; the operator's default count fills in when the
+		// request carries no explicit ?size=. Studio's field-name/value
+		// suggestions above stay available — they are debugging metadata,
+		// not end-user search hints.
+		searchCfg := searchSettingsSnapshot()
+		if !searchCfg.SuggestEnabledVal() {
+			response = &core.SuggestResponse[interface{}]{Query: query}
+		} else {
+			if h.GetParameter(req, "size") == "" {
+				size = searchCfg.EffectiveSuggestSize()
+			}
+			response = h.suggestDocuments(w, req, query, from, size)
+		}
 	}
 
 	h.WriteJSON(w, response, 200)
@@ -173,6 +187,11 @@ func (h *APIHandler) suggestDocuments(w http.ResponseWriter, req *http.Request, 
 		builder.Include("title", "category", "icon", "source.name")
 
 		builder.Collapse("title.keyword")
+
+		// the caller-resolved count (explicit ?size=, or 搜索设置 · 搜索
+		// 建议 suggest_size default) — the request parser above preset its
+		// own historic default when the request carried no ?size=
+		builder.Size(size)
 
 		integrationID := req.Header.Get(core.HeaderIntegrationID)
 

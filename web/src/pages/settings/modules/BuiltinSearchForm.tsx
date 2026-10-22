@@ -16,13 +16,16 @@ import { fetchDataSourceList } from '@/service/api';
 interface Props {
   loading?: boolean;
   record?: Record<string, any>;
+  /** raised on any user edit inside this form — the host page's SaveBar
+   * aggregates it with its own dirty state */
+  onDirtyChange?: (dirty: boolean) => void;
+  /** the host page's SaveBar triggers the save, so this form hands its
+   * submit handler up (re-registered every render to capture fresh state) */
+  onRegisterSubmit?: (fn: () => Promise<void>) => void;
   onSubmit: (params: any, before?: () => void, after?: () => void) => void;
-  /** persists the sibling search_settings section (enabled/search_type/…)
-   * before this form's integration update; thrown validation aborts the save */
-  onBeforeSave?: () => Promise<void> | void;
 }
 
-const BuiltinSearchForm = memo(({ loading, onSubmit, record, onBeforeSave }: Props) => {
+const BuiltinSearchForm = memo(({ loading, onDirtyChange, onRegisterSubmit, onSubmit, record }: Props) => {
   const [form] = Form.useForm();
   const { t } = useTranslation();
   const { defaultRequiredRule } = useFormRules();
@@ -63,6 +66,38 @@ const BuiltinSearchForm = memo(({ loading, onSubmit, record, onBeforeSave }: Pro
   const [welcomeGradient, setWelcomeGradient] = useState(true);
 
   const [aiOverviewEnabled, setAIOverviewEnabled] = useState(false);
+
+  // dirty reporting for the host page's SaveBar: the record-load effect below
+  // uses the raw setters, every user-facing edit goes through these wrappers
+  const markDirty = () => onDirtyChange?.(true);
+  const changeSearchLogos: typeof setSearchLogos = v => {
+    setSearchLogos(v);
+    markDirty();
+  };
+  const changeAIOverviewLogo: typeof setAIOverviewLogo = v => {
+    setAIOverviewLogo(v);
+    markDirty();
+  };
+  const changeSearchBackground: typeof setSearchBackground = v => {
+    setSearchBackground(v);
+    markDirty();
+  };
+  const changeBannerHeight = (v: number | null) => {
+    setBannerHeight(v ?? undefined);
+    markDirty();
+  };
+  const changeWelcomeFontSize = (v: number | undefined) => {
+    setWelcomeFontSize(v);
+    markDirty();
+  };
+  const changeWelcomeGradient = (v: boolean) => {
+    setWelcomeGradient(v);
+    markDirty();
+  };
+  const changeAIOverviewEnabled = (v: boolean) => {
+    setAIOverviewEnabled(v);
+    markDirty();
+  };
 
   const {
     data: result,
@@ -191,9 +226,9 @@ const BuiltinSearchForm = memo(({ loading, onSubmit, record, onBeforeSave }: Pro
 
   const handleSubmit = async () => {
     const params = await form.validateFields();
-    // one button saves both sections: search_settings (enabled/search_type/…)
-    // first, then the built-in integration update below
-    if (onBeforeSave) await onBeforeSave();
+    // search_settings is saved by the host page's handleSaveAll BEFORE this
+    // registered submit runs — do not call onBeforeSave here or the settings
+    // PUT fires twice per Save click
     const { ai_overview, datasource, deep_research_assistant, deep_think_assistant, placeholder, welcome } = params;
     startLoading();
     onSubmit(
@@ -238,7 +273,14 @@ const BuiltinSearchForm = memo(({ loading, onSubmit, record, onBeforeSave }: Pro
     );
   };
 
-  const itemClassNames = '!w-496px';
+  // hand the submit up to the host page's SaveBar; re-registered every render
+  // so the closure always sees the latest local state
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    onRegisterSubmit?.(handleSubmit);
+  });
+
+  const itemClassNames = '!w-520px';
 
   return (
     <Spin spinning={loading || submitLoading || false}>
@@ -246,6 +288,7 @@ const BuiltinSearchForm = memo(({ loading, onSubmit, record, onBeforeSave }: Pro
         colon={false}
         form={form}
         labelAlign="left"
+        onValuesChange={markDirty}
         labelCol={{
           style: { maxWidth: 200, minWidth: 200, textAlign: 'left' }
         }}
@@ -290,13 +333,13 @@ const BuiltinSearchForm = memo(({ loading, onSubmit, record, onBeforeSave }: Pro
               className={itemClassNames}
               max={100}
               min={12}
-              onChange={v => setWelcomeFontSize(v || undefined)}
+              onChange={v => changeWelcomeFontSize(v || undefined)}
               placeholder="30"
               value={welcomeFontSize}
             />
           </Form.Item>
           <div className="flex items-center gap-8px">
-            <Switch checked={welcomeGradient} onChange={setWelcomeGradient} size="small" />
+            <Switch checked={welcomeGradient} onChange={changeWelcomeGradient} size="small" />
             <span className="text-12px color-[var(--ant-color-text-description)]">
               {t('page.settings.search_settings.labels.welcome_gradient')}
             </span>
@@ -309,7 +352,7 @@ const BuiltinSearchForm = memo(({ loading, onSubmit, record, onBeforeSave }: Pro
             t('page.integration.form.labels.logo'),
             searchLogos.light,
             searchLogos,
-            setSearchLogos,
+            changeSearchLogos,
             'light',
             'lightLoading',
             'lightList'
@@ -319,7 +362,7 @@ const BuiltinSearchForm = memo(({ loading, onSubmit, record, onBeforeSave }: Pro
             t('page.integration.form.labels.logo_dark'),
             searchLogos.dark,
             searchLogos,
-            setSearchLogos,
+            changeSearchLogos,
             'dark',
             'darkLoading',
             'darkList'
@@ -332,7 +375,7 @@ const BuiltinSearchForm = memo(({ loading, onSubmit, record, onBeforeSave }: Pro
               className={itemClassNames}
               max={300}
               min={32}
-              onChange={v => setBannerHeight(v || undefined)}
+              onChange={changeBannerHeight}
               placeholder="64"
               value={bannerHeight}
             />
@@ -348,7 +391,7 @@ const BuiltinSearchForm = memo(({ loading, onSubmit, record, onBeforeSave }: Pro
             t('page.settings.search_settings.labels.search_background_light'),
             searchBackground.light,
             searchBackground,
-            setSearchBackground,
+            changeSearchBackground,
             'light',
             'lightLoading',
             'lightList'
@@ -358,7 +401,7 @@ const BuiltinSearchForm = memo(({ loading, onSubmit, record, onBeforeSave }: Pro
             t('page.settings.search_settings.labels.search_background_dark'),
             searchBackground.dark,
             searchBackground,
-            setSearchBackground,
+            changeSearchBackground,
             'dark',
             'darkLoading',
             'darkList'
@@ -374,7 +417,7 @@ const BuiltinSearchForm = memo(({ loading, onSubmit, record, onBeforeSave }: Pro
             name={['ai_overview', 'enabled']}
             valuePropName="checked"
           >
-            <Switch onChange={setAIOverviewEnabled} size="small" />
+            <Switch onChange={changeAIOverviewEnabled} size="small" />
           </Form.Item>
           {aiOverviewEnabled && (
             <>
@@ -389,7 +432,7 @@ const BuiltinSearchForm = memo(({ loading, onSubmit, record, onBeforeSave }: Pro
                   <Upload
                     {...uploadProps}
                     beforeUpload={(file) => {
-                      setAIOverviewLogo(state => ({
+                      changeAIOverviewLogo(state => ({
                         ...state,
                         lightList: [file],
                         lightLoading: true
@@ -397,7 +440,7 @@ const BuiltinSearchForm = memo(({ loading, onSubmit, record, onBeforeSave }: Pro
                       const reader = new FileReader();
                       reader.readAsDataURL(file);
                       reader.onload = () => {
-                        setAIOverviewLogo(state => ({
+                        changeAIOverviewLogo(state => ({
                           ...state,
                           lightLoading: false,
                           light: reader.result
@@ -416,7 +459,7 @@ const BuiltinSearchForm = memo(({ loading, onSubmit, record, onBeforeSave }: Pro
                     className="px-0"
                     type="link"
                     onClick={() => {
-                      setAIOverviewLogo(state => ({
+                      changeAIOverviewLogo(state => ({
                         ...state,
                         lightLoading: false,
                         light: ''
@@ -471,11 +514,7 @@ const BuiltinSearchForm = memo(({ loading, onSubmit, record, onBeforeSave }: Pro
           </Form.Item>
         </Form.Item>
 
-        <Form.Item label=" ">
-          <Button type="primary" onClick={handleSubmit}>
-            {t('common.update')}
-          </Button>
-        </Form.Item>
+        {/* save moved to the host page's SaveBar (onRegisterSubmit hands it up) */}
       </Form>
     </Spin>
   );

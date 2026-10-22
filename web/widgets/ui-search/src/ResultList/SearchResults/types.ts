@@ -41,6 +41,8 @@ export type SearchResultListItem = SearchResultCommon & {
   fileType?: SearchResultFileType;
   typeIcon?: React.ReactNode;
   source?: string;
+  /** hit comes from the curated knowledge-base layer (W16a projection / wiki leg) */
+  fromWiki?: boolean;
   leading?: React.ReactNode;
   trailing?: React.ReactNode;
   onClick?: () => void;

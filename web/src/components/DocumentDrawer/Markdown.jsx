@@ -49,6 +49,17 @@ function Mermaid(props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.code]);
 
+  // 默认展示渲染后的图，Segmented 可在 图示/源码 间切换（与全局 Segmented 风格一致）
+  // 标题取自图表类型关键字（代码首词），如 mindmap → Mindmap
+  // NOTE: 必须保持在下方 hasError early-return 之前 —— hooks 数量在两次渲染
+  // 间必须一致，否则 React 报 "Rendered fewer hooks than expected"
+  const diagramTitle = useMemo(() => {
+    const m = (props.code || "").trimStart().match(/^[a-zA-Z]+/);
+    if (!m) return "Diagram";
+    const w = m[0];
+    return w.charAt(0).toUpperCase() + w.slice(1);
+  }, [props.code]);
+
   if (hasError) {
     // mindmap 等图表语法对缩进敏感，LLM 输出解析失败时保留原始代码并给出可见提示，
     // 不再静默隐藏（此前 hasError 直接 return null，用户只会看到图凭空消失）
@@ -61,15 +72,6 @@ function Mermaid(props) {
       </div>
     );
   }
-
-  // 默认展示渲染后的图，Segmented 可在 图示/源码 间切换（与全局 Segmented 风格一致）
-  // 标题取自图表类型关键字（代码首词），如 mindmap → Mindmap
-  const diagramTitle = useMemo(() => {
-    const m = (props.code || "").trimStart().match(/^[a-zA-Z]+/);
-    if (!m) return "Diagram";
-    const w = m[0];
-    return w.charAt(0).toUpperCase() + w.slice(1);
-  }, [props.code]);
 
   return (
     <div className={clsx("no-dark", "mermaid", "mermaid-block")}>

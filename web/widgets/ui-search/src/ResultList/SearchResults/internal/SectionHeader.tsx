@@ -16,6 +16,7 @@ export function SectionHeader({
   titleIcon,
   titleIconBgColor,
   source,
+  badge,
   className,
   titleClassName,
   titleAction,
@@ -24,6 +25,8 @@ export function SectionHeader({
   titleIcon?: React.ReactNode;
   titleIconBgColor?: string;
   source?: string;
+  /** small trust marker rendered inline right after the title (e.g. the KB badge) */
+  badge?: React.ReactNode;
   className?: string;
   titleClassName?: string;
   titleAction?: {
@@ -86,6 +89,8 @@ export function SectionHeader({
           </span>
         )
       ) : null}
+
+      {badge}
 
       {/* {source ? (
         <span

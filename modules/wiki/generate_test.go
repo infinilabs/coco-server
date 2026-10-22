@@ -54,6 +54,27 @@ func TestConfidenceFor(t *testing.T) {
 	assert.Contains(t, []string{"medium", "low"}, confidenceFor(2, 1, 2))
 }
 
+func TestCitationRefs(t *testing.T) {
+	cases := []struct {
+		name string
+		body string
+		want []int
+	}{
+		{"canonical", "claim one [1].", []int{1}},
+		{"adjacent", "claim [1][3] here", []int{1, 3}},
+		{"comma joined", "claim [1, 3] here", []int{1, 3}},
+		{"comma joined no space", "claim [1,3] here", []int{1, 3}},
+		{"out of range kept for density", "claim [7] here", []int{7}},
+		{"mixed forms", "x [2] y [4, 5] z", []int{2, 4, 5}},
+		{"none", "no citations in this body", nil},
+		{"non numeric brackets ignored", "list [abc, 1] stays", nil},
+		{"trailing comma not a number", "claim [1,] here", []int{1}},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.want, citationRefs(c.body), c.name)
+	}
+}
+
 func TestMatchArticlesToChangedDocs(t *testing.T) {
 	articles := []core.WikiArticle{
 		{Status: core.WikiArticlePublished, Sources: []core.WikiSourceReference{{DocID: "doc-1"}}},

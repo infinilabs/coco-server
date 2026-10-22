@@ -1,3 +1,5 @@
+import { SafetyCertificateOutlined } from '@ant-design/icons';
+import PageHeaderTitle from '@/components/stateless/common/PageHeaderTitle';
 import { Tabs } from "antd";
 
 import Auth from "./modules/Auth";
@@ -60,7 +62,16 @@ export function Component() {
   }, [activeKey]);
 
   return (
-    <ACard styles={{ body: { padding: 0 } }}>
+    <ACard
+      styles={{ body: { padding: 0 } }}
+      title={
+        <PageHeaderTitle
+          description={t('page.security.subtitle')}
+          icon={<SafetyCertificateOutlined />}
+          title={t('page.security.title')}
+        />
+      }
+    >
       <Tabs
         className="settings-tabs"
         activeKey={activeKey}

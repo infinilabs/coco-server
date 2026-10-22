@@ -515,12 +515,11 @@ declare namespace App {
         menu: {
           administration: string;
           group: {
-            chat: string;
+            appChat: string;
+            appKb: string;
+            appSearch: string;
             data: string;
-            kb: string;
             others: string;
-            processing: string;
-            search: string;
             system: string;
           };
         };

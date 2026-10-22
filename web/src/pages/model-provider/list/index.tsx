@@ -1,9 +1,11 @@
+import PageHeaderTitle from '@/components/stateless/common/PageHeaderTitle';
 import {
   EllipsisOutlined,
   ExclamationCircleOutlined,
   ExportOutlined,
   FilterOutlined,
   PlusOutlined,
+  RobotOutlined,
   SettingOutlined
 } from '@ant-design/icons';
 import { Avatar, Button, Dropdown, Form, Input, List, Modal, Spin, Switch, Table, message } from 'antd';
@@ -353,11 +355,17 @@ export function Component() {
   return (
     <ListContainer>
       <ACard
-        bordered={false}
         className='flex-col-stretch sm:flex-1-hidden card-wrapper'
         ref={tableWrapperRef}
+        title={(
+          <PageHeaderTitle
+            description={t('page.modelprovider.subtitle')}
+            icon={<RobotOutlined />}
+            title={t('page.modelprovider.title')}
+          />
+        )}
       >
-        <div className='mb-4 mt-4 flex flex-wrap items-center justify-between gap-12px'>
+        <div className='mb-4 flex flex-wrap items-center justify-between gap-12px'>
           <Search
             addonBefore={<FilterOutlined />}
             className='w-full max-w-360px sm:!w-300px'

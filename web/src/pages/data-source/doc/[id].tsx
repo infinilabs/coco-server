@@ -17,6 +17,8 @@ import { getDocument } from '@/service/api';
 import { useRoute } from '@sa/simple-router';
 import { useNavigate } from 'react-router-dom';
 
+import './doc-detail.scss';
+
 // bytes → 人类可读（与列表展示口径一致，原始值不可读）
 const formatSize = (size?: number) => {
   if (size == null) return '-';
@@ -217,12 +219,12 @@ export function Component() {
 
   return (
     <Spin spinning={loading}>
-      {/* pb：布局层 h-full+p-16px 的底边距在内容溢出滚动时会被跳过，页面级补回同样的 16px；
-          w-full 防御性保证根容器吃满内容区；默认 stretch 使窄屏列布局下两张卡片都占满宽度
-          （items-start 会收缩到内容宽），lg 行布局下再用 items-start 保持顶对齐 + 自然高度 */}
-      <div className='flex w-full flex-col gap-16px pb-16px lg:flex-row lg:items-start'>
+      {/* pb：布局层 h-full+p-16px 的底边距在内容溢出滚动时会被跳过，页面级补回同样的 16px。
+          布局骨架用 doc-detail.scss 的真实 CSS（随页面 chunk 原子加载），同义工具类仅作冗余：
+          dev 模式 UnoCSS 按需异步注入，首帧可能部分规则缺失导致堆叠+收缩中间态 */}
+      <div className='doc-detail-layout flex w-full flex-col gap-16px pb-16px lg:flex-row lg:items-start'>
         {/* 左卡片：标题头 + 页签内容 */}
-        <ACard className='min-w-0 flex-1' styles={{ body: { padding: '16px 24px' } }}>
+        <ACard className='doc-detail-main min-w-0 flex-1' styles={{ body: { padding: '16px 24px' } }}>
           <div className='flex flex-col gap-12px'>
             {/* 文件路径式面包屑：数据源名（可点，回列表）/ 文档标题；doc 未加载时退回返回按钮 */}
             <div className='flex w-full items-center gap-8px'>
@@ -291,7 +293,7 @@ export function Component() {
         </ACard>
 
         {/* 右卡片：基本信息侧栏（对齐参考原型布局） */}
-        <ACard className='w-full shrink-0 lg:w-336px' styles={{ body: { padding: '12px 16px' } }}>
+        <ACard className='doc-detail-aside w-full shrink-0 lg:w-336px' styles={{ body: { padding: '12px 16px' } }}>
           <Typography.Text strong className='text-14px'>
             {t('page.datasource.doc.basicInfo')}
           </Typography.Text>

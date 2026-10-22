@@ -29,11 +29,11 @@ func facetHit(id, sourceName, docType string, tags []string, updated *time.Time)
 
 func TestTopBucketsSortedAndCapped(t *testing.T) {
 	counts := map[string]int{}
-	for i := 0; i < aggFacetCap+5; i++ {
+	for i := 0; i < defaultAggBucketCap+5; i++ {
 		counts[string(rune('a'+i%26))] = i // later = more
 	}
-	out := topBuckets(counts)
-	require.Len(t, out, aggFacetCap)
+	out := topBuckets(counts, defaultAggBucketCap, "count")
+	require.Len(t, out, defaultAggBucketCap)
 	for i := 1; i < len(out); i++ {
 		assert.GreaterOrEqual(t, out[i-1].Count, out[i].Count)
 	}
@@ -47,7 +47,7 @@ func TestBucketByDatasourceAndType(t *testing.T) {
 		facetHit("4", "Wiki", "entity", nil, nil),
 	}
 
-	ds := bucketBy(hits, func(hit elasticHit) (string, bool) {
+	ds := bucketBy(hits, defaultAggBucketCap, "count", func(hit elasticHit) (string, bool) {
 		name := hit.Source.Source.Name
 		if name == "" {
 			name = hit.Source.Source.ID
@@ -59,7 +59,7 @@ func TestBucketByDatasourceAndType(t *testing.T) {
 	assert.Equal(t, 2, ds[0].Count)
 	assert.Equal(t, "Wiki", ds[1].Value)
 
-	types := bucketBy(hits, func(hit elasticHit) (string, bool) {
+	types := bucketBy(hits, defaultAggBucketCap, "count", func(hit elasticHit) (string, bool) {
 		tp := hit.Source.Type
 		if tp == "" {
 			tp = "document"
@@ -76,7 +76,7 @@ func TestBucketByManyTags(t *testing.T) {
 		facetHit("1", "HR", "", []string{"支付", "合规"}, nil),
 		facetHit("2", "HR", "", []string{"支付"}, nil),
 	}
-	tags := bucketByMany(hits, func(hit elasticHit) ([]string, bool) {
+	tags := bucketByMany(hits, defaultAggBucketCap, "count", func(hit elasticHit) ([]string, bool) {
 		return hit.Source.Tags, len(hit.Source.Tags) > 0
 	})
 	require.Len(t, tags, 2)
@@ -94,7 +94,7 @@ func TestBucketByMonth(t *testing.T) {
 		facetHit("3", "a", "", nil, &feb),
 		facetHit("4", "a", "", nil, nil), // no timestamp → skipped
 	}
-	months := bucketBy(hits, func(hit elasticHit) (string, bool) {
+	months := bucketBy(hits, defaultAggBucketCap, "count", func(hit elasticHit) (string, bool) {
 		if hit.Source.Updated == nil || hit.Source.Updated.IsZero() {
 			return "", false
 		}

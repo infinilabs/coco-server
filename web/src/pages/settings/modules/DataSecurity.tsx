@@ -7,6 +7,7 @@ import '../index.scss';
 import { fetchSettings, updateSettings } from '@/service/api/server';
 import { fetchRoles } from '@/service/api/security';
 import { useAuth } from '@/hooks/business/auth';
+import SaveBar from './SaveBar';
 
 interface MaskingRule {
   id?: string;
@@ -52,8 +53,14 @@ const DataSecurity = () => {
   const [restrictions, setRestrictions] = useState<FieldRestriction[]>([]);
   const [roleOptions, setRoleOptions] = useState<{ label: string; value: string }[]>([]);
   const [testInput, setTestInput] = useState('');
+  const [dirty, setDirty] = useState(false);
 
-  useEffect(() => {
+  // 统一走带 dirty 标记的 mutator；加载回填直接用原始 setter
+  const updateMaskingEnabled = (v: boolean) => { setMaskingEnabled(v); setDirty(true); };
+  const updateRules = (next: MaskingRule[]) => { setRules(next); setDirty(true); };
+  const updateRestrictions = (next: FieldRestriction[]) => { setRestrictions(next); setDirty(true); };
+
+  const loadSettings = () => {
     setLoading(true);
     fetchSettings()
       .then((res: any) => {
@@ -61,8 +68,13 @@ const DataSecurity = () => {
         setMaskingEnabled(!!cfg?.masking?.enabled);
         setRules(cfg?.masking?.rules ?? []);
         setRestrictions(cfg?.field_access?.restrictions ?? []);
+        setDirty(false);
       })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadSettings();
     fetchRoles({ size: 100 }).then((res: any) => {
       const hits = res?.data?.hits?.hits ?? [];
       setRoleOptions(
@@ -87,12 +99,12 @@ const DataSecurity = () => {
     return out;
   }, [testInput, rules, maskingEnabled]);
 
-  const addRule = () => setRules([...rules, { pattern: '', replacement: '***', enabled: true }]);
+  const addRule = () => updateRules([...rules, { pattern: '', replacement: '***', enabled: true }]);
   const addPresets = () => {
     const existing = new Set(rules.map((r) => r.pattern));
-    setRules([...rules, ...PRESETS.filter((p) => !existing.has(p.pattern)).map((p) => ({ ...p }))]);
+    updateRules([...rules, ...PRESETS.filter((p) => !existing.has(p.pattern)).map((p) => ({ ...p }))]);
   };
-  const addRestriction = () => setRestrictions([...restrictions, { role: '', exclude_fields: [] }]);
+  const addRestriction = () => updateRestrictions([...restrictions, { role: '', exclude_fields: [] }]);
 
   const ruleColumns = [
     {
@@ -103,7 +115,7 @@ const DataSecurity = () => {
           value={row.name}
           disabled={!permissions.update}
           placeholder="rule name"
-          onChange={(e) => setRules(rules.map((r, idx) => (idx === i ? { ...r, name: e.target.value } : r)))}
+          onChange={(e) => updateRules(rules.map((r, idx) => (idx === i ? { ...r, name: e.target.value } : r)))}
         />
       )
     },
@@ -115,7 +127,7 @@ const DataSecurity = () => {
           disabled={!permissions.update}
           className="font-mono text-12px"
           placeholder="1[3-9]\\d{9}"
-          onChange={(e) => setRules(rules.map((r, idx) => (idx === i ? { ...r, pattern: e.target.value } : r)))}
+          onChange={(e) => updateRules(rules.map((r, idx) => (idx === i ? { ...r, pattern: e.target.value } : r)))}
         />
       )
     },
@@ -127,7 +139,7 @@ const DataSecurity = () => {
           value={row.replacement}
           disabled={!permissions.update}
           className="font-mono text-12px"
-          onChange={(e) => setRules(rules.map((r, idx) => (idx === i ? { ...r, replacement: e.target.value } : r)))}
+          onChange={(e) => updateRules(rules.map((r, idx) => (idx === i ? { ...r, replacement: e.target.value } : r)))}
         />
       )
     },
@@ -139,7 +151,7 @@ const DataSecurity = () => {
           size="small"
           checked={row.enabled}
           disabled={!permissions.update}
-          onChange={(v) => setRules(rules.map((r, idx) => (idx === i ? { ...r, enabled: v } : r)))}
+          onChange={(v) => updateRules(rules.map((r, idx) => (idx === i ? { ...r, enabled: v } : r)))}
         />
       )
     },
@@ -153,7 +165,7 @@ const DataSecurity = () => {
           danger
           icon={<DeleteOutlined />}
           disabled={!permissions.update}
-          onClick={() => setRules(rules.filter((_, idx) => idx !== i))}
+          onClick={() => updateRules(rules.filter((_, idx) => idx !== i))}
         />
       )
     }
@@ -169,6 +181,7 @@ const DataSecurity = () => {
       const result = await updateSettings({ data_security: payload } as any);
       if (result?.data?.acknowledged) {
         window.$message?.success(t('common.updateSuccess'));
+        setDirty(false);
       }
     } finally {
       setSaving(false);
@@ -176,7 +189,7 @@ const DataSecurity = () => {
   };
 
   return (
-    <div className="p-24px flex flex-col gap-16px">
+    <div className="py-24px flex flex-col gap-16px">
       <Card
         loading={loading}
         title={
@@ -188,7 +201,7 @@ const DataSecurity = () => {
         extra={
           <Space>
             <span className="text-13px">{t('page.settings.data_security.maskingEnabled')}</span>
-            <Switch checked={maskingEnabled} disabled={!permissions.update} onChange={setMaskingEnabled} />
+            <Switch checked={maskingEnabled} disabled={!permissions.update} onChange={(v) => updateMaskingEnabled(v)} />
           </Space>
         }
       >
@@ -249,7 +262,7 @@ const DataSecurity = () => {
                 disabled={!permissions.update}
                 placeholder={t('page.settings.data_security.rolePlaceholder')}
                 options={roleOptions}
-                onChange={(v) => setRestrictions(restrictions.map((x, idx) => (idx === i ? { ...x, role: v ?? '' } : x)))}
+                onChange={(v) => updateRestrictions(restrictions.map((x, idx) => (idx === i ? { ...x, role: v ?? '' } : x)))}
               />
             </Col>
             <Col span={15}>
@@ -262,7 +275,7 @@ const DataSecurity = () => {
                 tokenSeparators={[',']}
                 placeholder="payload.*, raw_content"
                 options={FIELD_SUGGESTIONS.map((f) => ({ label: f, value: f }))}
-                onChange={(v) => setRestrictions(restrictions.map((x, idx) => (idx === i ? { ...x, exclude_fields: v } : x)))}
+                onChange={(v) => updateRestrictions(restrictions.map((x, idx) => (idx === i ? { ...x, exclude_fields: v } : x)))}
               />
             </Col>
             <Col span={2}>
@@ -271,7 +284,7 @@ const DataSecurity = () => {
                 danger
                 icon={<DeleteOutlined />}
                 disabled={!permissions.update}
-                onClick={() => setRestrictions(restrictions.filter((_, idx) => idx !== i))}
+                onClick={() => updateRestrictions(restrictions.filter((_, idx) => idx !== i))}
               />
             </Col>
           </Row>
@@ -282,11 +295,7 @@ const DataSecurity = () => {
       </Card>
 
       {permissions.update ? (
-        <div className="flex justify-end">
-          <Button type="primary" loading={saving} onClick={handleSubmit}>
-            {t('common.save')}
-          </Button>
-        </div>
+        <SaveBar dirty={dirty} loading={saving} onDiscard={() => { setDirty(false); loadSettings(); }} onSave={handleSubmit} />
       ) : null}
     </div>
   );

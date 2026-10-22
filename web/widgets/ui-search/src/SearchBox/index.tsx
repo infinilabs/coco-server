@@ -62,6 +62,7 @@ export function SearchBox(props: SearchBoxProps) {
     setAttachments,
     settings,
     searchType,
+    defaultSearchType,
     fuzziness,
     sort,
     className,
@@ -76,7 +77,10 @@ export function SearchBox(props: SearchBoxProps) {
     filterFieldsMeta,
     onUpload,
     attachments: attachments as any,
-    setAttachments
+    setAttachments,
+    // the resolved searchType prop (Search page) doubles as the default when
+    // the host didn't pass defaultSearchType explicitly
+    defaultSearchType: defaultSearchType || searchType
   });
   const filtersRef = useRef<any>(null);
   const lastSearchTypeRef = useRef(searchType);
@@ -385,9 +389,10 @@ export function SearchBox(props: SearchBoxProps) {
         </>
       ) : (
         <div className="py-12px h-full flex flex-col">
-          {/* input row takes the space above the action bar so the text sits
-              vertically centered in the tall home box instead of hugging the top */}
-          <div className="items-center w-full flex-1 flex gap-8px px-12px">
+          {/* input row top-aligns the textarea so its placeholder sits at the
+              same Y as the expanded panel's (py-12px + top edge) — the centered
+              variant made the placeholder jump ~6px upward on focus */}
+          <div className="items-start w-full flex-1 flex gap-8px px-12px">
             {sb.showExpandedPanel ? null : renderFilters()}
             {renderTextArea(sb.textAreaRef, '!px-0', undefined, 1)}
           </div>

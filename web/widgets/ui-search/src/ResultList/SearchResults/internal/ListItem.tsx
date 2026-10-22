@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import { SquareArrowOutUpRight } from "lucide-react";
 
+import { WikiBadge } from "../../../components/WikiBadge";
 import { AuthImage } from "./AuthImage";
 import { AuthorDate } from "./AuthorDate";
 import { BreadcrumbsLine } from "./BreadcrumbsLine";
@@ -44,6 +45,7 @@ export function ListItem({
           title={item.title}
           titleIcon={titleIcon}
           source={item.source}
+          badge={item.fromWiki ? <WikiBadge className="ml-2px" /> : undefined}
           titleClassName="truncate text-[#1A0CAB] dark:text-[#8AB4F8]"
         />
       </div>
@@ -60,13 +62,13 @@ export function ListItem({
 
         <div className="min-w-0 flex-1 flex flex-col justify-between overflow-hidden">
           {item.summary ? (
-            <div className="line-clamp-3 text-14px leading-22px text-[#4B5563] dark:text-[#C4C9CF]">
+            <div className="line-clamp-3 text-14px leading-22px text-[#666666] dark:text-[#C4C9CF]">
               <HighlightText text={item.summary} />
             </div>
           ) : null}
 
           {item.breadcrumbs?.length || item.author || item.date ? (
-            <div className="mt-2 flex min-w-0 items-center gap-x-6px text-xs text-[#6B7280] dark:text-white/60">
+            <div className="mt-2 flex min-w-0 items-center gap-x-6px text-xs text-[#666666] dark:text-white/60">
               {item.breadcrumbs?.length ? (
                 <BreadcrumbsLine breadcrumbs={item.breadcrumbs} />
               ) : null}
@@ -111,7 +113,7 @@ export function ListItem({
       rel={item.rel}
       onClick={handleClick}
       className={clsx(
-        "relative border-0 bg-transparent group block w-full rounded-xl px-16px! py-14px! text-left no-underline transition-colors",
+        "relative border-0 bg-transparent group block w-full rounded-xl px-16px! py-16px! text-left no-underline transition-colors",
         "hover:bg-slate-100/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300",
         "dark:hover:bg-slate-800/60 dark:focus-visible:ring-slate-600",
         // the selected row must read as selected, not as a stuck hover: the

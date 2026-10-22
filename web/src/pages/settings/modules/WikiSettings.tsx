@@ -1,4 +1,4 @@
-import { Button, Divider, Form, Select, Spin } from 'antd';
+import { Divider, Form, Select, Spin } from 'antd';
 import '../index.scss';
 import { useEffect, useState } from 'react';
 import {
@@ -11,6 +11,7 @@ import {
 } from '@/service/api';
 import { fetchSettings, updateSettings } from '@/service/api/server';
 import { useLoading, useRequest } from '@sa/hooks';
+import SaveBar from './SaveBar';
 
 /**
  * AI 知识库 system settings: the default assistant that curates the wiki. Knowledge bases can still bind their own
@@ -30,6 +31,7 @@ const WikiSettings = memo(() => {
 
   const [assistants, setAssistants] = useState<KbAssistantOption[]>([]);
   const [searchBoundIds, setSearchBoundIds] = useState<Set<string>>(new Set());
+  const [dirty, setDirty] = useState(false);
 
   const {
     data,
@@ -64,7 +66,14 @@ const WikiSettings = memo(() => {
     } else {
       form.setFieldsValue({ assistant_id: BUILTIN_KM_ASSISTANT_ID });
     }
+    setDirty(false);
   }, [JSON.stringify(data)]);
+
+  // 放弃更改：重新拉取服务端配置回填
+  const handleDiscard = () => {
+    setDirty(false);
+    run();
+  };
 
   const handleSubmit = async () => {
     const params = await form.validateFields();
@@ -75,6 +84,7 @@ const WikiSettings = memo(() => {
     const result = await updateSettings({ wiki_settings });
     if (result?.data?.acknowledged) {
       window.$message?.success(t('common.updateSuccess'));
+      setDirty(false);
     }
     endLoading();
   };
@@ -87,6 +97,7 @@ const WikiSettings = memo(() => {
           colon={false}
           form={form}
           labelAlign='left'
+          onValuesChange={() => setDirty(true)}
         >
           <Form.Item
             label={t('page.settings.wiki_settings.labels.assistant')}
@@ -107,17 +118,12 @@ const WikiSettings = memo(() => {
             {t('page.settings.wiki_settings.labels.default_hint_title')}
           </div>
           <div className='settings-form-help mb-24px'>{t('page.settings.wiki_settings.labels.default_hint')}</div>
-          {permissions.update && (
-            <Button
-              loading={loading}
-              type='primary'
-              onClick={handleSubmit}
-            >
-              {t('common.save')}
-            </Button>
-          )}
         </Form>
       </Spin>
+      {/* sticky save bar, same pattern as the ontology page */}
+      {permissions.update && (
+        <SaveBar dirty={dirty} loading={loading} onDiscard={handleDiscard} onSave={handleSubmit} />
+      )}
     </ListContainer>
   );
 });

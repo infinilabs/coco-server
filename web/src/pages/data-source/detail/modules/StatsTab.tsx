@@ -1,5 +1,5 @@
 import { Activity, Cpu, Database, FolderTree, FileType2, HardDrive, Languages, Layers, Gauge, Tags, TrendingUp } from 'lucide-react';
-import { Card, Col, Progress, Row, Space, Tag, Tooltip, Typography } from 'antd';
+import { Card, Col, Progress, Row, Segmented, Space, Spin, Tag, Tooltip, Typography } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { LucideIcon } from 'lucide-react';
@@ -35,8 +35,17 @@ interface AggState {
   by_tag: Bucket[];
   by_cat: Bucket[];
   by_model: Bucket[];
-  by_day: Bucket[];
 }
+
+/** 入库趋势时间范围：gte 为 framework filter 的 date math（now-Nd），null 表示全部历史 */
+type TrendRange = '7d' | '30d' | '90d' | 'all';
+
+const TREND_RANGES: { value: TrendRange; labelKey: string }[] = [
+  { value: '7d', labelKey: 'page.datasource.stats.range7d' },
+  { value: '30d', labelKey: 'page.datasource.stats.range30d' },
+  { value: '90d', labelKey: 'page.datasource.stats.range90d' },
+  { value: 'all', labelKey: 'page.datasource.stats.rangeAll' }
+];
 
 const formatSize = (size?: number) => {
   if (size == null || size <= 0) return '-';
@@ -60,9 +69,24 @@ const buildAggQuery = (id: string) => {
   addAgg('by_tag', 'terms', { field: 'tags', size: '10' });
   addAgg('by_cat', 'terms', { field: 'category', size: '8' });
   addAgg('by_model', 'terms', { field: 'embedding_model', size: '5' });
-  addAgg('by_day', 'date_histogram', { field: 'created', interval: '1d', format: 'yyyy-MM-dd' });
   addAgg('total_size', 'sum', { field: 'size' });
   addAgg('avg_size', 'avg', { field: 'size' });
+  return p.toString();
+};
+
+/**
+ * 入库趋势独立请求（不带范围的范围会污染其他聚合）。
+ * 注意 framework filter 的 range 语法是 `created>=now-30d`（不带冒号——
+ * 带冒号时 `field:` 会被算进字段名，条件恒不命中）。
+ */
+const buildTrendQuery = (id: string, range: TrendRange) => {
+  const p = new URLSearchParams();
+  p.set('size', '0');
+  p.append('filter', `source.id:any(${id})`);
+  if (range !== 'all') p.append('filter', `created>=now-${range}`);
+  p.set('agg[by_day][date_histogram][field]', 'created');
+  p.set('agg[by_day][date_histogram][interval]', '1d');
+  p.set('agg[by_day][date_histogram][format]', 'yyyy-MM-dd');
   return p.toString();
 };
 
@@ -127,8 +151,26 @@ function BarList({ items, empty }: { items: Bucket[]; empty: string }) {
   );
 }
 
-function TrendChart({ buckets, empty }: { buckets: Bucket[]; empty: string }) {
+/** 「全部」历史可能跨一年以上（按天桶会到几百个），超限时按连续多日合并降采样 */
+const MAX_BARS = 90;
+function downsample(buckets: Bucket[], max = MAX_BARS): Bucket[] {
+  if (buckets.length <= max) return buckets;
+  const size = Math.ceil(buckets.length / max);
+  const out: Bucket[] = [];
+  for (let i = 0; i < buckets.length; i += size) {
+    const grp = buckets.slice(i, i + size);
+    out.push({
+      key: grp[0].key,
+      key_as_string: grp[0].key_as_string,
+      doc_count: grp.reduce((s, b) => s + b.doc_count, 0)
+    });
+  }
+  return out;
+}
+
+function TrendChart({ buckets: rawBuckets, empty }: { buckets: Bucket[]; empty: string }) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const buckets = downsample(rawBuckets);
   if (buckets.length <= 1) {
     // 单日全量入库的源没有趋势可看
     return <Typography.Text type="secondary">{empty}</Typography.Text>;
@@ -209,6 +251,9 @@ export default function StatsTab({ id }: Props) {
   const [vectorized, setVectorized] = useState(0);
   const [caps, setCaps] = useState<{ documents: number; vector: boolean; faq: boolean; wiki: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [trendRange, setTrendRange] = useState<TrendRange>('30d');
+  const [trend, setTrend] = useState<Bucket[]>([]);
+  const [trendLoading, setTrendLoading] = useState(true);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -227,8 +272,7 @@ export default function StatsTab({ id }: Props) {
           by_lang: pick('by_lang'),
           by_tag: pick('by_tag'),
           by_cat: pick('by_cat'),
-          by_model: pick('by_model'),
-          by_day: (pick('by_day') as Bucket[]).slice().sort((x, y) => (x.key < y.key ? -1 : 1))
+          by_model: pick('by_model')
         });
       }
       // 向量化覆盖：exists 计数单独一发（聚合族没有 exists 语义）
@@ -248,6 +292,24 @@ export default function StatsTab({ id }: Props) {
   useEffect(() => {
     load();
   }, [load]);
+
+  /** 趋势独立加载：切换时间范围只重发趋势请求，不重跑其他聚合 */
+  const loadTrend = useCallback(async () => {
+    if (!id) return;
+    setTrendLoading(true);
+    try {
+      const res: any = await request({ method: 'get', url: `/document/_search?${buildTrendQuery(id, trendRange)}` }).catch(() => null);
+      const bs = ((res?.data?.aggregations?.by_day?.buckets ?? []) as Bucket[]).slice();
+      bs.sort((x, y) => (x.key < y.key ? -1 : 1));
+      setTrend(bs);
+    } finally {
+      setTrendLoading(false);
+    }
+  }, [id, trendRange]);
+
+  useEffect(() => {
+    loadTrend();
+  }, [loadTrend]);
 
   const empty = t('page.searchOps.noData');
   const coverage = agg?.total ? Math.round((vectorized / agg.total) * 100) : 0;
@@ -287,8 +349,21 @@ export default function StatsTab({ id }: Props) {
         </Space>
       )}
 
-      <Card size="small" title={cardTitle(TrendingUp, t('page.datasource.stats.trend'))}>
-        <TrendChart buckets={agg?.by_day ?? []} empty={t('page.datasource.stats.trendEmpty')} />
+      <Card
+        size="small"
+        title={cardTitle(TrendingUp, t('page.datasource.stats.trend'))}
+        extra={
+          <Segmented
+            size="small"
+            value={trendRange}
+            onChange={v => setTrendRange(v as TrendRange)}
+            options={TREND_RANGES.map(r => ({ label: t(r.labelKey), value: r.value }))}
+          />
+        }
+      >
+        <Spin spinning={trendLoading} size="small">
+          <TrendChart buckets={trend} empty={t('page.datasource.stats.trendEmpty')} />
+        </Spin>
       </Card>
 
       <Row gutter={[16, 16]}>

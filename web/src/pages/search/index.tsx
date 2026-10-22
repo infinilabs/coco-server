@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { fetchIntegration } from '@/service/api/integration';
 import useQueryParams from '@/hooks/common/queryParams';
 import { FullscreenPage, OWNER_FILTER_FIELD, TIME_FILTER_FIELD } from 'ui-search/source';
-import { querySearch, fetchSuggestions, fetchRecommends, fetchFieldsMeta, uploadAttachment } from '@/service/api/ai-search';
+import { querySearch, fetchSuggestions, fetchRecommends, fetchHotSearches, fetchRelatedSearches, fetchFieldsMeta, uploadAttachment } from '@/service/api/ai-search';
 import { getApiBaseUrl, request } from '@/service/request';
 import { consumePendingSearch } from '@/utils/search-handoff';
 import queryString from 'query-string';
@@ -16,9 +16,9 @@ import { fetchBatchEntityLabels } from '@/service/api/entity';
 import { CorrectionModal, type CorrectionPayload } from './components/CorrectionModal';
 import { SaveToWikiModal, type SaveToWikiPayload } from './components/SaveToWikiModal';
 
-// creator facet: buckets carry user ids — display names are resolved client-side
+// creator filter: buckets carry user ids — display names are resolved client-side
 // via getUserEntities (same as the result list's owner names). The agg is named
-// after the filter field so facet clicks produce `filter=_system.owner_id:any()`;
+// after the filter field so filter clicks produce `filter=_system.owner_id:any()`;
 // it aggregates on the .keyword subfield because the engine's dynamic mapping
 // types the bare field as text, which rejects terms aggregations outright.
 const OWNER_AGG = {
@@ -100,7 +100,7 @@ const buildAggsImage = () => ({
 
 export function Component() {
 
-  const [queryParams, setQueryParams] = useQueryParams({ mode: 'search' });
+  const [queryParams, setQueryParams] = useQueryParams({ mode: 'search' }, { reactive: true });
 
   // a search started in the app shell header (chat mode, with attachments)
   // parks its pending conversation in the one-shot handoff — consume it at
@@ -192,40 +192,77 @@ export function Component() {
       start ? `filter=updated>=${start}` : '',
       end ? `filter=updated<=${end}` : '',
     ].filter(Boolean).join('&')
-    // multimodal attachments shape the facet counts like they shape the results
-    const searchStr = [filterStr, dateFilterStr, queryString.stringify({ query, search_type, fuzziness, ...(attachments ? { attachments } : {}) })].filter(Boolean).join('&')
-    const aggs = queryParams['metadata.content_category'] === 'image' ? buildAggsImage() : buildAggsDefault();
+    // multimodal attachments shape the filter counts like they shape the results
+    const searchStr = [filterStr, dateFilterStr, queryString.stringify({ query, search_type, fuzziness, skip_log: 'true', ...(attachments ? { attachments } : {}) })].filter(Boolean).join('&')
+    // 搜索设置 · 聚合与筛选: the operator's aggregations switch gates the fused
+    // /query/_aggregations endpoint server-side, but the leg-local aggs ride
+    // on the search request itself — gate them here too or category/time
+    // filters would survive the switch. content_category is kept either way:
+    // it drives the result-tab visibility, it is not a rail filter.
+    const aggregationsDisabled = !!search_settings?.aggregations_disabled
+    // per-dimension gate (搜索设置 · 聚合与筛选): semantic keys in
+    // aggregation_fields_disabled map to the leg-local agg names; the image
+    // leg names its tags agg `tag`, so both spellings get stripped. Keep the
+    // map in sync with the fused endpoint's dim mapping (aggregations.go).
+    const disabledDims: string[] = search_settings?.aggregation_fields_disabled || []
+    const dimAggKeys: Record<string, string[]> = {
+      category: ['category'],
+      source: ['source.id'],
+      type: ['type'],
+      tags: ['tags', 'tag'],
+      owner: [OWNER_FILTER_FIELD],
+      time: [TIME_FILTER_FIELD],
+      color: ['color']
+    };
+    const stripKeys = new Set<string>();
+    if (aggregationsDisabled) {
+      Object.values(dimAggKeys).forEach(keys => keys.forEach(k => stripKeys.add(k)));
+    } else {
+      disabledDims.forEach(dim => dimAggKeys[dim]?.forEach(k => stripKeys.add(k)));
+    }
+    const fullAggs = queryParams['metadata.content_category'] === 'image' ? buildAggsImage() : buildAggsDefault();
+    const baseAggs = aggregationsDisabled ? { content_category: fullAggs.aggs.content_category } : fullAggs.aggs;
+    const filteredAggs = Object.fromEntries(Object.entries(baseAggs).filter(([k]) => !stripKeys.has(k)));
+    const aggs = { aggs: filteredAggs };
     const body = JSON.stringify(aggs)
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
     const res = await querySearch(body, searchStr, { headers, ignoreError: true })
 
     // W15: the per-leg aggregation describes one recall leg, not the
-    // fusion — the fused counts for the three main facets (source/type/
+    // fusion — the fused counts for the three main filter groups (source/type/
     // tags) come from /query/_aggregations, which runs the same hybrid
     // pipeline. Merge them over the leg-local buckets; content_category
     // (the image/doc tabs) keeps its own aggregation untouched.
     try {
-      const fusedStr = queryString.stringify({ query, search_type, fuzziness })
-      const fusedRes = await request({
-        method: 'get',
-        url: `/query/_aggregations?${fusedStr}`,
-        headers,
-        ignoreError: true
-      })
-      const fused = fusedRes?.data
-      if (fused && res?.data?.aggregations) {
-        const mergeFacet = (fieldName: string, buckets: { value: string; count: number }[] | undefined) => {
-          if (!buckets) return
-          res.data.aggregations[fieldName] = {
-            buckets: buckets.map(b => ({ key: b.value, doc_count: b.count }))
+      if (aggregationsDisabled) {
+        // the aggregation endpoint is switched off server-side anyway — skip the
+        // pointless request; leg-local rail aggs are already stripped above
+      } else {
+        const fusedStr = queryString.stringify({ query, search_type, fuzziness })
+        const fusedRes = await request({
+          method: 'get',
+          url: `/query/_aggregations?${fusedStr}`,
+          headers,
+          ignoreError: true
+        })
+        const fused = fusedRes?.data
+        if (fused && res?.data?.aggregations) {
+          const mergeBucket = (fieldName: string, buckets: { value: string; count: number }[] | undefined) => {
+            if (!buckets) return
+            res.data.aggregations[fieldName] = {
+              buckets: buckets.map(b => ({ key: b.value, doc_count: b.count }))
+            }
           }
+          // the fused endpoint also gates per-dimension server-side; skip the
+          // merge here so a disabled dimension's stale leg-local buckets die
+          const dimEnabled = (dim: string) => !disabledDims.includes(dim)
+          if (dimEnabled('source')) mergeBucket('source.id', fused.datasources)
+          if (dimEnabled('type')) mergeBucket('type', fused.types)
+          if (dimEnabled('tags')) mergeBucket('tags', fused.tags)
         }
-        mergeFacet('source.id', fused.datasources)
-        mergeFacet('type', fused.types)
-        mergeFacet('tags', fused.tags)
       }
     } catch {
-      // fused facets are an enhancement — leg-local buckets stand on failure
+      // fused buckets are an enhancement — leg-local buckets stand on failure
     }
 
     if (callback) callback(res.data)
@@ -322,6 +359,22 @@ export function Component() {
     if (callback) callback(res.data)
   }
 
+  // 热搜: GET /query/_hot — search-log aggregation, gated server-side by the
+  // operator's hot-searches switch (disabled → empty items → widget hides)
+  async function onHotSearches(callback?: (data: any) => void) {
+    const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
+    const res = await fetchHotSearches({ headers, ignoreError: true })
+    if (callback) callback(res?.data)
+  }
+
+  // 相关搜索: GET /query/_related?q= — search-log lexical neighbors for the
+  // result-page sidebar; empty items → the widget hides the column
+  async function onRelatedSearches(query: string, callback?: (data: any) => void) {
+    const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
+    const res = await fetchRelatedSearches(query, { headers, ignoreError: true })
+    if (callback) callback(res?.data)
+  }
+
   async function onUpload(files: any[], callback?: (data: any) => void) {
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
     const res = await uploadAttachment(files, { headers, ignoreError: true })
@@ -373,6 +426,10 @@ export function Component() {
   const componentProps = {
     settings: integration,
     id: search_settings?.integration,
+    // 搜索设置 · 默认搜索模式: the widget falls back to the operator's
+    // configured search_type when the URL carries no explicit ?search_type=
+    // (previously hardcoded to keyword, which never consumed this setting)
+    "defaultSearchType": search_settings?.search_type,
     theme: darkMode ? 'dark' : 'light',
     language: locale,
     "logo": searchLogo,
@@ -400,6 +457,8 @@ export function Component() {
     "onAsk": onAsk,
     "onSuggestion": onSuggestion,
     "onRecommend": onRecommend,
+    "onHotSearches": onHotSearches,
+    "onRelatedSearches": onRelatedSearches,
     "config": {
       // labels are resolved by the widget's i18n (labels.source / labels.type / …);
       // only the widget-specific render type is configured here

@@ -1,6 +1,6 @@
 import { SearchOutlined } from '@ant-design/icons';
 import { Empty, Input, List, Modal, Tag } from 'antd';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { searchWikiArticles, searchWikiKbs } from '@/service/api';
@@ -8,9 +8,11 @@ import { searchWikiArticles, searchWikiKbs } from '@/service/api';
 interface Props {
   open: boolean;
   onClose: () => void;
+  /** seed the search input (e.g. the sidebar tree filter handed over on Enter) */
+  initialQuery?: string;
 }
 
-export function SearchModal({ open, onClose }: Props) {
+export function SearchModal({ open, onClose, initialQuery }: Props) {
   const { t } = useTranslation();
   const nav = useNavigate();
   const [query, setQuery] = useState('');
@@ -38,6 +40,11 @@ export function SearchModal({ open, onClose }: Props) {
     onClose();
     nav(`/wiki/article/${article.id}?kb=${article.kb_id}`);
   };
+
+  // handed over from the sidebar tree filter: run the pending query on open
+  useEffect(() => {
+    if (open && initialQuery?.trim()) runSearch(initialQuery);
+  }, [open, initialQuery]);
 
   const goKb = (kb: Api.Wiki.Kb) => {
     onClose();

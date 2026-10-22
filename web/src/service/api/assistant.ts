@@ -73,3 +73,17 @@ export function getAssistantCategory() {
   });
 }
 
+
+/** Count-only chat session query, optionally narrowed to a `created` window.
+ *  IMPORTANT: the window must use the orm `filter` syntax — a `query.created`
+ *  param is silently ignored by the backend (only fulltext `query` and `filter`
+ *  params are parsed). e.g. ['created>=now-7d'] for the last 7 days, or
+ *  ['created>=now-14d', 'created<now-7d'] for the previous 7-day window. */
+export function fetchChatSessionCount(created?: string[]) {
+  const qs = (created ?? []).map(r => `filter=${encodeURIComponent(r)}`).join('&');
+  return request({
+    method: 'get',
+    params: { size: 0 },
+    url: `/chat/_history${qs ? `?${qs}` : ''}`
+  });
+}

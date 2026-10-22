@@ -1,4 +1,5 @@
-import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
+import PageHeaderTitle from '@/components/stateless/common/PageHeaderTitle';
 import { useLoading } from '@sa/hooks';
 import { useSearchParams } from 'react-router-dom';
 import { Avatar, Button, Dropdown, Input, Switch, Table, Tabs, message } from 'antd';
@@ -347,6 +348,13 @@ export function Component() {
   return (
     <ACard
       styles={{ body: { padding: 0 } }}
+      title={
+        <PageHeaderTitle
+          description={t('page.integration.subtitle')}
+          icon={<AppstoreOutlined />}
+          title={t('page.integration.title')}
+        />
+      }
     >
       <Tabs
         activeKey={activeKey}

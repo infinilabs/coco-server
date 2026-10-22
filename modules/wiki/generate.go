@@ -44,7 +44,27 @@ const (
 	maxGeneratePages           = 20
 )
 
-var citationPattern = regexp.MustCompile(`\[(\d+)\]`)
+// citationPattern matches one citation marker: the canonical "[1]", the
+// adjacent "[1][3]", and the comma-joined "[1, 3]" / "[1,3]" shapes models
+// commonly emit. The old single-number pattern silently missed "[1, 3]" —
+// observed verbatim in generated drafts — so chapters were dropped as
+// "no citations" and pages came out with no confidence label.
+var citationPattern = regexp.MustCompile(`\[(\d+(?:\s*,\s*\d+)*\s*,?)\]`)
+
+// citationRefs extracts every cited document number in order of appearance.
+// Out-of-range numbers are returned too: the caller counts them toward
+// citation density and only marks the valid ones as cited sources.
+func citationRefs(body string) []int {
+	var out []int
+	for _, match := range citationPattern.FindAllStringSubmatch(body, -1) {
+		for _, part := range strings.Split(match[1], ",") {
+			if n, err := strconv.Atoi(strings.TrimSpace(part)); err == nil {
+				out = append(out, n)
+			}
+		}
+	}
+	return out
+}
 
 var removeThinkPattern = regexp.MustCompile(`(?s)<think>.*?</think>`)
 
@@ -518,12 +538,13 @@ func draftPage(ctx context.Context, llm llms.Model, candidate pageCandidate, doc
 			log.Warnf("wiki: chapter %q of page %q failed: %v", chapter.Title, candidate.Title, err)
 			continue
 		}
-		if len(citationPattern.FindAllString(body, -1)) == 0 {
+		refs := citationRefs(body)
+		if len(refs) == 0 {
 			log.Warnf("wiki: chapter %q of page %q produced no citations, dropping", chapter.Title, candidate.Title)
 			continue
 		}
-		for _, match := range citationPattern.FindAllStringSubmatch(body, -1) {
-			if n, err := strconv.Atoi(match[1]); err == nil && n >= 1 && n <= len(docs) {
+		for _, n := range refs {
+			if n >= 1 && n <= len(docs) {
 				cited[n] = true
 			}
 			citations++

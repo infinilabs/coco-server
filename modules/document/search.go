@@ -156,11 +156,17 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		subcategory  = h.GetParameterOrDefault(req, "subcategory", "")
 		richCategory = h.GetParameterOrDefault(req, "rich_category", "")
 		searchType   = h.GetParameterOrDefault(req, "search_type", "")
-		fuzzinessStr = h.GetParameterOrDefault(req, "fuzziness", "3")
+		// 搜索设置 · 高级: the operator-configured fuzziness is the default;
+		// an explicit ?fuzziness= on the request always wins
+		fuzzinessStr = h.GetParameter(req, "fuzziness")
 		// multimodal search: uploaded attachments (images/documents) whose
 		// extracted text joins the query, comma-separated IDs
 		attachmentsParam = h.GetParameterOrDefault(req, "attachments", "")
 	)
+
+	if fuzzinessStr == "" {
+		fuzzinessStr = strconv.Itoa(searchSettingsSnapshot().EffectiveFuzziness())
+	}
 
 	// Parse fuzziness
 	var fuzziness = 3 // default to 3
@@ -190,7 +196,29 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 	}
 
 	query = util.CleanUserQuery(query)
+
+	// 搜索设置 · 安全: an operator-blocked query pattern (RE2 regex)
+	// short-circuits the search — empty result, no engine roundtrip
+	if query != "" && isBlockedQuery(query) {
+		h.WriteJSON(w, elastic.SearchResponse{Hits: elastic.Hits{Total: elastic.TotalHits{Value: 0, Relation: "eq"}}}, http.StatusOK)
+		return
+	}
+
 	searchStarted := time.Now()
+	// per-leg diagnostics for the search log: nil-safe, only the /query/_search
+	// face fills it — facets and eval reuse the same legs without logging
+	diag := &searchDiagnostics{}
+	// the UI fires a second /query/_search per keystroke-search just for the
+	// sidebar facet counts (aggs-only body). Logging it would double-count
+	// every search in the ops aggregates and skew the latency percentiles
+	// with cheap facet scans — callers opt out with ?skip_log=true.
+	logEnabled := h.GetParameter(req, "skip_log") != "true"
+	record := func(query, searchType, userID string, total int64, took time.Duration, rewritten bool, diag *searchDiagnostics) {
+		if !logEnabled {
+			return
+		}
+		go recordSearchLog(context.WithoutCancel(req.Context()), query, searchType, userID, total, took, rewritten, diag)
+	}
 
 	//try to collect assistants
 	if query != "" || h.GetParameter(req, "filter") != "" {
@@ -198,16 +226,44 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 
 		result := elastic.SearchResponseWithMeta[core.Document]{}
 		rerankNote := ""
+
+		// settings-driven pagination (搜索设置 · 结果呈现/高级): the
+		// operator's default page size fills in when the request carries
+		// none, the configured per-page cap clamps oversized ?size=, and
+		// the from+size window keeps deep pagination inside the engine's
+		// max_result_window (clamped, not errored). hybrid_rrf sizes its
+		// own recall window downstream and reuses these for the tail.
+		searchCfg := searchSettingsSnapshot()
+		pageFrom := h.GetIntOrDefault(req, "from", 0)
+		pageSize := h.GetIntOrDefault(req, "size", searchCfg.EffectivePageSize())
+		if pageFrom < 0 {
+			pageFrom = 0
+		}
+		if pageSize < 1 {
+			pageSize = searchCfg.EffectivePageSize()
+		}
+		if pageSize > searchCfg.EffectiveMaxPageSize() {
+			pageSize = searchCfg.EffectiveMaxPageSize()
+		}
+		if window := searchCfg.EffectiveMaxResultWindow(); pageFrom+pageSize > window {
+			pageFrom = window - pageSize
+			if pageFrom < 0 {
+				pageFrom = 0
+			}
+		}
+
 		// note travels to the client in the Warning header: the semantic
 		// leg is transparent about which route actually ran.
 		note := ""
 		// rewritten: the D8 query-rewrite leg fired for this search
 		rewritten := false
 		if searchType == "hybrid_rrf" {
-			fused, fusedNote, rwApplied, err := h.queryWithRRF(req, query, datasource, integrationID, category, subcategory, richCategory, fuzziness)
+			fused, fusedNote, rwApplied, err := h.queryWithRRF(req, query, datasource, integrationID, category, subcategory, richCategory, fuzziness, diag)
 			if err != nil {
 				// with hybrid_rrf as the configured default, an engine
 				// hiccup here would otherwise crash every plain search
+				record(query, searchType, reqUser.UserID,
+					0, time.Since(searchStarted), false, &searchDiagnostics{Error: fmt.Sprintf("hybrid search failed: %v", err)})
 				h.WriteError(w, fmt.Sprintf("hybrid search failed: %v", err), http.StatusInternalServerError)
 				return
 			}
@@ -217,6 +273,8 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		} else {
 			builder, err := orm.NewQueryBuilderFromRequest(req)
 			if err != nil {
+				record(query, searchType, reqUser.UserID,
+					0, time.Since(searchStarted), false, &searchDiagnostics{Error: fmt.Sprintf("invalid search filter: %v", err)})
 				h.WriteError(w, fmt.Sprintf("invalid search filter: %v", err), http.StatusBadRequest)
 				return
 			}
@@ -225,64 +283,93 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 			// ?tags= controlled-vocabulary facet filter (W4): the legs'
 			// recall respects the same facets the UI offers
 			applyTagsFilter(builder, h.GetParameterOrDefault(req, "tags", ""))
-			// one interactive page can never drag unbounded rows out of
-			// the engine — bulk export has dedicated APIs
-			if reqSize := h.GetIntOrDefault(req, "size", 10); reqSize > maxSearchPageSize {
-				builder.Size(maxSearchPageSize)
-			}
+			// the normalized page rides on the builder: the request args
+			// parser already read from/size, re-assert the clamped values
+			// (one interactive page can never drag unbounded rows out of
+			// the engine — bulk export has dedicated APIs)
+			builder.From(pageFrom)
+			builder.Size(pageSize)
 
 			writeResult := func(resp *orm.SimpleResult) {
 				util.MustFromJSONBytes(resp.Raw, &result)
 			}
 
 			if searchType == "semantic" || searchType == "hybrid" {
-				from := h.GetIntOrDefault(req, "from", 0)
-				if from < 0 {
-					from = 0
-				}
-				size := h.GetIntOrDefault(req, "size", 10)
-				if size < 1 {
-					size = 10
-				}
-				if size > maxSearchPageSize {
-					size = maxSearchPageSize
-				}
+				// the normalized page: same defaults and clamps as the
+				// keyword leg above
+				from, size := pageFrom, pageSize
 
 				switch plan := planSemantic(req.Context()); plan.Route {
 				case semanticRouteEngine:
+					legStart := time.Now()
 					resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, searchType, fuzziness, nil)
+					diag.LegSemanticMS = time.Since(legStart).Milliseconds()
 					if err != nil {
+						record(query, searchType, reqUser.UserID,
+							0, time.Since(searchStarted), false, &searchDiagnostics{Error: fmt.Sprintf("search failed: %v", err)})
 						h.WriteError(w, fmt.Sprintf("search failed: %v", err), http.StatusInternalServerError)
 						return
 					}
 					writeResult(resp)
+					diag.EngineTookMS = int64(result.Took)
 				case semanticRouteClient:
 					builder.From(0)
-					builder.Size(rrfRecallWindow(from, size))
+					// FIXED recall window, NOT from+size: the rerank order is
+					// not prefix-stable across window sizes (best-chunk
+					// refinement rescoring reorders docs as the candidate set
+					// grows), so slicing [from:from+size] out of a from-dependent
+					// window made scroll pages overlap/repeat. One fixed window
+					// + one slice keeps every page disjoint and stable.
+					builder.Size(maxRRFWindow)
+					legStart := time.Now()
 					reranked, clientNote, err := clientSemanticRecall(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, fuzziness)
+					diag.LegSemanticMS = time.Since(legStart).Milliseconds()
 					if err != nil {
+						record(query, searchType, reqUser.UserID,
+							0, time.Since(searchStarted), false, &searchDiagnostics{Error: fmt.Sprintf("search failed: %v", err)})
 						h.WriteError(w, fmt.Sprintf("search failed: %v", err), http.StatusInternalServerError)
 						return
+					}
+					// 搜索设置 · 语义与 AI: the semantic threshold drops
+					// reranked hits scoring below it (client cosine scores)
+					if sms := searchCfg.SemanticMinScore; sms > 0 {
+						kept := reranked.Hits.Hits[:0]
+						for _, hit := range reranked.Hits.Hits {
+							if float64(hit.Score) >= sms {
+								kept = append(kept, hit)
+							}
+						}
+						reranked.Hits.Hits = kept
 					}
 					paginateHits(reranked, from, size)
 					result = *reranked
 					note = clientNote
 				default:
 					note = plan.Reason
+					legStart := time.Now()
 					resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, "keyword", fuzziness, nil)
+					diag.LegKeywordMS = time.Since(legStart).Milliseconds()
 					if err != nil {
+						record(query, searchType, reqUser.UserID,
+							0, time.Since(searchStarted), false, &searchDiagnostics{Error: fmt.Sprintf("search failed: %v", err)})
 						h.WriteError(w, fmt.Sprintf("search failed: %v", err), http.StatusInternalServerError)
 						return
 					}
 					writeResult(resp)
+					diag.EngineTookMS = int64(result.Took)
 				}
 			} else {
+				legStart := time.Now()
 				resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, searchType, fuzziness, nil)
+				diag.LegKeywordMS = time.Since(legStart).Milliseconds()
 				if err != nil {
+					record(query, searchType, reqUser.UserID,
+						0, time.Since(searchStarted), false, &searchDiagnostics{Error: fmt.Sprintf("search failed: %v", err)})
 					h.WriteError(w, fmt.Sprintf("search failed: %v", err), http.StatusInternalServerError)
 					return
 				}
 				writeResult(resp)
+				diag.EngineTookMS = int64(result.Took)
 			}
 
 		}
@@ -320,10 +407,21 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 			refreshDatasourceFacetLabels(req.Context(), agg)
 		}
 
-		size := h.GetIntOrDefault(req, "size", 10)
-		if size > maxSearchPageSize {
-			size = maxSearchPageSize
+		// 搜索设置 · 安全: run the Data Security masking rules over the
+		// returned hits when the operator opts in (the assistants prepended
+		// below are synthetic and carry no sensitive content)
+		if cfg := searchSettingsSnapshot(); cfg != nil && cfg.ApplyMaskingToResults {
+			for i := range result.Hits.Hits {
+				doc := &result.Hits.Hits[i].Source
+				doc.Title = common.MaskContent(doc.Title)
+				doc.Summary = common.MaskContent(doc.Summary)
+				if doc.Content != "" {
+					doc.Content = common.MaskContent(doc.Content)
+				}
+			}
 		}
+
+		size := pageSize
 		assistantSearchPermission := security.GetSimplePermission(Category, Assistant, string(QuickAISearchAction))
 		perID := security.GetOrInitPermissionKey(assistantSearchPermission)
 
@@ -362,13 +460,59 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 			}
 		}
 
+		// 搜索设置 · 结果干预: exact-matched pinned rules ride on top of
+		// everything (assistants included) — the operator's curation wins.
+		// First page only: re-prepending on every page would duplicate the
+		// pinned docs each time the client appends the next scroll page
+		// (they can't be deduped against hits from earlier pages here).
+		if pageFrom == 0 {
+			if pinned := h.pinnedHits(req, query, integrationID); len(pinned) > 0 {
+			// 搜索设置 · 安全: pinned hits are fetched and merged AFTER the
+			// masking pass above, so they would bypass it — mask them here
+			// too, curation must not leak what the operator asked to mask
+			if cfg := searchSettingsSnapshot(); cfg != nil && cfg.ApplyMaskingToResults {
+				for i := range pinned {
+					doc := &pinned[i].Source
+					doc.Title = common.MaskContent(doc.Title)
+					doc.Summary = common.MaskContent(doc.Summary)
+					if doc.Content != "" {
+						doc.Content = common.MaskContent(doc.Content)
+					}
+				}
+			}
+			seen := map[string]bool{}
+			for i := range result.Hits.Hits {
+				seen[result.Hits.Hits[i].ID] = true
+			}
+			fresh := make([]elastic.DocumentWithMeta[core.Document], 0, len(pinned))
+			for i := range pinned {
+				if !seen[pinned[i].ID] {
+					fresh = append(fresh, pinned[i])
+				}
+			}
+			result.Hits.Hits = append(fresh, result.Hits.Hits...)
+			}
+		}
+
 		// telemetry (P2/D5): what was asked, which strategy ran, what came
 		// back and how long it took — the overview and the knowledge-gap
 		// loop are built on it; async so the search never waits on it.
 		// WithoutCancel: the goroutine outlives the request, a canceled
-		// request context would kill the log write and the gap check
-		go recordSearchLog(context.WithoutCancel(req.Context()), query, searchType, reqUser.UserID,
-			result.GetTotal(), time.Since(searchStarted), rewritten)
+		// request context would kill the log write and the gap check.
+		// The total must also count the hits appended above (assistants,
+		// wiki): GetTotal only reflects the engine count, so a search whose
+		// only hits are appended would otherwise log total=0 / zero_hit
+		// while the user clearly saw results — a false recall signal.
+		if len(result.Hits.Hits) > 0 {
+			diag.TopHit = result.Hits.Hits[0].Source.Title
+			diag.TopScore = float64(result.Hits.Hits[0].Score)
+		}
+		logTotal := result.GetTotal()
+		if hs := int64(len(result.Hits.Hits)); hs > logTotal {
+			logTotal = hs
+		}
+		record(query, searchType, reqUser.UserID,
+			logTotal, time.Since(searchStarted), rewritten, diag)
 
 		api.WriteJSON(w, result, 200)
 	} else {

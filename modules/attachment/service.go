@@ -1,6 +1,7 @@
 package attachment
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -50,7 +51,11 @@ func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, hea
 		fileID = util.GetUUID()
 	}
 	fileSize := int64(len(data))
-	mimeType, err := DetectMimeType(fileName, file, header)
+	// the reader was fully consumed above — pass a fresh seekable reader over
+	// the same bytes, otherwise the sniff inside DetectMimeType reads from EOF
+	// and every internally generated file (covers, thumbnails) ends up as
+	// "text/plain" (http.DetectContentType of an empty buffer)
+	mimeType, err := DetectMimeType(fileName, bytes.NewReader(data), header)
 
 	attachment := core.Attachment{}
 	attachment.ID = fileID

@@ -4,7 +4,10 @@
 
 package core
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+)
 
 type Config struct {
 	ServerInfo         *ServerInfo         `config:"server" json:"server,omitempty"`
@@ -114,6 +117,13 @@ type ChatConfig struct {
 	ChatStartPageConfig *ChatStartPageConfig `config:"start_page" json:"start_page,omitempty"`
 }
 
+// FieldWeight is one keyword-leg searchable field with its boost (BM25
+// relevance weight). Weight 1 means no boost.
+type FieldWeight struct {
+	Field  string  `json:"field"`
+	Weight float64 `json:"weight"`
+}
+
 type SearchSettings struct {
 	Enabled     bool   `json:"enabled"`
 	Integration string `json:"integration"`
@@ -133,6 +143,343 @@ type SearchSettings struct {
 	// cite its mom section. Off by default — the text/semantic document
 	// legs stay; flip after _reprocess has projected enough documents.
 	ChunkRoute bool `json:"chunk_route,omitempty"`
+
+	// ---- retrieval strategy (搜索设置 · 检索策略) ----
+	// NOTE: none of these carry omitempty on purpose — the settings merge is
+	// a shallow per-key overwrite, so omitted keys could never be cleared
+	// back to their zero value ("off"). The UI always saves the full section.
+
+	// FieldWeights overrides the keyword/hybrid text leg's searchable fields
+	// and their boosts ("title" weight 10 → title^10). Empty or nil keeps
+	// the built-in defaults in QueryDocuments.
+	FieldWeights []FieldWeight `json:"field_weights"`
+	// DefaultSort orders results when the request carries no explicit sort:
+	// "" / "relevance" (BM25 score, the historic behavior), "created_desc"
+	// or "created_asc". Never applied to hybrid_rrf, whose ordering is the
+	// fused rank.
+	DefaultSort string `json:"default_sort"`
+	// MinScore drops hits scoring below the threshold; 0 disables it. Not
+	// applied to hybrid_rrf (its scores are rank-fusion values, not BM25).
+	MinScore float64 `json:"min_score"`
+	// MatchOperator combines terms inside every leaf match of the text leg:
+	// "" / "OR" (any term, the historic behavior) or "AND" (all terms).
+	MatchOperator string `json:"match_operator"`
+	// MinimumShouldMatch is a raw ES minimum_should_match spec ("75%",
+	// "2", "2<75%") applied to the text leg's should logic. Empty = off.
+	MinimumShouldMatch string `json:"minimum_should_match"`
+
+	// ---- presentation, suggestions, facets & protections (搜索设置 ·
+	// 结果呈现 / 搜索建议 / 聚合与筛选 / 高级) ----
+	// same no-omitempty rule as the strategy block above: the settings merge
+	// is a shallow per-key overwrite and the UI always saves the full
+	// section, so omitted keys could never be cleared back to "default".
+
+	// PageSize is the default results-per-page /query/_search serves when
+	// the request carries no explicit ?size=. 0 keeps the historic 10.
+	PageSize int `json:"page_size"`
+	// MaxPageSize clamps any single request's ?size= on /query/_search (a
+	// per-page upper bound, 10..1000). 0 keeps the historic 100.
+	MaxPageSize int `json:"max_page_size"`
+	// MaxResultWindow caps from+size on /query/_search — deep-pagination
+	// protection with the ES max_result_window semantics, enforced by
+	// clamping from so the window fits instead of the engine's error.
+	// 0 keeps 10000.
+	MaxResultWindow int `json:"max_result_window"`
+	// SuggestDisabled turns the search-box document suggestions
+	// (/query/_suggest without a tag) off. Inverted on purpose so the zero
+	// value keeps the historic enabled behavior: settings saved before this
+	// field existed (and deployments that never touch the UI) decode as
+	// enabled. Studio field-name/value suggestions are not affected.
+	SuggestDisabled bool `json:"suggest_disabled"`
+	// SuggestSize is the default suggestion count when the request carries
+	// no explicit ?size=. 0 keeps 10.
+	SuggestSize int `json:"suggest_size"`
+	// AggregationBucketCap is the per-aggregation bucket cap on /query/_aggregations. 0 keeps
+	// the historic 15.
+	AggregationBucketCap int `json:"aggregation_bucket_cap"`
+	// ResultSourceIncludes trims every search hit's _source to these fields
+	// (ES _source.includes) — smaller payloads and hidden internals. Empty
+	// keeps the full document, the historic behavior.
+	ResultSourceIncludes []string `json:"result_source_includes"`
+	// Fuzziness is the default typo-tolerance distance of the text leg when
+	// the request carries no explicit ?fuzziness=. 0 keeps the historic 3
+	// (exact matching stays reachable via the request param).
+	Fuzziness int `json:"fuzziness"`
+	// QueryTimeoutMS caps engine execution time per search (ES ?timeout=).
+	// 0 = off, the historic behavior.
+	QueryTimeoutMS int `json:"query_timeout_ms"`
+
+	// AggregationsDisabled turns the /query/_aggregations endpoint off.
+	// Inverted on purpose so the zero value keeps the historic enabled
+	// behavior.
+	AggregationsDisabled bool `json:"aggregations_disabled"`
+	// AggregationBucketSort orders the aggregation buckets: "" / "count" (count desc, the
+	// historic behavior) or "value" (alphabetical by bucket value).
+	AggregationBucketSort string `json:"aggregation_bucket_sort"`
+	// AggregationFieldsDisabled turns individual aggregation dimensions off
+	// (semantic keys: category/source/type/tags/owner/time/color). Inverted
+	// storage so the zero value keeps every dimension enabled — same
+	// convention as AggregationsDisabled.
+	AggregationFieldsDisabled []string `json:"aggregation_fields_disabled"`
+	// HotSearchesDisabled turns the hot-queries endpoint (/query/_hot —
+	// top search-log queries) off. Inverted so the zero value keeps the
+	// historic... endpoint-is-new default: enabled.
+	HotSearchesDisabled bool `json:"hot_searches_disabled"`
+	// HotSearchesSize is the default top-N the hot-queries endpoint serves
+	// when the request carries no explicit ?size=. 0 keeps 10.
+	HotSearchesSize int `json:"hot_searches_size"`
+	// RecommendTopics are the operator-managed recommended queries the
+	// /query/_recommend endpoint serves (rendered under the search box).
+	// Forward storage: empty falls back to the static `recommend:` config
+	// block in coco.yml (historic behavior).
+	RecommendTopics []string `json:"recommend_topics"`
+	// RecommendTopicsDisabled turns the recommendation feature off without
+	// wiping the stored topics (they reappear when re-enabled). Inverted so
+	// the zero value keeps the default: enabled.
+	RecommendTopicsDisabled bool `json:"recommend_topics_disabled"`
+	// RelatedSearchesDisabled turns the related-searches endpoint
+	// (/query/_related — the result-page sidebar suggestions) off. Inverted
+	// so the zero value keeps the default: enabled.
+	RelatedSearchesDisabled bool `json:"related_searches_disabled"`
+
+	// ---- semantic / AI (搜索设置 · 语义与 AI) ----
+	// SemanticMinScore drops semantic/hybrid recall hits scoring below the
+	// threshold (cosine-scale scores are far smaller than BM25 — a BM25
+	// min_score must not be reused there). 0 disables. Never applied to
+	// hybrid_rrf: rank-fusion values are not comparable.
+	SemanticMinScore float64 `json:"semantic_min_score"`
+	// RRFRankConstant overrides the client-side fusion K of hybrid_rrf when
+	// the request carries no explicit ?rrf_k=. 0 keeps the built-in default.
+	RRFRankConstant int `json:"rrf_rank_constant"`
+	// RerankDisabled turns the post-fusion rerank leg off. Inverted so the
+	// zero value keeps the historic enabled behavior.
+	RerankDisabled bool `json:"rerank_disabled"`
+
+	// ---- result intervention (搜索设置 · 结果干预) ----
+	// BlockedDocIDs never surface in any recall leg that runs through
+	// QueryDocuments (keyword/semantic/hybrid, hybrid_rrf routes, suggest).
+	BlockedDocIDs []string `json:"blocked_doc_ids"`
+	// BlockedDatasourceIDs hide whole datasources from search.
+	BlockedDatasourceIDs []string `json:"blocked_datasource_ids"`
+	// PinnedRules pin documents on top of the results for an
+	// exactly-matched query (case-insensitive). First match wins.
+	PinnedRules []PinnedRule `json:"pinned_rules"`
+
+	// ---- security (搜索设置 · 安全) ----
+	// ApplyMaskingToResults runs the Data Security masking rules over the
+	// returned search hits (title/summary/content). Default off: masking
+	// was designed for model prompts, search results keep the historic
+	// unmasked behavior.
+	ApplyMaskingToResults bool `json:"apply_masking_to_results"`
+	// BlockedQueryPatterns are RE2 regexes; a query matching any of them
+	// short-circuits to an empty result without touching the engine.
+	BlockedQueryPatterns []string `json:"blocked_query_patterns"`
+}
+
+// PinnedRule is one 结果干预 · 置顶 rule: an exact (case-insensitive) query
+// and the documents to place on top, in the given order.
+type PinnedRule struct {
+	Query       string   `json:"query"`
+	DocumentIDs []string `json:"document_ids"`
+}
+
+// Historic defaults + hard ceilings for the pagination/facet knobs. The
+// hardMaxPageSize ceiling keeps even a misconfigured max_page_size far below
+// anything that could drag unbounded rows out of the engine.
+const (
+	defaultSearchPageSize       = 10
+	defaultSearchMaxPage        = 100
+	hardMaxSearchPageSize       = 1000
+	defaultResultWindow         = 10000
+	maxResultWindowCeiling      = 100000
+	defaultSuggestSize          = 10
+	defaultAggregationBucketCap = 15
+	defaultSearchFuzziness      = 3
+	defaultHotSearchesSize      = 10
+)
+
+// EffectivePageSize is the nil-safe default results-per-page: unset or out
+// of range reads as the historic 10.
+func (s *SearchSettings) EffectivePageSize() int {
+	if s != nil && s.PageSize >= 1 && s.PageSize <= 100 {
+		return s.PageSize
+	}
+	return defaultSearchPageSize
+}
+
+// EffectiveMaxPageSize is the nil-safe per-request ?size= clamp: unset or
+// out of range reads as the historic 100, never above the hard ceiling.
+func (s *SearchSettings) EffectiveMaxPageSize() int {
+	if s != nil && s.MaxPageSize >= 10 && s.MaxPageSize <= hardMaxSearchPageSize {
+		return s.MaxPageSize
+	}
+	return defaultSearchMaxPage
+}
+
+// EffectiveMaxResultWindow is the nil-safe from+size cap: unset or out of
+// range reads as the ES default 10000.
+func (s *SearchSettings) EffectiveMaxResultWindow() int {
+	if s != nil && s.MaxResultWindow >= 100 && s.MaxResultWindow <= maxResultWindowCeiling {
+		return s.MaxResultWindow
+	}
+	return defaultResultWindow
+}
+
+// SuggestEnabledVal is the nil-safe suggestion gate: unset reads as enabled.
+func (s *SearchSettings) SuggestEnabledVal() bool {
+	return s == nil || !s.SuggestDisabled
+}
+
+// EffectiveSuggestSize is the nil-safe default suggestion count: unset or
+// out of range reads as the historic 10.
+func (s *SearchSettings) EffectiveSuggestSize() int {
+	if s != nil && s.SuggestSize >= 1 && s.SuggestSize <= 50 {
+		return s.SuggestSize
+	}
+	return defaultSuggestSize
+}
+
+// EffectiveAggregationBucketCap is the nil-safe per-aggregation bucket cap: unset or out of
+// range reads as the historic 15.
+func (s *SearchSettings) EffectiveAggregationBucketCap() int {
+	if s != nil && s.AggregationBucketCap >= 1 && s.AggregationBucketCap <= 50 {
+		return s.AggregationBucketCap
+	}
+	return defaultAggregationBucketCap
+}
+
+// EffectiveRRFRankConstant is the nil-safe fusion-K override: unset or out
+// of range reads as 0, meaning "keep the built-in defaultRRFK".
+func (s *SearchSettings) EffectiveRRFRankConstant() int {
+	if s != nil && s.RRFRankConstant >= 1 && s.RRFRankConstant <= 1000 {
+		return s.RRFRankConstant
+	}
+	return 0
+}
+
+// EffectiveFuzziness is the nil-safe default typo-tolerance distance: unset
+// or out of range reads as the historic 3.
+func (s *SearchSettings) EffectiveFuzziness() int {
+	if s != nil && s.Fuzziness >= 1 && s.Fuzziness <= 5 {
+		return s.Fuzziness
+	}
+	return defaultSearchFuzziness
+}
+
+// AggregationsEnabledVal is the nil-safe aggregations gate: unset reads as enabled.
+func (s *SearchSettings) AggregationsEnabledVal() bool {
+	return s == nil || !s.AggregationsDisabled
+}
+
+// EffectiveAggregationBucketSort is the nil-safe bucket ordering: anything but "value"
+// reads as the historic count-desc.
+func (s *SearchSettings) EffectiveAggregationBucketSort() string {
+	if s != nil && s.AggregationBucketSort == "value" {
+		return "value"
+	}
+	return "count"
+}
+
+// AggregationFieldDisabled is the nil-safe per-dimension gate: unset (or an
+// unknown key) reads as enabled, the historic behavior.
+func (s *SearchSettings) AggregationFieldDisabled(key string) bool {
+	if s == nil {
+		return false
+	}
+	for _, k := range s.AggregationFieldsDisabled {
+		if k == key {
+			return true
+		}
+	}
+	return false
+}
+
+// HotSearchesEnabledVal is the nil-safe hot-queries gate: unset reads as
+// enabled (the endpoint is new; existing deployments keep working).
+func (s *SearchSettings) HotSearchesEnabledVal() bool {
+	return s == nil || !s.HotSearchesDisabled
+}
+
+// RelatedSearchesEnabledVal is the nil-safe related-searches gate: unset
+// reads as enabled (same convention as HotSearchesEnabledVal).
+func (s *SearchSettings) RelatedSearchesEnabledVal() bool {
+	return s == nil || !s.RelatedSearchesDisabled
+}
+
+// EffectiveHotSearchesSize is the nil-safe default hot-queries count: unset
+// or out of range reads as 10.
+func (s *SearchSettings) EffectiveHotSearchesSize() int {
+	if s != nil && s.HotSearchesSize >= 1 && s.HotSearchesSize <= 20 {
+		return s.HotSearchesSize
+	}
+	return defaultHotSearchesSize
+}
+
+// Built-in keyword-leg fields — keep in sync with the historic defaults in
+// QueryDocuments (exposed so the UI can pre-fill the weight editor).
+var DefaultFieldWeights = []FieldWeight{
+	{Field: "title.keyword", Weight: 100},
+	{Field: "title", Weight: 10},
+	{Field: "title.pinyin", Weight: 4},
+	{Field: "combined_fulltext", Weight: 1},
+}
+
+// TextFieldWeights renders the configured field weights as the "field^boost"
+// strings the query builder consumes. Nil when unconfigured (caller falls
+// back to the built-in defaults).
+func (s *SearchSettings) TextFieldWeights() []string {
+	if s == nil || len(s.FieldWeights) == 0 {
+		return nil
+	}
+	fields := make([]string, 0, len(s.FieldWeights))
+	for _, fw := range s.FieldWeights {
+		if fw.Field == "" {
+			continue
+		}
+		if fw.Weight > 0 && fw.Weight != 1 {
+			fields = append(fields, fw.Field+"^"+strconv.FormatFloat(fw.Weight, 'f', -1, 64))
+		} else {
+			fields = append(fields, fw.Field)
+		}
+	}
+	return fields
+}
+
+// MatchOperatorVal is the nil-safe match operator: empty reads as OR.
+func (s *SearchSettings) MatchOperatorVal() string {
+	if s == nil || (s.MatchOperator != "AND" && s.MatchOperator != "OR") {
+		return "OR"
+	}
+	return s.MatchOperator
+}
+
+// sortTypes are the values search_settings.default_sort accepts.
+var sortTypes = map[string]bool{
+	"":             true,
+	"relevance":    true,
+	"created_desc": true,
+	"created_asc":  true,
+}
+
+// IsValidSortType reports whether the value is accepted for default_sort.
+func IsValidSortType(t string) bool {
+	return sortTypes[t]
+}
+
+// DefaultSortSpec resolves the configured default sort into an ES sort
+// clause (field + "asc"/"desc"). ok=false means relevance (no explicit
+// sort) — the historic behavior.
+func (s *SearchSettings) DefaultSortSpec() (field string, order string, ok bool) {
+	if s == nil {
+		return "", "", false
+	}
+	switch s.DefaultSort {
+	case "created_desc":
+		return "created", "desc", true
+	case "created_asc":
+		return "created", "asc", true
+	}
+	return "", "", false
 }
 
 // DefaultType is the nil-safe resolution of the configured default: no

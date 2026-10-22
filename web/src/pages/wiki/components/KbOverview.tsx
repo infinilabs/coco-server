@@ -1,4 +1,4 @@
-import { FileAddOutlined, RobotOutlined, SearchOutlined } from '@ant-design/icons';
+import { FileAddOutlined, RobotOutlined } from '@ant-design/icons';
 import { Button, Empty, Space, Tag } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -59,12 +59,6 @@ export function KbOverview({
         <div className='wiki-panel-head'>
           <span className='wiki-panel-title'>{t('page.wiki.overview.recent')}</span>
           <Space>
-            <Button
-              icon={<SearchOutlined />}
-              onClick={() => nav('/wiki/list')}
-            >
-              {t('page.wiki.overview.search')}
-            </Button>
             <Button
               icon={<RobotOutlined />}
               onClick={onAiGenerate}

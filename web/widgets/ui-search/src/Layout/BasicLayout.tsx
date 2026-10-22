@@ -58,6 +58,9 @@ interface BasicLayoutProps {
   /** in-flow preview pane that takes over the right column from recommends */
   readonly preview?: ReactNode;
   readonly previewWidth?: number;
+  /** knowledge-graph panel (rendered when the current hits include KB content) */
+  readonly wikiGraph?: ReactNode;
+  readonly wikiGraphOpen?: boolean;
   [key: string]: any;
 }
 
@@ -87,7 +90,9 @@ const BasicLayout: FC<BasicLayoutProps> = props => {
     setRecommendsCollapse,
     histogram,
     preview,
-    previewWidth
+    previewWidth,
+    wikiGraph,
+    wikiGraphOpen
   } = props;
 
   const themeClass = theme === 'dark' ? DARK_CLASS : 'light';
@@ -117,7 +122,11 @@ const BasicLayout: FC<BasicLayoutProps> = props => {
   const userCollapsedLeftRef = useRef(false);
   const userCollapsedRightRef = useRef(false);
 
-  useEffect(() => {
+  // useLayoutEffect (not useEffect): the geometry effect below also runs in
+  // the layout phase and re-runs on siderCollapse changes — a passive ref sync
+  // would run AFTER it in the same commit, letting handleResize read a stale
+  // collapse state
+  useLayoutEffect(() => {
     siderCollapseRef.current = siderCollapse;
   }, [siderCollapse]);
   useEffect(() => {
@@ -149,7 +158,13 @@ const BasicLayout: FC<BasicLayoutProps> = props => {
 
     const handleResize = () => {
       const totalWidth = container.clientWidth;
-      const facetRailWidth = aggregations ? LEFT_WIDTH : 0;
+      // the facet rail only frees its 240px when the USER collapsed it — the
+      // auto-fold path (foldFacetForPreview) must keep budgeting the rail so
+      // the geometry cannot oscillate between fold and unfold across effect
+      // re-runs. With the rail user-collapsed the preview pane absorbs the
+      // freed width instead of it becoming dead space on the left
+      const facetRailWidth =
+        aggregations && siderCollapseRef.current && userCollapsedLeftRef.current ? 0 : LEFT_WIDTH;
       // the no-preview column cap for the current sidebar configuration — the
       // center must keep exactly this width when the pane opens
       const centerKeep =
@@ -257,6 +272,7 @@ const BasicLayout: FC<BasicLayoutProps> = props => {
     aggregations,
     recommends,
     hasRecommendsData,
+    siderCollapse,
     setSiderCollapse,
     setRecommendsCollapse,
     previewRequested,
@@ -273,7 +289,12 @@ const BasicLayout: FC<BasicLayoutProps> = props => {
   }, [recommendsCollapse]);
 
   const showLeftSider = !siderCollapse && !isMobile && Boolean(aggregations);
-  const showRightSider = Boolean(recommends && hasRecommendsData && !recommendsCollapse && !isMobile);
+  // the knowledge-graph panel shares the right column with recommends (stacked
+  // above it), so it counts as a right sider for the header geometry
+  const showGraphColumn = Boolean(wikiGraphOpen && wikiGraph && !isMobile && !previewRequested);
+  const showRightSider = Boolean(
+    (recommends && hasRecommendsData && !recommendsCollapse && !isMobile) || showGraphColumn
+  );
 
   // center column width/padding: the content box keeps EXACTLY its no-preview
   // width (same card width, same left alignment) — with the pane open only the
@@ -437,6 +458,44 @@ const BasicLayout: FC<BasicLayoutProps> = props => {
           >
             {preview}
           </div>
+        ) : showGraphColumn && recommends && hasRecommendsData && !recommendsCollapse ? (
+          // knowledge graph stacked above Related searches in the same column
+          <Sider
+            width={400}
+            {...siderProps}
+            style={{ overflow: 'visible' }}
+          >
+            <div className='flex flex-col flex-1 gap-16px pt-32px pr-32px'>
+              {wikiGraph}
+              {recommends}
+            </div>
+          </Sider>
+        ) : showGraphColumn ? (
+          // graph open while recommends is folded (or has no data yet) — the
+          // column stays so the header/menu geometry holds; recommends remains
+          // reachable through its drawer toggle
+          <Sider
+            width={400}
+            {...siderProps}
+            style={{ overflow: 'visible' }}
+          >
+            <div className='pt-32px pr-32px'>{wikiGraph}</div>
+            {recommends && hasRecommendsData ? (
+              <CommonDrawer
+                getContainer={getContainer}
+                open={rightDrawerOpen}
+                placement='right'
+                size={400}
+                classNames={{
+                  wrapper: '!right-0px !bottom-0px !top-64px',
+                  body: '!p-16px'
+                }}
+                onClose={() => setRightDrawerOpen(false)}
+              >
+                {recommends}
+              </CommonDrawer>
+            ) : null}
+          </Sider>
         ) : (
           recommends &&
           hasRecommendsData &&
@@ -460,8 +519,11 @@ const BasicLayout: FC<BasicLayoutProps> = props => {
               {...siderProps}
               style={{ overflow: 'visible' }}
             >
-              {/* Content part */}
-              <div className='flex flex-col flex-1 gap-16px pt-32px'>{recommends}</div>
+              {/* Content part — pr-32px keeps a right gutter to the window
+                  edge: above 1480 (240+840+400) the flex leftover already
+                  provides it, below that the columns fill the row and the
+                  sidebar would sit flush against the edge without it */}
+              <div className='flex flex-col flex-1 gap-16px pt-32px pr-32px'>{recommends}</div>
             </Sider>
           ))
         )}

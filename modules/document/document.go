@@ -467,6 +467,13 @@ func (h *APIHandler) reprocessDoc(w http.ResponseWriter, req *http.Request, ps h
 	obj.Chunks = nil
 	obj.Summary = ""
 	obj.AiInsights = core.AiInsights{}
+	// Clear Processed too: the consumer's alreadyEnriched gate drops any
+	// queued message whose stored copy is Processed with the same content
+	// hash — leaving the flag set means a force re-run is silently swallowed
+	// there, the document sits in `indexing` forever and derived artifacts
+	// (covers, embeddings) never regenerate. Observed live: 45 force-requeued
+	// images never reprocessed until this flag was cleared.
+	obj.Processed = false
 	obj.Status = core.DocumentStatusIndexing
 	obj.ErrorMessage = ""
 	ctx.Refresh = orm.WaitForRefresh
@@ -664,11 +671,10 @@ func (h *APIHandler) searchDocs(w http.ResponseWriter, req *http.Request, ps htt
 					panic(err)
 				}
 				if ds != nil {
+					// pseudo connectors (e.g. manual_upload for KB uploads) have no
+					// connector record — degrade to default path handling, not a 500
 					conn, err := connector.GetConnectorByID(ds.Connector.ConnectorID)
-					if err != nil {
-						panic(err)
-					}
-					if conn.PathHierarchy {
+					if err == nil && conn != nil && conn.PathHierarchy {
 						pathHierarchy = true
 					}
 

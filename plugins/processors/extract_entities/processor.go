@@ -724,6 +724,9 @@ func extractEntitiesFromText(ctx context.Context, llm llms.Model, material strin
 	}
 
 	responseBuilder := strings.Builder{}
+	llmCtx, llmCancel := utils.PipelineLLMContext(ctx)
+	defer llmCancel()
+	ctx = llmCtx
 	_, err := llm.GenerateContent(ctx, message, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
 		if global.ShuttingDown() {
 			ctx.Done()

@@ -89,7 +89,7 @@ func (h *APIHandler) checkEnvironment(w http.ResponseWriter, req *http.Request, 
 		EffectiveTika: effectiveTikaSettings{
 			Endpoint:              endpoint,
 			TimeoutInSeconds:      timeout,
-			OverriddenByPipelines: pipelineTikaOverrides(),
+			OverriddenByPipelines: pipelineTikaOverrides(req.Context()),
 		},
 	}
 
@@ -217,8 +217,11 @@ func firstNonEmptyLine(output string) string {
 // pipelineTikaOverrides lists pipelines that pin tika_endpoint explicitly —
 // those ignore the global setting until the override is cleared, so the UI
 // can call them out instead of silently changing nothing.
-func pipelineTikaOverrides() []tikaPipelineOverride {
-	ctx := orm.NewContextWithParent(context.Background())
+func pipelineTikaOverrides(parent context.Context) []tikaPipelineOverride {
+	// carry the request context so the ORM security hooks see the caller —
+	// a bare context.Background() makes MustGetUserFromContext panic 401,
+	// which the UI interprets as an expired session and logs the user out
+	ctx := orm.NewContextWithParent(parent)
 	orm.WithModel(ctx, &pipeline.PipelineConfigV2{})
 
 	configs := []pipeline.PipelineConfigV2{}

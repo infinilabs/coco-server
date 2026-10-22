@@ -1,4 +1,5 @@
-import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
+import { ClusterOutlined, EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
+import PageHeaderTitle from '@/components/stateless/common/PageHeaderTitle';
 import { Avatar, Button, Dropdown, Switch, Table, Tag, message } from 'antd';
 import type { MenuProps, TableColumnsType, TableProps } from 'antd';
 import Search from 'antd/es/input/Search';
@@ -338,7 +339,6 @@ export function Component() {
   return (
     <ListContainer>
       <ACard
-        bordered={false}
         className='mb-12px card-wrapper'
         size='small'
       >
@@ -346,8 +346,7 @@ export function Component() {
           <div className='flex flex-wrap items-center gap-8px'>
             <span className='font-500'>{t('page.mcpserver.server.title')}</span>
             <Tag
-              bordered={false}
-              color='blue'
+                    color='blue'
             >
               streamable-http
             </Tag>
@@ -369,9 +368,15 @@ export function Component() {
         </div>
       </ACard>
       <ACard
-        bordered={false}
         className='flex-col-stretch sm:flex-1-hidden card-wrapper'
         ref={tableWrapperRef}
+        title={(
+          <PageHeaderTitle
+            description={t('page.mcpserver.subtitle')}
+            icon={<ClusterOutlined />}
+            title={t('page.mcpserver.title')}
+          />
+        )}
       >
         <div className='mb-4 mt-4 flex flex-wrap items-center justify-between gap-12px'>
           <Search

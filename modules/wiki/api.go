@@ -52,6 +52,15 @@ func (h *APIHandler) getToc(w http.ResponseWriter, req *http.Request, ps httprou
 		// an empty tree is a valid state for a new KB
 		toc = &core.WikiToc{KbID: kbID, Nodes: []core.WikiTocNode{}}
 	}
+	// drift repair: some creation paths bypass the toc sync (imports,
+	// backfills, interrupted generations), leaving orphan articles or a
+	// blank tree behind. reconcileToc is idempotent — a consistent KB only
+	// pays one article listing
+	if healed, err := reconcileToc(kbID, toc, found); err != nil {
+		log.Warnf("wiki: toc reconcile failed for kb [%s]: %v", kbID, err)
+	} else if healed != nil {
+		toc = healed
+	}
 	// article toc nodes carry no page_type of their own, and the client tree
 	// draws a per-type icon — ship an article_id→page_type map alongside the
 	// nodes. Derived on read (never persisted back through updateToc), so it
@@ -305,6 +314,114 @@ func findToc(ctx *orm.Context, kbID string) (*core.WikiToc, bool, error) {
 		return &core.WikiToc{}, false, nil
 	}
 	return &tocs[0], true, nil
+}
+
+// maxTocHealArticles caps the self-heal rebuild; a KB with more entries than
+// this has outgrown the lazy sidebar tree anyway
+const maxTocHealArticles = 1000
+
+// reconcileToc repairs toc drift for a KB whose articles were created
+// outside the toc-sync path (imports, backfills, interrupted generations).
+// Two shapes of drift are handled:
+//   - empty tree + articles exist → full rebuild (every article a root node)
+//   - partial tree + orphan articles (absent from the tree) → appended at
+//     root level, oldest first, preserving creation order
+//
+// The KB's article_count is reconciled in the same pass. Idempotent: a
+// consistent KB costs one article listing and is left untouched. Returns the
+// (possibly unchanged) toc.
+func reconcileToc(kbID string, toc *core.WikiToc, found bool) (*core.WikiToc, error) {
+	ctx := orm.NewContext()
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	// the repair must read its own writes: a concurrent client refetches
+	// right after and must never see the pre-repair tree
+	ctx.Refresh = orm.WaitForRefresh
+	orm.WithModel(ctx, &core.WikiArticle{})
+
+	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(maxTocHealArticles).
+		Filter(orm.TermQuery("kb_id", kbID)).
+		SortBy(orm.Sort{Field: "created", SortType: orm.ASC}))
+	if err != nil {
+		return nil, err
+	}
+	articles, _, err := elastic.DecodeHits[core.WikiArticle](res)
+	if err != nil {
+		return nil, err
+	}
+	if len(articles) == 0 {
+		// a genuinely new KB: an empty tree is a valid state, nothing to do
+		return toc, nil
+	}
+
+	inToc := map[string]bool{}
+	for _, id := range tocArticleIDs(toc.Nodes) {
+		inToc[id] = true
+	}
+	orphans := make([]int, 0, len(articles))
+	for i := range articles {
+		if !inToc[articles[i].ID] {
+			orphans = append(orphans, i)
+		}
+	}
+
+	switch {
+	case len(toc.Nodes) == 0:
+		// blank tree under existing articles: rebuild the whole thing
+		toc.Nodes = make([]core.WikiTocNode, 0, len(articles))
+		for i := range articles {
+			toc.Nodes = append(toc.Nodes, articleTocNode(&articles[i]))
+		}
+	case len(orphans) > 0:
+		// partial drift: the tree stays as the user arranged it, missing
+		// articles join at root level in creation order
+		for _, i := range orphans {
+			toc.Nodes = append(toc.Nodes, articleTocNode(&articles[i]))
+		}
+	default:
+		// tree is consistent; only the counter may be stale
+		reconcileKbArticleCount(ctx, kbID, len(articles))
+		return toc, nil
+	}
+
+	orm.WithModel(ctx, &core.WikiToc{})
+	toc.KbID = kbID
+	if found {
+		err = orm.Update(ctx, toc)
+	} else {
+		err = orm.Create(ctx, toc)
+	}
+	if err != nil {
+		return nil, err
+	}
+	log.Infof("wiki: toc reconciled for kb [%s]: %d articles in tree, %d appended", kbID, len(toc.Nodes), len(orphans))
+
+	reconcileKbArticleCount(ctx, kbID, len(articles))
+	return toc, nil
+}
+
+// articleTocNode builds the root-level toc node for an article (same shape
+// addArticleToToc produces).
+func articleTocNode(a *core.WikiArticle) core.WikiTocNode {
+	return core.WikiTocNode{
+		ID:        "toc-" + a.ID,
+		Title:     a.Title,
+		Type:      "article",
+		ArticleID: a.ID,
+	}
+}
+
+// reconcileKbArticleCount corrects a stale KB article counter.
+func reconcileKbArticleCount(ctx *orm.Context, kbID string, count int) {
+	orm.WithModel(ctx, &core.WikiKnowledgeBase{})
+	var kb core.WikiKnowledgeBase
+	kb.SetID(kbID)
+	if exists, err := orm.GetV2(ctx, &kb); err == nil && exists && kb.ArticleCount != count {
+		kb.ArticleCount = count
+		if err := orm.Update(ctx, &kb); err != nil {
+			log.Warnf("wiki: article_count reconcile failed for kb [%s]: %v", kbID, err)
+		}
+	}
 }
 
 /* ---------------- versions ---------------- */

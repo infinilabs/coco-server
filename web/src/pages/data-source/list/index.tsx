@@ -1,4 +1,5 @@
-import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
+import { DatabaseOutlined, EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
+import PageHeaderTitle from '@/components/stateless/common/PageHeaderTitle';
 import { Avatar, Button, Dropdown, Switch, Table, message } from 'antd';
 import type { MenuProps, TableColumnsType, TableProps } from 'antd';
 import Search from 'antd/es/input/Search';
@@ -427,11 +428,17 @@ export function Component() {
   return (
     <ListContainer>
       <ACard
-        bordered={false}
         className='flex-col-stretch sm:flex-1-hidden card-wrapper'
         ref={tableWrapperRef}
+        title={(
+          <PageHeaderTitle
+            description={t('page.datasource.subtitle')}
+            icon={<DatabaseOutlined />}
+            title={t('page.datasource.title')}
+          />
+        )}
       >
-        <div className='mb-4 mt-4 flex flex-wrap items-center justify-between gap-12px'>
+        <div className='mb-4 flex flex-wrap items-center justify-between gap-12px'>
           <Search
             addonBefore={<FilterOutlined />}
             className='w-full max-w-360px sm:!w-300px'

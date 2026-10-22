@@ -12,6 +12,7 @@ import '../index.scss';
 import { fetchEnvironmentCheck, fetchSettings, updateSettings } from '@/service/api/server';
 import { useLoading, useRequest } from '@sa/hooks';
 import { useAuth } from '@/hooks/business/auth';
+import SaveBar from './SaveBar';
 
 const statusIcon = (status: Api.Environment.CheckStatus) => {
   if (status === 'ok') return <CheckCircleFilled className="text-18px color-[var(--ant-color-success)]" />;
@@ -31,6 +32,7 @@ const Environment = memo(() => {
   const { endLoading, loading, startLoading } = useLoading();
   const [checks, setChecks] = useState<Api.Environment.Check[]>([]);
   const [effectiveTika, setEffectiveTika] = useState<Api.Environment.EffectiveTika>();
+  const [dirty, setDirty] = useState(false);
 
   const {
     data: settingsData,
@@ -56,8 +58,15 @@ const Environment = memo(() => {
         tika_endpoint: cfg.tika_endpoint,
         tika_timeout_in_seconds: cfg.tika_timeout_in_seconds
       });
+      setDirty(false);
     }
   }, [JSON.stringify(settingsData)]);
+
+  // 放弃更改：重新拉取服务端配置回填
+  const handleDiscard = () => {
+    setDirty(false);
+    runSettings();
+  };
 
   useEffect(() => {
     const result = checkData as unknown as Api.Environment.CheckResult | undefined;
@@ -84,6 +93,7 @@ const Environment = memo(() => {
       window.$message?.success(t('common.updateSuccess'));
       // the effective address just changed — refresh probes and overrides
       runCheck();
+      setDirty(false);
     }
     endLoading();
   };
@@ -118,7 +128,7 @@ const Environment = memo(() => {
     <ListContainer>
       <Spin spinning={settingsLoading || loading}>
         <div className="py-24px">
-          <Form className="settings-form" colon={false} form={form} labelAlign="left">
+          <Form className="settings-form" colon={false} form={form} labelAlign="left" onValuesChange={() => setDirty(true)}>
             <Form.Item label={<span className="color-[var(--ant-color-text-tertiary)]">{t('page.settings.environment.labels.tika_service')}</span>}>
               <div className="m-b-8px color-[var(--ant-color-text-tertiary)]">
                 {t('page.settings.environment.labels.tika_desc')}
@@ -153,11 +163,6 @@ const Environment = memo(() => {
                     style={{ width: 240 }}
                   />
                 </Form.Item>
-                {permissions.update && (
-                  <Button type="primary" onClick={() => handleSave()}>
-                    {t('common.update')}
-                  </Button>
-                )}
               </div>
               {overriddenNames.length > 0 && (
                 <Alert
@@ -182,6 +187,9 @@ const Environment = memo(() => {
           <List dataSource={checks} loading={checkLoading} renderItem={renderCheck} rowKey={check => check.key} />
         </div>
       </Spin>
+      {permissions.update && (
+        <SaveBar dirty={dirty} loading={loading} onDiscard={handleDiscard} onSave={() => handleSave()} />
+      )}
     </ListContainer>
   );
 });

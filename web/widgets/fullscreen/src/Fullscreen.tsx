@@ -173,7 +173,7 @@ export default function Fullscreen(props: FullscreenProps) {
             start ? `filter=updated>=${start}` : '',
             end ? `filter=updated<=${end}` : '',
         ].filter(Boolean).join('&')
-        const searchStr = [filterStr, dateFilterStr, queryString.stringify({ query: keyword, search_type, fuzziness })].filter(Boolean).join('&')
+        const searchStr = [filterStr, dateFilterStr, queryString.stringify({ query: keyword, search_type, fuzziness, skip_log: 'true' })].filter(Boolean).join('&')
         fetch(`${server}/query/_search?${searchStr}`, {
             method: 'POST',
             headers: {

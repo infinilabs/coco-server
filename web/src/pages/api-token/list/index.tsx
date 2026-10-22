@@ -1,4 +1,5 @@
-import Icon, { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
+import Icon, { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, KeyOutlined, PlusOutlined } from '@ant-design/icons';
+import PageHeaderTitle from '@/components/stateless/common/PageHeaderTitle';
 import { Button, Dropdown, Form, Input, Modal, Spin, Table, message } from 'antd';
 import SvgIcon from '@/components/stateless/custom/SvgIcon';
 import type { GetProp, MenuProps, TableColumnsType, TableProps } from 'antd';
@@ -248,10 +249,16 @@ export function Component() {
   return (
     <ListContainer>
       <ACard
-        bordered={false}
         className="flex-col-stretch sm:flex-1-hidden card-wrapper"
+        title={(
+          <PageHeaderTitle
+            description={t('page.apitoken.subtitle')}
+            icon={<KeyOutlined />}
+            title={t('page.apitoken.title')}
+          />
+        )}
       >
-        <div className="mb-4 mt-4 flex flex-wrap items-center justify-between gap-12px">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-12px">
           <Search
             addonBefore={<FilterOutlined />}
             className="w-full max-w-360px sm:!w-300px"

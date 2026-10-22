@@ -45,6 +45,15 @@ func ensureUploadDatasource(ctx *orm.Context, kb *core.WikiKnowledgeBase) (*core
 		return nil, err
 	}
 	if exists {
+		// self-heal datasources created before sync was explicitly disabled:
+		// the dispatcher picks up sync.enabled=true sources and fails every
+		// cycle because manual_upload has no connector record
+		if ds.SyncConfig.Enabled {
+			ds.SyncConfig.Enabled = false
+			if err := orm.Update(ctx, &ds); err != nil {
+				return nil, err
+			}
+		}
 		return &ds, nil
 	}
 	ds.Name = "知识库上传 · " + kb.Name

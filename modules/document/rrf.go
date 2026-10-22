@@ -54,6 +54,13 @@ type RRFConfig struct {
 const (
 	defaultRRFK      = 60.0
 	defaultRRFWeight = 1.0
+	// defaultWikiRRFWeight doubles the wiki leg's contribution: the curated
+	// layer is the "read the compiled knowledge first" tier, so a page that
+	// only the wiki leg recalls should still outrank documents a single raw
+	// text leg surfaced (a wiki rank-1 gets 2/61, beating any one-leg 1/61
+	// while multi-leg accumulators still win). Override per request with
+	// the wiki_weight parameter.
+	defaultWikiRRFWeight = 2.0
 	// maxRRFWindow bounds how many candidates each route fetches before
 	// fusion, so a hostile from/size cannot turn one search into several
 	// unbounded scans.
@@ -84,33 +91,22 @@ func (c RRFConfig) normalized() RRFConfig {
 		for _, name := range rrfRouteNames {
 			c.Weights[name] = defaultRRFWeight
 		}
+		c.Weights[rrfRouteWiki] = defaultWikiRRFWeight
 	}
 	return c
 }
 
 // weight returns the route's weight; routes absent from the map default to
-// the neutral weight so new routes join without touching every caller.
+// the neutral weight, except the wiki leg which carries the curated-layer
+// boost. New routes join without touching every caller.
 func (c RRFConfig) weight(route string) float64 {
 	if w, ok := c.Weights[route]; ok {
 		return w
 	}
+	if route == rrfRouteWiki {
+		return defaultWikiRRFWeight
+	}
 	return defaultRRFWeight
-}
-
-// rrfRecallWindow returns how many candidates a fused route should fetch for
-// a page: the page span, capped by maxRRFWindow.
-func rrfRecallWindow(from, size int) int {
-	if from < 0 {
-		from = 0
-	}
-	if size < 1 {
-		size = 10
-	}
-	window := from + size
-	if window > maxRRFWindow {
-		window = maxRRFWindow
-	}
-	return window
 }
 
 // rrfBreakdown carries one document's per-route rank, raw score and RRF

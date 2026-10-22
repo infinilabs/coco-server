@@ -69,8 +69,13 @@ var settingsSections = []struct {
 	{
 		name: "search_settings",
 		apply: func(incoming, old *core.Config) error {
-			if t := incoming.SearchSettings; t != nil && t.SearchType != "" && !core.IsValidSearchType(t.SearchType) {
-				return fmt.Errorf("invalid search_type %q: must be one of keyword, semantic, hybrid, hybrid_rrf", t.SearchType)
+			if t := incoming.SearchSettings; t != nil {
+				if t.SearchType != "" && !core.IsValidSearchType(t.SearchType) {
+					return fmt.Errorf("invalid search_type %q: must be one of keyword, semantic, hybrid, hybrid_rrf", t.SearchType)
+				}
+				if err := validateSearchStrategy(t); err != nil {
+					return err
+				}
 			}
 			return mergeSection(old.SearchSettings, incoming.SearchSettings, func(v *core.SearchSettings) { old.SearchSettings = v })
 		},
@@ -136,6 +141,150 @@ var settingsSections = []struct {
 			return mergeSection(old.Appearance, incoming.Appearance, func(v *core.AppearanceSettings) { old.Appearance = v })
 		},
 	},
+}
+
+// maxSearchFieldWeights caps the operator-configured field weight list — the
+// text leg fires one match clause per field, a runaway list multiplies query cost.
+const maxSearchFieldWeights = 20
+
+// minSearchWeight / maxSearchWeight bound one field's boost. Extremely large
+// boosts drown out every other relevance signal; zero/negative is invalid.
+const (
+	minSearchWeight = 0.0001
+	maxSearchWeight = 10000
+)
+
+// searchMSMPattern loosely validates an ES minimum_should_match spec: a
+// percentage, an integer, or the "N<pct|n>" combination form.
+var searchMSMPattern = regexp.MustCompile(`^-?\d{1,3}%?$|^-?\d{1,3}<(-?\d{1,3}%?)$`)
+
+// validateSearchStrategy rejects retrieval-strategy values that would corrupt
+// the query DSL at recall time — better to fail the save than to 400 every search.
+func validateSearchStrategy(cfg *core.SearchSettings) error {
+	if cfg.DefaultSort != "" && !core.IsValidSortType(cfg.DefaultSort) {
+		return fmt.Errorf("invalid default_sort %q: must be one of relevance, created_desc, created_asc", cfg.DefaultSort)
+	}
+	if cfg.MatchOperator != "" && cfg.MatchOperator != "OR" && cfg.MatchOperator != "AND" {
+		return fmt.Errorf("invalid match_operator %q: must be OR or AND", cfg.MatchOperator)
+	}
+	if cfg.MinScore < 0 || cfg.MinScore > 10000 {
+		return fmt.Errorf("min_score must be between 0 and 10000")
+	}
+	if msm := cfg.MinimumShouldMatch; msm != "" && !searchMSMPattern.MatchString(strings.TrimSpace(msm)) {
+		return fmt.Errorf("invalid minimum_should_match %q: expected an ES spec like 75%%, 2 or 2<75%%", msm)
+	}
+	seen := map[string]bool{}
+	for i, fw := range cfg.FieldWeights {
+		if fw.Field == "" {
+			return fmt.Errorf("field_weights[%d]: field is required", i)
+		}
+		if fw.Weight < minSearchWeight || fw.Weight > maxSearchWeight {
+			return fmt.Errorf("field_weights[%d] (%s): weight must be between %v and %v", i, fw.Field, minSearchWeight, maxSearchWeight)
+		}
+		if seen[fw.Field] {
+			return fmt.Errorf("field_weights[%d]: duplicate field %q", i, fw.Field)
+		}
+		seen[fw.Field] = true
+	}
+	if len(cfg.FieldWeights) > maxSearchFieldWeights {
+		return fmt.Errorf("field_weights: at most %d fields", maxSearchFieldWeights)
+	}
+	// pagination / suggestion / facet knobs: 0 means "keep the built-in
+	// default", anything set must sit in the same range the UI enforces
+	if cfg.PageSize != 0 && (cfg.PageSize < 1 || cfg.PageSize > 100) {
+		return fmt.Errorf("page_size must be between 1 and 100 (0 = default)")
+	}
+	if cfg.MaxPageSize != 0 && (cfg.MaxPageSize < 10 || cfg.MaxPageSize > 1000) {
+		return fmt.Errorf("max_page_size must be between 10 and 1000 (0 = default)")
+	}
+	if cfg.MaxResultWindow != 0 && (cfg.MaxResultWindow < 100 || cfg.MaxResultWindow > 100000) {
+		return fmt.Errorf("max_result_window must be between 100 and 100000 (0 = default)")
+	}
+	if cfg.SuggestSize != 0 && (cfg.SuggestSize < 1 || cfg.SuggestSize > 50) {
+		return fmt.Errorf("suggest_size must be between 1 and 50 (0 = default)")
+	}
+	if cfg.AggregationBucketCap != 0 && (cfg.AggregationBucketCap < 1 || cfg.AggregationBucketCap > 50) {
+		return fmt.Errorf("aggregation_bucket_cap must be between 1 and 50 (0 = default)")
+	}
+	// low-difficulty sweep group
+	if cfg.Fuzziness != 0 && (cfg.Fuzziness < 1 || cfg.Fuzziness > 5) {
+		return fmt.Errorf("fuzziness must be between 1 and 5 (0 = default 3; use the request param for exact matching)")
+	}
+	if cfg.AggregationBucketSort != "" && cfg.AggregationBucketSort != "count" && cfg.AggregationBucketSort != "value" {
+		return fmt.Errorf("aggregation_bucket_sort must be \"count\" or \"value\"")
+	}
+	for _, dim := range cfg.AggregationFieldsDisabled {
+		switch dim {
+		case "category", "source", "type", "tags", "owner", "time", "color":
+		default:
+			return fmt.Errorf("aggregation_fields_disabled contains unknown dimension %q (allowed: category/source/type/tags/owner/time/color)", dim)
+		}
+	}
+	if cfg.QueryTimeoutMS != 0 && (cfg.QueryTimeoutMS < 100 || cfg.QueryTimeoutMS > 60000) {
+		return fmt.Errorf("query_timeout_ms must be between 100 and 60000 (0 = off)")
+	}
+	if cfg.HotSearchesSize != 0 && (cfg.HotSearchesSize < 1 || cfg.HotSearchesSize > 20) {
+		return fmt.Errorf("hot_searches_size must be between 1 and 20 (0 = default)")
+	}
+	if len(cfg.RecommendTopics) > 20 {
+		return fmt.Errorf("recommend_topics: at most 20 topics")
+	}
+	for _, topic := range cfg.RecommendTopics {
+		if strings.TrimSpace(topic) == "" {
+			return fmt.Errorf("recommend_topics: blank topics are not allowed")
+		}
+	}
+	if len(cfg.ResultSourceIncludes) > 30 {
+		return fmt.Errorf("result_source_includes: at most 30 fields")
+	}
+	// semantic / AI group
+	if cfg.SemanticMinScore < 0 || cfg.SemanticMinScore > 10000 {
+		return fmt.Errorf("semantic_min_score must be between 0 and 10000")
+	}
+	if cfg.RRFRankConstant != 0 && (cfg.RRFRankConstant < 1 || cfg.RRFRankConstant > 1000) {
+		return fmt.Errorf("rrf_rank_constant must be between 1 and 1000 (0 = default)")
+	}
+	// result intervention group
+	if len(cfg.BlockedDocIDs) > 100 {
+		return fmt.Errorf("blocked_doc_ids: at most 100 documents")
+	}
+	for i, id := range cfg.BlockedDocIDs {
+		if strings.TrimSpace(id) == "" {
+			return fmt.Errorf("blocked_doc_ids[%d]: empty id", i)
+		}
+	}
+	if len(cfg.BlockedDatasourceIDs) > 50 {
+		return fmt.Errorf("blocked_datasource_ids: at most 50 datasources")
+	}
+	for i, id := range cfg.BlockedDatasourceIDs {
+		if strings.TrimSpace(id) == "" {
+			return fmt.Errorf("blocked_datasource_ids[%d]: empty id", i)
+		}
+	}
+	if len(cfg.PinnedRules) > 20 {
+		return fmt.Errorf("pinned_rules: at most 20 rules")
+	}
+	for i, rule := range cfg.PinnedRules {
+		if strings.TrimSpace(rule.Query) == "" {
+			return fmt.Errorf("pinned_rules[%d]: query is required", i)
+		}
+		if len(rule.DocumentIDs) == 0 || len(rule.DocumentIDs) > 100 {
+			return fmt.Errorf("pinned_rules[%d]: needs 1..100 document ids", i)
+		}
+	}
+	// security group
+	if len(cfg.BlockedQueryPatterns) > 50 {
+		return fmt.Errorf("blocked_query_patterns: at most 50 patterns")
+	}
+	for i, p := range cfg.BlockedQueryPatterns {
+		if strings.TrimSpace(p) == "" {
+			return fmt.Errorf("blocked_query_patterns[%d]: empty pattern", i)
+		}
+		if _, err := regexp.Compile(p); err != nil {
+			return fmt.Errorf("blocked_query_patterns[%d]: invalid regex %q: %v", i, p, err)
+		}
+	}
+	return nil
 }
 
 // maxAppearanceImageLength caps one branding image field (a data URL or a

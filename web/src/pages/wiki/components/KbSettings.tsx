@@ -13,6 +13,7 @@ import {
   groupKbAssistantOptions,
   listWikiAssistants,
   listWikiDatasources,
+  searchWikiWorkspaces,
   updateWikiKb,
   type KbAssistantOption
 } from '@/service/api';
@@ -26,6 +27,7 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
   const [assistants, setAssistants] = useState<KbAssistantOption[]>([]);
   const [datasources, setDatasources] = useState<Api.Wiki.DatasourceInfo[]>([]);
   const [searchBoundIds, setSearchBoundIds] = useState<Set<string>>(new Set());
+  const [workspaces, setWorkspaces] = useState<{ id: string; name: string }[]>([]);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const { hasAuth } = useAuth();
   const canUpdate = hasAuth('coco#wiki_kb/update');
@@ -40,6 +42,7 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
       description: kb.description,
       icon: kb.icon,
       visibility: kb.visibility,
+      workspace_id: kb.workspace_id || undefined,
       auto_approve: !!kb.auto_approve,
       toc_layout: (kb.toc_layout || []).map(f => ({
         title: f.title,
@@ -52,6 +55,7 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
   useEffect(() => {
     listWikiAssistants().then(list => setAssistants((list as KbAssistantOption[]) || []));
     listWikiDatasources().then(list => setDatasources(((list as any) || []) as Api.Wiki.DatasourceInfo[]));
+    searchWikiWorkspaces().then(list => setWorkspaces(((list as any) || []) as { id: string; name: string }[]));
     // assistants referenced by search integrations get their own AI 搜索 group
     fetchIntegrations({})
       .then((res: any) => {
@@ -148,6 +152,17 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
                 { value: 'private', label: t('page.wiki.visibility.private') },
                 { value: 'team', label: t('page.wiki.visibility.team') }
               ]}
+            />
+          </Form.Item>
+          <Form.Item
+            label={t('page.wiki.workspace.title')}
+            name="workspace_id"
+            tooltip={t('page.wiki.workspace.hint')}
+          >
+            <Select
+              allowClear
+              options={workspaces.map(w => ({ value: w.id, label: w.name }))}
+              placeholder={t('page.wiki.workspace.all')}
             />
           </Form.Item>
           <Form.Item

@@ -184,11 +184,11 @@ func composeEntityContentWithIntro(entity *core.WikiEntity, layout []OntologyPag
 			}
 			cite := title
 			if s2.DocID != "" {
-				excerpt := strings.TrimSpace(s2.Excerpt)
+				excerpt := collapseInline(strings.TrimSpace(s2.Excerpt))
 				if len([]rune(excerpt)) > 120 {
 					excerpt = string([]rune(excerpt)[:120]) + "…"
 				}
-				cite = fmt.Sprintf("[%s](#/preview/document/%s?q=%s \"%s\")", title, s2.DocID, url.QueryEscape(excerpt), excerpt)
+				cite = fmt.Sprintf("[%s](#/preview/document/%s?q=%s \"%s\")", title, s2.DocID, url.QueryEscape(shortPhrase(excerpt)), excerpt)
 			}
 			fmt.Fprintf(&sb, "- %s（来源：%s）\n", claim, cite)
 			shown++

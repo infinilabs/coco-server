@@ -135,12 +135,14 @@ export function createWikiArticleFromChat(body: {
 
 /* ---------------- Articles ---------------- */
 
-export function searchWikiArticles(params: { kbId?: string; query?: string }) {
+export function searchWikiArticles(params: { kbId?: string; query?: string; size?: number; sort?: string }) {
   const searchParams = new URLSearchParams();
   if (params.kbId) searchParams.set('filter', `kb_id:${params.kbId}`);
   if (params.query) searchParams.set('query', params.query);
-  // crud default page size is 10 — the KB pages render the full set
-  searchParams.set('size', '1000');
+  // crud default page size is 10 — the KB pages render the full set;
+  // explicit size (home workbench) overrides the default
+  searchParams.set('size', String(params.size ?? 1000));
+  if (params.sort) searchParams.set('sort', params.sort);
   return request<{ hits: any }>({
     method: 'get',
     url: `/wiki/article/_search?${searchParams.toString()}`

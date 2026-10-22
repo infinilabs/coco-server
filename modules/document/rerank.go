@@ -73,6 +73,11 @@ var (
 // no rerank convention — the leg reports why and stays off instead of
 // throwing at query time.
 func planRerank() rerankPlan {
+	// 搜索设置 · 语义与 AI: the operator can switch the leg off entirely —
+	// the note travels so callers can tell applied from disabled
+	if cfg := searchSettingsSnapshot(); cfg != nil && cfg.RerankDisabled {
+		return rerankPlan{Note: "rerank disabled by search settings, fused order kept"}
+	}
 	m := llmmodule.ResolveModel(core.LLMTypeRerank, nil)
 	if m == nil {
 		return rerankPlan{Note: "no rerank model configured, fused order kept"}
@@ -203,14 +208,27 @@ func rerankFusedHits(ctx context.Context, plan rerankPlan, query string, sourceP
 	modelNorm := minMaxNormalizeF64(modelRaw)
 
 	scored := make([]rerankComposite, 0, len(idxOf))
-	for idx, pos := range idxOf {
+	// deterministic iteration: ranging over the map would order equal-score
+	// composites differently on every request, shuffling the fused list
+	// between page fetches (scroll pages then repeat/skip hits)
+	for idx := 0; idx < window; idx++ {
+		pos, ok := idxOf[idx]
+		if !ok {
+			continue
+		}
 		scored = append(scored, rerankComposite{
 			idx:       idx,
 			score:     rerankWeightModel*modelNorm[pos] + rerankWeightRRF*rrfNorm[idx] + rerankWeightSource*sourceWeightFor(fused[idx].Source.Source.ID, sourcePriority),
-			relevance: parsed.Results[idxOf[idx]].RelevanceScore,
+			relevance: parsed.Results[pos].RelevanceScore,
 		})
 	}
-	sort.SliceStable(scored, func(a, b int) bool { return scored[a].score > scored[b].score })
+	// tie-break by hit index keeps equal composite scores in a stable order
+	sort.SliceStable(scored, func(a, b int) bool {
+		if scored[a].score != scored[b].score {
+			return scored[a].score > scored[b].score
+		}
+		return scored[a].idx < scored[b].idx
+	})
 
 	// MMR diversification over the reranker texts of the scored hits
 	mmrTexts := make([]string, len(scored))

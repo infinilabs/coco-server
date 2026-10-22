@@ -137,6 +137,7 @@ export default function StatsOverview({ id }: Props) {
     if (!run) return <Tag>{t('page.searchOps.syncNever')}</Tag>;
     if (run.stale) return <Tooltip title={t('page.searchOps.syncStale')}><Tag color="red">{t('page.searchOps.syncStale')}</Tag></Tooltip>;
     if (run.state === 'running') return <Tag color="processing">{t('page.searchOps.syncRunning')}</Tag>;
+    if (run.state === 'completed') return <Tag color="green">{t('page.searchOps.syncCompleted')}</Tag>;
     if (run.state === 'superseded') return <Tag color="orange">{t('page.searchOps.syncSuperseded')}</Tag>;
     return <Tag>{run.state}</Tag>;
   };

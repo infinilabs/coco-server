@@ -27,8 +27,12 @@ func TestRRFConfigNormalized(t *testing.T) {
 		t.Fatalf("k should default, got %v", got.K)
 	}
 	for _, name := range rrfRouteNames {
-		if got.weight(name) != 1 {
-			t.Fatalf("route %s should default to weight 1, got %+v", name, got.Weights)
+		want := 1.0
+		if name == rrfRouteWiki {
+			want = defaultWikiRRFWeight
+		}
+		if got.weight(name) != want {
+			t.Fatalf("route %s should default to weight %v, got %+v", name, want, got.Weights)
 		}
 	}
 
@@ -42,14 +46,21 @@ func TestRRFConfigNormalized(t *testing.T) {
 	if got.weight(rrfRouteSemantic) != 3 {
 		t.Errorf("valid weight should stay, got %v", got.weight(rrfRouteSemantic))
 	}
-	// unlisted routes default to 1
-	if got.weight(rrfRouteWiki) != 1 {
-		t.Errorf("unlisted route should default to 1, got %v", got.weight(rrfRouteWiki))
+	// unlisted routes default to 1; the wiki leg carries the curated-layer
+	// boost (2.0) even when unlisted
+	if got.weight(rrfRouteGraph) != 1 {
+		t.Errorf("unlisted route should default to 1, got %v", got.weight(rrfRouteGraph))
+	}
+	if got.weight(rrfRouteWiki) != defaultWikiRRFWeight {
+		t.Errorf("unlisted wiki route should default to %v, got %v", defaultWikiRRFWeight, got.weight(rrfRouteWiki))
 	}
 
 	got = RRFConfig{K: 10, Weights: map[string]float64{rrfRouteText: 0, rrfRouteSemantic: 0}}.normalized()
 	if got.weight(rrfRouteText) != 1 || got.weight(rrfRouteSemantic) != 1 {
 		t.Fatalf("all-zero weights should reset to 1, got %+v", got.Weights)
+	}
+	if got.weight(rrfRouteWiki) != defaultWikiRRFWeight {
+		t.Fatalf("all-zero reset should keep the wiki boost, got %v", got.weight(rrfRouteWiki))
 	}
 
 	got = RRFConfig{K: 10, Weights: map[string]float64{rrfRouteText: 2, rrfRouteSemantic: 0}}.normalized()
@@ -116,7 +127,9 @@ func TestRRFFuseMultiThreeRoutes(t *testing.T) {
 		rrfRouteHits{Name: rrfRouteText, Hits: text},
 		rrfRouteHits{Name: rrfRouteSemantic, Hits: semantic},
 		rrfRouteHits{Name: rrfRouteWiki, Hits: wiki},
-	), RRFConfig{K: 60})
+	), RRFConfig{K: 60, Weights: map[string]float64{
+		rrfRouteText: 1, rrfRouteSemantic: 1, rrfRouteWiki: 1, // equal weights: pure fusion-math test
+	}})
 
 	byID := map[string]rrfBreakdown{}
 	for _, b := range breakdowns {

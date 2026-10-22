@@ -51,19 +51,34 @@ func indexHealthModels() []struct {
 	}
 }
 
-// indexHealth checks one store: a size-0 search, so the cost is one count
-// per store. Errors mean missing/unreachable backing index.
+// indexHealth checks one store: a size-0 search (source excluded), so the
+// cost is one cheap count per store. Errors mean missing/unreachable backing
+// index.
+//
+// NOTE: deliberately NOT SearchV2WithResultItemMapper — it only populates
+// SimpleResult.Total when a resultArray is passed for hit mapping, and we
+// only need the count, so it would silently read as 0 for every store.
 func indexHealth(ctx context.Context, name string, model interface{}) indexHealthEntry {
 	entry := indexHealthEntry{Name: name}
 	octx := orm.NewContextWithParent(ctx)
 	octx.DirectReadAccess()
 	orm.WithModel(octx, model)
-	err, res := elastic.SearchV2WithResultItemMapper(octx, nil, orm.NewQuery().Size(0), nil)
+	res, err := orm.SearchV2(octx, orm.NewQuery().Size(0).Exclude("*"))
 	if err != nil {
 		entry.Status, entry.Docs, entry.Note = "unavailable", -1, err.Error()
 		return entry
 	}
-	entry.Status, entry.Docs = "ok", res.Total
+	bytes, ok := res.Payload.([]byte)
+	if !ok {
+		entry.Status, entry.Docs, entry.Note = "unavailable", -1, "invalid search response"
+		return entry
+	}
+	searchResponse := elastic.SearchResponse{}
+	if err := util.FromJSONBytes(bytes, &searchResponse); err != nil {
+		entry.Status, entry.Docs, entry.Note = "unavailable", -1, err.Error()
+		return entry
+	}
+	entry.Status, entry.Docs = "ok", searchResponse.GetTotal()
 	return entry
 }
 

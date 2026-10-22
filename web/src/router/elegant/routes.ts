@@ -180,7 +180,7 @@ export const generatedRoutes: GeneratedRoute[] = [
       permissions: ['coco#connector/create', 'coco#connector/read', 'coco#connector/update'],
       permissionLogic: 'or',
       hideInMenu: true,
-      activeMenu: 'settings'
+      activeMenu: 'connector-settings'
     },
     children: [
       {
@@ -208,6 +208,42 @@ export const generatedRoutes: GeneratedRoute[] = [
         }
       }
     ]
+  },
+  {
+    name: 'connector-settings',
+    path: '/connector-settings',
+    component: 'layout.base$view.connector-settings',
+    meta: {
+      i18nKey: 'route.connector-settings',
+      title: 'connector-settings',
+      localIcon: 'connector',
+      order: 8,
+      roles: ['admin']
+    }
+  },
+  {
+    name: 'content-dedup',
+    path: '/content-dedup',
+    component: 'layout.base$view.content-dedup',
+    meta: {
+      i18nKey: 'route.content-dedup',
+      title: 'content-dedup',
+      localIcon: 'dedup',
+      order: 9,
+      roles: ['admin']
+    }
+  },
+  {
+    name: 'data-security',
+    path: '/data-security',
+    component: 'layout.base$view.data-security',
+    meta: {
+      i18nKey: 'route.data-security',
+      title: 'data-security',
+      localIcon: 'security',
+      order: 10,
+      roles: ['admin']
+    }
   },
   {
     name: 'data-source',
@@ -295,6 +331,18 @@ export const generatedRoutes: GeneratedRoute[] = [
         }
       }
     ]
+  },
+  {
+    name: 'engine-ai',
+    path: '/engine-ai',
+    component: 'layout.base$view.engine-ai',
+    meta: {
+      i18nKey: 'route.engine-ai',
+      title: 'engine-ai',
+      localIcon: 'ai',
+      order: 11,
+      roles: ['admin']
+    }
   },
   {
     name: 'guide',
@@ -430,6 +478,15 @@ export const generatedRoutes: GeneratedRoute[] = [
         }
       }
     ]
+  },
+  {
+    name: 'memory-settings',
+    path: '/memory-settings',
+    component: 'layout.base$view.memory-settings',
+    meta: {
+      i18nKey: 'route.memory-settings',
+      title: 'memory-settings'
+    }
   },
   {
     name: 'model-provider',
@@ -629,6 +686,18 @@ export const generatedRoutes: GeneratedRoute[] = [
       localIcon: 'search',
       order: 9,
       permissions: ['coco#search/ops']
+    }
+  },
+  {
+    name: 'search-settings',
+    path: '/search-settings',
+    component: 'layout.base$view.search-settings',
+    meta: {
+      i18nKey: 'route.search-settings',
+      title: 'search-settings',
+      localIcon: 'search-settings',
+      order: 13,
+      roles: ['admin']
     }
   },
   {
@@ -832,7 +901,28 @@ export const generatedRoutes: GeneratedRoute[] = [
           hideInMenu: true,
           activeMenu: 'wiki'
         }
+      },
+      {
+        name: 'wiki_notifications',
+        path: 'notifications',
+        component: 'view.wiki_notifications',
+        meta: {
+          i18nKey: 'route.wiki_notifications',
+          title: 'wiki_notifications'
+        }
       }
     ]
+  },
+  {
+    name: 'wiki-settings',
+    path: '/wiki-settings',
+    component: 'layout.base$view.wiki-settings',
+    meta: {
+      i18nKey: 'route.wiki-settings',
+      title: 'wiki-settings',
+      localIcon: 'wiki-settings',
+      order: 14,
+      roles: ['admin']
+    }
   }
 ];

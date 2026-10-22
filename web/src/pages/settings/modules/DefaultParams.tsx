@@ -6,11 +6,29 @@ import { searchModelPovider } from '@/service/api/model-provider';
 import { formatESSearchResult } from '@/service/request/es';
 import { setDefaultModel } from '@/store/slice/server';
 import ModelSelect from '@/pages/ai-assistant/modules/ModelSelect';
+import { createPipeline, getEnablePipelines } from '@/service/api/pipeline';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import SaveBar from './SaveBar';
 
-const DefaultModel = memo(() => {
+// 默认参数：合并原「默认模型」与「文档处理」两个 tab。
+// 两者都是全局兜底参数（数据源/Pipeline 未单独指定时生效），共用一张表单、
+// 一个保存条；保存时按字段拆分，分别写 settings 的 default_model 与
+// document_processing 两节，后端接口与存储结构不变。
+const DOC_PROCESSING_KEYS = ['default_pipeline_for_attachment', 'default_pipeline_for_document', 'llm_generation_language'];
+
+const SectionTitle = ({ title }: { title: string }) => (
+  <div
+    className='mb-16px mt-4px pb-8px text-15px font-500'
+    style={{ borderBottom: '1px solid var(--ant-color-split)' }}
+  >
+    {title}
+  </div>
+);
+
+const DefaultParams = memo(() => {
   const [form] = Form.useForm();
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const { hasAuth } = useAuth()
 
@@ -21,7 +39,9 @@ const DefaultModel = memo(() => {
 
   const { endLoading, loading, startLoading } = useLoading();
   const [modelProviderList, setModelProviderList] = useState<any[]>([]);
+  const [pipelineList, setPipelineList] = useState([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [dirty, setDirty] = useState(false);
 
   const dispatch = useAppDispatch();
 
@@ -43,8 +63,19 @@ const DefaultModel = memo(() => {
     endLoading();
   }
 
+  const fetchPipelines = async () => {
+    startLoading();
+    const res = await getEnablePipelines()
+    if (res?.data) {
+      const newResult = formatESSearchResult(res?.data);
+      setPipelineList(newResult.data as any);
+    }
+    endLoading();
+  }
+
   useEffect(() => {
     run();
+    fetchPipelines();
     if (permissions.fetchModelProviders) {
       fetchModelProvider();
     }
@@ -56,10 +87,22 @@ const DefaultModel = memo(() => {
   }, [permissions.fetchModelProviders]);
 
   const handleSubmit = async () => {
-    const params = await form.validateFields();
-    startLoading();
-    const default_model = Object.keys(params).reduce((acc: any, key: string) => {
-      const v = params[key];
+    const values = await form.validateFields();
+
+    // 按字段拆分回各自的 settings 节
+    const document_processing: Record<string, any> = {};
+    const default_model: Record<string, any> = {};
+    Object.keys(values).forEach((key) => {
+      if (DOC_PROCESSING_KEYS.includes(key)) {
+        document_processing[key] = values[key];
+      } else {
+        default_model[key] = values[key];
+      }
+    });
+
+    // 模型字段序列化：{ provider_id, id, name } → 后端存储形状
+    const serializedModels = Object.keys(default_model).reduce((acc: any, key: string) => {
+      const v = default_model[key];
       if (v && typeof v === 'object' && (v.name !== undefined || v.provider_id !== undefined)) {
         acc[key] = {};
         if (v.name !== undefined) acc[key].id = v.name;
@@ -69,12 +112,14 @@ const DefaultModel = memo(() => {
       }
       return acc;
     }, {});
-    const result = await updateSettings({
-      default_model
-    });
-    if (result?.data?.acknowledged) {
-      dispatch(setDefaultModel(default_model))
+
+    startLoading();
+    const r1 = await updateSettings({ default_model: serializedModels });
+    const r2 = await updateSettings({ document_processing });
+    if (r1?.data?.acknowledged && r2?.data?.acknowledged) {
+      dispatch(setDefaultModel(serializedModels))
       window.$message?.success(t('common.updateSuccess'));
+      setDirty(false);
     }
     endLoading();
   };
@@ -84,7 +129,9 @@ const DefaultModel = memo(() => {
   });
 
   useEffect(() => {
-    if (data?.default_model) {
+    if (!data) return;
+
+    if (data.default_model) {
       const mapped = Object.keys(data.default_model).reduce((acc: any, key: string) => {
         const v = data.default_model[key];
         if (!v || typeof v !== 'object') {
@@ -128,7 +175,18 @@ const DefaultModel = memo(() => {
       }, {});
       form.setFieldsValue(mapped);
     }
+
+    if (data.document_processing) {
+      form.setFieldsValue({ ...data.document_processing });
+    }
+    setDirty(false);
   }, [JSON.stringify(data), modelProviderList]);
+
+  // 放弃更改：重新拉取服务端配置回填
+  const handleDiscard = () => {
+    setDirty(false);
+    run();
+  };
 
   return (
     <ListContainer>
@@ -138,7 +196,9 @@ const DefaultModel = memo(() => {
           colon={false}
           form={form}
           labelAlign="left"
+          onValuesChange={() => setDirty(true)}
         >
+          <SectionTitle title={t('page.settings.default_model.title')} />
           <Form.Item
             label={(
               <span className='color-[var(--ant-color-text-tertiary)]'>
@@ -228,25 +288,77 @@ const DefaultModel = memo(() => {
               </>
             ) : null
           }
-          {
-            permissions.update && (
-              <Form.Item label=" " >
-                <Button
-                  type="primary"
-                  onClick={() => handleSubmit()}
-                >
-                  {t('common.update')}
-                </Button>
-              </Form.Item>
-            )
-          }
+
+          <SectionTitle title={t('page.settings.document_processing.title')} />
+          <Form.Item
+            label={(
+              <span className='color-[var(--ant-color-text-tertiary)]'>
+                {t('page.settings.document_processing.labels.default_pipeline_for_attachment')}
+              </span>
+            )}
+          >
+            <PipelineSelectItem
+              label={t('page.settings.document_processing.labels.processing_pipeline')}
+              name="default_pipeline_for_attachment"
+              pipelineList={pipelineList}
+            />
+            <Button
+              type="link"
+              className='!px-0'
+              onClick={() => navigate('/pipeline/list')}
+            >
+              {t('page.pipeline.manageLink')}
+            </Button>
+          </Form.Item>
+          <Form.Item
+            label={(
+              <span className='color-[var(--ant-color-text-tertiary)]'>
+                {t('page.settings.document_processing.labels.default_pipeline_for_document')}
+              </span>
+            )}
+          >
+            <PipelineSelectItem
+              label={t('page.settings.document_processing.labels.processing_pipeline')}
+              name="default_pipeline_for_document"
+              pipelineList={pipelineList}
+            />
+          </Form.Item>
+          <Form.Item
+            label={(
+              <span className='color-[var(--ant-color-text-tertiary)]'>
+                {t('page.settings.document_processing.labels.output_language')}
+              </span>
+            )}
+          >
+            <div className='m-b-8px color-[var(--ant-color-text-tertiary)]'>
+              {t('page.settings.document_processing.labels.output_language_desc')}
+            </div>
+            <Form.Item noStyle name={'llm_generation_language'}>
+              <Select
+                options={[
+                  {
+                    value: 'en-US',
+                    label: 'English'
+                  },
+                  {
+                    value: 'zh-CN',
+                    label: '中文'
+                  }
+                ]}
+              />
+            </Form.Item>
+          </Form.Item>
         </Form>
       </Spin>
+      {/* sticky save bar, same pattern as the ontology page */}
+      {permissions.update && (
+        <SaveBar dirty={dirty} loading={loading} onDiscard={handleDiscard} onSave={() => handleSubmit()} />
+      )}
     </ListContainer>
   );
 });
 
-export default DefaultModel;
+export default DefaultParams;
 
 export const ModelSelectItem = ({ label, desc, name, modelProviderList = [], type, onRefresh }: { label: string, desc?: string, name: string, modelProviderList?: any[], type?: string, onRefresh?: () => void }) => {
 
@@ -274,5 +386,23 @@ export const ModelSelectItem = ({ label, desc, name, modelProviderList = [], typ
         />
       </Form.Item>
     </Form.Item>
+  )
+}
+
+export const PipelineSelectItem = ({ label, desc, name, pipelineList = [] }: { label: string, desc?: string, name: string, pipelineList?: any[] }) => {
+
+  return (
+    <>
+      <div className='m-b-4px'>{label}</div>
+      {desc && <div className='m-b-8px color-[var(--ant-color-text-tertiary)]'>{desc}</div>}
+      <Form.Item noStyle name={name}>
+        <Select
+          options={pipelineList.map(item => ({
+            label: item.name,
+            value: item.id
+          }))}
+        />
+      </Form.Item>
+    </>
   )
 }

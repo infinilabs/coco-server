@@ -109,7 +109,7 @@ export const PreviewContent: FC<PreviewContentProps> = props => {
   };
 
   // clicking a filterable meta entry (category, tag, type, owner) re-runs the
-  // search narrowed by that facet — the standalone-page counterpart of the
+  // search narrowed by that value — the standalone-page counterpart of the
   // result drawer's onMetaFilter; the filter travels as the search page's
   // aggfilter URL param (`field:value`)
   const handleMetaFilter = (field: string, value: string) => {

@@ -284,7 +284,7 @@ func (h *APIHandler) executeEvalCase(req *http.Request, c *core.SearchEvalCase, 
 	u.RawQuery = params.Encode()
 	evalReq.URL = &u
 
-	resp, _, _, err := h.queryWithRRF(evalReq, c.Query, c.Datasource, "", "", "", "", 3)
+	resp, _, _, err := h.queryWithRRF(evalReq, c.Query, c.Datasource, "", "", "", "", 3, nil)
 	result.TookMS = time.Since(started).Milliseconds()
 	if err != nil {
 		result.Error = err.Error()

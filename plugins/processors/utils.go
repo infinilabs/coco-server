@@ -7,6 +7,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"time"
 
 	log "github.com/cihub/seelog"
 	"golang.org/x/text/language"
@@ -169,4 +170,15 @@ func AttachmentRecordContract(granularity pipeline.Granularity) pipeline.RecordC
 		Namespace:   "attachment",
 		Granularity: granularity,
 	}
+}
+
+// PipelineLLMContext bounds an LLM call made inside a document-processing
+// pipeline. langchaingo's default HTTP client has no overall timeout and the
+// pipeline context carries no deadline, so one stalled provider connection
+// hangs the (serial) queue consumer forever — every datasource's sync run
+// then reads as stale ("疑似僵死") and ingestion stops silently. Three
+// minutes is far above the observed latency of every pipeline LLM call
+// (max ~40s summarization) while capping the damage of a dead connection.
+func PipelineLLMContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(ctx, 3*time.Minute)
 }

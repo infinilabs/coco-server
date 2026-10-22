@@ -105,6 +105,9 @@ func init() {
 	//operator's view of the iteration loop: what people searched, where
 	//recall came up empty, what it cost in latency (P2/D5)
 	api.HandleUIMethod(api.GET, "/search/ops/overview", handler.searchOpsOverview, api.RequirePermission(searchOpsPermission))
+	//per-query drill-down: the raw log with filters — slow / empty /
+	//rewritten searches by user and time (query analysis, ops face)
+	api.HandleUIMethod(api.GET, "/search/ops/search-logs", handler.searchOpsLogs, api.RequirePermission(searchOpsPermission))
 	//index health sweep (P4): every knowledge-hub store, one count each
 	api.HandleUIMethod(api.GET, "/search/ops/index-health", handler.indexHealthHandler, api.RequirePermission(searchOpsPermission))
 
@@ -158,6 +161,16 @@ func init() {
 
 	api.HandleUIMethod(api.GET, "/query/_suggest", handler.suggest, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.OPTIONS, "/query/_suggest", handler.suggest, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+
+	// 热搜 (搜索设置 · 搜索建议): top queries folded from the search-log
+	// telemetry; the operator's switch and default count apply
+	api.HandleUIMethod(api.GET, "/query/_hot", handler.hotSearchesHandler, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+	api.HandleUIMethod(api.OPTIONS, "/query/_hot", handler.hotSearchesHandler, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+
+	// 相关搜索 (方案 B · 词面关联): query-conditioned related searches from
+	// the same search-log telemetry — lexical scoring, no configuration
+	api.HandleUIMethod(api.GET, "/query/_related", handler.relatedSearchesHandler, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
+	api.HandleUIMethod(api.OPTIONS, "/query/_related", handler.relatedSearchesHandler, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
 
 	api.HandleUIMethod(api.GET, "/query/_suggest/:tag", handler.suggest, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.OPTIONS, "/query/_suggest/:tag", handler.suggest, api.RequirePermission(querySearchPermission), api.Feature(core.FeatureCORS))

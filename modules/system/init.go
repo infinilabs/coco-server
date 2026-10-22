@@ -72,6 +72,12 @@ func init() {
 			settings.SearchType = saved.SearchType
 			settings.WikiProjection = saved.WikiProjection
 			settings.ChunkRoute = saved.ChunkRoute
+			// presentation switches the search page consumes client-side:
+			// aggregations off must strip the rail's category/time filters there
+			// too, and the per-dimension list prunes individual rail filters.
+			// Keep this whitelist tight — the endpoint is public (pre-login).
+			settings.AggregationsDisabled = saved.AggregationsDisabled
+			settings.AggregationFieldsDisabled = saved.AggregationFieldsDisabled
 		}
 		// the app's own search page always renders the built-in fullscreen
 		// widget (edited in the search settings tab) — ignore any stale saved

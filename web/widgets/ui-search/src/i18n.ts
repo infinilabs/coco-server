@@ -46,6 +46,7 @@ const resources = {
         suggestionsTitle: 'Search Suggestions',
         filterTitle: 'Filter conditions',
         relatedSearch: 'Related searches',
+        hotSearches: 'Trending searches',
         aiOverview: 'AI Insights',
         continueAsk: 'Continue',
         expandMore: 'Expand More',
@@ -124,7 +125,22 @@ const resources = {
         updateTime: 'Update Time',
         selectDateRange: 'Select Date Range',
         filters: 'Filters',
-        count: 'Count'
+        count: 'Count',
+        wikiBadge: 'Knowledge Base',
+        wikiBadgeTip: 'From the curated knowledge base — reviewed and trustworthy',
+        wikiGraph: 'Knowledge Graph',
+        wikiGraphArticles: 'Articles',
+        wikiGraphEntities: 'Entities',
+        wikiGraphUnresolved: 'Unresolved',
+        wikiGraphHint: 'Drag to rotate · scroll to zoom · click a node for details',
+        wikiGraphEmpty: 'No graph data for this knowledge base yet',
+        wikiGraphRelations: 'Relations',
+        wikiGraphNoRelations: 'No relations',
+        wikiGraphOpenArticle: 'Open article',
+        wikiGraphFullscreen: 'Fullscreen',
+        wikiGraphFit: 'Fit view',
+        wikiGraphZoomIn: 'Zoom in',
+        wikiGraphZoomOut: 'Zoom out'
       },
       history_list: {
         search: {
@@ -339,6 +355,7 @@ const resources = {
         suggestionsTitle: '搜索建议',
         filterTitle: '过滤条件',
         relatedSearch: '相关搜索',
+        hotSearches: '热搜',
         aiOverview: '智能解读',
         continueAsk: '继续追问',
         expandMore: '展开更多',
@@ -415,7 +432,22 @@ const resources = {
         updateTime: '更新时间',
         selectDateRange: '选择日期范围',
         filters: '筛选',
-        count: '数量'
+        count: '数量',
+        wikiBadge: '知识库',
+        wikiBadgeTip: '来自知识库精编内容，经过评审整理，可信度更高',
+        wikiGraph: '知识图谱',
+        wikiGraphArticles: '文章',
+        wikiGraphEntities: '实体',
+        wikiGraphUnresolved: '未解析',
+        wikiGraphHint: '拖拽旋转 · 滚轮缩放 · 点击节点查看详情',
+        wikiGraphEmpty: '该知识库暂无图谱数据',
+        wikiGraphRelations: '关联',
+        wikiGraphNoRelations: '暂无关联',
+        wikiGraphOpenArticle: '打开文章',
+        wikiGraphFullscreen: '全屏',
+        wikiGraphFit: '适应视图',
+        wikiGraphZoomIn: '放大',
+        wikiGraphZoomOut: '缩小'
       },
       history_list: {
         search: {

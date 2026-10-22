@@ -1,5 +1,6 @@
 import { AuthImage } from "./AuthImage";
 import { normalizeFileType } from "./normalizeFileType";
+import { isWikiHit } from "../../../components/WikiBadge";
 
 import type { SearchResultListItem, SearchResultsRecord } from "../types";
 import { cleanHighlightFragment, cleanSummary, decodeHtmlEntities } from "../../../utils/utils"
@@ -58,6 +59,7 @@ export function recordToListItem(
     cover,
     fileType,
     typeIcon,
+    fromWiki: isWikiHit(record),
     breadcrumbs: breadcrumbs.length ? breadcrumbs : undefined,
     author,
     date,

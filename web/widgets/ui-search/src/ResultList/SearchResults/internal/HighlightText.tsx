@@ -14,7 +14,14 @@ export function HighlightText({ text }: { text?: string }) {
   if (!text) return null;
 
   const decoded = decodeHtmlEntities(text) ?? text;
-  const parts = decoded.split(/(<em>|<\/em>)/);
+  // CJK fields tokenize per character (no IK on the index), so the engine
+  // emits one <em> per character — "<em>数</em><em>据</em>". Rendered as-is
+  // every character becomes its own padded <mark> chip and reads like
+  // "数 据 迁 移". Merge adjacent markers so contiguous matches collapse
+  // into one highlighted run (Latin terms separated by a space are kept
+  // apart — there is a literal space between their markers).
+  const merged = decoded.replace(/<\/em><em>/g, "");
+  const parts = merged.split(/(<em>|<\/em>)/);
   let inHit = false;
 
   const nodes = parts.map((part, index) => {

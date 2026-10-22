@@ -25,6 +25,7 @@ import PreviewIcon from '../../../icons/PreviewIcon';
 import AIInsightIcon from '../../../icons/AIInsightIcon';
 import { OWNER_FILTER_FIELD } from '../../../Aggregations';
 import { AuthImage } from '../../../ResultList/AuthImage';
+import { isWikiHit, WikiBadge } from '../../../components/WikiBadge';
 import loadingFailedSvg from '../../../icons/file-loading-failed.svg';
 
 const { Text } = Typography;
@@ -85,6 +86,8 @@ export interface DocDetailProps extends HTMLAttributes<HTMLDivElement> {
       users?: null | unknown;
       width?: number;
       raw_content?: string;
+      /** W16a: hit comes from the curated knowledge-base projection */
+      wiki_article?: boolean;
     };
     source?: {
       type?: string;
@@ -450,6 +453,7 @@ const DocDetail: FC<DocDetailProps> = props => {
           src={data?.icon}
         />
         <span className='align-middle'>{data?.title}</span>
+        {isWikiHit(data) && <WikiBadge className='ml-8px align-middle' />}
       </div>
 
       <div className='my-2 min-w-0 flex items-center justify-between gap-2'>

@@ -95,6 +95,8 @@ interface FullscreenProps {
   language?: string;
   onSuggestion?: (...args: any[]) => void;
   onRecommend?: (...args: any[]) => void;
+  onHotSearches?: (callback: (res: { items?: { query: string; count: number }[] }) => void) => void;
+  onRelatedSearches?: (query: string, callback: (res: { items?: { query: string; count: number }[] }) => void) => void;
   apiConfig?: Record<string, any>;
   getFieldsMeta?: (...args: any[]) => any;
   onUpload?: (...args: any[]) => void;
@@ -132,11 +134,14 @@ const Fullscreen = (props: FullscreenProps) => {
     language = 'en-US',
     onSuggestion,
     onRecommend,
+    onHotSearches,
+    onRelatedSearches,
     apiConfig,
     getFieldsMeta,
     onUpload,
     getUserEntities,
-    settings
+    settings,
+    defaultSearchType
   } = props;
 
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -346,10 +351,15 @@ const Fullscreen = (props: FullscreenProps) => {
           ...rest,
           ...dateRangeParams,
           filter: newFilter,
-          search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD,
+          search_type: queryParams?.search_type || defaultSearchType || ACTION_TYPE_SEARCH_KEYWORD,
           fuzziness,
           sort,
           from: isScroll ? scrollRef.current : queryParams.from,
+          // pagination continuations (from>0, e.g. the eager next-page fetch
+          // when the first page doesn't fill the viewport) are the SAME user
+          // search — logging them would double-count every search in the
+          // ops telemetry
+          ...(Number(isScroll ? scrollRef.current : queryParams.from) > 0 ? { skip_log: 'true' } : {}),
           'metadata.content_category': undefined
         },
         {
@@ -423,7 +433,7 @@ const Fullscreen = (props: FullscreenProps) => {
       // Fetch aggregations first, validate aggfilter, then search
       onAggregation({
         query: queryParams.query,
-        search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD,
+        search_type: queryParams?.search_type || defaultSearchType || ACTION_TYPE_SEARCH_KEYWORD,
         fuzziness,
         // multimodal attachments must shape the facet counts the same way
         // they shape the result list
@@ -569,6 +579,7 @@ const Fullscreen = (props: FullscreenProps) => {
       <Home
         commonProps={commonProps}
         loading={showFullScreenSpin}
+        defaultSearchType={defaultSearchType}
         logo={logo}
         background={background}
         logoMaxHeight={logoMaxHeight}
@@ -600,6 +611,7 @@ const Fullscreen = (props: FullscreenProps) => {
         setQueryParams={setQueryParams}
         onSuggestion={debouncedSuggestion}
         onRecommend={onRecommend}
+        onHotSearches={onHotSearches}
         onUpload={onUpload}
         attachments={attachments}
         setAttachments={setAttachments}
@@ -611,6 +623,7 @@ const Fullscreen = (props: FullscreenProps) => {
     <Search
       aggregations={aggregationResult}
       categoryCounts={categoryCounts}
+      defaultSearchType={defaultSearchType}
       aiOverview={aiOverview}
       askBody={askBody}
       commonProps={commonProps}
@@ -661,6 +674,7 @@ const Fullscreen = (props: FullscreenProps) => {
       onAsk={onAsk}
       onSuggestion={debouncedSuggestion}
       onRecommend={onRecommend}
+      onRelatedSearches={onRelatedSearches}
       onChatContinue={(session_id) => {
         onChat({
           query: queryParams.query || '',

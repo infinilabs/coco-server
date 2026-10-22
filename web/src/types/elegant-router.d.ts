@@ -48,6 +48,9 @@ declare module "@elegant-router/types" {
     "connector": "/connector";
     "connector_edit": "edit/:id";
     "connector_new": "new";
+    "connector-settings": "/connector-settings";
+    "content-dedup": "/content-dedup";
+    "data-security": "/data-security";
     "data-source": "/data-source";
     "data-source_detail": "detail/:id";
     "data-source_doc": "doc/:id";
@@ -55,6 +58,7 @@ declare module "@elegant-router/types" {
     "data-source_list": "list";
     "data-source_new": "new";
     "data-source_new-first": "new-first";
+    "engine-ai": "/engine-ai";
     "guide": "/guide";
     "home": "/home";
     "integration": "/integration";
@@ -66,6 +70,7 @@ declare module "@elegant-router/types" {
     "mcp-server_edit": "edit/:id";
     "mcp-server_list": "list";
     "mcp-server_new": "new";
+    "memory-settings": "/memory-settings";
     "model-provider": "/model-provider";
     "model-provider_edit": "edit/:id";
     "model-provider_list": "list";
@@ -82,6 +87,7 @@ declare module "@elegant-router/types" {
     "role_new": "new";
     "search": "/search";
     "search-ops": "/search-ops";
+    "search-settings": "/search-settings";
     "search-studio": "/search-studio";
     "security": "/security";
     "settings": "/settings";
@@ -98,6 +104,8 @@ declare module "@elegant-router/types" {
     "wiki_governance": "governance";
     "wiki_kb": "kb/:id";
     "wiki_list": "list";
+    "wiki_notifications": "notifications";
+    "wiki-settings": "/wiki-settings";
   };
 
   /**
@@ -150,12 +158,17 @@ declare module "@elegant-router/types" {
     | "auth"
     | "chat"
     | "connector"
+    | "connector-settings"
+    | "content-dedup"
+    | "data-security"
     | "data-source"
+    | "engine-ai"
     | "guide"
     | "home"
     | "integration"
     | "login"
     | "mcp-server"
+    | "memory-settings"
     | "model-provider"
     | "ontology"
     | "pipeline"
@@ -163,6 +176,7 @@ declare module "@elegant-router/types" {
     | "role"
     | "search"
     | "search-ops"
+    | "search-settings"
     | "search-studio"
     | "security"
     | "settings"
@@ -170,6 +184,7 @@ declare module "@elegant-router/types" {
     | "user"
     | "webhook"
     | "wiki"
+    | "wiki-settings"
   >;
 
   /**
@@ -199,14 +214,18 @@ declare module "@elegant-router/types" {
     | "auth_edit"
     | "auth_new"
     | "chat"
+    | "connector-settings"
     | "connector_edit"
     | "connector_new"
+    | "content-dedup"
+    | "data-security"
     | "data-source_detail"
     | "data-source_doc"
     | "data-source_edit"
     | "data-source_list"
     | "data-source_new-first"
     | "data-source_new"
+    | "engine-ai"
     | "guide"
     | "home"
     | "integration_edit"
@@ -216,6 +235,7 @@ declare module "@elegant-router/types" {
     | "mcp-server_edit"
     | "mcp-server_list"
     | "mcp-server_new"
+    | "memory-settings"
     | "model-provider_edit"
     | "model-provider_list"
     | "model-provider_new"
@@ -227,6 +247,7 @@ declare module "@elegant-router/types" {
     | "role_edit"
     | "role_new"
     | "search-ops"
+    | "search-settings"
     | "search-studio"
     | "search"
     | "security"
@@ -236,10 +257,12 @@ declare module "@elegant-router/types" {
     | "user_new"
     | "webhook_edit"
     | "webhook_new"
+    | "wiki-settings"
     | "wiki_article"
     | "wiki_governance"
     | "wiki_kb"
     | "wiki_list"
+    | "wiki_notifications"
   >;
 
   /**

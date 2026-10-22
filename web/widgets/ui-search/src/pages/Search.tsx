@@ -7,7 +7,9 @@ import Logo from '../Logo';
 import ResultDetail from '../ResultDetail';
 import ResultHeader from '../ResultHeader';
 import SearchBox from '../SearchBox';
-import Recommends from '../Recommends';
+import RelatedSearches from '../RelatedSearches';
+import WikiGraphPanel from '../WikiGraphPanel';
+import { isWikiHit } from '../components/WikiBadge';
 import { LIST_TYPES } from '../ResultList';
 import { EmptyList } from '../ResultList/EmptyList';
 import MediaLayout from '../Layout/MediaLayout';
@@ -56,6 +58,7 @@ interface SearchProps {
   readonly theme?: string;
   readonly onSuggestion?: (...args: any[]) => void;
   readonly onRecommend?: (...args: any[]) => void;
+  readonly onRelatedSearches?: (query: string, callback: (res: { items?: { query: string; count: number }[] }) => void) => void;
   readonly onChatContinue?: (session_id: string) => void;
   readonly getFieldsMeta?: (...args: any[]) => any;
   readonly onUpload?: (...args: any[]) => void;
@@ -93,6 +96,7 @@ export default function Search({
   theme,
   onSuggestion,
   onRecommend,
+  onRelatedSearches,
   onChatContinue,
   getFieldsMeta,
   onUpload,
@@ -101,9 +105,12 @@ export default function Search({
   settings,
   onLoadMore,
   onCategoryChange,
-  histogramData
+  histogramData,
+  defaultSearchType
 }: SearchProps) {
-  const { query, filter, aggfilter = {}, search_type = ACTION_TYPE_SEARCH_KEYWORD } = queryParams || {};
+  const { query, filter, aggfilter = {}, search_type: querySearchType } = queryParams || {};
+  // 搜索设置 · 默认搜索模式: URL override > the host's configured default > keyword
+  const search_type = querySearchType || defaultSearchType || ACTION_TYPE_SEARCH_KEYWORD;
   const { t } = useTranslation();
   const fuzziness = normalizeSearchFuzziness(queryParams?.fuzziness);
   const sort = normalizeSearchSort(queryParams?.sort || DEFAULT_SEARCH_SORT);
@@ -333,6 +340,30 @@ export default function Search({
       assistant_id: settings?.deep_think_assistant_entity?.id
     });
   }, [onSearch, query, attachments, settings]);
+
+  /* ---------------- knowledge graph side panel ---------------- */
+
+  // KBs behind the current wiki hits (projection rows carry metadata.kb_id),
+  // ordered by how many of the current results each owns — the panel merges
+  // their subgraphs into one canvas
+  const wikiKbIds = useMemo(() => {
+    const counts = new Map<string, number>();
+    (data || []).forEach(item => {
+      if (!isWikiHit(item)) return;
+      const kbId = (item as any)?.metadata?.kb_id;
+      if (typeof kbId === 'string' && kbId) counts.set(kbId, (counts.get(kbId) || 0) + 1);
+    });
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
+  }, [data]);
+
+  // auto-open where the graph has room to breathe; the header toggle takes
+  // over from there (closed by default on narrower viewports)
+  const [wikiGraphOpen, setWikiGraphOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 1600);
+
+  const handleOpenWikiArticle = useCallback((articleId: string, kbId: string) => {
+    // the host app runs a hash router — this routes straight to the article
+    window.location.hash = `#/wiki/article/${articleId}?kb=${kbId}`;
+  }, []);
 
   const handleSearchFilter = useCallback(
     (nextAggFilter: Record<string, any>) => {
@@ -569,6 +600,9 @@ export default function Search({
         setRecommendsCollapse={setRecommendsCollapse}
         setSiderCollapse={setSiderCollapse}
         siderCollapse={siderCollapse}
+        showWikiGraphToggle={wikiKbIds.length > 0}
+        wikiGraphOpen={wikiGraphOpen}
+        onToggleWikiGraph={() => setWikiGraphOpen(v => !v)}
         toolbar={toolbar}
       />
     ),
@@ -678,6 +712,17 @@ export default function Search({
         recommendsCollapse={recommendsCollapse}
         setRecommendsCollapse={setRecommendsCollapse}
         aggregations={aggregationsNode}
+        wikiGraph={
+          wikiKbIds.length > 0 ? (
+            <WikiGraphPanel
+              apiConfig={commonProps?.apiConfig}
+              kbIds={wikiKbIds}
+              theme={theme}
+              onOpenArticle={handleOpenWikiArticle}
+            />
+          ) : null
+        }
+        wikiGraphOpen={wikiGraphOpen && wikiKbIds.length > 0}
         aiOverview={
           listType?.showAIOverview && aiOverview?.enabled ? (
             <AIOverviewWrapper
@@ -691,10 +736,11 @@ export default function Search({
           ) : null
         }
         recommends={
-          <Recommends
-            showTitle={true}
+          <RelatedSearches
+            query={queryParams?.query}
             onDataLoaded={handleRecommendsDataLoaded}
-            onRecommend={callback => onRecommend?.('hot_topics_for_search_result', callback)}
+            onRelatedSearches={onRelatedSearches}
+            onPick={query => handleSearch({ ...(queryParams || {}), query, from: 0 }, true, true)}
           />
         }
       />

@@ -2,6 +2,7 @@ import Logo from "../Logo";
 import Recommends from "../Recommends";
 import SearchBox from "../SearchBox";
 import Welcome from "../Welcome";
+import HotSearches from "../HotSearches";
 import HomeLayout from "../Layout/HomeLayout";
 
 interface HomeProps {
@@ -24,6 +25,7 @@ interface HomeProps {
   setQueryParams?: (params: any) => void;
   onSuggestion?: (...args: any[]) => void;
   onRecommend?: (...args: any[]) => void;
+  onHotSearches?: (callback: (res: { items?: { query: string; count: number }[] }) => void) => void;
   onUpload?: (...args: any[]) => void;
   attachments?: any[];
   setAttachments?: (attachments: any[]) => void;
@@ -44,12 +46,14 @@ export default function Home({
     welcome, 
     queryParams,
     setQueryParams, 
-    onSuggestion, 
+    onSuggestion,
     onRecommend,
+    onHotSearches,
     onUpload,
     attachments,
     setAttachments,
-    settings
+    settings,
+    defaultSearchType
 }: HomeProps) {
   return (
     <HomeLayout
@@ -76,6 +80,7 @@ export default function Home({
           attachments={attachments}
           setAttachments={setAttachments}
           settings={settings}
+          defaultSearchType={defaultSearchType}
         />
       }
           welcome={
@@ -88,7 +93,22 @@ export default function Home({
               />
             ) : null
           }
-      recommends={<Recommends onRecommend={(callback: any) => onRecommend?.("hot_topics_for_homepage", callback)}/>}
+      recommends={
+        <>
+          <Recommends
+            visibleCount={3}
+            onRecommend={(callback: any) => onRecommend?.("hot_topics_for_homepage", callback)}
+            onPick={query => setQueryParams?.({ ...(queryParams || {}), query, from: 0 })}
+          />
+          {/* hot searches (search-log aggregation) sit under the recommend
+              topics — picking one runs it as a search via the URL params,
+              same flow as typing it into the box */}
+          <HotSearches
+            onHotSearches={callback => onHotSearches?.(callback)}
+            onPick={query => setQueryParams?.({ ...(queryParams || {}), query, from: 0 })}
+          />
+        </>
+      }
     />
   );
 }

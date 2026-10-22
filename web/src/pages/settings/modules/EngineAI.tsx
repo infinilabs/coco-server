@@ -10,7 +10,8 @@ import { formatESSearchResult } from '@/service/request/es';
 import { useLoading, useRequest } from '@sa/hooks';
 import { useAuth } from '@/hooks/business/auth';
 import ModelSelect from '@/pages/ai-assistant/modules/ModelSelect';
-import { ModelSelectItem } from './DefaultModel';
+import { ModelSelectItem } from './DefaultParams';
+import SaveBar from './SaveBar';
 
 interface EngineAIStatus {
   enabled: boolean;
@@ -79,6 +80,7 @@ const EngineAI = memo(() => {
 
   const { endLoading, loading, startLoading } = useLoading();
   const [modelProviderList, setModelProviderList] = useState<any[]>([]);
+  const [dirty, setDirty] = useState(false);
 
   const { data: settingsData, loading: settingsLoading, run: runSettings } = useRequest(fetchSettings, { manual: true });
   const { data: statusData, loading: statusLoading, run: runStatus } = useRequest(fetchEngineAIStatus, { manual: true });
@@ -124,6 +126,7 @@ const EngineAI = memo(() => {
       text_field: cfg.text_field,
       vector_field: cfg.vector_field
     });
+    setDirty(false);
   }, [JSON.stringify(settingsData), modelProviderList]);
 
   const handleSubmit = async () => {
@@ -145,8 +148,15 @@ const EngineAI = memo(() => {
       // saving already triggers a best-effort background sync on the server;
       // pull the status so the drift panel reflects it
       runStatus();
+      setDirty(false);
     }
     endLoading();
+  };
+
+  // 放弃更改：重新拉取服务端配置回填
+  const handleDiscard = () => {
+    setDirty(false);
+    runSettings();
   };
 
   const handleSync = async () => {
@@ -167,16 +177,7 @@ const EngineAI = memo(() => {
   return (
     <div className="settings-form py-24px">
       <Spin spinning={settingsLoading || statusLoading || loading}>
-        <Form colon={false} form={form} labelAlign="left">
-          <Form.Item
-            label={(
-              <span className="color-[var(--ant-color-text-tertiary)]">
-                {t('page.settings.engine_ai.labels.engine_ai')}
-              </span>
-            )}
-          >
-            <div className="color-[var(--ant-color-text-tertiary)]">{t('page.settings.engine_ai.labels.engine_ai_desc')}</div>
-          </Form.Item>
+        <Form colon={false} form={form} labelAlign="left" onValuesChange={() => setDirty(true)}>
           <Form.Item label={t('page.settings.engine_ai.labels.enabled')} name="enabled" valuePropName="checked">
             <Switch />
           </Form.Item>
@@ -208,13 +209,6 @@ const EngineAI = memo(() => {
           <Form.Item label={t('page.settings.engine_ai.labels.vector_field')} name="vector_field">
             <Input className="w-360px" placeholder="ai_insights.embedding.embedding1024" />
           </Form.Item>
-          {permissions.update && (
-            <Form.Item label=" ">
-              <Button type="primary" onClick={() => handleSubmit()}>
-                {t('common.update')}
-              </Button>
-            </Form.Item>
-          )}
         </Form>
       </Spin>
 
@@ -262,6 +256,11 @@ const EngineAI = memo(() => {
             </div>
           )}
         </div>
+      )}
+
+      {/* sticky save bar, same pattern as the ontology page */}
+      {permissions.update && (
+        <SaveBar dirty={dirty} loading={loading} onDiscard={handleDiscard} onSave={() => handleSubmit()} />
       )}
     </div>
   );

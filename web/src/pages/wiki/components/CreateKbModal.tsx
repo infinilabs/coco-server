@@ -10,17 +10,21 @@ import {
   fetchIntegrations,
   groupKbAssistantOptions,
   listWikiAssistants,
-  listWikiDatasources
+  listWikiDatasources,
+  searchWikiWorkspaces
 } from '@/service/api';
 
 export function CreateKbModal({
   open,
   onClose,
-  onCreated
+  onCreated,
+  defaultWorkspaceId
 }: {
   readonly open: boolean;
   readonly onClose: () => void;
   readonly onCreated: () => void;
+  /** workspace preselected from the topbar switcher when the modal opens */
+  readonly defaultWorkspaceId?: string;
 }) {
   const { t } = useTranslation();
   const [form] = Form.useForm();
@@ -28,9 +32,14 @@ export function CreateKbModal({
   const [assistants, setAssistants] = useState<KbAssistantOption[]>([]);
   const [datasources, setDatasources] = useState<Api.Wiki.DatasourceInfo[]>([]);
   const [searchBoundIds, setSearchBoundIds] = useState<Set<string>>(new Set());
+  const [workspaces, setWorkspaces] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     if (!open) return;
+    // inherit the topbar switcher's workspace so a KB created inside a
+    // workspace lands there without manual picking
+    form.setFieldsValue({ workspace_id: defaultWorkspaceId || undefined });
+    searchWikiWorkspaces().then(list => setWorkspaces(((list as any) || []) as { id: string; name: string }[]));
     listWikiAssistants().then(list => {
       const arr = (list as KbAssistantOption[]) || [];
       // new KBs default to the builtin knowledge-management assistant —
@@ -48,7 +57,7 @@ export function CreateKbModal({
         setSearchBoundIds(collectSearchBoundAssistantIds(sources));
       })
       .catch(() => {});
-  }, [open]);
+  }, [open, defaultWorkspaceId, form]);
 
   const onOk = () => {
     form.validateFields().then(values => {
@@ -148,6 +157,17 @@ export function CreateKbModal({
             />
           </Form.Item>
         </div>
+        <Form.Item
+          label={t('page.wiki.workspace.title')}
+          name='workspace_id'
+          tooltip={t('page.wiki.workspace.hint')}
+        >
+          <Select
+            allowClear
+            options={workspaces.map(w => ({ value: w.id, label: w.name }))}
+            placeholder={t('page.wiki.workspace.all')}
+          />
+        </Form.Item>
         <Form.Item
           initialValue={BUILTIN_KM_ASSISTANT_ID}
           label={t('page.wiki.createKb.assistant')}

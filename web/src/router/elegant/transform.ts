@@ -229,6 +229,9 @@ const routeMap: RouteMap = {
   "connector": "/connector",
   "connector_edit": "edit/:id",
   "connector_new": "new",
+  "connector-settings": "/connector-settings",
+  "content-dedup": "/content-dedup",
+  "data-security": "/data-security",
   "data-source": "/data-source",
   "data-source_detail": "detail/:id",
   "data-source_doc": "doc/:id",
@@ -236,6 +239,7 @@ const routeMap: RouteMap = {
   "data-source_list": "list",
   "data-source_new": "new",
   "data-source_new-first": "new-first",
+  "engine-ai": "/engine-ai",
   "guide": "/guide",
   "home": "/home",
   "integration": "/integration",
@@ -247,6 +251,7 @@ const routeMap: RouteMap = {
   "mcp-server_edit": "edit/:id",
   "mcp-server_list": "list",
   "mcp-server_new": "new",
+  "memory-settings": "/memory-settings",
   "model-provider": "/model-provider",
   "model-provider_edit": "edit/:id",
   "model-provider_list": "list",
@@ -263,6 +268,7 @@ const routeMap: RouteMap = {
   "role_new": "new",
   "search": "/search",
   "search-ops": "/search-ops",
+  "search-settings": "/search-settings",
   "search-studio": "/search-studio",
   "security": "/security",
   "settings": "/settings",
@@ -278,7 +284,9 @@ const routeMap: RouteMap = {
   "wiki_article": "article/:id",
   "wiki_governance": "governance",
   "wiki_kb": "kb/:id",
-  "wiki_list": "list"
+  "wiki_list": "list",
+  "wiki_notifications": "notifications",
+  "wiki-settings": "/wiki-settings"
 };
 
 /**

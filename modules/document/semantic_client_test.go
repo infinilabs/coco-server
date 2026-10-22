@@ -125,19 +125,3 @@ func TestPaginateHits(t *testing.T) {
 	}
 }
 
-func TestRRFRecallWindow(t *testing.T) {
-	cases := []struct {
-		from, size, want int
-	}{
-		{0, 10, 10},
-		{90, 10, 100},
-		{190, 50, maxRRFWindow},
-		{-5, 10, 10},
-		{0, 0, 10},
-	}
-	for _, c := range cases {
-		if got := rrfRecallWindow(c.from, c.size); got != c.want {
-			t.Fatalf("rrfRecallWindow(%d, %d) = %d, want %d", c.from, c.size, got, c.want)
-		}
-	}
-}
