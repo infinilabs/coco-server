@@ -11,7 +11,7 @@ import (
 
 	log "github.com/cihub/seelog"
 	"golang.org/x/text/language"
-	codecs "infini.sh/coco-codecs"
+	"infini.sh/coco/core/codecs"
 	"infini.sh/coco/core"
 	"infini.sh/coco/core/documentview"
 	"infini.sh/coco/modules/datasource"

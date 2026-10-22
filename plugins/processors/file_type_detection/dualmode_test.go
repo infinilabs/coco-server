@@ -8,7 +8,7 @@ import (
 	"context"
 	"testing"
 
-	codecs "infini.sh/coco-codecs"
+	"infini.sh/coco/core/codecs"
 	"infini.sh/framework/core/pipeline"
 )
 

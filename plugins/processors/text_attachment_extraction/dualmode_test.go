@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	codecs "infini.sh/coco-codecs"
+	"infini.sh/coco/core/codecs"
 	"infini.sh/framework/core/event"
 	"infini.sh/framework/core/pipeline"
 )

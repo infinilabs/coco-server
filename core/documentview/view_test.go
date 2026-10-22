@@ -7,7 +7,7 @@ package documentview
 import (
 	"testing"
 
-	codecs "infini.sh/coco-codecs"
+	"infini.sh/coco/core/codecs"
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/util"
 )

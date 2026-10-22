@@ -22,7 +22,7 @@
 
 ### P1 记录模型
 - `core/pipeline/codec.go` — RecordCodec 注册表（Namespace / error 注册 / OrReplace / 发现）
-- `infini.sh/coco-codecs` — 独立模块（coco_document / coco_attachment，零 coco 导入）
+- `coco/core/codecs` — coco 领域 codec 包（coco_document / coco_attachment；原独立模块 `infini.sh/coco-codecs` 已收编回 coco core，D-2 撤销）
 - `coco/core/documentview` — Materialize/Project（Fields ↔ Document）
 - `core/pipeline/observer.go` — ExecutionObserver + StepEvent（一处埋点三投影）
 
@@ -118,13 +118,12 @@ GET  /logpilot/processors                    处理器目录（+中文描述）
 GET  /logpilot/streams/:id/samples           流样本（产品域）
 ```
 
-## 六仓提交状态
+## 五仓提交状态
 
 | 仓库 | 分支 | 提交数 | 状态 |
 |---|---|---|---|
 | framework | refactoring-pipeline-oct | 2890+ | ✅ clean |
 | coco | feat/knowledge-hub | 929+ | ✅ clean |
-| coco-codecs | main | 1 | ✅ clean |
 | logpilot | main | 174+ | ✅ clean |
 | gateway | main | — | ✅ clean |
 | ui-common | main | — | ✅ clean |
@@ -134,8 +133,7 @@ GET  /logpilot/streams/:id/samples           流样本（产品域）
 | 仓库 | 测试包 | 通过 | 失败 |
 |---|---|---|---|
 | framework | 7 | 7 | 0 |
-| coco | 12 | 12 | 0 |
-| coco-codecs | 1 | 1 | 0 |
+| coco | 13 | 13 | 0 |
 | **合计** | **20** | **20** | **0** |
 
 ## 关键决策记录（14 条）

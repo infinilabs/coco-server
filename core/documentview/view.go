@@ -12,7 +12,7 @@ package documentview
 import (
 	"fmt"
 
-	codecs "infini.sh/coco-codecs"
+	"infini.sh/coco/core/codecs"
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/event"
 	"infini.sh/framework/core/util"

@@ -14,7 +14,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/llms"
-	codecs "infini.sh/coco-codecs"
+	"infini.sh/coco/core/codecs"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"

@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 
 	log "github.com/cihub/seelog"
-	codecs "infini.sh/coco-codecs"
+	"infini.sh/coco/core/codecs"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/attachment"
 	utils "infini.sh/coco/plugins/processors"

@@ -399,7 +399,7 @@
 | 编号 | 决策 | 关联任务 |
 |---|---|---|
 | D-1 | ~~strict_contract 收紧节奏~~ **已决：一次切换**（audit→迁移→单次翻转） | #117 |
-| D-2 | ~~codec 归属位置~~ **已决：独立轻量 module `infini.sh/coco-codecs`**（依赖面=framework+领域类型，为远程执行预留） | #4/#6 |
+| D-2 | ~~codec 归属位置~~ ~~独立轻量 module `infini.sh/coco-codecs`~~ **已反转：收编回 coco `core/codecs` 包**（远程执行未落地，独立 module 过早，见 DESIGN 决策日志 #15） | #4/#6 |
 | D-3 | `document.*` 路径命名冻结规则 | #4/#118 |
 | D-4 | `for_each.parallel` 默认值 | #69 |
 | D-5 | LLM mock 录制存储与脱敏规则 | #89 |

@@ -178,7 +178,7 @@ cond     := equals{路径:值} | contains | range | exists | and/or/not   # reco
 
 ## 6. 待决项（详见 WORKPLAN；**9 项已关闭，开放 4 项**）
 
-**本轮已决 7 项**：D-1 strict_contract **一次切换**（audit→迁移→单次翻转，P8 简化）；D-2 codec 落位**独立轻量 module `infini.sh/coco-codecs`**（依赖面=framework+领域类型，为远程执行预留）；D-6 jsoniter **仅热路径局部替换**（codec/documentview/dryrun，全局保持 stdlib）；D-8 lane **并入 PipeModule**（三产品免接线）；D-9 共享包**源码引用**（file:/workspace，不发 npm）；D-11 控制面 **framework 全包**（产品只做 UI/实例对接）；D-12 sharded **v1 暂不支持**（生产无 kafka 后端，设计保留任务冻结）。另有 D-7（指标持久化内置，101a）、D-13（统一 output 已采纳）此前已关闭。
+**本轮已决 7 项**：D-1 strict_contract **一次切换**（audit→迁移→单次翻转，P8 简化）；D-2 codec 落位~~独立轻量 module~~**已反转：收编回 coco `core/codecs` 包**（远程执行未落地，独立 module 过早，见决策日志 #15）；D-6 jsoniter **仅热路径局部替换**（codec/documentview/dryrun，全局保持 stdlib）；D-8 lane **并入 PipeModule**（三产品免接线）；D-9 共享包**源码引用**（file:/workspace，不发 npm）；D-11 控制面 **framework 全包**（产品只做 UI/实例对接）；D-12 sharded **v1 暂不支持**（生产无 kafka 后端，设计保留任务冻结）。另有 D-7（指标持久化内置，101a）、D-13（统一 output 已采纳）此前已关闭。
 
 **仍开放**：D-3 `document.*` 路径命名冻结规则；D-4 `for_each.parallel` 默认值；D-5 LLM mock 录制存储与脱敏；D-10 性能基准环境与数字确认。
 
@@ -200,6 +200,7 @@ cond     := equals{路径:值} | contains | range | exists | and/or/not   # reco
 | 12 | 分布式新造调度器 | **叠加配置中心（零替代）+ 既有租约锁** | configs-center 是 framework 级模块，协议全现成 |
 | 13 | `queue_output`/`lane_output` 双出口处理器 + `to: type:name` 打包引用 | **统一 `output` 步骤 + one-of 目标字段**（`queue: <名>`/`lane: <名>`，Unpack 即校验）；旧名保留为注册别名但**不入文档** | 双名费解；打包字符串拼写错误不可枚举、工具黑盒；别名入文档会诱导用户继续旧写法 |
 | 14 | `tee`（Unix 行话） | **`tap`**（网络 TAP：并联监听、复制不截流） | tee 非命令行用户不可读；tap 是观测领域标准词；`observe`/`inspect` 否决——超额承诺（处理器不做观测/检查，只旁路复制）、用途导向覆盖不了双跑/审计场景、observe 与 Observer 子系统撞词、inspect 应留给未来的记录校验处理器（检查并产生结果才是它的契约）；`sample` 已被 enterprise 占用且语义相反（丢弃式采样 vs 旁路复制） |
+| 15 | D-2 codec 独立轻量 module `infini.sh/coco-codecs`（为远程执行预留） | **收编回 coco `core/codecs` 包**（落地后复评：远程执行未启动，独立 module 只剩兄弟仓库 checkout 摩擦；真需要时再拆出） | 独立性收益是预留性质，成本是每环境多一个 clone 依赖 + 无法从 proxy 拉取；用户裁决"过早了，放 Coco core 里面" |
 
 ## 8. 附录
 
