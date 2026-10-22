@@ -11,10 +11,11 @@ import (
 
 func main() {
 	dir := os.Args[1]
-	truncate := os.Args[2] == "truncate"
+	// arg 2 ("truncate") kept for CLI compatibility — badger v4 removed the
+	// option and always replays the WAL on open
+	_ = os.Args[2] == "truncate"
 	opts := badger.DefaultOptions(dir).
 		WithReadOnly(false).
-		WithTruncate(truncate).
 		WithLogger(nil).
 		WithCompression(options.None).
 		WithNumGoroutines(1)

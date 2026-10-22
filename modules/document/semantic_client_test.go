@@ -124,4 +124,3 @@ func TestPaginateHits(t *testing.T) {
 		t.Fatalf("page beyond the end should be empty, got %d hits", len(r.Hits.Hits))
 	}
 }
-

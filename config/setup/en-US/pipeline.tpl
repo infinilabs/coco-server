@@ -1,34 +1,8 @@
 # pipeline
-# Note: PipelineConfigV2 is defined in the framework and has no explicit MustRegisterSchemaWithIndexName call,
-# so its index name is derived from the lowercased Go type name without a version suffix (no -v2).
-PUT $[[SETUP_INDEX_PREFIX]]pipelineconfigv2
-{
-  "mappings": {
-    "properties": {
-      "id":                { "type": "keyword" },
-      "created":           { "type": "date" },
-      "updated":           { "type": "date" },
-      "_system":           { "type": "object" },
-      "name":              { "type": "keyword" },
-      "enabled":           { "type": "boolean" },
-      "singleton":         { "type": "boolean" },
-      "auto_start":        { "type": "boolean" },
-      "keep_running":      { "type": "boolean" },
-      "retry_delay_in_ms": { "type": "integer" },
-      "max_running_in_ms": { "type": "long" },
-      "logging": {
-        "properties": {
-          "enabled": { "type": "boolean" }
-        }
-      },
-      "processor": { "enabled": false },
-      "labels":    { "type": "object" },
-      "transient": { "type": "boolean" }
-    }
-  }
-}
-
-POST $[[SETUP_INDEX_PREFIX]]pipelineconfigv2/$[[SETUP_DOC_TYPE]]/enrich_documents
+# Note: PipelineConfigV2 is registered by the framework's pipeline module under the ORM index
+# name "pipeline-configs" (no schema suffix). The ORM schema registration creates the index and
+# applies its mappings at startup, so this template only seeds the default pipeline documents.
+POST $[[SETUP_INDEX_PREFIX]]pipeline-configs/$[[SETUP_DOC_TYPE]]/enrich_documents
 {
   "_system": {
     "owner_id": "$[[SETUP_OWNER_ID]]"
@@ -80,7 +54,7 @@ POST $[[SETUP_INDEX_PREFIX]]pipelineconfigv2/$[[SETUP_DOC_TYPE]]/enrich_document
   ]
 }
 
-POST $[[SETUP_INDEX_PREFIX]]pipelineconfigv2/$[[SETUP_DOC_TYPE]]/enrich_attachments
+POST $[[SETUP_INDEX_PREFIX]]pipeline-configs/$[[SETUP_DOC_TYPE]]/enrich_attachments
 {
   "_system": {
     "owner_id": "$[[SETUP_OWNER_ID]]"

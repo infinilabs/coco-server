@@ -258,7 +258,7 @@ func markFiledGaps(ctx context.Context, stats *searchOpsStats) {
 // searchOpsStats is the overview response body; aggregateSearchLogs is pure
 // so the numbers are unit-testable without a store.
 type searchOpsStats struct {
-	TotalSearches int64   `json:"total_searches"`
+	TotalSearches int64 `json:"total_searches"`
 	// TotalSearchesPrev is the count of the preceding equal-length window
 	// (only filled when ?days=N is passed; 0 means "no comparison")
 	TotalSearchesPrev int64   `json:"total_searches_prev,omitempty"`

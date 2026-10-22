@@ -467,30 +467,30 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		// (they can't be deduped against hits from earlier pages here).
 		if pageFrom == 0 {
 			if pinned := h.pinnedHits(req, query, integrationID); len(pinned) > 0 {
-			// 搜索设置 · 安全: pinned hits are fetched and merged AFTER the
-			// masking pass above, so they would bypass it — mask them here
-			// too, curation must not leak what the operator asked to mask
-			if cfg := searchSettingsSnapshot(); cfg != nil && cfg.ApplyMaskingToResults {
-				for i := range pinned {
-					doc := &pinned[i].Source
-					doc.Title = common.MaskContent(doc.Title)
-					doc.Summary = common.MaskContent(doc.Summary)
-					if doc.Content != "" {
-						doc.Content = common.MaskContent(doc.Content)
+				// 搜索设置 · 安全: pinned hits are fetched and merged AFTER the
+				// masking pass above, so they would bypass it — mask them here
+				// too, curation must not leak what the operator asked to mask
+				if cfg := searchSettingsSnapshot(); cfg != nil && cfg.ApplyMaskingToResults {
+					for i := range pinned {
+						doc := &pinned[i].Source
+						doc.Title = common.MaskContent(doc.Title)
+						doc.Summary = common.MaskContent(doc.Summary)
+						if doc.Content != "" {
+							doc.Content = common.MaskContent(doc.Content)
+						}
 					}
 				}
-			}
-			seen := map[string]bool{}
-			for i := range result.Hits.Hits {
-				seen[result.Hits.Hits[i].ID] = true
-			}
-			fresh := make([]elastic.DocumentWithMeta[core.Document], 0, len(pinned))
-			for i := range pinned {
-				if !seen[pinned[i].ID] {
-					fresh = append(fresh, pinned[i])
+				seen := map[string]bool{}
+				for i := range result.Hits.Hits {
+					seen[result.Hits.Hits[i].ID] = true
 				}
-			}
-			result.Hits.Hits = append(fresh, result.Hits.Hits...)
+				fresh := make([]elastic.DocumentWithMeta[core.Document], 0, len(pinned))
+				for i := range pinned {
+					if !seen[pinned[i].ID] {
+						fresh = append(fresh, pinned[i])
+					}
+				}
+				result.Hits.Hits = append(fresh, result.Hits.Hits...)
 			}
 		}
 

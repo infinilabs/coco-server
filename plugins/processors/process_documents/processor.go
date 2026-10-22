@@ -12,8 +12,8 @@ import (
 	"time"
 
 	log "github.com/cihub/seelog"
-	"infini.sh/coco/core/codecs"
 	"infini.sh/coco/core"
+	"infini.sh/coco/core/codecs"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/modules/document"
 	"infini.sh/coco/plugins/connectors"
