@@ -76,6 +76,6 @@ func init() {
 			api.MCPTool("gateway_forget_instance", "Remove an instance: deletes its registration record, credentials and assigned per-instance configs; a live instance re-registers as a brand-new pending one"))
 		api.HandleUIMethod(api.GET, "/gateway/instances/:id/proxy", handler.instanceProxy,
 			api.RequireLogin(), api.RequirePermission(readPermission),
-			api.MCPTool("gateway_instance_proxy", "Fetch a whitelisted read-only endpoint from a connected instance through its reverse channel: /_info /health /stats /pipeline/tasks/ /config/"))
+			api.MCPTool("gateway_instance_proxy", "Fetch a whitelisted read-only endpoint from a connected instance through its reverse channel: /_info /_whoami /health /stats /queue/stats /queue/<id>/_scroll /tasks/ /pipeline/tasks/ /pipeline/processors /pipeline/codecs /pipeline/lanes /pipeline/task/<id>/stages /pipelines/<id>/versions /debug/goroutines /config/ /config/runtime /logging/files /logging/tail"))
 	})
 }

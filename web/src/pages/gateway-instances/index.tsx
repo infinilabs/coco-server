@@ -6,6 +6,7 @@ import { Badge, Button, Card, Descriptions, Drawer, Empty, Popconfirm, Radio, Sp
 import { useEffect, useState } from 'react';
 
 import { Deployments } from './Deployments';
+import { LogPanel, QueuePanel, TasksPanel } from './Observability';
 import {
   approveGatewayInstance,
   fetchGatewayInstanceDetail,
@@ -260,98 +261,124 @@ export function Component() {
         destroyOnClose
         open={!!detailId}
         title={detail ? detail.alias || detail.name : detailId}
-        width={640}
+        width={680}
         onClose={() => setDetailId(undefined)}
       >
         <Spin spinning={detailLoading}>
           {detail ? (
-            <Space direction="vertical" size="middle" className="w-full">
-              <Descriptions
-                bordered
-                column={2}
-                size="small"
-                items={[
-                  { key: 'id', label: 'ID', children: <span className="font-mono text-12px">{detail.id}</span> },
-                  { key: 'type', label: t('page.gateway.columns.type'), children: detail.type || '-' },
-                  {
-                    key: 'status',
-                    label: t('page.gateway.columns.status'),
-                    children:
-                      detail.status === 'approved' ? (
-                        <Tag color="success">{t('page.gateway.status.approved')}</Tag>
-                      ) : (
-                        <Tag color="warning">{t('page.gateway.status.pending')}</Tag>
-                      )
-                  },
-                  {
-                    key: 'online',
-                    label: t('page.gateway.columns.online'),
-                    children: (
-                      <Badge
-                        status={detail.online ? 'success' : 'default'}
-                        text={`${detail.online ? t('page.gateway.online') : t('page.gateway.offline')} · ${formatSync(detail.last_sync)}`}
+            <Tabs
+              size="small"
+              items={[
+                {
+                  key: 'overview',
+                  label: t('page.gateway.tabOverview'),
+                  children: (
+                    <Space direction="vertical" size="middle" className="w-full">
+                      <Descriptions
+                        bordered
+                        column={2}
+                        size="small"
+                        items={[
+                          { key: 'id', label: 'ID', children: <span className="font-mono text-12px">{detail.id}</span> },
+                          { key: 'type', label: t('page.gateway.columns.type'), children: detail.type || '-' },
+                          {
+                            key: 'status',
+                            label: t('page.gateway.columns.status'),
+                            children:
+                              detail.status === 'approved' ? (
+                                <Tag color="success">{t('page.gateway.status.approved')}</Tag>
+                              ) : (
+                                <Tag color="warning">{t('page.gateway.status.pending')}</Tag>
+                              )
+                          },
+                          {
+                            key: 'online',
+                            label: t('page.gateway.columns.online'),
+                            children: (
+                              <Badge
+                                status={detail.online ? 'success' : 'default'}
+                                text={`${detail.online ? t('page.gateway.online') : t('page.gateway.offline')} · ${formatSync(detail.last_sync)}`}
+                              />
+                            )
+                          },
+                          { key: 'version', label: t('page.gateway.columns.version'), children: detail.version || '-' },
+                          { key: 'endpoint', label: 'Endpoint', children: detail.endpoint || '-' },
+                          { key: 'ip', label: 'IP', children: detail.ip || '-' },
+                          { key: 'hostname', label: t('page.gateway.columns.hostname'), children: detail.hostname || '-' },
+                          { key: 'os', label: 'OS', children: detail.os || '-' },
+                          { key: 'reverse', label: t('page.gateway.columns.reverse'), children: detail.reverse_connected ? t('page.gateway.reverseConnected') : '—' },
+                          ...(detail.groups?.length
+                            ? [{ key: 'groups', label: t('page.gateway.columns.groups'), children: detail.groups.join(', ') }]
+                            : []),
+                          ...(detail.note ? [{ key: 'note', label: t('page.gateway.columns.note'), children: detail.note, span: 2 }] : [])
+                        ]}
                       />
-                    )
-                  },
-                  { key: 'version', label: t('page.gateway.columns.version'), children: detail.version || '-' },
-                  { key: 'endpoint', label: 'Endpoint', children: detail.endpoint || '-' },
-                  { key: 'ip', label: 'IP', children: detail.ip || '-' },
-                  { key: 'hostname', label: t('page.gateway.columns.hostname'), children: detail.hostname || '-' },
-                  { key: 'os', label: 'OS', children: detail.os || '-' },
-                  { key: 'reverse', label: t('page.gateway.columns.reverse'), children: detail.reverse_connected ? t('page.gateway.reverseConnected') : '—' },
-                  ...(detail.groups?.length
-                    ? [{ key: 'groups', label: t('page.gateway.columns.groups'), children: detail.groups.join(', ') }]
-                    : []),
-                  ...(detail.note ? [{ key: 'note', label: t('page.gateway.columns.note'), children: detail.note, span: 2 }] : [])
-                ]}
-              />
-              {detail.labels && Object.keys(detail.labels).length > 0 && (
-                <Descriptions
-                  bordered
-                  column={1}
-                  size="small"
-                  title={t('page.gateway.labels')}
-                  items={Object.entries(detail.labels).map(([k, v]) => ({
-                    key: k,
-                    label: <span className="font-mono text-12px">{k}</span>,
-                    children: <span className="font-mono text-12px">{v}</span>
-                  }))}
-                />
-              )}
-              <div>
-                <div className="mb-8px font-500">{t('page.gateway.assignedConfigs')}</div>
-                {detail.assigned_configs?.length ? (
-                  <Table
-                    rowKey="name"
-                    size="small"
-                    pagination={false}
-                    dataSource={detail.assigned_configs}
-                    columns={[
-                      { title: t('page.gateway.configName'), dataIndex: 'name' },
-                      { title: t('page.gateway.configVersion'), dataIndex: 'version', width: 80 },
-                      { title: t('page.gateway.configSize'), dataIndex: 'size', width: 100, render: (v: number) => `${v} B` },
-                      { title: t('page.gateway.configTarget'), dataIndex: 'target', width: 140 }
-                    ]}
-                  />
-                ) : (
-                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('page.gateway.noConfigs')} />
-                )}
-              </div>
-              {detail.reverse_connected && (
-                <div>
-                  <div className="mb-8px font-500">{t('page.gateway.liveInfo')}</div>
-                  <Spin spinning={liveLoading}>
-                    {liveInfo ? (
-                      <pre className="m-0 max-h-280px overflow-auto rounded-4px bg-[var(--ant-color-fill-tertiary)] p-8px text-12px">
-                        {JSON.stringify(liveInfo, null, 2)}
-                      </pre>
-                    ) : (
-                      <span className="text-[var(--ant-color-text-tertiary)]">—</span>
-                    )}
-                  </Spin>
-                </div>
-              )}
-            </Space>
+                      {detail.labels && Object.keys(detail.labels).length > 0 && (
+                        <Descriptions
+                          bordered
+                          column={1}
+                          size="small"
+                          title={t('page.gateway.labels')}
+                          items={Object.entries(detail.labels).map(([k, v]) => ({
+                            key: k,
+                            label: <span className="font-mono text-12px">{k}</span>,
+                            children: <span className="font-mono text-12px">{v}</span>
+                          }))}
+                        />
+                      )}
+                      <div>
+                        <div className="mb-8px font-500">{t('page.gateway.assignedConfigs')}</div>
+                        {detail.assigned_configs?.length ? (
+                          <Table
+                            rowKey="name"
+                            size="small"
+                            pagination={false}
+                            dataSource={detail.assigned_configs}
+                            columns={[
+                              { title: t('page.gateway.configName'), dataIndex: 'name' },
+                              { title: t('page.gateway.configVersion'), dataIndex: 'version', width: 80 },
+                              { title: t('page.gateway.configSize'), dataIndex: 'size', width: 100, render: (v: number) => `${v} B` },
+                              { title: t('page.gateway.configTarget'), dataIndex: 'target', width: 140 }
+                            ]}
+                          />
+                        ) : (
+                          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('page.gateway.noConfigs')} />
+                        )}
+                      </div>
+                      {detail.reverse_connected && (
+                        <div>
+                          <div className="mb-8px font-500">{t('page.gateway.liveInfo')}</div>
+                          <Spin spinning={liveLoading}>
+                            {liveInfo ? (
+                              <pre className="m-0 max-h-280px overflow-auto rounded-4px bg-[var(--ant-color-fill-tertiary)] p-8px text-12px">
+                                {JSON.stringify(liveInfo, null, 2)}
+                              </pre>
+                            ) : (
+                              <span className="text-[var(--ant-color-text-tertiary)]">—</span>
+                            )}
+                          </Spin>
+                        </div>
+                      )}
+                    </Space>
+                  )
+                },
+                {
+                  key: 'queues',
+                  label: t('page.gateway.tabQueues'),
+                  children: <QueuePanel connected={!!detail.reverse_connected} id={detail.id} />
+                },
+                {
+                  key: 'logs',
+                  label: t('page.gateway.tabLogs'),
+                  children: <LogPanel connected={!!detail.reverse_connected} id={detail.id} />
+                },
+                {
+                  key: 'tasks',
+                  label: t('page.gateway.tabTasks'),
+                  children: <TasksPanel connected={!!detail.reverse_connected} id={detail.id} />
+                }
+              ]}
+            />
           ) : (
             <Empty />
           )}

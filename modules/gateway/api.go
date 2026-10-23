@@ -23,16 +23,62 @@ import (
 // framework client's default 30s sync interval.
 const instanceOfflineAfter = 90 * time.Second
 
-// proxyReadWhitelist lists the instance-local read-only endpoints the detail
-// panel may fetch through the reverse channel (P0: health/version/pipeline
-// state only — queue browsing and log tailing arrive with the observability
-// phase).
-var proxyReadWhitelist = map[string]string{
-	"/_info":           "version",  // version, build, host, cpu, memory summary
-	"/health":          "health",
-	"/stats":           "stats",
-	"/pipeline/tasks/": "pipelines", // running pipeline tasks
-	"/config/":         "configs",   // local config files (name/version/size/managed)
+// proxyReadExact lists instance-local read-only endpoints the detail panel
+// may fetch through the reverse channel (exact path match). Same endpoint
+// set Logpilot's ingestion center proxies — the framework's standard
+// observability surface every managed instance serves.
+var proxyReadExact = map[string]string{
+	"/_info":               "version",  // version, build, host, cpu, memory summary
+	"/_whoami":             "whoami",
+	"/health":              "health",
+	"/stats":               "stats",
+	"/queue/stats":         "queues", // queue overview: depth/size/consumers
+	"/tasks/":              "tasks",  // scheduled tasks
+	"/pipeline/tasks/":     "pipelines", // running pipeline tasks
+	"/pipeline/processors": "processors",
+	"/pipeline/codecs":     "codecs",
+	"/pipeline/lanes":      "lanes", // lane depth/drops/spills observability
+	"/debug/goroutines":    "routines",
+	"/config/":             "configs", // local config files (name/version/size/managed)
+	"/config/runtime":      "runtime_config",
+}
+
+// proxyReadPrefixes are read-only GET prefixes (paths carry dynamic ids).
+// Queue message browsing (/queue/<id>/_scroll) is the instance-side
+// debug-consumer API: it never touches real consumer offsets. Logging is
+// /logging/files + /logging/tail (tailable .log/.json only, instance-side
+// path-guarded). /pipeline/task/<id>/stages|flight and /pipelines/<id>/versions
+// give per-task drill-down and version history.
+var proxyReadPrefixes = []string{
+	"/queue/",
+	"/logging/",
+	"/pipeline/task/",
+	"/pipelines/",
+}
+
+// matchProxyRead resolves a proxied GET path against the whitelist.
+func matchProxyRead(path string) (string, bool) {
+	if idx := strings.Index(path, "?"); idx >= 0 {
+		path = path[:idx]
+	}
+	if label, ok := proxyReadExact[path]; ok {
+		return label, true
+	}
+	for _, p := range proxyReadPrefixes {
+		if strings.HasPrefix(path, p) {
+			switch p {
+			case "/logging/":
+				return "logs", true
+			case "/queue/":
+				return "queues", true
+			case "/pipeline/task/":
+				return "pipelines", true
+			case "/pipelines/":
+				return "pipeline_config", true
+			}
+		}
+	}
+	return "", false
 }
 
 // listInstances — GET /gateway/instances?type=gateway|agent
@@ -362,20 +408,19 @@ func (h *APIHandler) forgetInstance(w http.ResponseWriter, req *http.Request, ps
 // instanceProxy — GET /gateway/instances/:id/proxy?path=/_info
 // Whitelisted read-only fetch through the instance's reverse channel (the
 // one-way model: instances dial out, the manager calls back over that
-// websocket). GET only in P0.
+// websocket). GET only.
 func (h *APIHandler) instanceProxy(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
 	path := req.URL.Query().Get("path")
 
-	label, allowed := "", false
-	for prefix, l := range proxyReadWhitelist {
-		if path == prefix || strings.HasPrefix(path, prefix) {
-			label, allowed = l, true
-			break
-		}
-	}
+	label, allowed := matchProxyRead(path)
 	if !allowed {
-		h.WriteError(w, "path not allowed; GET: "+strings.Join(mapKeys(proxyReadWhitelist), " "), http.StatusForbidden)
+		allowedList := make([]string, 0, len(proxyReadExact)+len(proxyReadPrefixes))
+		for k := range proxyReadExact {
+			allowedList = append(allowedList, k)
+		}
+		allowedList = append(allowedList, proxyReadPrefixes...)
+		h.WriteError(w, "path not allowed; GET: "+strings.Join(allowedList, " "), http.StatusForbidden)
 		return
 	}
 	if !configs_server.ReverseIsConnected(id) {
@@ -402,12 +447,4 @@ func (h *APIHandler) instanceProxy(w http.ResponseWriter, req *http.Request, ps 
 		"status":      res.StatusCode,
 		"data":        json.RawMessage(res.Body),
 	}, http.StatusOK)
-}
-
-func mapKeys(m map[string]string) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	return keys
 }
