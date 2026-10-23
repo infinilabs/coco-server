@@ -2587,12 +2587,15 @@ const page: App.I18n.Schema['translation']['page'] = {
       continueVisiting: '继续访问',
       cancel: '取消',
       download: '下载',
+      viewOriginal: '查看原文',
       back: '返回'
     },
     hints: {
       failed: '抱歉，出错了',
       leave: '您将离开 Coco AI，打开文件的原始链接',
-      externalLinkWarning: 'Coco AI 无法保证外部链接的可用性与安全性'
+      externalLinkWarning: 'Coco AI 无法保证外部链接的可用性与安全性',
+      capturedSummary: '仅采集到以下摘要内容：',
+      originalUnavailable: '原文暂时无法获取，已展示采集到的内容'
     }
   }
 };

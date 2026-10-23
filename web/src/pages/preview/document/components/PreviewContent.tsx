@@ -7,6 +7,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { filesize } from 'filesize';
 
 import { ActionButton, DocDetail, searchWidgetI18n } from 'ui-search/source';
+import CapturedContent from './CapturedContent';
 import { getLocale } from '@/store/slice/app';
 import { useAppSelector } from '@/hooks/business/useStore';
 
@@ -124,6 +125,19 @@ export const PreviewContent: FC<PreviewContentProps> = props => {
   };
 
   if (redirectUrl) {
+    // redirect docs carry no file stream, but the connector may have captured
+    // a body (content) or at least a summary — show those with the original
+    // link alongside; only fall back to the leave-card when neither exists
+    const capturedBody = data?.content || data?.summary || '';
+    if (capturedBody) {
+      return (
+        <CapturedContent
+          data={data}
+          sourceUrl={/^https?:\/\//i.test(redirectUrl) ? redirectUrl : undefined}
+        />
+      );
+    }
+
     return (
       <div className='h-full flex flex-col items-center justify-center px-4'>
         <div className='w-[640px] flex flex-col gap-4 border border-[#EDEDED] rounded-lg bg-[#FAFAFA] p-6 dark:border-[#303030] dark:bg-[#1C1C1C]'>

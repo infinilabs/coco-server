@@ -4,6 +4,7 @@ import { highlightPhrase, highlightTerms } from './highlight';
 import { ArrowLeft, Paperclip, Wrench } from 'lucide-react';
 
 import { request } from '@/service/request';
+import { getAuthorization } from '@/service/request/shared';
 import { fetchEntityUser } from '@/service/api/entity';
 import loadingIcon from '@/assets/svg-icon/file-loading.svg';
 import logoLight from '@/assets/imgs/coco-logo-text-light.svg';
@@ -14,6 +15,7 @@ import { useAppSelector } from '@/hooks/business/useStore';
 import classNames from 'classnames';
 
 import PreviewContent from './components/PreviewContent';
+import CapturedContent from './components/CapturedContent';
 import ProcessingPanel from '@/components/ProcessingPanel';
 import { DocumentAttachmentsPanel } from '@/components/DocumentAttachmentsPanel';
 import { ensureFilenameExtension, extensionFromMime } from 'ui-search/source';
@@ -81,9 +83,15 @@ export function Component() {
 
   // requestHeaders is used by the Preview sub-components when fetching the
   // raw_content URL. We pass the app-integration-id header so embedded/widget
-  // preview works consistently.
+  // preview works consistently, and the Bearer token because the raw_content
+  // endpoint requires a logged-in user — a bare fetch would 401 and every
+  // preview would land on the failure card.
   const requestHeaders = useMemo(() => {
-    return appIntegrationId ? { 'APP-INTEGRATION-ID': appIntegrationId } : undefined;
+    const headers: Record<string, string> = {};
+    if (appIntegrationId) headers['APP-INTEGRATION-ID'] = appIntegrationId;
+    const authorization = getAuthorization();
+    if (authorization) headers.Authorization = authorization;
+    return Object.keys(headers).length > 0 ? headers : undefined;
   }, [appIntegrationId]);
 
   // Inspect the raw_content endpoint to decide whether the document is an
@@ -255,8 +263,12 @@ export function Component() {
     }
 
     // When raw_content inspection failed but we still have document metadata,
-    // show a non-fatal warning so the user can retry.
+    // prefer whatever the connector captured (content, then summary) over a
+    // bare error card; only fail loudly when there is truly nothing to show.
     if (rawContentError && !contentBlobUrl && !redirectUrl) {
+      if (data?.content || data?.summary) {
+        return <CapturedContent data={data} fetchWarning={rawContentError} />;
+      }
       return (
         <div className='h-full flex flex-col justify-center'>
           <Result

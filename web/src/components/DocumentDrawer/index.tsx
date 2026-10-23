@@ -101,7 +101,8 @@ export default function DocumentDrawer(props) {
                                             )
                                         }
                                         <div className="leading-[24px] text-12px">
-                                            <Markdown content={data.content} />
+                                            {/* RSS-style feeds capture no body — the summary is all there is */}
+                                            <Markdown content={data.content || data.summary} />
                                         </div>
                                     </>
                                 )

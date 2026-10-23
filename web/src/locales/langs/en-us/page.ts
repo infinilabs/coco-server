@@ -2602,12 +2602,15 @@ const page: App.I18n.Schema['translation']['page'] = {
       continueVisiting: 'Continue Visiting',
       cancel: 'Cancel',
       download: 'Download',
+      viewOriginal: 'View Original',
       back: 'Back'
     },
     hints: {
       failed: 'Sorry, something went wrong',
       leave: 'You are about to leave Coco AI and open the original link of the file',
-      externalLinkWarning: 'Coco AI cannot guarantee the availability and security of external links'
+      externalLinkWarning: 'Coco AI cannot guarantee the availability and security of external links',
+      capturedSummary: 'Only a summary was captured from the original source:',
+      originalUnavailable: 'The original source is unavailable right now; showing the captured content instead'
     }
   },
   search_settings: {
