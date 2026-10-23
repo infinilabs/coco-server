@@ -60,6 +60,10 @@ func init() {
 		api.RequireLogin(), api.RequirePermission(readKbPermission))
 	api.HandleUIMethod(api.PUT, "/wiki/kb/:id/toc", handler.updateToc,
 		api.RequireLogin(), api.RequirePermission(updateKbPermission))
+	// semantic grouping of the loose root pages (LLM categories); manual
+	// folders are preserved — the AI only re-files what was left unfiled
+	api.HandleUIMethod(api.POST, "/wiki/kb/:id/toc/_organize", handler.organizeToc,
+		api.RequireLogin(), api.RequirePermission(updateKbPermission))
 
 	// evolution log (LLM-wiki P0): the KB's append-only decision record —
 	// applied/dismissed proposals with actor and outcome

@@ -1,4 +1,5 @@
 import {
+  ApartmentOutlined,
   BellOutlined,
   BookOutlined,
   DeleteOutlined,
@@ -19,7 +20,7 @@ import { useAuth } from '@/hooks/business/auth';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useResponsive } from 'ahooks';
-import { getWikiToc, createWikiWorkspace, searchWikiGovernance, searchWikiKbs, searchWikiNotifications, searchWikiWorkspaces, updateWikiToc } from '@/service/api';
+import { getWikiToc, createWikiWorkspace, organizeWikiToc, searchWikiGovernance, searchWikiKbs, searchWikiNotifications, searchWikiWorkspaces, updateWikiToc } from '@/service/api';
 import { dropPositionFromAntd, findNode, moveNode, removeNode, toAntdTreeData, tocIdForArticle } from '../shared/toc';
 
 /**
@@ -550,6 +551,57 @@ export function WikiShell({ kbId, articleId, children }: Props) {
     if (kbId) fetchToc(kbId);
   };
 
+  // AI semantic grouping of the loose root pages: the pass runs in the
+  // backend background (slow model × several calls outlives any HTTP
+  // timeout), so the button spins while we poll the tree until the loose
+  // count drops, then refresh
+  const [organizing, setOrganizing] = useState(false);
+  const onOrganize = () => {
+    if (!kbId || organizing) return;
+    Modal.confirm({
+      title: t('page.wiki.toc.organize'),
+      content: t('page.wiki.toc.organizeHint'),
+      okText: t('page.wiki.toc.organizeOk'),
+      onOk: async () => {
+        setOrganizing(true);
+        try {
+          const res = await organizeWikiToc(kbId);
+          if (!res || res.started === false) {
+            window.$message?.info(res?.already_running ? t('page.wiki.toc.organizeRunning') : t('page.wiki.toc.organizeEmpty'));
+            setOrganizing(false);
+            return;
+          }
+          const before: number = res.loose || 0;
+          const deadline = Date.now() + 12 * 60 * 1000;
+          const poll = async () => {
+            try {
+              const { nodes } = await getWikiToc(kbId);
+              const loose = (nodes || []).filter((n: Api.Wiki.TocNode) => n.type !== 'folder').length;
+              if (loose < before) {
+                onRefresh();
+                window.$message?.success(t('page.wiki.toc.organizeDone', { moved: before - loose }));
+                setOrganizing(false);
+                return;
+              }
+              if (Date.now() > deadline) {
+                window.$message?.error(t('page.wiki.toc.organizeFailed'));
+                setOrganizing(false);
+                return;
+              }
+            } catch {
+              // transient poll failure — keep waiting until the deadline
+            }
+            setTimeout(poll, 6000);
+          };
+          setTimeout(poll, 6000);
+        } catch (e: any) {
+          window.$message?.error(e?.response?.data?.error?.reason ?? e?.message ?? t('page.wiki.toc.organizeFailed'));
+          setOrganizing(false);
+        }
+      }
+    });
+  };
+
   // the hub card wall is now the sider's "workspace home" entry
   const isHub = location.pathname === '/wiki/list' || location.pathname === '/wiki';
 
@@ -576,6 +628,18 @@ export function WikiShell({ kbId, articleId, children }: Props) {
             <RefreshIcon strokeWidth={2} className={`size-4 ${isRefresh ? 'animate-spin' : ''}`} />
           </Button>
         </Tooltip>
+        {kbId && canUpdateKb && (
+          <Tooltip title={t('page.wiki.toc.organize')}>
+            <Button
+              type='default'
+              className='size-8 p-0 flex items-center justify-center border-[#F0F0F0] dark:border-[#303030] rounded-12px'
+              loading={organizing}
+              onClick={onOrganize}
+            >
+              <ApartmentOutlined className='text-14px' />
+            </Button>
+          </Tooltip>
+        )}
       </div>
       {/* workspace home — the hub card wall lives here now (the topbar
           Segmented only carries governance + notifications) */}

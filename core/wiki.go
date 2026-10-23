@@ -32,8 +32,8 @@ const (
 	WikiPageTypeEntity  = "entity"
 	WikiPageTypeConcept = "concept"
 	WikiPageTypeSource  = "source"
-	WikiPageTypeTopic   = "topic" // outline-driven subject page: a cluster's curated hub
-	WikiPageTypeMap     = "map"   // hand-maintained company map: the agent entry page (D6)
+	WikiPageTypeTopic   = "topic"   // outline-driven subject page: a cluster's curated hub
+	WikiPageTypeMap     = "map"     // hand-maintained company map: the agent entry page (D6)
 	WikiPageTypePattern = "pattern" // maintainer-distilled failure pattern: 问题+根因+解法 (LLM-wiki P1)
 	WikiPageTypeSkill   = "skill"   // proposer-distilled procedural skill: 适用条件+步骤+反例 (LLM-wiki P2)
 
@@ -243,6 +243,7 @@ const (
 	WikiEvolutionCompileAgent      = "compile_agent"      // one EINO compile-agent iteration (patch filed or no_action)
 	WikiEvolutionFreshness         = "freshness"          // a freshness sweep regenerated stale pages from changed sources
 	WikiEvolutionEvalRun           = "eval_run"           // a validation-set replay scored the KB (LLM-wiki P3)
+	WikiEvolutionTocOrganize       = "toc_organize"       // semantic grouping re-filed loose TOC pages into AI category folders
 )
 
 // WikiEvolutionEntry is one append-only line of a KB's decision log.
@@ -384,17 +385,17 @@ const (
 // retention. KB-scoped and opt-in.
 type WikiExperience struct {
 	orm.ORMObjectBase
-	KbID      string  `json:"kb_id" elastic_mapping:"kb_id:{type:keyword}"`
-	Kind      string  `json:"kind,omitempty" elastic_mapping:"kind:{type:keyword}"` // chat | correction | gap
-	SessionID string  `json:"session_id,omitempty" elastic_mapping:"session_id:{type:keyword}"`
-	MessageID string  `json:"message_id,omitempty" elastic_mapping:"message_id:{type:keyword}"`
-	Question  string  `json:"question,omitempty" elastic_mapping:"question:{type:text}"`
-	Answer    string  `json:"answer,omitempty" elastic_mapping:"answer:{type:text}"`
+	KbID      string                `json:"kb_id" elastic_mapping:"kb_id:{type:keyword}"`
+	Kind      string                `json:"kind,omitempty" elastic_mapping:"kind:{type:keyword}"` // chat | correction | gap
+	SessionID string                `json:"session_id,omitempty" elastic_mapping:"session_id:{type:keyword}"`
+	MessageID string                `json:"message_id,omitempty" elastic_mapping:"message_id:{type:keyword}"`
+	Question  string                `json:"question,omitempty" elastic_mapping:"question:{type:text}"`
+	Answer    string                `json:"answer,omitempty" elastic_mapping:"answer:{type:text}"`
 	Citations []WikiSourceReference `json:"citations,omitempty" elastic_mapping:"citations:{type:object,enabled:false}"`
-	Feedback  string  `json:"feedback,omitempty" elastic_mapping:"feedback:{type:keyword}"`
-	Note      string  `json:"note,omitempty" elastic_mapping:"note:{type:text}"` // human comment / correction text
-	RouteHint string  `json:"route_hint,omitempty" elastic_mapping:"route_hint:{type:keyword}"`
-	Outcome   string  `json:"outcome,omitempty" elastic_mapping:"outcome:{type:keyword}"`
+	Feedback  string                `json:"feedback,omitempty" elastic_mapping:"feedback:{type:keyword}"`
+	Note      string                `json:"note,omitempty" elastic_mapping:"note:{type:text}"` // human comment / correction text
+	RouteHint string                `json:"route_hint,omitempty" elastic_mapping:"route_hint:{type:keyword}"`
+	Outcome   string                `json:"outcome,omitempty" elastic_mapping:"outcome:{type:keyword}"`
 	// Retention is the expiry time; the distiller's sweep deletes expired
 	// rows. Immutable-but-expiring: the raw layer never gets rewritten,
 	// only dropped.

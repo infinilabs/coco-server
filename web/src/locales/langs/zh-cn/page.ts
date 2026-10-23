@@ -57,6 +57,15 @@ const page: App.I18n.Schema['translation']['page'] = {
       empty: '暂无消息'
     },
     outline: { title: '本页目录' },
+    toc: {
+      organize: 'AI 整理目录',
+      organizeHint: '按主题把目录里散落的知识页自动分组,在后台运行(约几分钟)。手工创建的文件夹和里面的内容保持不动,只整理根层未归类的页面;完成后仍可继续拖拽调整。',
+      organizeOk: '开始整理',
+      organizeDone: '已把 {{moved}} 篇页面归入主题文件夹',
+      organizeEmpty: '没有需要整理的散落页面',
+      organizeRunning: '已有一次整理在进行中',
+      organizeFailed: '整理失败'
+    },
     assistantGroup: { chat: '对话使用', search: 'AI 搜索', deepThink: '深度思考', deepResearch: '深度研究', dataProcessing: '数据加工' },
     comments: {
       title: '评论',

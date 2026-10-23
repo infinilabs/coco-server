@@ -57,6 +57,15 @@ const page: App.I18n.Schema['translation']['page'] = {
       empty: 'No notifications'
     },
     outline: { title: 'On this page' },
+    toc: {
+      organize: 'Organize with AI',
+      organizeHint: 'Groups the loose pages in the TOC by topic automatically — it runs in the background and takes a few minutes. Manually created folders and their contents stay untouched; only unfiled root pages are re-filed, and you can keep dragging afterwards.',
+      organizeOk: 'Organize',
+      organizeDone: 'Filed {{moved}} pages into topic folders',
+      organizeEmpty: 'No loose pages to organize',
+      organizeRunning: 'An organize pass is already running',
+      organizeFailed: 'Organize failed'
+    },
     assistantGroup: { chat: 'Chat assistants', search: 'AI Search', deepThink: 'Deep thinking', deepResearch: 'Deep research', dataProcessing: 'Data processing' },
     comments: {
       title: 'Comments',

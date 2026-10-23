@@ -924,6 +924,20 @@ export function distillWikiKb(kbId: string) {
   }).then(res => (res as any)?.data);
 }
 
+/** semantically group the loose TOC pages into AI category folders
+ * (manual folders preserved); runs in the background — poll the toc until
+ * the loose count drops */
+export function organizeWikiToc(kbId: string) {
+  return request<{
+    started: boolean;
+    already_running?: boolean;
+    loose: number;
+  }>({
+    method: 'post',
+    url: `/wiki/kb/${kbId}/toc/_organize`
+  }).then(res => (res as any)?.data);
+}
+
 /** run one on-demand pass of the EINO compile agent (files at most one
  * compile_patch proposal per iteration); synchronous, LLM-slow */
 export function runWikiCompileAgent(kbId: string) {
