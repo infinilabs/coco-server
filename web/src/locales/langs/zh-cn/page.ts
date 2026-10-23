@@ -61,6 +61,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     outline: { title: '本页目录' },
     toc: {
       organize: 'AI 整理目录',
+      organizeTooltip: 'AI 整理目录（当前 {{loose}} 篇未归类）',
       organizeHint: '按主题把目录里散落的知识页自动分组,在后台运行(约几分钟)。手工创建的文件夹和里面的内容保持不动,只整理根层未归类的页面;完成后仍可继续拖拽调整。',
       organizeOk: '开始整理',
       organizeDone: '已把 {{moved}} 篇页面归入主题文件夹',

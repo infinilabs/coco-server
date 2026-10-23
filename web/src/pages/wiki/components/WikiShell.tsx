@@ -572,6 +572,7 @@ export function WikiShell({ kbId, articleId, children }: Props) {
         if (!st) throw new Error('empty status');
         if (!st.running) {
           setOrganizing(false);
+          if (typeof st.loose === 'number') setLooseCount(st.loose);
           // a result timestamped before our trigger belongs to an earlier
           // pass — treat only fresh outcomes as this run's
           const finishedAt = st.last_at ? Date.parse(st.last_at) : 0;
@@ -631,13 +632,18 @@ export function WikiShell({ kbId, articleId, children }: Props) {
     });
   };
   // a reload mid-run (or a pass triggered outside the UI) should still show
-  // the in-progress state instead of an idle button
+  // the in-progress state instead of an idle button; the idle branch also
+  // carries the loose count for the button tooltip
+  const [looseCount, setLooseCount] = useState(-1);
   useEffect(() => {
     if (!kbId) return undefined;
     let cancelled = false;
+    setLooseCount(-1);
     getWikiTocOrganizeStatus(kbId)
       .then(st => {
-        if (!cancelled && st?.running) {
+        if (cancelled || !st) return;
+        setLooseCount(st.loose ?? -1);
+        if (st.running) {
           setOrganizing(true);
           pollOrganize(kbId, Date.now() - 60_000);
         }
@@ -677,7 +683,13 @@ export function WikiShell({ kbId, articleId, children }: Props) {
           </Button>
         </Tooltip>
         {kbId && canUpdateKb && (
-          <Tooltip title={t('page.wiki.toc.organize')}>
+          <Tooltip
+            title={
+              !organizing && looseCount > 0
+                ? t('page.wiki.toc.organizeTooltip', { loose: looseCount })
+                : t('page.wiki.toc.organize')
+            }
+          >
             <Button
               type='default'
               className='size-8 p-0 flex items-center justify-center border-[#F0F0F0] dark:border-[#303030] rounded-12px'

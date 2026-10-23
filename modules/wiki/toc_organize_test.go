@@ -1,6 +1,8 @@
 package wiki
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -36,7 +38,7 @@ func node(id, title, kind, articleID string, children ...core.WikiTocNode) core.
 }
 
 func TestParseCategoryList(t *testing.T) {
-	cats, err := parseCategoryList("```json\n[\"产品与服务\", \"数据与检索\", \"部署与运维\", \"\", \"产品与服务\"]\n```")
+	cats, err := parseCategoryList("```json\n[\"产品与服务\", \"数据与检索\", \"部署与运维\", \"\", \"产品与服务\"]\n```", organizeMaxCats)
 	if err != nil {
 		t.Fatalf("fenced parse failed: %v", err)
 	}
@@ -44,15 +46,15 @@ func TestParseCategoryList(t *testing.T) {
 		t.Fatalf("expected 3 cats after dedupe/empty-drop, got %v", cats)
 	}
 
-	cats2, err := parseCategoryList(`["Alpha","Beta"]`)
+	cats2, err := parseCategoryList(`["Alpha","Beta"]`, organizeMaxCats)
 	if err != nil || len(cats2) != 2 {
 		t.Fatalf("bare array parse failed: %v %v", cats2, err)
 	}
 
-	if _, err := parseCategoryList("no json here at all"); err == nil {
+	if _, err := parseCategoryList("no json here at all", organizeMaxCats); err == nil {
 		t.Fatal("garbage must error")
 	}
-	if _, err := parseCategoryList(`[1,2,3]`); err == nil {
+	if _, err := parseCategoryList(`[1,2,3]`, organizeMaxCats); err == nil {
 		t.Fatal("non-string array must error")
 	}
 }
@@ -86,7 +88,7 @@ func TestBuildOrganizedToc(t *testing.T) {
 	}
 	categories := []string{"数据连接器", "安全与认证", "空类别"}
 
-	out, stats := buildOrganizedToc([]core.WikiTocNode{looseA, manual, looseB, looseC}, assigns, categories, allClassified([]core.WikiTocNode{looseA, manual, looseB, looseC}), "kb1")
+	out, stats := buildOrganizedToc([]core.WikiTocNode{looseA, manual, looseB, looseC}, assigns, categories, allClassified([]core.WikiTocNode{looseA, manual, looseB, looseC}), organizeFallbackCategory, "kb1")
 
 	if stats.Loose != 3 || stats.Moved != 3 || stats.KeptFolders != 1 {
 		t.Fatalf("stats wrong: %+v", stats)
@@ -121,7 +123,7 @@ func TestBuildOrganizedToc(t *testing.T) {
 		}
 	}
 	// folder ids stable across runs (same kb+category → same id)
-	again, _ := buildOrganizedToc([]core.WikiTocNode{looseA, looseB}, map[string]string{"art-a": "数据连接器", "art-b": "安全与认证"}, categories, allClassified([]core.WikiTocNode{looseA, looseB}), "kb1")
+	again, _ := buildOrganizedToc([]core.WikiTocNode{looseA, looseB}, map[string]string{"art-a": "数据连接器", "art-b": "安全与认证"}, categories, allClassified([]core.WikiTocNode{looseA, looseB}), organizeFallbackCategory, "kb1")
 	for i := range out {
 		if out[i].Type == "folder" && strings.HasPrefix(out[i].ID, "folder-ai-") && again[len(again)-1].ID != "" {
 			// ids depend only on category+kb; spot-check one
@@ -142,7 +144,7 @@ func TestBuildOrganizedTocKeepsAllLoose(t *testing.T) {
 		node("t2", "B", "article", "a2"),
 	}
 	// no assignments at all → everything lands in the fallback folder
-	out, stats := buildOrganizedToc(loose, map[string]string{}, []string{"Cat"}, allClassified(loose), "kb")
+	out, stats := buildOrganizedToc(loose, map[string]string{}, []string{"Cat"}, allClassified(loose), organizeFallbackCategory, "kb")
 	total := 0
 	for _, n := range out {
 		if n.Type == "folder" {
@@ -165,7 +167,7 @@ func TestBuildOrganizedTocMergesIntoExistingFolder(t *testing.T) {
 	}
 	out, stats := buildOrganizedToc(existing,
 		map[string]string{"a2": "Connectors", "a3": "Connectors"},
-		[]string{"Connectors"}, allClassified(existing), "kb")
+		[]string{"Connectors"}, allClassified(existing), organizeFallbackCategory, "kb")
 	if len(out) != 1 || out[0].ID != aiID {
 		t.Fatalf("must merge into the existing folder, got %d nodes, first id %s", len(out), out[0].ID)
 	}
@@ -191,7 +193,7 @@ func TestBuildOrganizedTocMergeKeepsManualFolderOrder(t *testing.T) {
 	}
 	out, stats := buildOrganizedToc(existing,
 		map[string]string{"a3": "产品与服务"},
-		[]string{"产品与服务"}, allClassified(existing), "kb")
+		[]string{"产品与服务"}, allClassified(existing), organizeFallbackCategory, "kb")
 	if len(out) != 1 || out[0].ID != "folder-manual" {
 		t.Fatalf("must merge into the manual folder, got %d nodes", len(out))
 	}
@@ -232,7 +234,7 @@ func TestBuildOrganizedTocLeavesMidPassPagesAtRoot(t *testing.T) {
 	}
 	out, stats := buildOrganizedToc(existing,
 		map[string]string{"a1": "Cat"},
-		[]string{"Cat"}, map[string]bool{"a1": true}, "kb")
+		[]string{"Cat"}, map[string]bool{"a1": true}, organizeFallbackCategory, "kb")
 	// a1 filed into the new folder; a2 stays at the root for the next pass
 	if len(out) != 2 || out[0].Type != "folder" || out[1].ArticleID != "a2" {
 		t.Fatalf("mid-pass page must stay at root: %+v", out)
@@ -258,5 +260,90 @@ func TestEntriesBlockExcerpt(t *testing.T) {
 	// no summary → bare title line, no dash
 	if block2 := entriesBlock(nodes, nil); block2 != "a1. Division\n" {
 		t.Fatalf("unexpected bare block: %q", block2)
+	}
+}
+
+func TestOrganizeFallbackName(t *testing.T) {
+	cjk := []core.WikiTocNode{
+		node("t1", "美心月餅", "article", "a1"),
+		node("t2", "訂購流程", "article", "a2"),
+	}
+	if got := organizeFallbackName(cjk); got != "其他" {
+		t.Fatalf("CJK-dominant titles must get 其他, got %q", got)
+	}
+	latin := []core.WikiTocNode{
+		node("t1", "API Authentication", "article", "a1"),
+		node("t2", "Deployment Guide", "article", "a2"),
+	}
+	if got := organizeFallbackName(latin); got != "Other" {
+		t.Fatalf("Latin-dominant titles must get Other, got %q", got)
+	}
+	mixed := []core.WikiTocNode{
+		node("t1", "美心月餅", "article", "a1"),
+		node("t2", "Deployment Guide", "article", "a2"),
+		node("t3", "API Authentication", "article", "a3"),
+	}
+	if got := organizeFallbackName(mixed); got != "Other" {
+		t.Fatalf("minority CJK must not switch the fallback name, got %q", got)
+	}
+}
+
+func TestSampleForProposalStrides(t *testing.T) {
+	order := make([]core.WikiTocNode, 0, 300)
+	for i := 0; i < 300; i++ {
+		order = append(order, node("t", string(rune('A'+i%26))+fmt.Sprint(i), "article", fmt.Sprint("a", i)))
+	}
+	sample := sampleForProposal(order, organizeSampleSize)
+	if len(sample) != organizeSampleSize {
+		t.Fatalf("sample size %d", len(sample))
+	}
+	// the LAST page must be reachable — a prefix sample would only cover A–D
+	first := sample[0].Title
+	last := sample[len(sample)-1].Title
+	if first == last {
+		t.Fatalf("sample did not spread: %q..%q", first, last)
+	}
+	// stride must reach the tail of the list (the last pick lands within
+	// one step of the end — int(79*3.75)=296 of 300)
+	lastIdx, err := strconv.Atoi(sample[len(sample)-1].Title[1:])
+	if err != nil || lastIdx < 290 {
+		t.Fatalf("stride sample never reached the list tail: last=%q", sample[len(sample)-1].Title)
+	}
+}
+
+func TestBuildOrganizedTocDropsEmptyAIFolders(t *testing.T) {
+	emptyAI := node(organizeFolderID("Ghosts", "kb"), "Ghosts", "folder", "")
+	emptyManual := node("folder-manual", "空的手动夹", "folder", "")
+	existing := []core.WikiTocNode{
+		emptyAI,
+		emptyManual,
+		node("t1", "Some Page", "article", "a1"),
+	}
+	out, stats := buildOrganizedToc(existing,
+		map[string]string{"a1": "NewCat"},
+		[]string{"NewCat"}, allClassified(existing), "Other", "kb")
+	titles := []string{}
+	for _, n := range out {
+		titles = append(titles, n.Title)
+	}
+	// the empty AI folder is gone; the empty manual folder stays
+	if len(out) != 2 || out[0].Title != "空的手动夹" || out[1].Title != "NewCat" {
+		t.Fatalf("expected [空的手动夹, NewCat], got %v", titles)
+	}
+	if stats.KeptFolders != 1 {
+		t.Fatalf("kept_folders=%d (empty manual folder only)", stats.KeptFolders)
+	}
+}
+
+func TestParseCategoryListCapFlexes(t *testing.T) {
+	raw := `["A","B","C","D","E","F","G","H","I","J","K","L"]`
+	capped, err := parseCategoryList(raw, 10)
+	if err != nil || len(capped) != 10 {
+		t.Fatalf("default cap: %d %v", len(capped), err)
+	}
+	// a tree with existing folders widens the room for genuinely new topics
+	wide, err := parseCategoryList(raw, 10+2)
+	if err != nil || len(wide) != 12 {
+		t.Fatalf("flexed cap: %d %v", len(wide), err)
 	}
 }

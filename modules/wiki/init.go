@@ -63,10 +63,12 @@ func init() {
 	// semantic grouping of the loose root pages (LLM categories); manual
 	// folders are preserved — the AI only re-files what was left unfiled
 	api.HandleUIMethod(api.POST, "/wiki/kb/:id/toc/_organize", handler.organizeToc,
-		api.RequireLogin(), api.RequirePermission(updateKbPermission))
+		api.RequireLogin(), api.RequirePermission(updateKbPermission),
+		api.MCPTool("wiki_organize_toc", "Trigger a background semantic grouping of a knowledge base's loose TOC pages: proposes/uses topic categories and files every unfiled root page (manual folders untouched, existing folders reused by name). Returns {started, loose}; poll wiki_toc_organize_status until running is false"))
 	// polling target for the running pass — read-only, so read permission
 	api.HandleUIMethod(api.GET, "/wiki/kb/:id/toc/_organize", handler.organizeTocStatus,
-		api.RequireLogin(), api.RequirePermission(readKbPermission))
+		api.RequireLogin(), api.RequirePermission(readKbPermission),
+		api.MCPTool("wiki_toc_organize_status", "Check a knowledge base's semantic toc-organize state: {running, loose, last pass stats, last_error, last_at}"))
 
 	// evolution log (LLM-wiki P0): the KB's append-only decision record —
 	// applied/dismissed proposals with actor and outcome

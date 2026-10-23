@@ -61,6 +61,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     outline: { title: 'On this page' },
     toc: {
       organize: 'Organize with AI',
+      organizeTooltip: 'Organize with AI ({{loose}} pages unfiled)',
       organizeHint: 'Groups the loose pages in the TOC by topic automatically — it runs in the background and takes a few minutes. Manually created folders and their contents stay untouched; only unfiled root pages are re-filed, and you can keep dragging afterwards.',
       organizeOk: 'Organize',
       organizeDone: 'Filed {{moved}} pages into topic folders',

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
@@ -144,9 +145,48 @@ type organizeStats struct {
 	Other       int      `json:"other"`
 }
 
+// organizeFallbackName picks the fallback folder's name in the loose
+// pages' dominant script — an English KB must not grow a Chinese 其他
+// folder. Han-dominant titles → 其他, anything else → Other.
+func organizeFallbackName(order []core.WikiTocNode) string {
+	cjk, letters := 0, 0
+	for _, n := range order {
+		for _, r := range n.Title {
+			switch {
+			case unicode.Is(unicode.Han, r):
+				cjk++
+				letters++
+			case unicode.IsLetter(r):
+				letters++
+			}
+		}
+	}
+	if letters > 0 && cjk*2 >= letters {
+		return "其他"
+	}
+	return "Other"
+}
+
+// sampleForProposal spreads the proposal sample evenly across the sorted
+// loose list — a plain prefix would show the model only the A–D slice of
+// an English KB and skew the categories accordingly.
+func sampleForProposal(order []core.WikiTocNode, size int) []core.WikiTocNode {
+	if len(order) <= size {
+		return order
+	}
+	step := float64(len(order)) / float64(size)
+	out := make([]core.WikiTocNode, 0, size)
+	for i := 0; i < size; i++ {
+		out = append(out, order[int(float64(i)*step)])
+	}
+	return out
+}
+
 // parseCategoryList extracts the JSON array of category names from a model
-// answer (bare array or fenced code block).
-func parseCategoryList(s string) ([]string, error) {
+// answer (bare array or fenced code block). The cap flexes with the folder
+// count the tree already has — a KB with ten folders must still leave the
+// model room to propose a genuinely new topic.
+func parseCategoryList(s string, maxCats int) ([]string, error) {
 	raw := extractJSONArray(s, "")
 	if raw == "" {
 		return nil, fmt.Errorf("no JSON array found in category answer")
@@ -164,7 +204,7 @@ func parseCategoryList(s string) ([]string, error) {
 		}
 		seen[c] = true
 		out = append(out, c)
-		if len(out) >= organizeMaxCats {
+		if len(out) >= maxCats {
 			break
 		}
 	}
@@ -222,7 +262,9 @@ func extractJSONArray(s, _ string) string {
 // fallback folder (only created when non-empty). A loose article that was
 // never shown to the model (created after the pass snapshot) stays at the
 // root — the next pass picks it up instead of burying it in the fallback.
-func buildOrganizedToc(existing []core.WikiTocNode, assigns map[string]string, categories []string, classified map[string]bool, folderIDSuffix string) ([]core.WikiTocNode, organizeStats) {
+// An AI folder left empty by all this is dropped (it was auto-created, an
+// empty one has no meaning); a hand-built empty folder stays.
+func buildOrganizedToc(existing []core.WikiTocNode, assigns map[string]string, categories []string, classified map[string]bool, fallback, folderIDSuffix string) ([]core.WikiTocNode, organizeStats) {
 	stats := organizeStats{Categories: []string{}}
 
 	folders := []core.WikiTocNode{}
@@ -244,7 +286,7 @@ func buildOrganizedToc(existing []core.WikiTocNode, assigns map[string]string, c
 		loose = append(loose, n)
 	}
 	stats.Loose = len(loose)
-	stats.KeptFolders = len(folders)
+	preExisting := len(folders)
 
 	buckets := map[string][]core.WikiTocNode{}
 	catSet := map[string]bool{}
@@ -254,7 +296,7 @@ func buildOrganizedToc(existing []core.WikiTocNode, assigns map[string]string, c
 	for _, n := range loose {
 		cat, ok := assigns[n.ArticleID]
 		if !ok || !catSet[cat] {
-			cat = organizeFallbackCategory
+			cat = fallback
 		}
 		buckets[cat] = append(buckets[cat], n)
 	}
@@ -296,13 +338,26 @@ func buildOrganizedToc(existing []core.WikiTocNode, assigns map[string]string, c
 		stats.Categories = append(stats.Categories, c)
 		stats.Moved += len(ns)
 	}
-	if ns := buckets[organizeFallbackCategory]; len(ns) > 0 {
-		fileBucket(organizeFallbackCategory, ns)
-		stats.Categories = append(stats.Categories, organizeFallbackCategory)
+	if ns := buckets[fallback]; len(ns) > 0 {
+		fileBucket(fallback, ns)
+		stats.Categories = append(stats.Categories, fallback)
 		stats.Moved += len(ns)
 		stats.Other = len(ns)
 	}
-	return append(folders, fresh...), stats
+
+	// drop AI folders nobody landed in (the user emptying one by drag is a
+	// delete, not a refile) — manual folders survive even when empty
+	out := make([]core.WikiTocNode, 0, len(folders)+len(fresh))
+	dropped := 0
+	for _, f := range folders {
+		if strings.HasPrefix(f.ID, organizeFolderAIPrefix) && len(f.Children) == 0 {
+			dropped++
+			continue
+		}
+		out = append(out, f)
+	}
+	stats.KeptFolders = preExisting - dropped
+	return append(out, fresh...), stats
 }
 
 // organizeFolderID derives a stable id from the category so a re-run moves
@@ -377,9 +432,11 @@ func OrganizeTocSemantically(parent context.Context, kbID string) (*organizeStat
 	for _, n := range order {
 		classified[n.ArticleID] = true
 	}
+	// the fallback folder's name follows the loose pages' dominant script
+	fallback := organizeFallbackName(order)
 	var stats *organizeStats
 	saveErr := tocMutate(kbID, func(nodes []core.WikiTocNode) ([]core.WikiTocNode, bool) {
-		next, s := buildOrganizedToc(nodes, assigns, categories, classified, kbID)
+		next, s := buildOrganizedToc(nodes, assigns, categories, classified, fallback, kbID)
 		stats = &s
 		return next, true
 	})
@@ -401,21 +458,20 @@ func classifyForOrganize(ctx context.Context, order []core.WikiTocNode, existing
 		return nil, nil, err
 	}
 
-	sample := order
-	if len(sample) > organizeSampleSize {
-		sample = sample[:organizeSampleSize]
-	}
-	catResp, err := llm.GenerateContent(ctx, []llms.MessageContent{
+	sample := sampleForProposal(order, organizeSampleSize)
+	catResp, err := generateWithRetry(ctx, llm, []llms.MessageContent{
 		langchain.SystemTextParts(buildProposalPrompt(len(order), existingTitles)),
 		llms.TextParts(llms.ChatMessageTypeHuman, entriesBlock(sample, summaries)),
-	}, llms.WithMaxTokens(400))
+	}, 400)
 	if err != nil {
 		return nil, nil, fmt.Errorf("category proposal failed: %w", err)
 	}
 	if catResp == nil || len(catResp.Choices) == 0 {
 		return nil, nil, fmt.Errorf("empty category proposal response")
 	}
-	categories, err := parseCategoryList(catResp.Choices[0].Content)
+	// existing folder names count against the cap too when the model echoes
+	// them — a KB with ten folders must still leave room for a new topic
+	categories, err := parseCategoryList(catResp.Choices[0].Content, organizeMaxCats+len(existingTitles))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -429,10 +485,10 @@ func classifyForOrganize(ctx context.Context, order []core.WikiTocNode, existing
 		}
 		batch := order[start:end]
 		userText := "Allowed categories: " + allowed + "\n\nPages:\n" + entriesBlock(batch, summaries)
-		resp, err := llm.GenerateContent(ctx, []llms.MessageContent{
+		resp, err := generateWithRetry(ctx, llm, []llms.MessageContent{
 			langchain.SystemTextParts(organizeAssignPrompt),
 			llms.TextParts(llms.ChatMessageTypeHuman, userText),
-		}, llms.WithMaxTokens(4000))
+		}, 4000)
 		if err != nil {
 			return nil, nil, fmt.Errorf("assignment batch failed: %w", err)
 		}
@@ -444,6 +500,18 @@ func classifyForOrganize(ctx context.Context, order []core.WikiTocNode, existing
 		}
 	}
 	return categories, assigns, nil
+}
+
+// generateWithRetry rides out transient provider errors with one retry —
+// without it a single hiccup fails the whole pass and the next trigger
+// (button or auto-archive) starts the model calls over from scratch.
+func generateWithRetry(ctx context.Context, llm llms.Model, msgs []llms.MessageContent, maxTokens int) (*llms.ContentResponse, error) {
+	resp, err := llm.GenerateContent(ctx, msgs, llms.WithMaxTokens(maxTokens))
+	if err == nil {
+		return resp, nil
+	}
+	log.Warnf("wiki: toc organize llm call failed, retrying once: %v", err)
+	return llm.GenerateContent(ctx, msgs, llms.WithMaxTokens(maxTokens))
 }
 
 // fetchArticleSummaries pulls the loose articles' summaries in one terms
