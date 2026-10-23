@@ -1001,3 +1001,19 @@ export function consolidateWikiKb(kbId: string) {
     url: `/wiki/kb/${kbId}/_consolidate`
   }).then(res => (res as any)?.data);
 }
+
+/** compile ops that exhausted their retries (incremental-compile P1) */
+export function fetchWikiCompileDeadLetters(kbId: string) {
+  return request<{ total: number; entries: Api.Wiki.CompileDeadOp[] }>({
+    method: 'get',
+    url: `/wiki/kb/${kbId}/_opdead`
+  }).then(res => (res as any)?.data ?? { total: 0, entries: [] });
+}
+
+/** acknowledge and clear the dead letter */
+export function clearWikiCompileDeadLetters(kbId: string) {
+  return request({
+    method: 'delete',
+    url: `/wiki/kb/${kbId}/_opdead`
+  });
+}

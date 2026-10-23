@@ -464,10 +464,18 @@ func GenerateFinalResponse(taskCtx context.Context, reqMsg, replyMsg *core.ChatM
 			text, ok := v.(string)
 			if ok {
 				if params.AssistantCfg.ChatSettings.HistoryMessage.CompressionThreshold > 0 && len(text) > params.AssistantCfg.ChatSettings.HistoryMessage.CompressionThreshold {
-					//log.Error("history is too large: %v, compressing, target size: %v", len(text), params.AssistantCfg.ChatSettings.HistoryMessage.CompressionThreshold)
+					//log.Error("history is too long: %v, compressing, target size: %v", len(text), len(text))
 					//TODO compress history
 				}
 				contextPrompt += fmt.Sprintf("\nConversation:\n%v\n", text)
+			}
+		}
+
+		// tier-1 skill index (LLM-wiki P2): names + applicability only — the
+		// full skill pages reach the model through retrieval (tier 2)
+		if v, ok := inputValues["skills"]; ok {
+			if text, ok := v.(string); ok && text != "" {
+				contextPrompt += text
 			}
 		}
 

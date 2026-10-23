@@ -67,9 +67,10 @@ func onDocumentProcessed(docID, freshHash string) {
 		if kb == nil {
 			continue
 		}
-		// W9 incremental trigger: the KB's source corpus changed — mark it
-		// for a debounced compile (coalesces document bursts)
-		MarkKBForCompile(kb.ID)
+		// W9 incremental trigger (compileops P1): the corpus change lands as
+		// a persistent per-document op — the lane coalesces bursts and
+		// survives restarts
+		EnqueueCompileOp(kb.ID, "ingest", docID, "content-changed")
 		fileProposal(kb, &a, core.WikiGovernanceArticleRefresh,
 			"cited document changed (re-ingested with new content fingerprint)",
 			util.MapStr{
@@ -102,6 +103,8 @@ func onDocumentDeleted(docID string) {
 		if kb == nil {
 			continue
 		}
+		// the loss also reaches the compiler as a retract op (compileops P1)
+		EnqueueCompileOp(kb.ID, "retract", docID, "document-deleted")
 		fileProposal(kb, &a, core.WikiGovernanceStale,
 			"cited document was deleted — this page lost a piece of evidence",
 			util.MapStr{

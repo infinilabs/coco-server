@@ -18,6 +18,7 @@ import (
 	"infini.sh/coco/modules/assistant/deep_search"
 	"infini.sh/coco/modules/assistant/tools"
 	attachmentmod "infini.sh/coco/modules/attachment"
+	"infini.sh/coco/modules/wiki"
 
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/llms"
@@ -251,6 +252,14 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 		// every turn, fact/task recalled against the current query
 		if section := buildMemorySection(userID, reqMsg.Message); section != "" {
 			params.InputValues["memory_section"] = section
+		}
+
+		// tier-1 skill index (LLM-wiki P2): the same resident index the
+		// deep-search path injects — names + applicability only; the full
+		// skill pages reach the model through retrieval (tier 2), their
+		// Loads attachments stay tier 3
+		if idx := wiki.SkillIndexForAssistant(orm.NewContextWithParent(ctx), params.AssistantCfg.GetID()); idx != "" {
+			params.InputValues["skills"] = idx
 		}
 
 		err = langchain.GenerateFinalResponse(ctx, reqMsg, replyMsg, params, params.InputValues, sender)

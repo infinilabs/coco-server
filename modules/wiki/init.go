@@ -248,6 +248,13 @@ func init() {
 	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_compile/_cancel", handler.cancelCompile,
 		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
 
+	// compile op dead letter (compileops P1): ops that exhausted their
+	// retries — the KB overview shows the count, acknowledge to clear
+	api.HandleUIMethod(api.GET, "/wiki/kb/:id/_opdead", handler.compileOpsDeadHandler,
+		api.RequireLogin(), api.RequirePermission(readArticlePermission))
+	api.HandleUIMethod(api.DELETE, "/wiki/kb/:id/_opdead", handler.compileOpsDeadClearHandler,
+		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
+
 	// one-off published-article projection backfill (W16a): run before
 	// flipping search_settings.wiki_projection so the unified leg never
 	// serves a half-empty index

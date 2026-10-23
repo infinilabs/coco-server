@@ -400,6 +400,9 @@ func (h *APIHandler) compileKBHandler(w http.ResponseWriter, req *http.Request, 
 			return
 		}
 		job.finish("done")
+		// the manual full run subsumes whatever per-document ops were
+		// queued for this KB (compileops P1)
+		deleteCompileOps(kbID)
 		log.Infof("wiki compiler: kb [%s] done — %d docs, %d batches, %d extracts, %d reduced, %d proposals (%d cached, %d failed batches)",
 			kb.Name, summary.Docs, summary.Batches, summary.Extracts, summary.Reduced, summary.Proposals, summary.CachedBatches, summary.FailedBatches)
 	}()
@@ -1161,81 +1164,9 @@ func truncateCompile(s string, n int) string {
 	return string(runes[:n])
 }
 
-/* ---------------- incremental trigger (W9) ---------------- */
-
-// dirtyKBs accumulates KB ids whose sources changed since the last sweep.
-// The debounce is coarse (5 min trailing edge) — compilation is expensive
-// (LLM MAP per chunk batch) and document bursts should coalesce into one run.
-var (
-	compileMu       sync.Mutex
-	compileDirty    = map[string]bool{}
-	compileTimerSet bool
-	compileTimer    *time.Timer
-)
-
-const compileDebounce = 5 * time.Minute
-
-// MarkKBForCompile notes that a KB's source corpus changed and schedules a
-// debounced compile run. Safe for concurrent callers; the first mark starts
-// the timer, later marks before it fires just stay dirty.
-func MarkKBForCompile(kbID string) {
-	if kbID == "" {
-		return
-	}
-	compileMu.Lock()
-	compileDirty[kbID] = true
-	needTimer := !compileTimerSet
-	compileTimerSet = true
-	compileMu.Unlock()
-
-	if needTimer {
-		time.AfterFunc(compileDebounce, func() {
-			compileMu.Lock()
-			dirty := compileDirty
-			compileDirty = map[string]bool{}
-			compileTimerSet = false
-			compileMu.Unlock()
-
-			for id := range dirty {
-				runDebouncedCompile(id)
-			}
-		})
-	}
-}
-
-// runDebouncedCompile runs the pipeline for one KB (best-effort, logged).
-func runDebouncedCompile(kbID string) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Errorf("wiki compiler: debounced run panicked for kb [%s]: %v", kbID, r)
-		}
-	}()
-	kb := core.WikiKnowledgeBase{}
-	kb.ID = kbID
-	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	exists, err := orm.GetV2(ctx, &kb)
-	if err != nil || !exists {
-		return
-	}
-	model := llmmodule.ResolveModel(core.LLMTypeLanguage, nil)
-	if model == nil {
-		log.Debugf("wiki compiler: debounced run skipped for [%s], no language model", kbID)
-		return
-	}
-	job := getCompileJob(kbID)
-	if job == nil || job.Status != "running" {
-		job = &CompileJob{ID: util.GetUUID(), KbID: kbID, Status: "running", Stage: "map", StartedAt: time.Now()}
-		job.cancel = func() {}
-		compileJobs.Store(kbID, job)
-	}
-	summary, err := runCompilePipeline(ctx, &kb, model, job)
-	if err != nil {
-		job.finish("failed")
-		log.Warnf("wiki compiler: debounced run failed for [%s]: %v", kbID, err)
-		return
-	}
-	job.finish("done")
-	log.Infof("wiki compiler: debounced run for [%s] — %d extracts, %d reduced, %d proposals",
-		kb.Name, summary.Extracts, summary.Reduced, summary.Proposals)
-}
+/* ---------------- incremental trigger (W9 → compileops.go) ----------------
+ * The KB dirty map + 5-minute in-memory debounce this section used to hold
+ * is replaced by the persistent document-level op queue in compileops.go
+ * (DESIGN-incremental-compile.md P1): producers enqueue ops, the consume
+ * lane settles them with the same trailing-edge cadence, and a restart can
+ * no longer lose a pending compile. */

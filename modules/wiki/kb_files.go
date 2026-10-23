@@ -357,9 +357,10 @@ func (h *APIHandler) uploadKBFiles(w http.ResponseWriter, req *http.Request, ps 
 			continue
 		}
 		created++
-		// the new raw material should reach the knowledge: mark the KB for
-		// compile so entities/pages pick it up (auto-approve applies them)
-		MarkKBForCompile(kbID)
+		// the new raw material should reach the knowledge: a persistent
+		// ingest op triggers the compile lane (entities/pages pick it up,
+		// auto-approve applies them)
+		EnqueueCompileOp(kbID, "ingest", doc.ID, "kb-file-uploaded")
 	}
 	h.WriteOKJSON(w, util.MapStr{"created": created, "failed": failures})
 }

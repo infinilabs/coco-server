@@ -401,6 +401,10 @@ const page: App.I18n.Schema['translation']['page'] = {
       agentFiled: 'Patch proposals filed',
       agentNotes: 'Notes',
       agentHint: 'Patches enter the governance queue and take effect once approved.',
+      deadLetters: '{count} compile op(s) exhausted their retries and landed in the dead letter',
+      deadLettersHint: 'Last error: {error}',
+      deadLettersClear: 'Clear dead letter',
+      deadLettersCleared: 'Dead letter cleared',
       columns: {
         title: 'Title',
         status: 'Status',

@@ -1,11 +1,11 @@
 import { CompassOutlined, FileAddOutlined, RobotOutlined, ThunderboltOutlined } from '@ant-design/icons';
-import { Button, Descriptions, Drawer, Empty, List, Modal, Space, Tag, message } from 'antd';
+import { Alert, Button, Descriptions, Drawer, Empty, List, Modal, Space, Tag, message } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import Markdown from '@/components/DocumentDrawer/Markdown';
-import { createWikiArticle, getWikiCompanyMap, runWikiCompileAgent } from '@/service/api';
+import { clearWikiCompileDeadLetters, createWikiArticle, fetchWikiCompileDeadLetters, getWikiCompanyMap, runWikiCompileAgent } from '@/service/api';
 import { useAuth } from '@/hooks/business/auth';
 
 const STATUS_COLOR: Record<string, string> = {
@@ -49,12 +49,24 @@ export function KbOverview({
   const [companyMap, setCompanyMap] = useState<CompanyMapInfo | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
   const [creatingMap, setCreatingMap] = useState(false);
+  // compile dead letter (incremental-compile P1): ops that exhausted retries
+  const [deadLetters, setDeadLetters] = useState<{ total: number; entries: Api.Wiki.CompileDeadOp[] } | null>(null);
 
   useEffect(() => {
     getWikiCompanyMap(kb.id)
       .then(setCompanyMap)
       .catch(() => setCompanyMap({ found: false }));
+    fetchWikiCompileDeadLetters(kb.id)
+      .then(setDeadLetters)
+      .catch(() => setDeadLetters(null));
   }, [kb.id]);
+
+  const clearDeadLetters = () => {
+    clearWikiCompileDeadLetters(kb.id).then(() => {
+      setDeadLetters({ total: 0, entries: [] });
+      message.success(t('page.wiki.kb.deadLettersCleared'));
+    });
+  };
 
   // one-click create: the backend seeds the map skeleton on empty content —
   // the author lands in the editor with the template instead of a blank page
@@ -85,6 +97,25 @@ export function KbOverview({
     // full container width: the header/tabs above span the whole column, so a
     // capped overview column read as "not adaptive" on wide screens
     <div className='w-full flex flex-col gap-14px'>
+      {deadLetters && deadLetters.total > 0 && (
+        <Alert
+          action={
+            canUpdateKb ? (
+              <Button
+                danger
+                size='small'
+                onClick={clearDeadLetters}
+              >
+                {t('page.wiki.kb.deadLettersClear')}
+              </Button>
+            ) : undefined
+          }
+          description={t('page.wiki.kb.deadLettersHint', { error: deadLetters.entries[deadLetters.entries.length - 1]?.error ?? '' })}
+          message={t('page.wiki.kb.deadLetters', { count: deadLetters.total })}
+          showIcon
+          type='warning'
+        />
+      )}
       {companyMap?.found && companyMap.id ? (
         <section className='wiki-panel'>
           <div className='wiki-panel-head'>

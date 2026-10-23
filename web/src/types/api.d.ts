@@ -689,6 +689,13 @@ declare namespace Api {
       last_run?: string;
     }
 
+    /** a compile op that exhausted its retries (incremental-compile P1) */
+    interface CompileDeadOp {
+      op: { op: string; doc_id?: string; reason?: string; fail_count?: number };
+      error: string;
+      failed_at: string;
+    }
+
     /** one skill-proposer run over a KB's recent experiences */
     interface SkillRun {
       sampled: number;

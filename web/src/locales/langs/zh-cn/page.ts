@@ -401,6 +401,10 @@ const page: App.I18n.Schema['translation']['page'] = {
       agentFiled: '已提交补丁提案',
       agentNotes: '说明',
       agentHint: '补丁以治理提案形式进入队列,审批通过后生效。',
+      deadLetters: '有 {count} 条编译操作重试耗尽进入死信',
+      deadLettersHint: '最近错误：{error}',
+      deadLettersClear: '清空死信',
+      deadLettersCleared: '死信已清空',
       columns: {
         title: '标题',
         status: '状态',
