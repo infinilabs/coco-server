@@ -188,6 +188,14 @@ func GenerateResponse(taskCtx context.Context, provider *core.ModelProvider, mod
 		}
 	}
 
+	// tier-1 skill index (LLM-wiki P2): names + applicability only — the
+	// full skill pages reach the model through retrieval (tier 2)
+	if v, ok := inputValues["skills"]; ok {
+		if text, ok := v.(string); ok && text != "" {
+			contextPrompt += text
+		}
+	}
+
 	if v, ok := inputValues["references"]; ok {
 		contextPrompt += util.SubString(fmt.Sprintf("\nReferences:\n%v\n", v), 0, 4096*2) //TODO
 	}

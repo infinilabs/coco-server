@@ -232,6 +232,14 @@ func QueryDocuments(ctx1 context.Context, builder *orm.QueryBuilder, query strin
 		filters = append(filters, orm.MustNotQuery(orm.TermsQuery("source.id", searchCfg.BlockedDatasourceIDs)))
 	}
 
+	// Explore mode (LLM-wiki P0): knowledge-gathering runs (the future
+	// distill/propose jobs) must not see the wiki's own pages — grounding
+	// on them would bias the run toward what the KB already says. Off in
+	// every production path; set via core.WithExploreMode on the context.
+	if core.ExploreModeEnabled(ctx1) {
+		filters = append(filters, orm.MustNotQuery(orm.TermsQuery("source.id", []string{"wiki"})))
+	}
+
 	log.Trace("CheckingScopeDatasources:", checkingScopeDatasources, ",directAccessDatasources:", directAccessDatasources, ",queryDatasourceIDs:", queryDatasourceIDs, ",new mergedFullAccessDatasourceIDS:", mergedFullAccessDatasourceIDS, ",disabledIDs:", disabledIDs, ",integrationID:", integrationID)
 
 	shouldClauses := []*orm.Clause{}

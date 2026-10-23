@@ -322,10 +322,12 @@ const maxTocHealArticles = 1000
 
 // reconcileToc repairs toc drift for a KB whose articles were created
 // outside the toc-sync path (imports, backfills, interrupted generations).
-// Two shapes of drift are handled:
+// Three shapes of drift are handled:
 //   - empty tree + articles exist → full rebuild (every article a root node)
 //   - partial tree + orphan articles (absent from the tree) → appended at
 //     root level, oldest first, preserving creation order
+//   - dangling entries (article deleted without going through
+//     removeArticleFromToc, e.g. bulk ES-level repairs) → stripped
 //
 // The KB's article_count is reconciled in the same pass. Idempotent: a
 // consistent KB costs one article listing and is left untouched. Returns the
@@ -359,10 +361,20 @@ func reconcileToc(kbID string, toc *core.WikiToc, found bool) (*core.WikiToc, er
 		inToc[id] = true
 	}
 	orphans := make([]int, 0, len(articles))
+	live := make(map[string]bool, len(articles))
 	for i := range articles {
+		live[articles[i].ID] = true
 		if !inToc[articles[i].ID] {
 			orphans = append(orphans, i)
 		}
+	}
+
+	// dangling prune, the delete-side twin of the orphan heal. Skipped on a
+	// truncated listing — an incomplete live set would strip valid nodes of
+	// KBs larger than maxTocHealArticles.
+	dangling := 0
+	if len(articles) < maxTocHealArticles {
+		toc.Nodes, dangling = stripDanglingTocNodes(toc.Nodes, live)
 	}
 
 	switch {
@@ -372,9 +384,10 @@ func reconcileToc(kbID string, toc *core.WikiToc, found bool) (*core.WikiToc, er
 		for i := range articles {
 			toc.Nodes = append(toc.Nodes, articleTocNode(&articles[i]))
 		}
-	case len(orphans) > 0:
+	case len(orphans) > 0 || dangling > 0:
 		// partial drift: the tree stays as the user arranged it, missing
-		// articles join at root level in creation order
+		// articles join at root level in creation order and dangling
+		// entries drop out
 		for _, i := range orphans {
 			toc.Nodes = append(toc.Nodes, articleTocNode(&articles[i]))
 		}
@@ -394,10 +407,31 @@ func reconcileToc(kbID string, toc *core.WikiToc, found bool) (*core.WikiToc, er
 	if err != nil {
 		return nil, err
 	}
-	log.Infof("wiki: toc reconciled for kb [%s]: %d articles in tree, %d appended", kbID, len(toc.Nodes), len(orphans))
+	log.Infof("wiki: toc reconciled for kb [%s]: %d articles in tree, %d appended, %d dangling pruned", kbID, len(toc.Nodes), len(orphans), dangling)
 
 	reconcileKbArticleCount(ctx, kbID, len(articles))
 	return toc, nil
+}
+
+// stripDanglingTocNodes recursively drops article nodes whose article no
+// longer exists. Folder nodes survive even when the prune empties them — an
+// empty folder is a user arrangement, not drift.
+func stripDanglingTocNodes(nodes []core.WikiTocNode, live map[string]bool) ([]core.WikiTocNode, int) {
+	out := make([]core.WikiTocNode, 0, len(nodes))
+	removed := 0
+	for i := range nodes {
+		if nodes[i].ArticleID != "" && !live[nodes[i].ArticleID] {
+			removed++
+			continue
+		}
+		if len(nodes[i].Children) > 0 {
+			children, childRemoved := stripDanglingTocNodes(nodes[i].Children, live)
+			nodes[i].Children = children
+			removed += childRemoved
+		}
+		out = append(out, nodes[i])
+	}
+	return out, removed
 }
 
 // articleTocNode builds the root-level toc node for an article (same shape

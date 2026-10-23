@@ -141,8 +141,142 @@ func applyAction(p *core.WikiGovernanceProposal) string {
 		return "生成页面"
 	case core.WikiGovernanceTreeOrganize:
 		return "应用目录"
+	case core.WikiGovernancePatternCreate:
+		return "创建模式页"
+	case core.WikiGovernancePatternUpdate:
+		return "更新模式页"
+	case core.WikiGovernanceSkillCreate:
+		return "创建技能页"
+	case core.WikiGovernanceSkillPatch:
+		return "更新技能页"
+	case core.WikiGovernanceImpactArchive:
+		return "归档低影响页"
+	case core.WikiGovernanceCompilePatch:
+		return "应用编译修订"
 	}
 	return ""
+}
+
+/* ---------------- pattern proposals (LLM-wiki P1) ---------------- */
+
+// renderPatternContent renders the page body of a pattern page: the
+// PROBLEM + ROOT CAUSE + FIX shape of the WikiSkill pattern pages, plus
+// the evidence trail.
+func renderPatternContent(pat *core.WikiPattern) string {
+	var sb strings.Builder
+	sb.WriteString("> Distilled failure pattern — what keeps going wrong, why, and the fix for next time. Maintained via the governance queue.\n\n")
+	sb.WriteString("## Symptom\n\n" + strings.TrimSpace(pat.Symptom) + "\n\n")
+	sb.WriteString("## Root cause\n\n" + strings.TrimSpace(pat.RootCause) + "\n\n")
+	sb.WriteString("## Fix\n\n" + strings.TrimSpace(pat.Fix) + "\n")
+	if len(pat.Evidence) > 0 {
+		sb.WriteString("\n## Evidence\n\n")
+		for _, ref := range pat.Evidence {
+			title := ref.Title
+			if title == "" {
+				title = ref.DocID
+			}
+			fmt.Fprintf(&sb, "- %s\n", title)
+		}
+	}
+	return sb.String()
+}
+
+// patternFromEvidence decodes the distiller's evidence payload.
+func patternFromEvidence(p *core.WikiGovernanceProposal) *core.WikiPattern {
+	pat := &core.WikiPattern{}
+	pat.Symptom, _ = p.Evidence["symptom"].(string)
+	pat.RootCause, _ = p.Evidence["root_cause"].(string)
+	pat.Fix, _ = p.Evidence["fix"].(string)
+	if raw, ok := p.Evidence["sources"]; ok {
+		var refs []core.WikiSourceReference
+		if err := util.FromJSONBytes(util.MustToJSONBytes(raw), &refs); err == nil {
+			pat.Evidence = refs
+		}
+	}
+	return pat
+}
+
+// applyPatternCreateProposal materializes a distilled pattern as a
+// published page (the apply click IS the gate — human or auto-approve
+// sweep alike).
+func applyPatternCreateProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (string, string, error) {
+	title := strings.TrimSpace(p.ArticleTitle)
+	if title == "" || p.Evidence == nil {
+		return "", "", nil
+	}
+	pat := patternFromEvidence(p)
+	if strings.TrimSpace(pat.Symptom) == "" {
+		return "", "", nil
+	}
+	// idempotency: the page already exists (re-apply after a race) → no-op
+	orm.WithModel(ctx, &core.WikiArticle{})
+	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1).
+		Filter(orm.TermQuery("kb_id", p.KbID), orm.TermQuery("title", title)))
+	if err != nil {
+		return "", "", err
+	}
+	if hits, _, derr := elastic.DecodeHits[core.WikiArticle](res); derr == nil && len(hits) > 0 {
+		return "模式页已存在", hits[0].ID, nil
+	}
+	article := &core.WikiArticle{
+		KbID:        p.KbID,
+		Title:       title,
+		Summary:     truncateRunes(pat.Symptom, 120),
+		Content:     renderPatternContent(pat),
+		PageType:    core.WikiPageTypePattern,
+		Status:      core.WikiArticlePublished,
+		AIGenerated: true,
+		Pattern:     pat,
+		Sources:     pat.Evidence,
+	}
+	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	if err := orm.Create(ctx, article); err != nil {
+		return "", "", err
+	}
+	persistLinkedPages(article)
+	snapshotPipelineWrite(article, "pattern distilled from experience")
+	SyncArticleProjection(article)
+	if err := addArticleToToc(p.KbID, article.ID, article.Title); err != nil {
+		return "", "", err
+	}
+	if err := bumpKbArticleCount(p.KbID, 1); err != nil {
+		return "", "", err
+	}
+	return "模式页已创建", article.ID, nil
+}
+
+// applyPatternUpdateProposal merges the distiller's re-analysis into the
+// existing pattern page (structured fields + regenerated body), versioned.
+func applyPatternUpdateProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (string, error) {
+	if p.ArticleID == "" || p.Evidence == nil {
+		return "", nil
+	}
+	article := core.WikiArticle{}
+	article.ID = p.ArticleID
+	ok, err := orm.GetV2(ctx, &article)
+	if err != nil {
+		return "", err
+	}
+	if !ok {
+		return "", fmt.Errorf("article %s not found", p.ArticleID)
+	}
+	pat := patternFromEvidence(p)
+	if strings.TrimSpace(pat.Symptom) == "" {
+		return "", nil
+	}
+	article.Pattern = pat
+	article.Content = renderPatternContent(pat)
+	if len(pat.Evidence) > 0 {
+		article.Sources = pat.Evidence
+	}
+	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	if err := orm.Update(ctx, &article); err != nil {
+		return "", err
+	}
+	persistLinkedPages(&article)
+	snapshotPipelineWrite(&article, "pattern updated by distiller")
+	SyncArticleProjection(&article)
+	return "模式页已更新", nil
 }
 
 func (h *APIHandler) applyGovernanceProposal(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
@@ -222,6 +356,18 @@ func applyOneProposal(ctx *orm.Context, proposal *core.WikiGovernanceProposal, u
 		if err == nil && articleID != "" {
 			proposal.Evidence["generated_article_id"] = articleID
 		}
+	case core.WikiGovernancePatternCreate:
+		applied, articleID, err = applyPatternCreateProposal(ctx, proposal)
+	case core.WikiGovernancePatternUpdate:
+		applied, err = applyPatternUpdateProposal(ctx, proposal)
+	case core.WikiGovernanceSkillCreate:
+		applied, articleID, err = applySkillCreateProposal(ctx, proposal)
+	case core.WikiGovernanceSkillPatch:
+		applied, err = applySkillPatchProposal(ctx, proposal)
+	case core.WikiGovernanceImpactArchive:
+		applied, err = applyImpactArchiveProposal(ctx, proposal)
+	case core.WikiGovernanceCompilePatch:
+		applied, articleID, err = applyCompilePatchProposal(ctx, proposal)
 	case core.WikiGovernanceTreeOrganize:
 		appliedTree, terr := applyTreeProposal(ctx, proposal.KbID, proposal.Evidence)
 		if terr != nil {
@@ -249,6 +395,9 @@ func applyOneProposal(ctx *orm.Context, proposal *core.WikiGovernanceProposal, u
 	if err := orm.Update(ctx, proposal); err != nil {
 		return "", "", err
 	}
+	// evolution log (LLM-wiki P0): record the fix after it landed — one
+	// line per applied proposal, actor separates manual/batch/auto-approve
+	recordProposalApplied(ctx, proposal, userID, applied)
 	return applied, articleID, nil
 }
 
@@ -925,6 +1074,13 @@ func absorbThinPages(ctx *orm.Context, kbID string, article *core.WikiArticle, a
 		if err != nil || !ok {
 			continue
 		}
+		// entity pages are ontology-facing stubs, never content twins: an
+		// absorbed stub archived its page while the entity stayed live, and
+		// the entity's only page link led to a dead end
+		if twin.PageType == core.WikiPageTypeEntity {
+			log.Warnf("wiki: absorb skipped [%s] — entity pages are not absorbable", twin.Title)
+			continue
+		}
 		for _, s := range twin.Sources {
 			known := false
 			for _, ps := range article.Sources {
@@ -968,6 +1124,86 @@ func absorbThinPages(ctx *orm.Context, kbID string, article *core.WikiArticle, a
 		}
 	}
 	return absorbed
+}
+
+// topicSummaryFromSections derives a page summary from the first filled
+// section body: citations stripped, markdown flattened, ~160 runes. The
+// compile used to ship pages with an empty summary field.
+// stripCitationMarks removes [n]-style citation markers so a derived
+// summary reads as prose.
+func stripCitationMarks(s string) string {
+	return citationPattern.ReplaceAllString(s, "")
+}
+
+func topicSummaryFromSections(sections []core.WikiSection) string {
+	for _, s := range sections {
+		body := strings.TrimSpace(s.Body)
+		if body == "" {
+			continue
+		}
+		plain := stripCitationMarks(body)
+		plain = strings.Join(strings.Fields(plain), " ")
+		if plain == "" {
+			continue
+		}
+		return truncateRunes(plain, 160)
+	}
+	return ""
+}
+
+
+// applyCompilePatchProposal materializes the compile agent's revision: the
+// evidence carries the FULL replacement body — the agent was instructed to
+// write whole pages, and the apply gate (human or auto-approve) is what
+// makes it live. Summary re-derives from the new body; a pipeline version
+// snapshot keeps the previous state revertable.
+func applyCompilePatchProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (string, string, error) {
+	if p.ArticleID == "" || p.Evidence == nil {
+		return "", "", nil
+	}
+	content, _ := p.Evidence["content"].(string)
+	if strings.TrimSpace(content) == "" {
+		return "", "", nil
+	}
+	article := core.WikiArticle{}
+	article.ID = p.ArticleID
+	ok, err := orm.GetV2(ctx, &article)
+	if err != nil {
+		return "", "", err
+	}
+	if !ok {
+		return "", "", fmt.Errorf("article %s not found", p.ArticleID)
+	}
+	article.Content = content
+	article.AIGenerated = true
+	article.Summary = deriveSummaryFromBody(content)
+	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	if err := orm.Update(ctx, &article); err != nil {
+		return "", "", err
+	}
+	rationale, _ := p.Evidence["rationale"].(string)
+	persistLinkedPages(&article)
+	snapshotPipelineWrite(&article, "compile agent revision: "+truncateRunes(rationale, 80))
+	SyncArticleProjection(&article)
+	return "编译修订已应用", article.ID, nil
+}
+
+// deriveSummaryFromBody takes the first readable paragraph of a markdown
+// body (headings/quotes/citation markers stripped) as the page summary.
+func deriveSummaryFromBody(body string) string {
+	for _, line := range strings.Split(body, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, ">") {
+			continue
+		}
+		plain := stripCitationMarks(line)
+		plain = strings.Join(strings.Fields(plain), " ")
+		if plain == "" {
+			continue
+		}
+		return truncateRunes(plain, 160)
+	}
+	return ""
 }
 
 // applyTopicProposal materializes a topic proposal: create the
@@ -1058,6 +1294,12 @@ func applyTopicProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (strin
 			absorbed := absorbThinPages(ctx, p.KbID, &article, absorbIDs)
 			article.Maturity = ComputeTopicMaturity(article.Outline, planned, len(article.Sources))
 			article.Content = LinkEntityMentions(ctx, RenderTopicContent(article.Outline, statements, docTitles), article.Title)
+			// compiled pages shipped with an empty summary — derive one from
+			// the first filled section when the page has none (hand-written
+			// summaries are never clobbered)
+			if strings.TrimSpace(article.Summary) == "" {
+				article.Summary = topicSummaryFromSections(article.Outline)
+			}
 			persistLinkedPages(&article)
 			if err := orm.Update(ctx, &article); err != nil {
 				return "", "", err
@@ -1083,6 +1325,7 @@ func applyTopicProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (strin
 	article := core.WikiArticle{
 		KbID:        p.KbID,
 		Title:       p.ArticleTitle,
+		Summary:    topicSummaryFromSections(sections),
 		PageType:    core.WikiPageTypeTopic,
 		Status:      createStatus,
 		AIGenerated: true,

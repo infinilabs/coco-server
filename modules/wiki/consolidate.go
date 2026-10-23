@@ -148,7 +148,9 @@ func consolidateKBContent(ctx *orm.Context, kbID string) (*consolidateStats, err
 		"org": "客户与组织概览", "product": "产品与服务概览", "topic": "专题与概念概览",
 	}
 
-	// group thin pages by dimension; group near-duplicate titles overall
+	// group thin pages by dimension; group near-duplicate titles overall.
+	// Impact protection (LLM-wiki P3): a thin page the answer pipeline
+	// actually uses is doing its job — never absorb it into an overview.
 	thinByDim := map[string][]*core.WikiArticle{}
 	byTitleKey := map[string][]*core.WikiArticle{}
 	for i := range articles {
@@ -157,7 +159,7 @@ func consolidateKBContent(ctx *orm.Context, kbID string) (*consolidateStats, err
 		if title == "" {
 			continue
 		}
-		if thinPageBody(a.Content) {
+		if thinPageBody(a.Content) && !impactProtected(a) {
 			thinByDim[dimension(a)] = append(thinByDim[dimension(a)], a)
 		}
 		key := normalizeTitleKey(title)

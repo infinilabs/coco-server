@@ -64,6 +64,10 @@ func init() {
 		//registry keys tools by name, a duplicate silently shadows one of
 		//the two and leaves it with the wrong permission metadata
 		api.MCPTool("search_documents_bm25", "Search documents (BM25). Pass query, optional filters and size; returns ids, titles, summaries — then get_document reads the full content."))
+	// POST twin for callers posting an ES DSL body (the FAQ page filters
+	// source.id+type via a bool filter) — the handler reads both query args
+	// and body, permission unchanged
+	api.HandleUIMethod(api.POST, "/document/_search", handler.searchDocs, api.RequirePermission(searchPermission))
 	api.HandleUIMethod(api.DELETE, "/document/", handler.batchDeleteDoc, api.RequirePermission(deletePermission))
 
 	//content dedup: deterministic fingerprints, human review, no auto-delete;

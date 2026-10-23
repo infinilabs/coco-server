@@ -484,6 +484,26 @@ func deleteKbChildren(kbID string) error {
 			return err
 		}
 	}
+	// the evolution log is kb-scoped too
+	entries, err := findIDs(ctx, &core.WikiEvolutionEntry{}, orm.TermQuery("kb_id", kbID))
+	if err != nil {
+		return err
+	}
+	for _, eid := range entries {
+		if err := deleteByID(ctx, &core.WikiEvolutionEntry{}, eid); err != nil {
+			return err
+		}
+	}
+	// so are the raw experience traces
+	experiences, err := findIDs(ctx, &core.WikiExperience{}, orm.TermQuery("kb_id", kbID))
+	if err != nil {
+		return err
+	}
+	for _, eid := range experiences {
+		if err := deleteByID(ctx, &core.WikiExperience{}, eid); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

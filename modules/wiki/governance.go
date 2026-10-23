@@ -167,6 +167,22 @@ func governanceSweep(ctx context.Context, llm llms.Model) governanceStats {
 					"article is not referenced by any node of the knowledge-base tree",
 					nil)
 			}
+
+			// impact policy (LLM-wiki P3): long-idle, never-cited pages
+			// become archive candidates — the counterweight to
+			// "wiki never rolls back" growth
+			if article.Status == core.WikiArticlePublished {
+				if idle, why := impactArchiveCandidate(article, time.Now()); idle {
+					evidence := util.MapStr{}
+					if article.Impact != nil {
+						evidence["answer_hits"] = article.Impact.AnswerHits
+						if article.Impact.LastUsedAt != nil {
+							evidence["last_used_at"] = article.Impact.LastUsedAt.Format(time.RFC3339)
+						}
+					}
+					file(article, core.WikiGovernanceImpactArchive, why, evidence)
+				}
+			}
 		}
 
 		// duplicates need the LLM judge; candidate pairs come from title overlap
@@ -722,6 +738,14 @@ func governanceTypeLabel(pType string) string {
 		return "refresh after entity edit"
 	case core.WikiGovernanceTreeOrganize:
 		return "目录组织建议"
+	case core.WikiGovernancePatternCreate:
+		return " distilled pattern (new)"
+	case core.WikiGovernancePatternUpdate:
+		return "distilled pattern (update)"
+	case core.WikiGovernanceSkillCreate:
+		return "distilled skill (new)"
+	case core.WikiGovernanceSkillPatch:
+		return "distilled skill (update)"
 	}
 	return pType
 }
@@ -807,7 +831,21 @@ func (h *APIHandler) updateGovernanceStatus(w http.ResponseWriter, req *http.Req
 			log.Warnf("wiki: tree proposal [%s] apply failed: %v", proposal.ID, err)
 		} else if applied {
 			log.Infof("wiki: tree proposal [%s] applied to kb [%s]", proposal.ID, proposal.KbID)
+			actor := proposal.ResolvedBy
+			if user, err := security.GetUserFromRequest(req); err == nil && user != nil {
+				actor = user.UserID
+			}
+			recordProposalApplied(ctx, &proposal, actor, "目录已应用")
 		}
+	}
+	// evolution log: a dismissal is a decision too — proposers read the log
+	// so the same fix is not re-proposed forever
+	if body.Status == core.WikiGovernanceDismissed {
+		actor := proposal.ResolvedBy
+		if user, err := security.GetUserFromRequest(req); err == nil && user != nil {
+			actor = user.UserID
+		}
+		recordProposalDismissed(ctx, &proposal, actor)
 	}
 	h.WriteUpdatedOKJSON(w, proposal.ID)
 }
@@ -1021,6 +1059,9 @@ func (h *APIHandler) batchUpdateGovernanceStatus(w http.ResponseWriter, req *htt
 		if err := orm.Update(ctx, &proposal); err != nil {
 			skipped++
 			continue
+		}
+		if body.Status == core.WikiGovernanceDismissed {
+			recordProposalDismissed(ctx, &proposal, userID)
 		}
 		updated++
 	}

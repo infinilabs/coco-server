@@ -230,7 +230,7 @@ func (processor *ExtractEntitiesProcessor) Process(ctx *pipeline.Context) error 
 			if err != nil {
 				return false, err
 			}
-			return processor.extract(dctx, m, wiki.ResolveOntologySchema(dctx, processor.config.WikiKbID), doc)
+			return processor.extract(dctx, m, wiki.ResolveOntologySchema(dctx, processor.resolveKB(dctx, doc)), doc)
 		})
 	}
 
@@ -256,8 +256,19 @@ func (processor *ExtractEntitiesProcessor) Process(ctx *pipeline.Context) error 
 	defer cancelFunc()
 
 	// ontology vocabulary (phase O2): schema-constrained extraction — kb
-	// override first, tenant default as fallback; nil means free-form POC list
-	schema := wiki.ResolveOntologySchema(ctx.Context, processor.config.WikiKbID)
+	// override first, tenant default as fallback; nil means free-form POC
+	// list. Resolved per distinct target KB (documents in one batch may
+	// belong to different KBs via their datasource bindings)
+	schemaByKB := map[string]*wiki.OntologySchemaDoc{}
+	resolveSchema := func(dctx context.Context, doc *core.Document) *wiki.OntologySchemaDoc {
+		kbID := processor.resolveKB(dctx, doc)
+		if schema, ok := schemaByKB[kbID]; ok {
+			return schema
+		}
+		schema := wiki.ResolveOntologySchema(dctx, kbID)
+		schemaByKB[kbID] = schema
+		return schema
+	}
 
 	enqueued := make(map[int]bool)
 
@@ -278,7 +289,7 @@ func (processor *ExtractEntitiesProcessor) Process(ctx *pipeline.Context) error 
 		} else {
 			log.Infof("processor [%s] start extracting entities for document [%s/%s]", processor.Name(), doc.Title, doc.ID)
 			start := time.Now()
-			entityIDs, err := processor.extractAndLink(llmCtx, llm, &doc, material, schema)
+			entityIDs, err := processor.extractAndLink(llmCtx, llm, &doc, material, resolveSchema(llmCtx, &doc))
 			if err != nil {
 				log.Errorf("[%s] failed to extract entities for document [%s/%s], error [%s]", processor.Name(), doc.Title, doc.ID, err)
 			} else if len(entityIDs) > 0 {
@@ -342,6 +353,18 @@ func buildExtractionMaterial(doc *core.Document) string {
 	return strings.Join(parts, "\n\n")
 }
 
+// resolveKB picks the entity pool for a document: the KB whose datasource
+// binding contains the document's source wins; the configured wiki_kb_id
+// is only the fallback. A global enrich pipeline serves several KBs, and a
+// hardcoded id keeps writing into whatever KB it names (a deleted one, in
+// the wild) no matter which datasource the document came from.
+func (processor *ExtractEntitiesProcessor) resolveKB(ctx context.Context, doc *core.Document) string {
+	if bound := wiki.ResolveKBByDatasource(orm.NewContextWithParent(ctx), doc.Source.ID); bound != "" {
+		return bound
+	}
+	return processor.config.WikiKbID
+}
+
 // extractAndLink runs the LLM extraction, disambiguates against existing
 // entities, proposes the unknown ones and returns the linked entity ids
 // (also back-linking the document onto each entity's sources).
@@ -363,6 +386,8 @@ func (processor *ExtractEntitiesProcessor) extractAndLink(ctx context.Context, l
 	ormCtx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 	ormCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
 
+	kbID := processor.resolveKB(ctx, doc)
+
 	resolved := make([]*core.WikiEntity, 0, len(result.Entities))
 	seen := map[string]bool{}
 	for i := range result.Entities {
@@ -371,7 +396,7 @@ func (processor *ExtractEntitiesProcessor) extractAndLink(ctx context.Context, l
 		if e.Name == "" {
 			continue
 		}
-		entity, created, err := resolveOrCreateEntity(ormCtx, e, doc, processor.config.EntityTypes, schema, processor.config.WikiKbID)
+		entity, created, err := resolveOrCreateEntity(ormCtx, e, doc, processor.config.EntityTypes, schema, kbID)
 		if err != nil {
 			log.Warnf("[%s] failed to resolve entity %q: %v", ProcessorName, e.Name, err)
 			continue
@@ -383,8 +408,8 @@ func (processor *ExtractEntitiesProcessor) extractAndLink(ctx context.Context, l
 		resolved = append(resolved, entity)
 		if created {
 			log.Debugf("[%s] proposed new entity [%s/%s] from document %s", ProcessorName, entity.Type, entity.Name, doc.ID)
-			if processor.config.WikiKbID != "" {
-				if err := createDraftEntityPage(ormCtx, entity, processor.config.WikiKbID); err != nil {
+			if kbID != "" {
+				if err := createDraftEntityPage(ormCtx, entity, kbID); err != nil {
 					log.Warnf("[%s] failed to create draft page for entity %q: %v", ProcessorName, entity.Name, err)
 				}
 			}
@@ -459,6 +484,11 @@ func resolveOrCreateEntity(ctx *orm.Context, extracted *extractedEntity, doc *co
 		status = core.WikiEntityPublished
 	}
 	entity := &core.WikiEntity{
+		// the KB scope is the whole point: without it the entity pool is
+		// orphaned (kb_id-less rows no KB-scoped query can ever see) —
+		// exactly how the Books KB's entity tab stayed empty while
+		// extraction kept "working"
+		KbID:       kbID,
 		Type:       entityType,
 		Name:       extracted.Name,
 		Aliases:    normalizeAliases(extracted.Aliases),
@@ -475,7 +505,7 @@ func resolveOrCreateEntity(ctx *orm.Context, extracted *extractedEntity, doc *co
 	// workers racing past the lookup write the same row instead of leaving
 	// twin proposed entities that never self-merge; the loser's overwrite
 	// differs only in provenance, and the next pass re-appends sources
-	entity.SetID(core.AnchoredEntityID(entity.Name))
+	entity.SetID(core.AnchoredEntityID(kbID, entity.Name))
 	if err := orm.Create(ctx, entity); err != nil {
 		// a concurrent extraction created the row first (409) — the design
 		// wants one row with merged provenance, so fall back to the merge

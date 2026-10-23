@@ -34,6 +34,8 @@ const (
 	WikiPageTypeSource  = "source"
 	WikiPageTypeTopic   = "topic" // outline-driven subject page: a cluster's curated hub
 	WikiPageTypeMap     = "map"   // hand-maintained company map: the agent entry page (D6)
+	WikiPageTypePattern = "pattern" // maintainer-distilled failure pattern: 问题+根因+解法 (LLM-wiki P1)
+	WikiPageTypeSkill   = "skill"   // proposer-distilled procedural skill: 适用条件+步骤+反例 (LLM-wiki P2)
 
 	// entity lifecycle (design doc D1): extraction proposes, humans
 	// review/publish — the AI pipeline never publishes directly
@@ -86,6 +88,28 @@ const (
 	// the compiler's page proposals: REDUCE'd statements awaiting a draft
 	// page (apply generates it from the evidence)
 	WikiGovernanceKnowledgeCompile = "knowledge_compile"
+
+	// maintainer-distilled pattern proposals (LLM-wiki P1): the distiller
+	// mines experience records and files page creates/patches — same human
+	// gate as every other proposal (auto-approve KBs apply them like
+	// compile drafts)
+	WikiGovernancePatternCreate = "pattern_create"
+	WikiGovernancePatternUpdate = "pattern_update"
+
+	// proposer-distilled skill proposals (LLM-wiki P2): one atomic skill
+	// create/patch per proposer run, gated by the reviewer LLM before any
+	// apply
+	WikiGovernanceSkillCreate = "skill_create"
+	WikiGovernanceSkillPatch  = "skill_patch"
+
+	// impact-driven retention (LLM-wiki P3): a long-idle, never-cited page
+	// becomes an archive candidate so active knowledge gets the room
+	WikiGovernanceImpactArchive = "impact_archive"
+
+	// the EINO compile agent's output (DESIGN-compile-agent.md): a full
+	// replacement body for one topic page, grounded in tool-fetched
+	// evidence, filed as a proposal so the usual gate applies
+	WikiGovernanceCompilePatch = "compile_patch"
 )
 
 // WikiWorkspace groups knowledge bases per team or tenant.
@@ -119,7 +143,15 @@ type WikiKnowledgeBase struct {
 	// directly and governance proposals auto-apply — the pipeline updates
 	// the KB without a human gate. Opt-in per KB; corrections and
 	// knowledge-gap signals stay manual regardless.
-	AutoApprove bool `json:"auto_approve,omitempty" elastic_mapping:"auto_approve:{type:boolean}"`
+	// no omitempty on these bools: a false would serialize away and the
+	// partial-update merge would keep a stored true forever — flags must be
+	// clearable, not just settable
+	AutoApprove bool `json:"auto_approve" elastic_mapping:"auto_approve:{type:boolean}"`
+	// ExperienceCapture (经验捕获, LLM-wiki P1): opt-in per KB. When on,
+	// work signals on answers from the KB's bound assistant (corrections,
+	// votes) land as WikiExperience records the distiller mines. Off by
+	// default — traces contain user questions.
+	ExperienceCapture bool `json:"experience_capture" elastic_mapping:"experience_capture:{type:boolean}"`
 }
 
 // WikiTocLayoutFolder is one top-level department folder of the KB layout.
@@ -169,6 +201,63 @@ type WikiPageMaturity struct {
 	Score    float64 `json:"score,omitempty"`
 }
 
+// Lint warning codes (computed on save, advisory only — lint never blocks
+// a write, it tells the author and the compiler what to fix).
+const (
+	WikiLintDeadLink          = "dead_link"          // [[name]] resolves to no entity or article in this KB
+	WikiLintThinContent       = "thin_content"       // body under the readability floor
+	WikiLintNoSources         = "no_sources"         // concept/topic page with zero cited documents
+	WikiLintMissingProvenance = "missing_provenance" // skill page with no pattern provenance (LLM-wiki P2)
+)
+
+// WikiLintWarning is one advisory schema/consistency finding computed at
+// save time (wiki-skills doctrine: lint per page, audit per KB). Stored on
+// the article so readers and the editor banner see it without re-running
+// resolution.
+type WikiLintWarning struct {
+	Code    string `json:"code" elastic_mapping:"code:{type:keyword}"`
+	Field   string `json:"field,omitempty" elastic_mapping:"field:{type:keyword}"`
+	Message string `json:"message" elastic_mapping:"message:{type:text}"`
+	Detail  string `json:"detail,omitempty" elastic_mapping:"detail:{type:keyword}"`
+}
+
+// WikiImpact is the usage-side counter of a page (the skill-impact.md
+// idea): how often the answer pipeline actually pulled the page into a
+// model context. Written programmatically by the flush task — never by
+// the LLM, never by hand.
+type WikiImpact struct {
+	AnswerHits int        `json:"answer_hits,omitempty" elastic_mapping:"answer_hits:{type:integer}"`
+	LastUsedAt *time.Time `json:"last_used_at,omitempty" elastic_mapping:"last_used_at:{type:date}"`
+}
+
+// Evolution-log kinds — the KB-level decision record (the evolution log of
+// WikiSkill): what changed, who decided, and why. Append-only; entries are
+// never rewritten or rolled back, rejections included, so downstream
+// proposers can see what was already tried.
+const (
+	WikiEvolutionProposalApplied   = "proposal_applied"   // a governance proposal's fix executed
+	WikiEvolutionProposalDismissed = "proposal_dismissed" // a human retired a proposal without a fix
+	WikiEvolutionPatternDistilled  = "pattern_distilled"  // a distill run sampled experiences and filed pattern proposals
+	WikiEvolutionSkillProposed     = "skill_proposed"     // a proposer run (accepted file, rejection or no_action)
+	WikiEvolutionGateVerdict       = "gate_verdict"       // the reviewer LLM judged a skill proposal
+	WikiEvolutionCompileAgent      = "compile_agent"      // one EINO compile-agent iteration (patch filed or no_action)
+)
+
+// WikiEvolutionEntry is one append-only line of a KB's decision log.
+// Written by the programs that apply/dismiss governance proposals (the
+// auto-approve sweep writes actor="auto-approve"); P1 evolution runs will
+// append their own kinds on top.
+type WikiEvolutionEntry struct {
+	orm.ORMObjectBase
+	KbID       string                 `json:"kb_id" elastic_mapping:"kb_id:{type:keyword}"`
+	Kind       string                 `json:"kind" elastic_mapping:"kind:{type:keyword}"`
+	Actor      string                 `json:"actor,omitempty" elastic_mapping:"actor:{type:keyword}"` // user id | auto-approve
+	TargetType string                 `json:"target_type,omitempty" elastic_mapping:"target_type:{type:keyword}"`
+	TargetID   string                 `json:"target_id,omitempty" elastic_mapping:"target_id:{type:keyword}"`
+	Summary    string                 `json:"summary,omitempty" elastic_mapping:"summary:{type:text}"`
+	Detail     map[string]interface{} `json:"detail,omitempty" elastic_mapping:"detail:{type:object,enabled:false}"`
+}
+
 // WikiArticle is a curated page in structured markdown (design doc §3.3:
 // Obsidian-style sections with [[type:name]] wikilinks and doc_id mentions).
 type WikiArticle struct {
@@ -200,6 +289,95 @@ type WikiArticle struct {
 	Outline     []WikiSection     `json:"outline,omitempty" elastic_mapping:"outline:{type:object,enabled:false}"`
 	KeyEntities []string          `json:"key_entities,omitempty" elastic_mapping:"key_entities:{type:keyword}"`
 	Maturity    *WikiPageMaturity `json:"maturity,omitempty" elastic_mapping:"maturity:{type:object,enabled:false}"`
+	// advisory findings recomputed on every save (dead links, thin body,
+	// missing citations) — lint informs, it never blocks
+	Lint []WikiLintWarning `json:"lint,omitempty" elastic_mapping:"lint:{type:object,enabled:false}"`
+	// usage telemetry maintained by the impact flush task, not by writers
+	Impact *WikiImpact `json:"impact,omitempty" elastic_mapping:"impact:{type:object,enabled:false}"`
+	// structured pattern payload of a page_type=pattern page (LLM-wiki P1):
+	// the maintainer's root-cause analysis in queryable form; Content keeps
+	// the rendered markdown
+	Pattern *WikiPattern `json:"pattern,omitempty" elastic_mapping:"pattern:{type:object,enabled:false}"`
+	// structured skill payload of a page_type=skill page (LLM-wiki P2):
+	// procedural knowledge the assistants load on demand
+	Skill *WikiSkill `json:"skill,omitempty" elastic_mapping:"skill:{type:object,enabled:false}"`
+}
+
+// WikiPattern is the structured body of a pattern page (the WikiSkill
+// pattern-page shape: PROBLEM + ROOT CAUSE + FIX in 10-30 lines). Evidence
+// points at the experience records / documents it was distilled from.
+type WikiPattern struct {
+	Symptom   string                `json:"symptom,omitempty" elastic_mapping:"symptom:{type:text}"`
+	RootCause string                `json:"root_cause,omitempty" elastic_mapping:"root_cause:{type:text}"`
+	Fix       string                `json:"fix,omitempty" elastic_mapping:"fix:{type:text}"`
+	Evidence  []WikiSourceReference `json:"evidence,omitempty" elastic_mapping:"evidence:{type:object,enabled:false}"`
+}
+
+// SkillLoad is one conditionally-loaded attachment of a skill page (the
+// graph-layer `loads` field): a file reference and when to pull it in.
+type SkillLoad struct {
+	Path string `json:"path" elastic_mapping:"path:{type:keyword}"`
+	When string `json:"when,omitempty" elastic_mapping:"when:{type:text}"`
+}
+
+// SkillReachFor is when a skill "reaches" a task at all (the graph-layer
+// `reach-for` field): the tier-1 index carries these so the assistant can
+// load the skill without reading it first.
+type SkillReachFor struct {
+	Phrases []string `json:"phrases,omitempty" elastic_mapping:"phrases:{type:keyword}"`
+	Globs   []string `json:"globs,omitempty" elastic_mapping:"globs:{type:keyword}"`
+}
+
+// WikiSkill is the structured body of a skill page: executable procedural
+// knowledge (the WikiSkill skills/ layer). Provenance (which pattern pages
+// motivated this skill) lives in Sources as pattern-page references and in
+// the content's [[pattern:...]] links — the PURPOSE.md semantics.
+type WikiSkill struct {
+	Applicability   string        `json:"applicability,omitempty" elastic_mapping:"applicability:{type:text}"`
+	Steps           []string      `json:"steps,omitempty" elastic_mapping:"steps:{type:text}"`
+	AntiPatterns    []string      `json:"anti_patterns,omitempty" elastic_mapping:"anti_patterns:{type:text}"`
+	WhenNotToApply  []string      `json:"when_not_to_apply,omitempty" elastic_mapping:"when_not_to_apply:{type:text}"`
+	ReachFor        *SkillReachFor `json:"reach_for,omitempty" elastic_mapping:"reach_for:{type:object,enabled:false}"`
+	Loads           []SkillLoad   `json:"loads,omitempty" elastic_mapping:"loads:{type:object,enabled:false}"`
+	// Rationale records why the proposer believed this skill earns its
+	// place — surfaced in the gate review and the version history.
+	Rationale string `json:"rationale,omitempty" elastic_mapping:"rationale:{type:text}"`
+}
+
+// experience outcome/feedback vocabularies
+const (
+	ExperienceFeedbackNegative = "negative"
+	ExperienceFeedbackPositive = "positive"
+	ExperienceFeedbackNone     = "none"
+
+	ExperienceOutcomeResolved  = "resolved"
+	ExperienceOutcomeAbandoned = "abandoned"
+	ExperienceOutcomeEscalated = "escalated" // e.g. filed a correction
+)
+
+// WikiExperience is one captured work trace on the raw layer (LLM-wiki P1,
+// the WikiSkill raw/ analog): what was asked, what the assistant answered,
+// which documents it leaned on and how the human judged it. Records are
+// immutable learning material — written once by capture hooks (corrections
+// today, votes/API callers as they land), read by the distiller, expired by
+// retention. KB-scoped and opt-in.
+type WikiExperience struct {
+	orm.ORMObjectBase
+	KbID      string  `json:"kb_id" elastic_mapping:"kb_id:{type:keyword}"`
+	Kind      string  `json:"kind,omitempty" elastic_mapping:"kind:{type:keyword}"` // chat | correction | gap
+	SessionID string  `json:"session_id,omitempty" elastic_mapping:"session_id:{type:keyword}"`
+	MessageID string  `json:"message_id,omitempty" elastic_mapping:"message_id:{type:keyword}"`
+	Question  string  `json:"question,omitempty" elastic_mapping:"question:{type:text}"`
+	Answer    string  `json:"answer,omitempty" elastic_mapping:"answer:{type:text}"`
+	Citations []WikiSourceReference `json:"citations,omitempty" elastic_mapping:"citations:{type:object,enabled:false}"`
+	Feedback  string  `json:"feedback,omitempty" elastic_mapping:"feedback:{type:keyword}"`
+	Note      string  `json:"note,omitempty" elastic_mapping:"note:{type:text}"` // human comment / correction text
+	RouteHint string  `json:"route_hint,omitempty" elastic_mapping:"route_hint:{type:keyword}"`
+	Outcome   string  `json:"outcome,omitempty" elastic_mapping:"outcome:{type:keyword}"`
+	// Retention is the expiry time; the distiller's sweep deletes expired
+	// rows. Immutable-but-expiring: the raw layer never gets rewritten,
+	// only dropped.
+	Retention *time.Time `json:"retention,omitempty" elastic_mapping:"retention:{type:date}"`
 }
 
 // WikiTocNode is one node of a KB's table of contents tree.

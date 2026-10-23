@@ -52,6 +52,9 @@ func parseWikilinks(content string) []core.WikiLinkedPage {
 // content) is available — the partial-update Prepare hooks only see the id.
 func persistLinkedPages(article *core.WikiArticle) {
 	resolveLinkedPages(article)
+	// advisory lint rides the same re-save (P0 of the LLM-wiki design):
+	// dead links / thin body / missing citations, recomputed on every write
+	article.Lint = computeLintWarnings(article)
 	ctx := orm.NewContext()
 	// Update internally re-reads the object (GetPrevObject) through the
 	// OpGet hook, so both direct flags are required in a userless context.

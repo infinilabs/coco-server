@@ -54,12 +54,14 @@ func (h *APIHandler) articleMaterials(w http.ResponseWriter, req *http.Request, 
 
 	article := core.WikiArticle{}
 	article.ID = articleID
+	// GetV2 reports a missing record as (false, "record not found") — that
+	// is a 404 here, not a 500 (same quirk handled in km_assistant.go)
 	exists, err := orm.GetV2(ctx, &article)
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "record not found") {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if !exists {
+	if err != nil || !exists {
 		h.WriteOpRecordNotFoundJSON(w, articleID)
 		return
 	}
@@ -205,12 +207,14 @@ func (h *APIHandler) articleAttachments(w http.ResponseWriter, req *http.Request
 
 	article := core.WikiArticle{}
 	article.ID = articleID
+	// GetV2 reports a missing record as (false, "record not found") — that
+	// is a 404 here, not a 500 (same quirk handled in km_assistant.go)
 	exists, err := orm.GetV2(ctx, &article)
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "record not found") {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if !exists {
+	if err != nil || !exists {
 		h.WriteOpRecordNotFoundJSON(w, articleID)
 		return
 	}
@@ -237,12 +241,14 @@ func (h *APIHandler) updateArticleAttachments(w http.ResponseWriter, req *http.R
 
 	article := core.WikiArticle{}
 	article.ID = articleID
+	// GetV2 reports a missing record as (false, "record not found") — that
+	// is a 404 here, not a 500 (same quirk handled in km_assistant.go)
 	exists, err := orm.GetV2(ctx, &article)
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "record not found") {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if !exists {
+	if err != nil || !exists {
 		h.WriteOpRecordNotFoundJSON(w, articleID)
 		return
 	}
@@ -284,12 +290,14 @@ func (h *APIHandler) rewriteArticle(w http.ResponseWriter, req *http.Request, ps
 
 	article := core.WikiArticle{}
 	article.ID = articleID
+	// GetV2 reports a missing record as (false, "record not found") — that
+	// is a 404 here, not a 500 (same quirk handled in km_assistant.go)
 	exists, err := orm.GetV2(ctx, &article)
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "record not found") {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if !exists {
+	if err != nil || !exists {
 		h.WriteOpRecordNotFoundJSON(w, articleID)
 		return
 	}

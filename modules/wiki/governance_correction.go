@@ -142,6 +142,20 @@ func (h *APIHandler) createCorrection(w http.ResponseWriter, req *http.Request, 
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	// experience capture (LLM-wiki P1): a correction IS a failure trace —
+	// land it on the raw layer too so the distiller mines it. RecordExperience
+	// self-gates on the KB's ExperienceCapture opt-in.
+	RecordExperience(ctx, &core.WikiExperience{
+		KbID:      body.KbID,
+		Kind:      "correction",
+		MessageID: body.MessageID,
+		Question:  body.Query,
+		Answer:    answer,
+		Note:      body.Comment,
+		RouteHint: body.RouteHint,
+		Feedback:  core.ExperienceFeedbackNegative,
+		Outcome:   core.ExperienceOutcomeEscalated,
+	})
 	h.WriteOKJSON(w, util.MapStr{"id": proposal.ID, "report_count": 1})
 }
 

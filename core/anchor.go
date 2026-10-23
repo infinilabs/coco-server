@@ -34,8 +34,14 @@ func AnchoredProposalID(anchor, pType string, generation int) string {
 // workers racing on the same name write the same row instead of leaving
 // twin proposals that never self-merge; the loser's overwrite differs only
 // in provenance, and the next extraction pass re-appends missing sources.
-// Manual entity creation is NOT anchored — it keeps generated ids and its
-// own review flow.
-func AnchoredEntityID(name string) string {
-	return util.MD5digest("entity|" + strings.ToLower(strings.TrimSpace(name)))
+// The anchor includes the KB: KBs own isolated entity pools (same name in
+// two KBs = two rows), so a name-only digest collided across KBs and let
+// kb_id-less rows into the store. Manual entity creation is NOT anchored —
+// it keeps generated ids and its own review flow.
+func AnchoredEntityID(kbID, name string) string {
+	key := "entity|"
+	if kbID != "" {
+		key += kbID + "|"
+	}
+	return util.MD5digest(key + strings.ToLower(strings.TrimSpace(name)))
 }

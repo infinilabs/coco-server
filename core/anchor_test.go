@@ -34,11 +34,15 @@ func TestAnchoredProposalIDSeparatesDimensions(t *testing.T) {
 func TestAnchoredEntityIDNormalizesName(t *testing.T) {
 	// extraction resolves identity by exact name: case and edge whitespace
 	// must not fork one entity into twins
-	assert.Equal(t, AnchoredEntityID("Gateway"), AnchoredEntityID("gateway"))
-	assert.Equal(t, AnchoredEntityID("  Gateway  "), AnchoredEntityID("gateway"))
+	assert.Equal(t, AnchoredEntityID("kb-1", "Gateway"), AnchoredEntityID("kb-1", "gateway"))
+	assert.Equal(t, AnchoredEntityID("kb-1", "  Gateway  "), AnchoredEntityID("kb-1", "gateway"))
 	// interior spacing and different names stay different identities
-	assert.NotEqual(t, AnchoredEntityID("api gateway"), AnchoredEntityID("apigateway"))
-	assert.NotEqual(t, AnchoredEntityID("gateway"), AnchoredEntityID("gateway v2"))
+	assert.NotEqual(t, AnchoredEntityID("kb-1", "api gateway"), AnchoredEntityID("kb-1", "apigateway"))
+	assert.NotEqual(t, AnchoredEntityID("kb-1", "gateway"), AnchoredEntityID("kb-1", "gateway v2"))
+	// the same name in two KBs is two entities — the kb prefix is the scope
+	assert.NotEqual(t, AnchoredEntityID("kb-1", "gateway"), AnchoredEntityID("kb-2", "gateway"))
+	// an empty kbID keeps the legacy un-prefixed digest (pre-scoping rows)
+	assert.NotEqual(t, AnchoredEntityID("", "gateway"), AnchoredEntityID("kb-1", "gateway"))
 	// entity ids never collide with proposal ids (disjoint key namespaces)
-	assert.NotEqual(t, AnchoredEntityID("anchor"), AnchoredProposalID("anchor", WikiGovernanceCorrection, 1))
+	assert.NotEqual(t, AnchoredEntityID("kb-1", "anchor"), AnchoredProposalID("anchor", WikiGovernanceCorrection, 1))
 }

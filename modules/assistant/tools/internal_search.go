@@ -10,6 +10,7 @@ import (
 	common2 "infini.sh/coco/modules/assistant/common"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/modules/document"
+	"infini.sh/coco/modules/wiki"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/orm"
@@ -145,6 +146,18 @@ func partitionReferencesByKnowledgeTier(docs []core.Document) (curated, raw []co
 
 func FormatDocumentForReplyReferences(docs []core.Document) string {
 	curated, raw := partitionReferencesByKnowledgeTier(docs)
+	// impact telemetry (LLM-wiki P0): these curated pages are about to
+	// enter a model context — count the usage. Fire-and-forget; the wiki
+	// side strips projection id prefixes and drops non-article ids.
+	wikiHits := make([]string, 0, len(curated))
+	for i := range curated {
+		if curated[i].Source.ID == "wiki" {
+			wikiHits = append(wikiHits, curated[i].ID)
+		}
+	}
+	if len(wikiHits) > 0 {
+		wiki.RecordKnowledgeHits(wikiHits)
+	}
 	var sb strings.Builder
 	sb.WriteString("<REFERENCES>\n")
 	if len(curated) > 0 {

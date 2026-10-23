@@ -61,6 +61,54 @@ func init() {
 	api.HandleUIMethod(api.PUT, "/wiki/kb/:id/toc", handler.updateToc,
 		api.RequireLogin(), api.RequirePermission(updateKbPermission))
 
+	// evolution log (LLM-wiki P0): the KB's append-only decision record —
+	// applied/dismissed proposals with actor and outcome
+	api.HandleUIMethod(api.GET, "/wiki/kb/:id/_evolution_log", handler.evolutionLog,
+		api.RequireLogin(), api.RequirePermission(readKbPermission),
+		api.MCPTool("wiki_evolution_log", "Read a knowledge base's evolution log: the append-only record of what was applied, dismissed, distilled, proposed and gate-rejected — read it before proposing so the same fix is not re-proposed"))
+
+	// experience layer (LLM-wiki P1): raw traces the distiller mines —
+	// capture (API/MCP callers; the chat vote button lands here) and list
+	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_experience", handler.captureExperience,
+		api.RequireLogin(), api.RequirePermission(updateKbPermission),
+		api.MCPTool("record_wiki_experience", "Record how an answer went in the wild for a knowledge base (question, answer excerpt, cited doc ids, feedback). Only lands when the KB opted into experience capture; the maintainer mines these to distill failure patterns."))
+	api.HandleUIMethod(api.GET, "/wiki/kb/:id/_experience", handler.listExperience,
+		api.RequireLogin(), api.RequirePermission(readKbPermission))
+
+	// chat-surface vote capture: the widget knows the assistant, not the
+	// KB — targets resolve through the assistant↔KB binding
+	api.HandleUIMethod(api.POST, "/wiki/experience/_vote", handler.captureExperienceVote,
+		api.RequireLogin(),
+		api.MCPTool("vote_answer_experience", "Record a thumbs-up/down on an assistant answer so knowledge bases bound to that assistant (with experience capture on) can learn from it"))
+
+	// EINO compile agent (DESIGN-compile-agent.md): iterative ReAct loop
+	// over the KB's topic pages — evidence-grounded page revisions land as
+	// compile_patch governance proposals
+	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_agent_compile", handler.runCompileAgentHandler,
+		api.RequireLogin(), api.RequirePermission(updateKbPermission),
+		api.MCPTool("run_compile_agent", "Run the iterative knowledge-compilation agent over a knowledge base: assesses topic pages against the corpus with tools (search documents, read pages, read the evolution log) and files at most one compile_patch governance proposal per iteration"))
+
+	// maintainer distillation (LLM-wiki P1): mine experience records into
+	// pattern proposals; the scheduled sweep runs the same loop
+	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_distill", handler.distillKBHandler,
+		api.RequireLogin(), api.RequirePermission(updateKbPermission),
+		api.MCPTool("distill_wiki_experience", "Run one maintainer pass over a knowledge base's experience records: samples recent traces, distills failure patterns via LLM and files pattern_create/pattern_update governance proposals. Returns the run stats."))
+
+	// skill proposer (LLM-wiki P2): one atomic skill proposal per run from
+	// pattern pages + experiences + evolution log; reviewer-gated at file
+	// time; skills export to the Agent Skills SKILL.md format
+	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_propose", handler.proposeSkillHandler,
+		api.RequireLogin(), api.RequirePermission(updateKbPermission),
+		api.MCPTool("propose_wiki_skill", "Run one proposer pass over a knowledge base: reads pattern pages, recent experiences and the evolution log, then files at most one reviewer-gated skill_create/skill_patch governance proposal (or records no_action)."))
+	api.HandleUIMethod(api.GET, "/wiki/article/:id/_skill_md", handler.exportSkillMd,
+		api.RequireLogin(), api.RequirePermission(readArticlePermission),
+		api.MCPTool("export_skill_md", "Export a wiki skill page as an Agent Skills SKILL.md document (frontmatter name/description plus steps)"))
+	// import half: an external SKILL.md lands as a draft skill page — the
+	// review gate stays human
+	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_import_skill", handler.importSkillMd,
+		api.RequireLogin(), api.RequirePermission(updateKbPermission),
+		api.MCPTool("import_skill_md", "Import an Agent Skills SKILL.md document into a knowledge base as a draft skill page; same-title pages report instead of duplicating"))
+
 	// read-only version history (article-level read); exposed to agents so
 	// they can see how a page's knowledge evolved (P3)
 	api.HandleUIMethod(api.GET, "/wiki/article/:id/versions", handler.articleVersions,
