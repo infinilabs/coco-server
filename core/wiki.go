@@ -359,7 +359,9 @@ type WikiSkill struct {
 	// Sharing scope (LLM-wiki P3): "" = KB-private (default),
 	// "tenant" = every assistant in this tenant's tier-1 index can reach
 	// the skill read-only — one KB's evolved skill benefits the others.
-	Scope string `json:"scope,omitempty" elastic_mapping:"scope:{type:keyword}"`
+	// No omitempty: updates persist as partial docs, so an omitted scope
+	// would leave a stale "tenant" behind after the share toggle turns off.
+	Scope string `json:"scope" elastic_mapping:"scope:{type:keyword}"`
 }
 
 // experience outcome/feedback vocabularies
