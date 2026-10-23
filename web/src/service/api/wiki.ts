@@ -849,6 +849,10 @@ export interface WikiCompileJob {
   current?: string;
   logs?: string[];
   started_at?: string;
+  /** incremental-pass facts (compileops P3); absent on whole-corpus runs */
+  incremental?: boolean;
+  ops?: number;
+  affected_pages?: number;
 }
 
 export function startWikiCompile(kbId: string) {

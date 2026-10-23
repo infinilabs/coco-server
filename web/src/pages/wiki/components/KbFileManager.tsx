@@ -254,6 +254,11 @@ export function KbFileManager({
                 {t(`page.wiki.fileManager.compileStatus.${job.status}`)}
               </Tag>
               <span>{t('page.wiki.fileManager.compileStage', { stage: t(`page.wiki.fileManager.compileStages.${job.stage}`, { defaultValue: job.stage || '-' }) })}</span>
+              {!!job.incremental && (
+                <Tag color='cyan'>
+                  {t('page.wiki.fileManager.compileIncremental', { ops: job.ops || 0, pages: job.affected_pages || 0 })}
+                </Tag>
+              )}
               <span>
                 {t('page.wiki.fileManager.compileBatches', {
                   done: job.batches_done || 0,

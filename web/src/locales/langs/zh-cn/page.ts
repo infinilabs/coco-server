@@ -348,6 +348,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       compileStage: '阶段: {{stage}}',
       compileStages: { map: '抽取', reduce: '归并', cluster: '聚类主题', compose: '撰写主题页', done: '完成' },
       compileBatches: '批次 {{done}}/{{total}}（缓存 {{cached}}，失败 {{failed}}）',
+      compileIncremental: '增量 {{ops}} op · 受影响页 {{pages}}',
       compileTopics: '主题 {{done}}/{{total}}',
       compileCounts: '文档 {{docs}} · 抽取 {{extracts}} · 归并 {{reduced}} · 提案 {{proposals}}',
       compileStatus: { running: '编译中', done: '已完成', failed: '失败', cancelled: '已取消', idle: '未运行' },

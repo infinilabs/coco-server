@@ -639,6 +639,9 @@ func runIncrementalCompile(ctx context.Context, kb *core.WikiKnowledgeBase, mode
 	scope = planIncrementalScope(ops, byDoc, byPage) // phase 2: full map scope
 
 	if job != nil {
+		job.Incremental = true
+		job.Ops = len(ops)
+		job.AffectedPages = len(scope.AffectedPages)
 		job.log("incremental scope: %d ops, %d affected pages, %d docs to map", len(ops), len(scope.AffectedPages), len(scope.MapDocs))
 	}
 	docs := compileDocsByIDs(ctx, scope.MapDocs)

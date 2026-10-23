@@ -348,6 +348,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       compileStage: 'Stage: {{stage}}',
       compileStages: { map: 'Extract', reduce: 'Reduce', cluster: 'Cluster topics', compose: 'Compose topic pages', done: 'Done' },
       compileBatches: 'Batches {{done}}/{{total}} (cached {{cached}}, failed {{failed}})',
+      compileIncremental: 'Incremental {{ops}} op · {{pages}} page(s) affected',
       compileTopics: 'Topics {{done}}/{{total}}',
       compileCounts: 'Docs {{docs}} · Extracts {{extracts}} · Reduced {{reduced}} · Proposals {{proposals}}',
       compileStatus: { running: 'Running', done: 'Done', failed: 'Failed', cancelled: 'Cancelled', idle: 'Idle' },
