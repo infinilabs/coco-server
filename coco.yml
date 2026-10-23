@@ -51,7 +51,7 @@ elastic:
     enabled: true
     index_prefix: "coco_"
     override_exists_template: true
-    override_exists_mapping: false
+    override_exists_mapping: true
     index_templates:
       "coco-search": |
         {
