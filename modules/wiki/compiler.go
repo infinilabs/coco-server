@@ -889,6 +889,12 @@ func compileSourceDocuments(ctx context.Context, kb *core.WikiKnowledgeBase) ([]
 		return nil, err
 	}
 	docs, _, err := elastic.DecodeHits[core.Document](res)
+	// embedded-figure markers ([[Image(uuid\tOCR)]]) carry attachment OCR —
+	// supplementary text that must not feed compilation as body prose, or
+	// scan noise becomes standalone pages/entities
+	for i := range docs {
+		docs[i].Content = StripImageMarkers(docs[i].Content)
+	}
 	return docs, err
 }
 

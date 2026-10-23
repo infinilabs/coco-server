@@ -1293,7 +1293,8 @@ func applyTopicProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (strin
 			}
 			absorbed := absorbThinPages(ctx, p.KbID, &article, absorbIDs)
 			article.Maturity = ComputeTopicMaturity(article.Outline, planned, len(article.Sources))
-			article.Content = LinkEntityMentions(ctx, RenderTopicContent(article.Outline, statements, docTitles), article.Title)
+			images := collectSectionImages(ctx, article.Title, article.Outline, docTitles)
+			article.Content = LinkEntityMentions(ctx, RenderTopicContentWithImages(article.Outline, statements, docTitles, images), article.Title)
 			// compiled pages shipped with an empty summary — derive one from
 			// the first filled section when the page has none (hand-written
 			// summaries are never clobbered)
@@ -1317,7 +1318,8 @@ func applyTopicProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (strin
 	}
 
 	// create: the outline IS the page
-	content := LinkEntityMentions(ctx, RenderTopicContent(sections, statements, docTitles), p.ArticleTitle)
+	images := collectSectionImages(ctx, p.ArticleTitle, sections, docTitles)
+	content := LinkEntityMentions(ctx, RenderTopicContentWithImages(sections, statements, docTitles, images), p.ArticleTitle)
 	createStatus := core.WikiArticleDraft
 	if KBAutoApprove(ctx, p.KbID) {
 		createStatus = core.WikiArticlePublished

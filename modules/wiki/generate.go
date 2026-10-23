@@ -347,6 +347,11 @@ func scopeKbDocuments(ctx *orm.Context, kb *core.WikiKnowledgeBase, limit int) (
 		return nil, err
 	}
 	docs, _, err := elastic.DecodeHits[core.Document](res)
+	// same demotion as the compiler: embedded-figure OCR is supplementary
+	// material, never generation corpus
+	for i := range docs {
+		docs[i].Content = StripImageMarkers(docs[i].Content)
+	}
 	return docs, err
 }
 

@@ -980,6 +980,17 @@ func sectionID(heading string) string {
 // chip in the reader), so no per-section source lines waste layout; the
 // full claim list trails as the verification floor.
 func RenderTopicContent(sections []core.WikiSection, claims []compileStatement, docTitles map[string]string) string {
+	return RenderTopicContentWithImages(sections, claims, docTitles, nil)
+}
+
+// RenderTopicContentWithImages renders the page markdown, placing each
+// relevance-gated figure (collectSectionImages) right after the body of
+// the section it illustrates.
+func RenderTopicContentWithImages(sections []core.WikiSection, claims []compileStatement, docTitles map[string]string, images []topicImage) string {
+	imageBySection := map[string]topicImage{}
+	for _, img := range images {
+		imageBySection[img.SectionID] = img
+	}
 	var sb strings.Builder
 	// no lead banner: the header's AI badge already marks the page as
 	// compiled-and-awaiting-review, and a boilerplate quote above every
@@ -989,6 +1000,9 @@ func RenderTopicContent(sections []core.WikiSection, claims []compileStatement, 
 			continue
 		}
 		fmt.Fprintf(&sb, "## %s\n\n%s\n\n", s.Heading, s.Body)
+		if img, ok := imageBySection[s.ID]; ok {
+			fmt.Fprintf(&sb, "%s\n\n", renderSectionImage(img))
+		}
 	}
 	if len(claims) > 0 {
 		sb.WriteString("## 来源主张\n\n")
