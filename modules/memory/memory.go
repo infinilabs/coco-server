@@ -33,7 +33,10 @@ import (
 // gate the governance queue enforces for knowledge.
 
 const (
-	Category       = "memory"
+	// Category must stay "coco": permission keys render as "<category>#<resource>/<action>"
+	// and the frontend gates the memory pages on "coco#memory/read|update" — a module-local
+	// prefix here (e.g. "memory") silently locks the UI out of its own data
+	Category       = "coco"
 	Resource       = "memory"
 	distillMaxLens = 4000 // conversation excerpt cap handed to the model
 )
@@ -163,7 +166,9 @@ func (h *APIHandler) mine(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	if kind != "" {
 		builder.Filter(orm.TermQuery("kind", kind))
 	}
-	if status != "" {
+	// "all" is the UI's explicit no-filter choice — treat it like an absent
+	// param instead of matching a literal status value that never exists
+	if status != "" && status != "all" {
 		builder.Filter(orm.TermQuery("status", status))
 	}
 	res, err := orm.SearchV2(ctx, builder)
