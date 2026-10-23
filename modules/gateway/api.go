@@ -194,6 +194,7 @@ func (h *APIHandler) instanceDetail(w http.ResponseWriter, req *http.Request, ps
 		"status":            inst.Status,
 		"services":          inst.Services,
 		"last_sync":         lastSync,
+		"online":            lastSync > 0 && time.Since(time.UnixMilli(lastSync)) < instanceOfflineAfter,
 		"created":           inst.Created,
 		"reverse_connected": configs_server.ReverseIsConnected(id),
 	}
