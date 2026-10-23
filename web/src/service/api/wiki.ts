@@ -971,6 +971,19 @@ export function importWikiSkill(kbId: string, content: string) {
   }).then(res => (res as any)?.data);
 }
 
+/** import an Agent Skills package zip (SKILL.md + references/): the doc
+ * lands as a draft skill page, package files become its tier-3 load
+ * attachments; returns how many reference files came along */
+export function importWikiSkillPack(kbId: string, file: File) {
+  const fd = new FormData();
+  fd.append('file', file, file.name);
+  return request<{ _id?: string; id?: string; result: string; references?: number }>({
+    method: 'post',
+    data: fd,
+    url: `/wiki/kb/${kbId}/_import_skill_pack`
+  }).then(res => (res as any)?.data);
+}
+
 /** manually run the skill proposer over the KB's recent experiences;
  * outcomes land in the evolution log (skill_proposed entries) */
 export function proposeWikiSkills(kbId: string) {

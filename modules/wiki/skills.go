@@ -5,11 +5,15 @@
 package wiki
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
@@ -21,6 +25,7 @@ import (
 	"infini.sh/framework/core/util"
 
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/attachment"
 	langchain "infini.sh/coco/modules/assistant/langchain"
 	llmmodule "infini.sh/coco/modules/llm"
 )
@@ -817,6 +822,209 @@ func (h *APIHandler) importSkillMd(w http.ResponseWriter, req *http.Request, ps 
 		log.Warnf("wiki: skill import count failed: %v", err)
 	}
 	h.WriteCreatedOKJSON(w, article.ID)
+}
+
+/* ---------------- skill pack import (Agent Skills package, P3) ---------------- */
+
+const (
+	skillPackMaxZipBytes = 20 << 20
+	skillPackMaxRefs     = 20
+	skillPackMaxRefBytes = 2 << 20
+)
+
+// bytesFile makes an in-memory buffer satisfy multipart.File so reference
+// files from the zip can ride the standard blob-upload path.
+type bytesFile struct{ *bytes.Reader }
+
+func (bytesFile) Close() error { return nil }
+
+// skillPackRef is one non-SKILL.md file worth keeping from a package.
+type skillPackRef struct {
+	relPath string // path inside the package, e.g. references/api-notes.md
+	data    []byte
+}
+
+// importSkillPack: POST /wiki/kb/:id/_import_skill_pack (multipart "file" =
+// an Agent Skills package zip — SKILL.md at the root or one folder deep,
+// optional references/ and scripts/ files). The SKILL.md lands as a draft
+// skill page; package files become page attachments wired into
+// Skill.Loads (tier 3, loaded on demand). Same-title pages report instead
+// of stacking a twin; the review gate stays human.
+func (h *APIHandler) importSkillPack(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	kbID := ps.ByName("id")
+	req.Body = http.MaxBytesReader(w, req.Body, skillPackMaxZipBytes)
+	if err := req.ParseMultipartForm(skillPackMaxZipBytes); err != nil {
+		h.WriteError(w, "failed to parse upload (20MB cap)", http.StatusBadRequest)
+		return
+	}
+	file, _, err := req.FormFile("file")
+	if err != nil {
+		h.WriteError(w, "no file uploaded", http.StatusBadRequest)
+		return
+	}
+	defer func() { _ = file.Close() }()
+	data, err := io.ReadAll(file)
+	if err != nil || len(data) == 0 {
+		h.WriteError(w, "failed to read the package", http.StatusBadRequest)
+		return
+	}
+	zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		h.WriteError(w, "not a zip package", http.StatusBadRequest)
+		return
+	}
+
+	skillDoc, prefix, refs, perr := parseSkillPack(zr)
+	if perr != nil {
+		h.WriteError(w, perr.Error(), http.StatusBadRequest)
+		return
+	}
+	name, description, mdBody, ok := parseSkillFrontmatter(skillDoc)
+	if !ok {
+		h.WriteError(w, "SKILL.md is missing its frontmatter (name required)", http.StatusBadRequest)
+		return
+	}
+
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	// same title in the KB → report instead of stacking a twin
+	orm.WithModel(ctx, &core.WikiArticle{})
+	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1).
+		Filter(orm.TermQuery("kb_id", kbID), orm.TermQuery("title", truncateRunes(name, 80))))
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if hits, _, derr := elastic.DecodeHits[core.WikiArticle](res); derr == nil && len(hits) > 0 {
+		h.WriteOKJSON(w, util.MapStr{"id": hits[0].ID, "result": "exists", "references": len(refs)})
+		return
+	}
+
+	article := &core.WikiArticle{
+		KbID:     kbID,
+		Title:    truncateRunes(name, 80),
+		Summary:  truncateRunes(description, 200),
+		Content:  mdBody,
+		PageType: core.WikiPageTypeSkill,
+		Status:   core.WikiArticleDraft,
+		Skill:    &core.WikiSkill{Applicability: truncateRunes(description, 400)},
+	}
+	if err := orm.Create(ctx, article); err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// package files → page attachments; deterministic IDs keep a re-import
+	// of the same pack from stacking blob duplicates
+	loaded := 0
+	for _, ref := range refs {
+		fid := util.MD5digest("skillref|" + article.ID + "|" + ref.relPath)
+		attID, uerr := attachment.UploadToBlobStore(ctx, fid, bytesFile{bytes.NewReader(ref.data)}, nil,
+			path.Base(ref.relPath), "", util.MapStr{"skill_pack": name, "skill_ref_path": ref.relPath}, "", true)
+		if uerr != nil {
+			log.Warnf("wiki: skill pack reference [%s] failed: %v", ref.relPath, uerr)
+			continue
+		}
+		article.Attachments = append(article.Attachments, attID)
+		article.Skill.Loads = append(article.Skill.Loads, core.SkillLoad{
+			Path: ref.relPath,
+			When: "imported from package — load on demand",
+		})
+		loaded++
+	}
+	if loaded > 0 {
+		if err := orm.Update(ctx, article); err != nil {
+			log.Warnf("wiki: skill pack attachment wiring failed for [%s]: %v", article.Title, err)
+		}
+	}
+
+	persistLinkedPages(article)
+	if err := addArticleToToc(kbID, article.ID, article.Title); err != nil {
+		log.Warnf("wiki: skill pack import toc failed: %v", err)
+	}
+	if err := bumpKbArticleCount(kbID, 1); err != nil {
+		log.Warnf("wiki: skill pack import count failed: %v", err)
+	}
+	log.Infof("wiki: imported skill pack [%s] into kb [%s] — %d reference files (prefix %q)", name, kbID, loaded, prefix)
+	h.WriteOKJSON(w, util.MapStr{"_id": article.ID, "result": "created", "references": loaded})
+}
+
+// parseSkillPack walks a package zip: SKILL.md must sit at the root or one
+// folder deep (the skill-name/ convention); files under references/ and
+// scripts/ come along as tier-3 loads. Everything else is ignored.
+func parseSkillPack(zr *zip.Reader) (skillDoc, prefix string, refs []skillPackRef, err error) {
+	skillPath := ""
+	for _, zf := range zr.File {
+		name := strings.TrimSuffix(zf.Name, "/")
+		if name == "" || strings.HasPrefix(path.Base(name), ".") || strings.Contains(name, "__MACOSX") {
+			continue
+		}
+		if zf.FileInfo().IsDir() {
+			continue
+		}
+		if path.Base(name) == "SKILL.md" && strings.Count(name, "/") <= 1 {
+			if skillPath != "" {
+				return "", "", nil, fmt.Errorf("multiple SKILL.md entries (%s, %s)", skillPath, name)
+			}
+			skillPath = name
+		}
+	}
+	if skillPath == "" {
+		return "", "", nil, fmt.Errorf("no SKILL.md at the package root (or one folder deep)")
+	}
+	prefix = ""
+	if idx := strings.LastIndex(skillPath, "/"); idx > 0 {
+		prefix = skillPath[:idx+1]
+	}
+
+	for _, zf := range zr.File {
+		name := strings.TrimSuffix(zf.Name, "/")
+		if zf.FileInfo().IsDir() || strings.HasPrefix(path.Base(name), ".") || strings.Contains(name, "__MACOSX") {
+			continue
+		}
+		if name == skillPath {
+			continue
+		}
+		if !strings.HasPrefix(name, prefix) {
+			continue
+		}
+		rel := strings.TrimPrefix(name, prefix)
+		if !(strings.HasPrefix(rel, "references/") || strings.HasPrefix(rel, "scripts/")) {
+			continue
+		}
+		if len(refs) >= skillPackMaxRefs {
+			break
+		}
+		if zf.UncompressedSize64 > skillPackMaxRefBytes {
+			continue
+		}
+		rc, oerr := zf.Open()
+		if oerr != nil {
+			continue
+		}
+		buf, rerr := io.ReadAll(io.LimitReader(rc, skillPackMaxRefBytes+1))
+		_ = rc.Close()
+		if rerr != nil || len(buf) > skillPackMaxRefBytes {
+			continue
+		}
+		refs = append(refs, skillPackRef{relPath: rel, data: buf})
+	}
+
+	rc, oerr := func() (io.ReadCloser, error) {
+		for _, zf := range zr.File {
+			if zf.Name == skillPath {
+				return zf.Open()
+			}
+		}
+		return nil, fmt.Errorf("SKILL.md entry vanished")
+	}()
+	if oerr != nil {
+		return "", "", nil, fmt.Errorf("failed to read SKILL.md from the package: %v", oerr)
+	}
+	defer func() { _ = rc.Close() }()
+	doc, _ := io.ReadAll(io.LimitReader(rc, 1<<20))
+	return string(doc), prefix, refs, nil
 }
 
 /* ---------------- tier-1 injection ---------------- */

@@ -7,9 +7,10 @@ import {
   MergeOutlined,
   ReloadOutlined,
   RobotOutlined,
-  SearchOutlined
+  SearchOutlined,
+  UploadOutlined
 } from '@ant-design/icons';
-import { Button, Empty, Form, Input, List, Modal, Popconfirm, Select, Space, Tabs, Tag } from 'antd';
+import { Button, Divider, Empty, Form, Input, List, Modal, Popconfirm, Select, Space, Tabs, Tag, Upload } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +20,7 @@ import {
   deleteWikiArticle,
   getWikiKb,
   importWikiSkill,
+  importWikiSkillPack,
   listWikiDatasources,
   searchWikiArticles
 } from '@/service/api';
@@ -571,6 +573,33 @@ const readKbPageCache = (kbId?: string): KbPageCache | null =>
             value={skillMd}
             onChange={e => setSkillMd(e.target.value)}
           />
+          <Divider className='my-12px'>
+            <span className='text-12px color-[var(--ant-color-text-tertiary)]'>{t('page.wiki.kb.importSkillOr')}</span>
+          </Divider>
+          <Upload
+            accept='.zip'
+            beforeUpload={f => {
+              if (!id) return false;
+              setImportingSkill(true);
+              importWikiSkillPack(id, f)
+                .then(res => {
+                  if (res?.result === 'exists') {
+                    window.$message?.warning(t('page.wiki.kb.importSkillExists'));
+                  } else {
+                    window.$message?.success(t('page.wiki.kb.importSkillPackDone', { count: res?.references ?? 0 }));
+                  }
+                  setImportSkillOpen(false);
+                  fetchAll();
+                })
+                .finally(() => setImportingSkill(false));
+              return false;
+            }}
+            showUploadList={false}
+          >
+            <Button icon={<UploadOutlined />} loading={importingSkill}>
+              {t('page.wiki.kb.importSkillPack')}
+            </Button>
+          </Upload>
         </Modal>
 
         <GenerateModal

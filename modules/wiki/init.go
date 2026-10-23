@@ -108,6 +108,10 @@ func init() {
 	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_import_skill", handler.importSkillMd,
 		api.RequireLogin(), api.RequirePermission(updateKbPermission),
 		api.MCPTool("import_skill_md", "Import an Agent Skills SKILL.md document into a knowledge base as a draft skill page; same-title pages report instead of duplicating"))
+	// package half (P3): SKILL.md + references/ as one zip — reference
+	// files land as the page's tier-3 load attachments
+	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_import_skill_pack", handler.importSkillPack,
+		api.RequireLogin(), api.RequirePermission(updateKbPermission))
 
 	// read-only version history (article-level read); exposed to agents so
 	// they can see how a page's knowledge evolved (P3)
