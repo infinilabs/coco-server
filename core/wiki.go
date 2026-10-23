@@ -347,15 +347,19 @@ type SkillReachFor struct {
 // motivated this skill) lives in Sources as pattern-page references and in
 // the content's [[pattern:...]] links — the PURPOSE.md semantics.
 type WikiSkill struct {
-	Applicability   string        `json:"applicability,omitempty" elastic_mapping:"applicability:{type:text}"`
-	Steps           []string      `json:"steps,omitempty" elastic_mapping:"steps:{type:text}"`
-	AntiPatterns    []string      `json:"anti_patterns,omitempty" elastic_mapping:"anti_patterns:{type:text}"`
-	WhenNotToApply  []string      `json:"when_not_to_apply,omitempty" elastic_mapping:"when_not_to_apply:{type:text}"`
-	ReachFor        *SkillReachFor `json:"reach_for,omitempty" elastic_mapping:"reach_for:{type:object,enabled:false}"`
-	Loads           []SkillLoad   `json:"loads,omitempty" elastic_mapping:"loads:{type:object,enabled:false}"`
+	Applicability  string         `json:"applicability,omitempty" elastic_mapping:"applicability:{type:text}"`
+	Steps          []string       `json:"steps,omitempty" elastic_mapping:"steps:{type:text}"`
+	AntiPatterns   []string       `json:"anti_patterns,omitempty" elastic_mapping:"anti_patterns:{type:text}"`
+	WhenNotToApply []string       `json:"when_not_to_apply,omitempty" elastic_mapping:"when_not_to_apply:{type:text}"`
+	ReachFor       *SkillReachFor `json:"reach_for,omitempty" elastic_mapping:"reach_for:{type:object,enabled:false}"`
+	Loads          []SkillLoad    `json:"loads,omitempty" elastic_mapping:"loads:{type:object,enabled:false}"`
 	// Rationale records why the proposer believed this skill earns its
 	// place — surfaced in the gate review and the version history.
 	Rationale string `json:"rationale,omitempty" elastic_mapping:"rationale:{type:text}"`
+	// Sharing scope (LLM-wiki P3): "" = KB-private (default),
+	// "tenant" = every assistant in this tenant's tier-1 index can reach
+	// the skill read-only — one KB's evolved skill benefits the others.
+	Scope string `json:"scope,omitempty" elastic_mapping:"scope:{type:keyword}"`
 }
 
 // experience outcome/feedback vocabularies

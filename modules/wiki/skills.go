@@ -1059,6 +1059,12 @@ func SkillIndexForAssistant(parent *orm.Context, assistantID string) string {
 	}
 	var sb strings.Builder
 	count := 0
+	boundKb := map[string]bool{}
+	kbName := map[string]string{}
+	for i := range kbs {
+		boundKb[kbs[i].ID] = true
+		kbName[kbs[i].ID] = kbs[i].Name
+	}
 	for i := range kbs {
 		for _, page := range findSkillPages(ctx, kbs[i].ID, 20) {
 			if page.Status != core.WikiArticlePublished || page.Skill == nil {
@@ -1078,7 +1084,60 @@ func SkillIndexForAssistant(parent *orm.Context, assistantID string) string {
 			}
 		}
 	}
+
+	// tenant-shared skills (LLM-wiki P3 transfer): published skill pages
+	// flagged scope=tenant from KBs NOT bound to this assistant join the
+	// index read-only — one KB's evolved skill benefits every assistant.
+	if count >= 20 {
+		return sb.String()
+	}
+	orm.WithModel(ctx, &core.WikiArticle{})
+	res2, err2 := orm.SearchV2(ctx, orm.NewQuery().Size(200).
+		Filter(orm.TermQuery("page_type", core.WikiPageTypeSkill), orm.TermQuery("status", core.WikiArticlePublished)))
+	if err2 == nil && res2 != nil {
+		if shared, _, derr2 := elastic.DecodeHits[core.WikiArticle](res2); derr2 == nil {
+			seen := map[string]bool{}
+			for i := range shared {
+				page := shared[i]
+				if page.Skill == nil || page.Skill.Scope != "tenant" || boundKb[page.KbID] || seen[page.ID] {
+					continue
+				}
+				seen[page.ID] = true
+				if count == 0 {
+					sb.WriteString("\nSkills (procedural knowledge maintained by the knowledge base — follow these steps when the task matches):\n")
+				}
+				line := fmt.Sprintf("- %s: %s", page.Title, truncateRunes(page.Skill.Applicability, 100))
+				if page.Skill.ReachFor != nil && len(page.Skill.ReachFor.Phrases) > 0 {
+					line += fmt.Sprintf(" [触发词: %s]", strings.Join(page.Skill.ReachFor.Phrases, ", "))
+				}
+				if name := sharedKbName(ctx, kbName, page.KbID); name != "" {
+					line += fmt.Sprintf(" [共享自 %s]", name)
+				}
+				sb.WriteString(line + "\n")
+				count++
+				if count >= 20 {
+					break
+				}
+			}
+		}
+	}
 	return sb.String()
+}
+
+// sharedKbName resolves a KB's display name, memoized in the caller's map.
+func sharedKbName(ctx *orm.Context, memo map[string]string, kbID string) string {
+	if name, ok := memo[kbID]; ok {
+		return name
+	}
+	kb := core.WikiKnowledgeBase{}
+	kb.ID = kbID
+	orm.WithModel(ctx, &core.WikiKnowledgeBase{})
+	if ok, err := orm.GetV2(ctx, &kb); err != nil || !ok {
+		memo[kbID] = ""
+		return ""
+	}
+	memo[kbID] = kb.Name
+	return kb.Name
 }
 
 /* ---------------- manual trigger ---------------- */

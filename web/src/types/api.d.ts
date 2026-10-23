@@ -543,6 +543,8 @@ declare namespace Api {
       reach_for?: { phrases?: string[]; globs?: string[] };
       loads?: { path: string; when?: string }[];
       rationale?: string;
+      /** '' = KB-private, 'tenant' = every assistant's tier-1 index (LLM-wiki P3) */
+      scope?: string;
     }
 
     /** mirror of core.WikiImpact — programmatic usage telemetry */

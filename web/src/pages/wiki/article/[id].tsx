@@ -41,6 +41,7 @@ import {
   Space,
   Result,
   Spin,
+  Switch,
   Tag,
   Tooltip,
   Typography,
@@ -494,6 +495,21 @@ export function Component() {
         window.$message?.success(t('page.wiki.article.exportSkillMdDone'));
       })
       .finally(() => setExportingSkill(false));
+  };
+  // tenant sharing (LLM-wiki P3): a published skill flagged scope=tenant
+  // joins every assistant's tier-1 index read-only — flip rides the
+  // standard article update, the review gate is untouched
+  const [sharingSkill, setSharingSkill] = useState(false);
+  const onToggleSkillShare = (checked: boolean) => {
+    if (!id || !article || sharingSkill) return;
+    setSharingSkill(true);
+    const skill = { ...((article as any).skill || {}), scope: checked ? 'tenant' : '' };
+    updateWikiArticle(id, { skill } as any)
+      .then(() => {
+        setArticle({ ...(article as any), skill });
+        window.$message?.success(t(checked ? 'page.wiki.article.shareSkillOn' : 'page.wiki.article.shareSkillOff'));
+      })
+      .finally(() => setSharingSkill(false));
   };
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState(false);
@@ -1022,6 +1038,20 @@ export function Component() {
                     type='text'
                     onClick={onExportSkillMd}
                   />
+                </Tooltip>
+              )}
+              {article.page_type === 'skill' && canEditArticle && (
+                <Tooltip title={t('page.wiki.article.shareSkillHint')}>
+                  <span className='inline-flex items-center gap-6px px-4px'>
+                    <Switch
+                      checked={(article as any).skill?.scope === 'tenant'}
+                      size='small'
+                      onChange={onToggleSkillShare}
+                    />
+                    <span className='text-12px color-[var(--ant-color-text-tertiary)]'>
+                      {t('page.wiki.article.shareSkill')}
+                    </span>
+                  </span>
                 </Tooltip>
               )}
               {canEditArticle && (
