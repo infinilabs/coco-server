@@ -681,6 +681,17 @@ declare namespace Api {
       citations?: { doc_id?: string }[];
       created?: string;
     }
+
+    /** one skill-proposer run over a KB's recent experiences */
+    interface SkillRun {
+      sampled: number;
+      proposals: number;
+      created: number;
+      updated: number;
+      expired: number;
+      no_action: boolean;
+      skipped_notes?: string[];
+    }
   }
 }
 

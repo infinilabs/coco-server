@@ -58,6 +58,7 @@ import {
   createWikiLike,
   deleteWikiBookmark,
   deleteWikiLike,
+  exportWikiSkillMd,
   getWikiArticle,
   getWikiArticleVersions,
   getWikiArticleMaterials,
@@ -473,6 +474,26 @@ export function Component() {
     a.download = `${article.title || 'article'}.md`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+  // skill pages interoperate with external agent runtimes through the
+  // SKILL.md interchange format — the backend renders frontmatter + steps
+  const [exportingSkill, setExportingSkill] = useState(false);
+  const onExportSkillMd = () => {
+    if (!id || !article) return;
+    setExportingSkill(true);
+    exportWikiSkillMd(id)
+      .then(md => {
+        if (!md) return;
+        const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `SKILL-${(article.title || 'skill').toLowerCase().replace(/\s+/g, '-')}.md`;
+        a.click();
+        URL.revokeObjectURL(url);
+        window.$message?.success(t('page.wiki.article.exportSkillMdDone'));
+      })
+      .finally(() => setExportingSkill(false));
   };
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState(false);
@@ -982,6 +1003,16 @@ export function Component() {
                   onClick={onExportMarkdown}
                 />
               </Tooltip>
+              {article.page_type === 'skill' && (
+                <Tooltip title={t('page.wiki.article.exportSkillMd')}>
+                  <Button
+                    icon={<FileTextOutlined />}
+                    loading={exportingSkill}
+                    type='text'
+                    onClick={onExportSkillMd}
+                  />
+                </Tooltip>
+              )}
               {canEditArticle && (
                 <Popconfirm title={t('page.wiki.article.rewriteConfirm')} onConfirm={onRewriteFull}>
                   <Button

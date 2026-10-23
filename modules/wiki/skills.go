@@ -693,6 +693,13 @@ func (h *APIHandler) exportSkillMd(w http.ResponseWriter, req *http.Request, ps 
 	fmt.Fprintf(&sb, "description: %s\n", description)
 	sb.WriteString("---\n\n")
 	sb.WriteString(fmt.Sprintf("# %s\n\n", article.Title))
+	// structured skill metadata renders as canonical sections; pages whose
+	// steps live only in the body (imported SKILL.md documents, hand-written
+	// skills) would otherwise export as a bare header — keep their body
+	if len(article.Skill.Steps) == 0 && strings.TrimSpace(article.Content) != "" {
+		sb.WriteString(strings.TrimSpace(article.Content))
+		sb.WriteString("\n\n")
+	}
 	if len(article.Skill.Steps) > 0 {
 		sb.WriteString("## Steps\n\n")
 		for i, step := range article.Skill.Steps {

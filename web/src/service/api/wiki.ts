@@ -937,3 +937,32 @@ export function backfillWikiProjection() {
     url: '/wiki/_backfill_projection'
   }).then(res => (res as any)?.data);
 }
+
+/* ---- SKILL.md interoperation (export / import / manual proposer) ---- */
+
+/** export a skill page as an Agent Skills SKILL.md document (markdown text) */
+export function exportWikiSkillMd(id: string) {
+  return request<string>({
+    method: 'get',
+    url: `/wiki/article/${id}/_skill_md`
+  }).then(res => ((res as any)?.data ?? '') as string);
+}
+
+/** import a pasted SKILL.md as a draft skill page; a same-title page
+ * reports { result: 'exists' } instead of stacking a twin */
+export function importWikiSkill(kbId: string, content: string) {
+  return request<{ _id?: string; id?: string; result: string }>({
+    method: 'post',
+    url: `/wiki/kb/${kbId}/_import_skill`,
+    data: { content }
+  }).then(res => (res as any)?.data);
+}
+
+/** manually run the skill proposer over the KB's recent experiences;
+ * outcomes land in the evolution log (skill_proposed entries) */
+export function proposeWikiSkills(kbId: string) {
+  return request<Api.Wiki.SkillRun>({
+    method: 'post',
+    url: `/wiki/kb/${kbId}/_propose`
+  }).then(res => (res as any)?.data);
+}

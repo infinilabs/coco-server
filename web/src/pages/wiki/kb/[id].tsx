@@ -16,6 +16,7 @@ import {
   createWikiArticle,
   deleteWikiArticle,
   getWikiKb,
+  importWikiSkill,
   listWikiDatasources,
   searchWikiArticles
 } from '@/service/api';
@@ -146,6 +147,27 @@ const readKbPageCache = (kbId?: string): KbPageCache | null =>
   const [loading, setLoading] = useState(!cached);
   const [newOpen, setNewOpen] = useState(false);
   const [generateOpen, setGenerateOpen] = useState(false);
+  // SKILL.md import: paste the interchange document, land it as a draft
+  // skill page (the review gate stays human)
+  const [importSkillOpen, setImportSkillOpen] = useState(false);
+  const [skillMd, setSkillMd] = useState('');
+  const [importingSkill, setImportingSkill] = useState(false);
+  const onImportSkill = () => {
+    if (!id || !skillMd.trim()) return;
+    setImportingSkill(true);
+    importWikiSkill(id, skillMd)
+      .then(res => {
+        if (res?.result === 'exists') {
+          window.$message?.warning(t('page.wiki.kb.importSkillExists'));
+        } else {
+          window.$message?.success(t('page.wiki.kb.importSkillDone'));
+        }
+        setSkillMd('');
+        setImportSkillOpen(false);
+        fetchAll();
+      })
+      .finally(() => setImportingSkill(false));
+  };
   const [artKeyword, setArtKeyword] = useState('');
   const [artStatus, setArtStatus] = useState<string>('all');
   const [dsList, setDsList] = useState<Api.Wiki.DatasourceInfo[]>(cached?.dsList || []);
@@ -341,6 +363,15 @@ const readKbPageCache = (kbId?: string): KbPageCache | null =>
                       ]}
                       onChange={setArtStatus}
                     />
+                    {canCreateArticle && (
+                      <Button
+                        className='ml-auto'
+                        icon={<FileAddOutlined />}
+                        onClick={() => setImportSkillOpen(true)}
+                      >
+                        {t('page.wiki.kb.importSkill')}
+                      </Button>
+                    )}
                   </div>
                   <List
                     className='wiki-row-list'
@@ -484,6 +515,28 @@ const readKbPageCache = (kbId?: string): KbPageCache | null =>
             else fetchAll();
           }}
         />
+
+        <Modal
+          cancelText={t('common.cancel')}
+          confirmLoading={importingSkill}
+          okButtonProps={{ disabled: !skillMd.trim() }}
+          okText={t('common.confirm')}
+          open={importSkillOpen}
+          title={t('page.wiki.kb.importSkill')}
+          onCancel={() => setImportSkillOpen(false)}
+          onOk={onImportSkill}
+        >
+          <p className='mb-8px text-13px color-[var(--ant-color-text-tertiary)]'>
+            {t('page.wiki.kb.importSkillHint')}
+          </p>
+          <Input.TextArea
+            className='font-mono text-12px'
+            placeholder={'---\nname: my-skill\ndescription: when to reach for it\n---\n\n# My Skill\n\n## Steps\n1. ...'}
+            rows={12}
+            value={skillMd}
+            onChange={e => setSkillMd(e.target.value)}
+          />
+        </Modal>
 
         <GenerateModal
           kbId={id || ''}

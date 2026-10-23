@@ -1,9 +1,9 @@
-import { ExperimentOutlined, ReloadOutlined } from '@ant-design/icons';
+import { ExperimentOutlined, ReloadOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { Alert, Button, Empty, Popconfirm, Space, Table, Tag, message } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { distillWikiKb, getWikiEvolutionLog, listWikiExperience } from '@/service/api';
+import { distillWikiKb, getWikiEvolutionLog, listWikiExperience, proposeWikiSkills } from '@/service/api';
 import { useAuth } from '@/hooks/business/auth';
 
 /* raw enums → locale key suffixes; unknown values fall back to the raw string */
@@ -50,6 +50,7 @@ export function KbEvolution({ kb }: { readonly kb: Api.Wiki.Kb }) {
   const [logTotal, setLogTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [distilling, setDistilling] = useState(false);
+  const [proposing, setProposing] = useState(false);
 
   const label = (map: Record<string, string>, v?: string) => (v && map[v] ? t(`page.wiki.evolution.${map[v]}`) : v || '—');
 
@@ -79,6 +80,29 @@ export function KbEvolution({ kb }: { readonly kb: Api.Wiki.Kb }) {
         fetchAll();
       })
       .finally(() => setDistilling(false));
+  };
+
+  // manual skill proposer: turn recent experiences into skill-page
+  // proposals (drafts land in the article list, the run logs here)
+  const onPropose = () => {
+    setProposing(true);
+    proposeWikiSkills(kb.id)
+      .then(run => {
+        if (run?.no_action) {
+          message.info(t('page.wiki.evolution.proposeNoAction'));
+        } else {
+          message.success(
+            t('page.wiki.evolution.proposeDone', {
+              sampled: run?.sampled ?? 0,
+              proposals: run?.proposals ?? 0,
+              created: run?.created ?? 0,
+              updated: run?.updated ?? 0
+            })
+          );
+        }
+        fetchAll();
+      })
+      .finally(() => setProposing(false));
   };
 
   const expColumns = [
@@ -148,6 +172,13 @@ export function KbEvolution({ kb }: { readonly kb: Api.Wiki.Kb }) {
               <Popconfirm title={t('page.wiki.evolution.distillConfirm')} onConfirm={onDistill}>
                 <Button loading={distilling} type='primary'>
                   {t('page.wiki.evolution.distill')}
+                </Button>
+              </Popconfirm>
+            )}
+            {canUpdateKb && (
+              <Popconfirm title={t('page.wiki.evolution.proposeConfirm')} onConfirm={onPropose}>
+                <Button icon={<ThunderboltOutlined />} loading={proposing}>
+                  {t('page.wiki.evolution.propose')}
                 </Button>
               </Popconfirm>
             )}
