@@ -13,6 +13,7 @@ import { Avatar, Button, Dropdown, Empty, Image, Space, Spin, Tabs, Tag, Typogra
 import ChunkTable from '@/components/DocumentDrawer/ChunkTable';
 import Markdown from '@/components/DocumentDrawer/Markdown';
 import ProcessingTimeline, { STEP_TAB_MAP } from '@/components/DocumentDrawer/ProcessingTimeline';
+import RawJson from '@/components/DocumentDrawer/RawJson';
 import { getDocument } from '@/service/api';
 import { useRoute } from '@sa/simple-router';
 import { useNavigate } from 'react-router-dom';
@@ -69,6 +70,8 @@ export function Component() {
   const { t } = useTranslation();
 
   const [doc, setDoc] = useState<any>(null);
+  // full ES response (found/_id/_source) kept for the raw-JSON tab
+  const [rawResponse, setRawResponse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -76,6 +79,7 @@ export function Component() {
     setLoading(true);
     getDocument(docId)
       .then(res => {
+        setRawResponse(res.data || null);
         if (res.data?.found === true) {
           setDoc(res.data._source || {});
         }
@@ -202,6 +206,11 @@ export function Component() {
           </div>
         );
       })()
+    },
+    {
+      key: 'json',
+      label: t('page.datasource.doc.tabJson'),
+      children: <RawJson value={rawResponse} />
     },
     {
       key: 'runs',

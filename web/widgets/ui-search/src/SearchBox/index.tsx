@@ -10,7 +10,7 @@ import { ListFilter } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { SUGGESTION_TIPS } from "./Suggestions/Tips";
-import { DEFAULT_SEARCH_FUZZINESS, DEFAULT_SEARCH_SORT, normalizeSearchFuzziness, normalizeSearchSort } from "./ActionBar/SearchActions";
+import { DEFAULT_SEARCH_FUZZINESS, DEFAULT_SEARCH_SORT, normalizeSearchFuzziness, normalizeSearchSort, normalizeSearchType } from "./ActionBar/SearchActions";
 
 interface SearchBoxProps {
   placeholder?: string;
@@ -106,7 +106,7 @@ export function SearchBox(props: SearchBoxProps) {
     sb.handleQueryParamsChange('search_type', type);
   }, [sb.handleQueryParamsChange]);
 
-  const effectiveSearchType = sb.search_type || searchType;
+  const effectiveSearchType = normalizeSearchType(sb.search_type || searchType);
   const effectiveFuzziness = normalizeSearchFuzziness(typeof fuzziness === 'number' ? fuzziness : sb.fuzziness || DEFAULT_SEARCH_FUZZINESS);
   const effectiveSort = normalizeSearchSort(sort || sb.sort || DEFAULT_SEARCH_SORT);
 

@@ -289,6 +289,9 @@ const BuiltinSearchForm = memo(({ loading, onDirtyChange, onRegisterSubmit, onSu
         form={form}
         labelAlign="left"
         onValuesChange={markDirty}
+        // renders no <form> element: this component only ever mounts inside
+        // SearchSettings' own Form, and nested native forms are invalid DOM
+        component={false}
         labelCol={{
           style: { maxWidth: 200, minWidth: 200, textAlign: 'left' }
         }}

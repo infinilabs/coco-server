@@ -170,7 +170,7 @@ const SearchSettings = memo(() => {
       enabled,
       wiki_projection: form.getFieldValue('wiki_projection') ?? false,
       chunk_route: form.getFieldValue('chunk_route') ?? false,
-      search_type: search_type || 'keyword',
+      search_type: search_type || 'hybrid_rrf',
       // retrieval strategy — empty strings keep the backend fallbacks in place
       default_sort: params.default_sort || 'relevance',
       match_operator: params.match_operator || 'OR',
@@ -254,7 +254,11 @@ const SearchSettings = memo(() => {
     if (payload?.search_settings) {
       form.setFieldsValue({
         ...payload.search_settings,
-        search_type: payload.search_settings.search_type || 'keyword',
+        // retired 'hybrid' migrates to hybrid_rrf on display, so the select
+        // always shows a real label and the next save persists the new value
+        search_type: payload.search_settings.search_type === 'keyword' || payload.search_settings.search_type === 'semantic'
+          ? payload.search_settings.search_type
+          : 'hybrid_rrf',
         default_sort: payload.search_settings.default_sort || 'relevance',
         match_operator: payload.search_settings.match_operator || 'OR',
         minimum_should_match: payload.search_settings.minimum_should_match || '',
@@ -296,7 +300,7 @@ const SearchSettings = memo(() => {
     } else {
       form.setFieldsValue({
         enabled: false,
-        search_type: 'keyword',
+        search_type: 'hybrid_rrf',
         default_sort: 'relevance',
         match_operator: 'OR',
         minimum_should_match: '',
@@ -406,7 +410,9 @@ const SearchSettings = memo(() => {
                     >
                       <Select
                         className="!w-520px"
-                        options={['keyword', 'semantic', 'hybrid', 'hybrid_rrf'].map((value) => ({
+                        // plain weighted 'hybrid' is retired — one hybrid entry
+                        // (RRF fusion) covers it; hybrid_rrf first as the default
+                        options={['hybrid_rrf', 'keyword', 'semantic'].map((value) => ({
                           value,
                           label: t(`page.settings.search_settings.options.${value}`)
                         }))}

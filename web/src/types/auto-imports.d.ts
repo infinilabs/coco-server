@@ -79,6 +79,7 @@ declare global {
   const ProcessingPanel: typeof import('../components/ProcessingPanel/index')['default']
   const ProcessingTimeline: typeof import('../components/DocumentDrawer/ProcessingTimeline')['default']
   const ProgressiveImage: typeof import('../components/common/ProgressiveImage')['default']
+  const RawJson: typeof import('../components/DocumentDrawer/RawJson')['default']
   const ReloadButton: typeof import('../components/stateless/common/ReloadButton')['default']
   const Route: typeof import('react-router-dom')['Route']
   const Routes: typeof import('react-router-dom')['Routes']

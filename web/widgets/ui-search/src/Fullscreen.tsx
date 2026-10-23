@@ -6,7 +6,7 @@ import { normalizeCoverIconUrl } from "./utils/utils";
 import { debounce, isEmpty } from 'lodash';
 import Home from "./pages/Home";
 import Search from "./pages/Search";
-import { ACTION_TYPE_SEARCH_KEYWORD, DEFAULT_SEARCH_SORT, normalizeSearchFuzziness, normalizeSearchSort } from "./SearchBox/ActionBar/SearchActions";
+import { DEFAULT_SEARCH_SORT, DEFAULT_SEARCH_TYPE, normalizeSearchFuzziness, normalizeSearchSort, normalizeSearchType } from "./SearchBox/ActionBar/SearchActions";
 import Chat from "./pages/Chat";
 import { calcFixedBucketCount } from "./utils/date";
 import { pushRecentSearch } from "./utils/recentSearches";
@@ -115,6 +115,7 @@ const Fullscreen = (props: FullscreenProps) => {
     welcomeFontSize,
     welcomeGradient,
     onSaveToWiki,
+    onVoteAnswer,
     onCorrectAnswer,
     placeholder,
     welcome,
@@ -351,7 +352,7 @@ const Fullscreen = (props: FullscreenProps) => {
           ...rest,
           ...dateRangeParams,
           filter: newFilter,
-          search_type: queryParams?.search_type || defaultSearchType || ACTION_TYPE_SEARCH_KEYWORD,
+          search_type: normalizeSearchType(queryParams?.search_type || defaultSearchType || DEFAULT_SEARCH_TYPE),
           fuzziness,
           sort,
           from: isScroll ? scrollRef.current : queryParams.from,
@@ -433,7 +434,7 @@ const Fullscreen = (props: FullscreenProps) => {
       // Fetch aggregations first, validate aggfilter, then search
       onAggregation({
         query: queryParams.query,
-        search_type: queryParams?.search_type || defaultSearchType || ACTION_TYPE_SEARCH_KEYWORD,
+        search_type: normalizeSearchType(queryParams?.search_type || defaultSearchType || DEFAULT_SEARCH_TYPE),
         fuzziness,
         // multimodal attachments must shape the facet counts the same way
         // they shape the result list
@@ -557,6 +558,7 @@ const Fullscreen = (props: FullscreenProps) => {
         logo={chatLogo === undefined ? logo : chatLogo}
         handleLogoClick={handleLogoClick}
         onSaveToWiki={onSaveToWiki}
+        onVoteAnswer={onVoteAnswer}
         onCorrectAnswer={onCorrectAnswer}
         apiConfig={apiConfig}
         queryParams={queryParams}

@@ -27,6 +27,8 @@ interface MessageActionsProps {
   onSaveToWiki?: (payload: { content: string; id: string }) => void;
   /** host hook: report this answer as wrong/outdated (governance correction) */
   onCorrectAnswer?: (payload: { content: string; id: string }) => void;
+  /** host hook: thumbs-up/down capture (wiki experience layer) */
+  onVoteAnswer?: (payload: { id: string; content: string; feedback: 'positive' | 'negative' }) => void;
 }
 
 const RefreshOnlyIds = ["timedout", "error"];
@@ -40,6 +42,7 @@ export const MessageActions = ({
   onResend,
   onSaveToWiki,
   onCorrectAnswer,
+  onVoteAnswer,
 }: MessageActionsProps) => {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
@@ -100,13 +103,19 @@ export const MessageActions = ({
   };
 
   const handleLike = () => {
-    setLiked(!liked);
+    const next = !liked;
+    setLiked(next);
     setDisliked(false);
+    // only an ACTIVE vote is a signal — un-voting is a retract, not a
+    // reverse vote, and the experience layer has no retract yet
+    if (next) onVoteAnswer?.({ id, content, feedback: 'positive' });
   };
 
   const handleDislike = () => {
-    setDisliked(!disliked);
+    const next = !disliked;
+    setDisliked(next);
     setLiked(false);
+    if (next) onVoteAnswer?.({ id, content, feedback: 'negative' });
   };
 
   const handleSpeak = () => {

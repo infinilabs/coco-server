@@ -6,8 +6,7 @@ const resources = {
       labels: {
         deepThink: 'DeepThink',
         deepResearch: 'DeepResearch',
-        hybrid: 'Hybrid Search',
-        hybridRRF: 'Hybrid (RRF)',
+        hybridRRF: 'Hybrid Search',
         semantic: 'Semantic Search',
         keyword: 'Keyword Search',
         accountInfo: 'Account Info',
@@ -315,8 +314,7 @@ const resources = {
       labels: {
         deepThink: '深度思考',
         deepResearch: '深度研究',
-        hybrid: '混合搜索',
-        hybridRRF: '混合检索(RRF)',
+        hybridRRF: '混合搜索',
         semantic: '语义搜索',
         keyword: '关键词搜索',
         accountInfo: '账户信息',

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
-import { ACTION_TYPE_SEARCH, ACTION_TYPE_SEARCH_KEYWORD, DEFAULT_SEARCH_FUZZINESS, DEFAULT_SEARCH_SORT, normalizeSearchFuzziness, normalizeSearchSort } from "./ActionBar/SearchActions";
+import { ACTION_TYPE_SEARCH, DEFAULT_SEARCH_FUZZINESS, DEFAULT_SEARCH_SORT, DEFAULT_SEARCH_TYPE, normalizeSearchFuzziness, normalizeSearchSort, normalizeSearchType } from "./ActionBar/SearchActions";
 import { SUGGESTION_TIPS } from "./Suggestions/Tips";
 import { SUGGESTION_KEYWORDS } from "./Suggestions/Keywords";
 import { SUGGESTION_FILTER_FIELDS } from "./Suggestions/FilterFields";
@@ -49,8 +49,9 @@ export default function useSearchBox({
 }: UseSearchBoxParams) {
   const [currentQueryParams, setCurrentQueryParams] = useState<any>(queryParams);
   const { query, filter = {}, filters = [], action_type, search_type, fuzziness = DEFAULT_SEARCH_FUZZINESS, sort = DEFAULT_SEARCH_SORT } = currentQueryParams;
-  // 搜索设置 · 默认搜索模式: explicit URL param > the host's configured default > keyword
-  const effectiveSearchType = search_type || defaultSearchType || ACTION_TYPE_SEARCH_KEYWORD;
+  // 搜索设置 · 默认搜索模式: explicit URL param > the host's configured
+  // default > hybrid_rrf (legacy 'hybrid' resolves to hybrid_rrf as well)
+  const effectiveSearchType = normalizeSearchType(search_type || defaultSearchType || DEFAULT_SEARCH_TYPE);
   const [suggestions, setSuggestions] = useState<any>({});
   const [mainInputActive, setMainInputActive] = useState(false);
   const [filterState, setFilterState] = useState({ type: 'none', index: -1 });

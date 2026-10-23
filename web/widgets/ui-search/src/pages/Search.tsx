@@ -23,10 +23,11 @@ import { Button } from 'antd';
 import Toolbar from '../Toolbar';
 import Histogram from '../Histogram';
 import {
-  ACTION_TYPE_SEARCH_KEYWORD,
   DEFAULT_SEARCH_SORT,
+  DEFAULT_SEARCH_TYPE,
   normalizeSearchFuzziness,
-  normalizeSearchSort
+  normalizeSearchSort,
+  normalizeSearchType
 } from '../SearchBox/ActionBar/SearchActions';
 
 interface SearchProps {
@@ -110,7 +111,7 @@ export default function Search({
 }: SearchProps) {
   const { query, filter, aggfilter = {}, search_type: querySearchType } = queryParams || {};
   // 搜索设置 · 默认搜索模式: URL override > the host's configured default > keyword
-  const search_type = querySearchType || defaultSearchType || ACTION_TYPE_SEARCH_KEYWORD;
+  const search_type = normalizeSearchType(querySearchType || defaultSearchType || DEFAULT_SEARCH_TYPE);
   const { t } = useTranslation();
   const fuzziness = normalizeSearchFuzziness(queryParams?.fuzziness);
   const sort = normalizeSearchSort(queryParams?.sort || DEFAULT_SEARCH_SORT);

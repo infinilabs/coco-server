@@ -386,7 +386,7 @@ declare namespace Api {
     type Visibility = 'public' | 'private' | 'team';
     type SyncStrategy = 'realtime' | 'scheduled' | 'manual';
     type AiStatus = 'ready' | 'processing' | 'queued' | 'updating';
-    type PageType = 'entity' | 'concept' | 'source' | 'topic';
+    type PageType = 'entity' | 'concept' | 'source' | 'topic' | 'pattern' | 'skill';
     type ArticleStatus = 'draft' | 'reviewed' | 'published' | 'archived';
     type Confidence = 'high' | 'medium' | 'low';
     type MemberRole = 'owner' | 'editor' | 'viewer' | 'agent';
@@ -430,6 +430,8 @@ declare namespace Api {
       toc_layout?: { title: string; path_prefixes?: string[]; dimensions?: string[] }[];
       /** 自动审批:实体直接发布、治理提案自动应用,知识库免人工审核更新 */
       auto_approve?: boolean;
+      /** 经验捕获(LLM-wiki P1): 绑定智能体的纠错/反馈留存为经验记录供蒸馏 */
+      experience_capture?: boolean;
     }
 
     interface SourceRef {
@@ -468,6 +470,14 @@ declare namespace Api {
       key_entities?: string[];
       /** coverage of a compiled topic page: sources, filled/planned sections, 0-1 score */
       maturity?: PageMaturity;
+      /** structured pattern payload of a page_type=pattern page */
+      pattern?: PatternData;
+      /** structured skill payload of a page_type=skill page */
+      skill?: SkillData;
+      /** advisory save-time findings (dead links / thin body / missing citations) */
+      lint?: LintWarning[];
+      /** usage telemetry: how often the answer pipeline pulled this page into context */
+      impact?: PageImpact;
       created_by: Member;
       contributors: Member[];
       created_at: string;
@@ -506,6 +516,39 @@ declare namespace Api {
       sections?: number;
       planned?: number;
       score?: number;
+    }
+
+    /** mirror of core.WikiLintWarning — advisory, never blocks a save */
+    interface LintWarning {
+      code: 'dead_link' | 'thin_content' | 'no_sources' | string;
+      field?: string;
+      message: string;
+      detail?: string;
+    }
+
+    /** mirror of core.WikiPattern — distilled failure pattern (问题+根因+解法) */
+    interface PatternData {
+      symptom?: string;
+      root_cause?: string;
+      fix?: string;
+      evidence?: SourceRef[];
+    }
+
+    /** mirror of core.WikiSkill — distilled procedural knowledge */
+    interface SkillData {
+      applicability?: string;
+      steps?: string[];
+      anti_patterns?: string[];
+      when_not_to_apply?: string[];
+      reach_for?: { phrases?: string[]; globs?: string[] };
+      loads?: { path: string; when?: string }[];
+      rationale?: string;
+    }
+
+    /** mirror of core.WikiImpact — programmatic usage telemetry */
+    interface PageImpact {
+      answer_hits?: number;
+      last_used_at?: string;
     }
 
     /** cited source doc behind a wiki page, with its enrichment attachments */

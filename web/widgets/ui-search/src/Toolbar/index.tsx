@@ -4,7 +4,7 @@ import { BrushCleaning, Calendar, ChevronDown, ChevronRight, Crosshair, Heading,
 import { useTranslation } from 'react-i18next';
 import { type FC, useEffect, useRef, useState } from "react";
 import ExchangeIcon from "../icons/Exchange";
-import { ACTION_TYPE_SEARCH_HYBRID, ACTION_TYPE_SEARCH_HYBRID_RRF, ACTION_TYPE_SEARCH_KEYWORD, ACTION_TYPE_SEARCH_SEMANTIC, DEFAULT_SEARCH_FUZZINESS, DEFAULT_SEARCH_SORT, MAX_SEARCH_FUZZINESS, MIN_SEARCH_FUZZINESS, SORT_BEST_MATCH, SORT_CREATED_ASC, SORT_CREATED_DESC, SORT_UPDATED_DESC } from "../SearchBox/ActionBar/SearchActions";
+import { ACTION_TYPE_SEARCH_HYBRID_RRF, ACTION_TYPE_SEARCH_KEYWORD, ACTION_TYPE_SEARCH_SEMANTIC, DEFAULT_SEARCH_FUZZINESS, DEFAULT_SEARCH_SORT, MAX_SEARCH_FUZZINESS, MIN_SEARCH_FUZZINESS, SORT_BEST_MATCH, SORT_CREATED_ASC, SORT_CREATED_DESC, SORT_UPDATED_DESC, normalizeSearchType } from "../SearchBox/ActionBar/SearchActions";
 
 interface ToolbarProps {
   searchType?: string;
@@ -62,10 +62,6 @@ export const Toolbar: FC<ToolbarProps> = ({
   }, [start, end]);
 
   const searchTypeItems = [
-    {
-      key: ACTION_TYPE_SEARCH_HYBRID,
-      label: t('labels.hybrid'),
-    },
     {
       key: ACTION_TYPE_SEARCH_HYBRID_RRF,
       label: t('labels.hybridRRF'),
@@ -205,7 +201,7 @@ export const Toolbar: FC<ToolbarProps> = ({
         >
           <Space size={4}>
             <Heading className="w-16px h-16px text-16px" />
-            {searchTypeItems.find((item) => item.key === searchType)?.label || t('labels.keyword')}
+            {searchTypeItems.find((item) => item.key === normalizeSearchType(searchType))?.label || t('labels.hybridRRF')}
             <ChevronDown className="w-16px h-16px text-16px" />
           </Space>
         </Button>

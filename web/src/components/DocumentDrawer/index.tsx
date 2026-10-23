@@ -1,4 +1,6 @@
 import { Button, Descriptions, Drawer, Tabs, Tag, Typography } from "antd";
+import RawJson from "./RawJson";
+import { getDocument } from "@/service/api";
 import styles from "./index.module.less";
 import Markdown from "./Markdown";
 import ProgressiveImage from "../common/ProgressiveImage";
@@ -14,10 +16,25 @@ export default function DocumentDrawer(props) {
 
     const docId = data.id;
 
-    // reopening the drawer for another document lands back on the content tab
+    // raw-JSON tab: the row hit can be a trimmed _source, so the tab lazily
+    // fetches the full stored document (ES found/_id/_source) once per doc
+    const [rawDoc, setRawDoc] = useState<any>(null);
+    const [rawLoading, setRawLoading] = useState(false);
     useEffect(() => {
-        if (open) setActiveTab('content');
+        if (open) {
+            setActiveTab('content');
+            setRawDoc(null);
+            setRawLoading(false);
+        }
     }, [open, data.id]);
+    useEffect(() => {
+        if (activeTab !== 'json' || !docId || rawDoc || rawLoading) return;
+        setRawLoading(true);
+        getDocument(docId)
+            .then(res => setRawDoc(res.data || data))
+            .catch(() => setRawDoc(data))
+            .finally(() => setRawLoading(false));
+    }, [activeTab, docId, rawDoc, rawLoading]);
 
     return (
         <>
@@ -95,6 +112,10 @@ export default function DocumentDrawer(props) {
                                 key: 'processing',
                                 label: t('page.searchOps.processingDetail'),
                                 children: activeTab === 'processing' ? <ProcessingPanel docId={data.id} /> : null
+                            }, {
+                                key: 'json',
+                                label: t('page.datasource.doc.tabJson'),
+                                children: activeTab === 'json' ? <RawJson value={rawDoc} loading={rawLoading} /> : null
                             }] : [])
                         ]}
                     />

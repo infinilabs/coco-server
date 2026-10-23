@@ -12,6 +12,7 @@ import { getDarkMode } from '@/store/slice/theme';
 import { getLocale } from '@/store/slice/app';
 import { getApplicationSetting } from '@/store/slice/server';
 import { searchAssistant } from '@/service/api/assistant';
+import { voteAnswerExperience } from '@/service/api/wiki';
 import { fetchBatchEntityLabels } from '@/service/api/entity';
 import { CorrectionModal, type CorrectionPayload } from './components/CorrectionModal';
 import { SaveToWikiModal, type SaveToWikiPayload } from './components/SaveToWikiModal';
@@ -453,6 +454,17 @@ export function Component() {
     "onSearch": onSearch,
     "onSaveToWiki": (payload: SaveToWikiPayload) => setSaveToWikiPayload(payload),
     "onCorrectAnswer": (payload: CorrectionPayload) => setCorrectionPayload(payload),
+    "onVoteAnswer": (payload: { id: string; content: string; question: string; assistant_id?: string; feedback: 'positive' | 'negative' }) => {
+      // fire-and-forget: the experience layer must never disturb the chat
+      if (!payload.assistant_id) return;
+      voteAnswerExperience({
+        assistant_id: payload.assistant_id,
+        message_id: payload.id || undefined,
+        question: payload.question || undefined,
+        answer: payload.content || undefined,
+        feedback: payload.feedback
+      }).catch(() => {});
+    },
     "onAggregation": onAggregation,
     "onAsk": onAsk,
     "onSuggestion": onSuggestion,

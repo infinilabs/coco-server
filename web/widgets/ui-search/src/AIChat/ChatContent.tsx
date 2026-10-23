@@ -28,6 +28,7 @@ export interface ActiveChatMessageProps {
   onCancel?: () => void;
   onSaveToWiki?: (payload: { content: string; question: string; id: string }) => void;
   onCorrectAnswer?: (payload: { content: string; question: string; id: string }) => void;
+  onVoteAnswer?: (payload: { id: string; content: string; question: string; assistant_id?: string; feedback: 'positive' | 'negative' }) => void;
 }
 
 export const ActiveChatMessage = ({
@@ -44,6 +45,7 @@ export const ActiveChatMessage = ({
   t,
   onCancel,
   onSaveToWiki,
+  onVoteAnswer,
   onCorrectAnswer,
 }: ActiveChatMessageProps) => {
   const allMessages = activeChat?.messages || [];
@@ -77,6 +79,7 @@ export const ActiveChatMessage = ({
       t={t}
       onSaveToWiki={onSaveToWiki}
                 onCorrectAnswer={onCorrectAnswer}
+                onVoteAnswer={onVoteAnswer}
     />
   );
 };
@@ -99,6 +102,7 @@ interface ChatContentProps {
   onCancel?: () => void;
   onSaveToWiki?: (payload: { content: string; question: string; id: string }) => void;
   onCorrectAnswer?: (payload: { content: string; question: string; id: string }) => void;
+  onVoteAnswer?: (payload: { id: string; content: string; question: string; assistant_id?: string; feedback: 'positive' | 'negative' }) => void;
 }
 
 export const ChatContent = ({
@@ -115,6 +119,7 @@ export const ChatContent = ({
   isMobile,
   onCancel,
   onSaveToWiki,
+  onVoteAnswer,
   onCorrectAnswer,
 }: ChatContentProps) => {
   const { t: tOriginal } = useTranslation();
@@ -250,7 +255,8 @@ export const ChatContent = ({
                   theme={theme as any}
                   t={t}
                   onSaveToWiki={onSaveToWiki}
-                onCorrectAnswer={onCorrectAnswer}
+                  onVoteAnswer={onVoteAnswer}
+                  onCorrectAnswer={onCorrectAnswer}
                 />
               );
             }}

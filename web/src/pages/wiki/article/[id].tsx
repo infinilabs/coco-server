@@ -588,6 +588,12 @@ export function Component() {
     () => (article?.linked_pages || []).filter(lp => !lp.entity_id),
     [article?.linked_pages]
   );
+  // save-time lint (LLM-wiki P0): dead links already own the repair banner
+  // above — the lint strip surfaces the rest (thin body, missing sources)
+  const lintWarnings = useMemo(
+    () => (article?.lint || []).filter(w => w.code !== 'dead_link'),
+    [article?.lint]
+  );
   const [repairOpen, setRepairOpen] = useState(false);
   const [repairing, setRepairing] = useState(false);
 
@@ -800,7 +806,7 @@ export function Component() {
                 type='primary'
                 onClick={() => nav(kbId ? `/wiki/kb/${kbId}` : '/wiki/list')}
               >
-                {t('common.backToPrev')}
+                {t('common.exception.backToPrev')}
               </Button>
             }
           />
@@ -858,6 +864,14 @@ export function Component() {
                         sections: article.maturity.sections || 0,
                         planned: article.maturity.planned || article.maturity.sections || 0
                       })}
+                    </span>
+                  )}
+                  {(article.impact?.answer_hits || 0) > 0 && (
+                    <span
+                      className='wiki-pill'
+                      title={t('page.wiki.article.lint.impactHits', { count: article.impact?.answer_hits })}
+                    >
+                      {t('page.wiki.article.lint.impactHits', { count: article.impact?.answer_hits })}
                     </span>
                   )}
                   {article.ai_generated && (
@@ -970,6 +984,21 @@ export function Component() {
             </Space>
           )}
         </header>
+        {!article || editing || lintWarnings.length === 0 ? null : (
+          <div className='mb-3 flex flex-wrap items-center gap-x-12px gap-y-4px border border-[rgba(250,173,20,.45)] rounded-6px bg-[rgba(250,173,20,.06)] px-12px py-8px'>
+            <span className='text-13px color-[#d48806] dark:color-[#e8b339]'>
+              {t('page.wiki.article.lint.title')}
+            </span>
+            {lintWarnings.map((w, i) => (
+              <span
+                className='text-13px text-gray-500'
+                key={`${w.code}:${w.detail || i}`}
+              >
+                · {w.code === 'thin_content' ? t('page.wiki.article.lint.thinContent') : w.code === 'no_sources' ? t('page.wiki.article.lint.noSources') : w.message}
+              </span>
+            ))}
+          </div>
+        )}
         {!article || editing || unresolvedLinks.length === 0 ? null : (
           <div className='mb-3 flex items-center justify-between border border-gray-300 rounded-6px border-dashed px-12px py-8px dark:border-gray-600'>
             <span className='text-13px text-gray-500'>

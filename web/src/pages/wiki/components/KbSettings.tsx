@@ -44,6 +44,7 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
       visibility: kb.visibility,
       workspace_id: kb.workspace_id || undefined,
       auto_approve: !!kb.auto_approve,
+      experience_capture: !!kb.experience_capture,
       toc_layout: (kb.toc_layout || []).map(f => ({
         title: f.title,
         prefixes: (f.path_prefixes || []).join(', '),
@@ -141,6 +142,14 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
             label={t('page.wiki.settings.autoApprove')}
             tooltip={t('page.wiki.settings.autoApproveHint')}
             name="auto_approve"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item
+            label={t('page.wiki.settings.experienceCapture')}
+            tooltip={t('page.wiki.settings.experienceCaptureHint')}
+            name="experience_capture"
             valuePropName="checked"
           >
             <Switch />

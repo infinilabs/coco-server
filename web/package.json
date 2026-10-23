@@ -59,6 +59,7 @@
     "@better-scroll/core": "2.5.1",
     "@iconify/react": "5.0.2",
     "@infinilabs/entity-ui": "^0.0.5",
+    "@oxc-parser/binding-darwin-arm64": "0.124.0",
     "@reduxjs/toolkit": "2.3.0",
     "@sa/axios": "workspace:*",
     "@sa/color": "workspace:*",

@@ -48,6 +48,9 @@ const normalizeKb = (src: any): Api.Wiki.Kb => ({
   datasources: [],
   ai_status: src?.ai_status,
   auto_approve: !!src?.auto_approve,
+  // without this mapping the KB settings switch resets to off after every
+  // save+refetch (the payload persists, the normalized view just drops it)
+  experience_capture: !!src?.experience_capture,
   toc_layout: src?.toc_layout ?? []
 });
 
@@ -153,7 +156,9 @@ export function searchWikiArticles(params: { kbId?: string; query?: string; size
 }
 
 export function getWikiArticle(id: string) {
-  return request({ method: 'get', url: `/wiki/article/${id}` }).then(res => {
+  // a dead article id renders the page's own not-found state — the global
+  // error toast on top of it is noise (same for the two sub-fetches below)
+  return request({ ignoreError: true, method: 'get', url: `/wiki/article/${id}` }).then(res => {
     const src = unwrapSource<any>(res);
     return src ? normalizeArticle(src) : null;
   });
@@ -373,6 +378,20 @@ export function relinkWikiArticle(id: string) {
     const src = res?.data?._source || {};
     return (src.linked_pages || []) as Api.Wiki.LinkedPage[];
   });
+}
+
+/** thumbs-up/down capture for the wiki experience layer (LLM-wiki P1):
+ * targets resolve through the assistant↔KB binding; always 200 with a
+ * count, so callers fire-and-forget */
+export function voteAnswerExperience(body: {
+  assistant_id: string;
+  session_id?: string;
+  message_id?: string;
+  question?: string;
+  answer?: string;
+  feedback: 'positive' | 'negative';
+}) {
+  return request({ data: body, method: 'post', url: '/wiki/experience/_vote' });
 }
 
 /** report a wrong/outdated answer into the governance queue (D7) */
@@ -714,6 +733,7 @@ export function editWikiArticleAI(
 
 export function getWikiArticleMaterials(id: string) {
   return request<{ sources: Api.Wiki.ArticleMaterial[] }>({
+    ignoreError: true,
     method: 'get',
     url: `/wiki/article/${id}/_materials`
   }).then(res => (res as any)?.data?.sources ?? []);
@@ -723,6 +743,7 @@ export function getWikiArticleMaterials(id: string) {
 
 export function getWikiArticleAttachments(id: string) {
   return request<{ attachments: Api.Wiki.WikiArticleAttachment[] }>({
+    ignoreError: true,
     method: 'get',
     url: `/wiki/article/${id}/_attachments`
   }).then(res => (res as any)?.data?.attachments ?? []);

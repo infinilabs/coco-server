@@ -41,6 +41,7 @@ interface ChatAIProps {
   onSaveToWiki?: (payload: { content: string; question: string; id: string }) => void;
   /** Host hook: report an assistant answer as wrong/outdated (correction loop). */
   onCorrectAnswer?: (payload: { content: string; question: string; id: string }) => void;
+  onVoteAnswer?: (payload: { id: string; content: string; question: string; assistant_id?: string; feedback: 'positive' | 'negative' }) => void;
 }
 
 /**
@@ -86,7 +87,7 @@ export interface ChatAIRef {
  */
 const InnerChatAI = memo(
   forwardRef<ChatAIRef, ChatAIProps>(
-    ({ BaseUrl, formatUrl, headers: headersProp = {}, locale, t: tProp, theme, isMobile, onSaveToWiki, onCorrectAnswer }, ref) => {
+    ({ BaseUrl, formatUrl, headers: headersProp = {}, locale, t: tProp, theme, isMobile, onSaveToWiki, onCorrectAnswer, onVoteAnswer }, ref) => {
       // 动态加载 iconfont 脚本
       useIconfontScript();
 
@@ -1036,6 +1037,7 @@ const InnerChatAI = memo(
             isMobile={isMobile}
             onCancel={handleCancelWithConfirm}
             onSaveToWiki={onSaveToWiki}
+            onVoteAnswer={onVoteAnswer}
             onCorrectAnswer={onCorrectAnswer}
           />
 
