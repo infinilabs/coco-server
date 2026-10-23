@@ -93,6 +93,7 @@ const route: App.I18n.Schema['translation']['route'] = {
   'connector-settings': 'Connector',
   'data-security': 'Data Security',
   'engine-ai': 'Semantic Search',
+  'gateway-instances': 'Ingestion Center',
   auth: 'Auth',
   connector: 'Connector',
   preview: 'Preview',

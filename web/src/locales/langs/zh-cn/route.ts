@@ -93,6 +93,7 @@ const route: App.I18n.Schema['translation']['route'] = {
   'connector-settings': '连接器',
   'data-security': '数据安全',
   'engine-ai': '语义检索',
+  'gateway-instances': '接入中心',
   auth: '登录',
   connector: '连接器',
   preview: '预览',

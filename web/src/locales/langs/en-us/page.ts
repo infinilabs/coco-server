@@ -1869,6 +1869,47 @@ const page: App.I18n.Schema['translation']['page'] = {
     entityCount: '{{n}} entities already use this type: existing ones stay, but no new entity of this type can be created.',
     entityNone: 'No entities of this type yet.'
   },
+  gateway: {
+    title: 'Ingestion Center',
+    subtitle: 'Onboard gateway/agent instances: admission approval, heartbeat state and config delivery',
+    columns: {
+      name: 'Name',
+      type: 'Type',
+      status: 'Admission',
+      online: 'Online',
+      reverse: 'Reverse Channel',
+      version: 'Version',
+      endpoint: 'Endpoint',
+      hostname: 'Hostname',
+      groups: 'Groups',
+      note: 'Note'
+    },
+    status: {
+      pending: 'Pending',
+      approved: 'Approved'
+    },
+    online: 'Online',
+    offline: 'Offline',
+    reverseConnected: 'Connected',
+    lastSync: 'Last heartbeat: {{time}}',
+    approve: 'Approve',
+    approveConfirm: 'Admit instance "{{name}}"? It receives its credential and starts syncing assigned configs.',
+    approveDone: '{{name}} approved',
+    forget: 'Forget',
+    forgetConfirm: 'Forget instance "{{name}}"? Its registration and assigned configs are deleted; a live instance re-registers as pending.',
+    forgetDone: '{{name}} forgotten',
+    filterAll: 'All',
+    filterGateway: 'Gateway',
+    filterAgent: 'Agent',
+    labels: 'Labels',
+    assignedConfigs: 'Assigned Configs',
+    noConfigs: 'No assigned configs',
+    configName: 'Config',
+    configVersion: 'Version',
+    configSize: 'Size',
+    configTarget: 'Target',
+    liveInfo: 'Live Info (via reverse channel)'
+  },
   pipeline: {
         templates: {
           title: 'Start from a common task',

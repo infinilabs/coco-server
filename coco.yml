@@ -249,6 +249,32 @@ pipeline:
           max_running_timeout_in_seconds: 1200
 #          pipelines_in_sync: true
 
+# ---------------------------------------------------------------------------
+# 接入中心 (instance management center): Coco acts as the managed-config
+# MANAGER. Gateway/agent instances with `configs.managed: true` register via
+# POST /instance/_register and heartbeat via /configs/_sync; admins approve
+# and inspect them under 接入中心 (/gateway/instances API + UI).
+# Point instances at Coco's web port:
+#
+#   # on the gateway instance:
+#   configs:
+#     managed: true
+#     servers:
+#       - "http://<coco-host>:<web-port>"
+#
+# Production MUST set auth.tokens (static bearer tokens presented by
+# instances on register/sync) and optionally enrollment.required (one-time
+# admission tickets, minted via the API). Without tokens the server runs in
+# warned open mode.
+# ---------------------------------------------------------------------------
+configs:
+  server:
+    enabled: true
+    auth:
+      tokens: []
+    enrollment:
+      required: false
+
 http_client:
   default:
     proxy:

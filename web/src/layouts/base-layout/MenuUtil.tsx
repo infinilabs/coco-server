@@ -20,7 +20,7 @@ const ADMIN_MENU_GROUPS: { key: string; labelKey: string; routeKeys: readonly st
   { key: 'menu-group-app-search', labelKey: 'menu.group.appSearch', routeKeys: ['search-studio', 'search-ops', 'search-settings'] },
   { key: 'menu-group-app-chat', labelKey: 'menu.group.appChat', routeKeys: ['ai-assistant', 'skill', 'memory-settings'] },
   { key: 'menu-group-app-kb', labelKey: 'menu.group.appKb', routeKeys: ['ontology', 'wiki-settings'] },
-  { key: 'menu-group-data', labelKey: 'menu.group.data', routeKeys: ['data-source', 'pipeline', 'connector-settings', 'engine-ai', 'data-security', 'content-dedup', 'webhook'] },
+  { key: 'menu-group-data', labelKey: 'menu.group.data', routeKeys: ['data-source', 'pipeline', 'gateway-instances', 'connector-settings', 'engine-ai', 'data-security', 'content-dedup', 'webhook'] },
   {
     key: 'menu-group-system',
     labelKey: 'menu.group.system',

@@ -14,6 +14,7 @@ import (
 	_ "infini.sh/coco/modules/connector"
 	_ "infini.sh/coco/modules/datasource"
 	_ "infini.sh/coco/modules/document"
+	_ "infini.sh/coco/modules/gateway"
 	"infini.sh/coco/modules/integration"
 	_ "infini.sh/coco/modules/integration"
 	_ "infini.sh/coco/modules/llm"

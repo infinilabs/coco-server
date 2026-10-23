@@ -2312,6 +2312,47 @@ const page: App.I18n.Schema['translation']['page'] = {
     entityCount: '该类型下已有 {{n}} 个实体:删除后已存在实体不受影响,但无法再新建该类型实体。',
     entityNone: '当前没有该类型的实体。'
   },
+  gateway: {
+    title: '接入中心',
+    subtitle: '接入并纳管 Gateway/Agent 实例：注册审批、心跳状态与配置下发',
+    columns: {
+      name: '名称',
+      type: '类型',
+      status: '准入状态',
+      online: '在线状态',
+      reverse: '反向通道',
+      version: '版本',
+      endpoint: '端点',
+      hostname: '主机名',
+      groups: '分组',
+      note: '备注'
+    },
+    status: {
+      pending: '待审批',
+      approved: '已准入'
+    },
+    online: '在线',
+    offline: '离线',
+    reverseConnected: '已连接',
+    lastSync: '最近心跳: {{time}}',
+    approve: '审批',
+    approveConfirm: '准入实例 "{{name}}"? 审批后它将获得凭证并同步下发的配置。',
+    approveDone: '已准入 {{name}}',
+    forget: '注销',
+    forgetConfirm: '注销实例 "{{name}}"? 其注册记录与下发配置将被删除，在线实例会重新注册为待审批状态。',
+    forgetDone: '已注销 {{name}}',
+    filterAll: '全部',
+    filterGateway: 'Gateway',
+    filterAgent: 'Agent',
+    labels: '标签',
+    assignedConfigs: '已下发配置',
+    noConfigs: '暂无下发配置',
+    configName: '配置名',
+    configVersion: '版本',
+    configSize: '大小',
+    configTarget: '定向',
+    liveInfo: '实时信息 (经反向通道)'
+  },
   pipeline: {
         templates: {
           title: '从常规任务开始',

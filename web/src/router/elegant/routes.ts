@@ -345,6 +345,18 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'gateway-instances',
+    path: '/gateway-instances',
+    component: 'layout.base$view.gateway-instances',
+    meta: {
+      i18nKey: 'route.gateway-instances',
+      title: 'gateway-instances',
+      icon: 'ant-design:api-outlined',
+      order: 7,
+      permissions: ['coco#gateway_instance/search']
+    }
+  },
+  {
     name: 'guide',
     path: '/guide',
     component: 'layout.blank$view.guide',

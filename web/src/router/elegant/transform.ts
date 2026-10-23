@@ -240,6 +240,7 @@ const routeMap: RouteMap = {
   "data-source_new": "new",
   "data-source_new-first": "new-first",
   "engine-ai": "/engine-ai",
+  "gateway-instances": "/gateway-instances",
   "guide": "/guide",
   "home": "/home",
   "integration": "/integration",
