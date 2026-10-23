@@ -1,10 +1,10 @@
 import { ReloadOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Row, Statistic, Table, Tag, Tooltip } from 'antd';
+import { Button, Card, Col, message, Row, Statistic, Table, Tag, Tooltip } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-import { fetchKbHealth } from '@/service/api';
+import { createWikiArticle, fetchKbHealth } from '@/service/api';
 
 const CODE_COLOR: Record<string, string> = {
   orphan: 'orange',
@@ -31,6 +31,7 @@ export function KbHealth({ kbId }: { readonly kbId: string }) {
 
   const [report, setReport] = useState<Api.Wiki.KbHealth | null>(null);
   const [loading, setLoading] = useState(false);
+  const [creatingGap, setCreatingGap] = useState<string | null>(null);
 
   const load = useCallback(() => {
     if (!kbId) return;
@@ -47,6 +48,34 @@ export function KbHealth({ kbId }: { readonly kbId: string }) {
   }, [load]);
 
   const goArticle = (articleId: string) => nav(`/wiki/article/${articleId}?kb=${kbId}`);
+
+  // a red link is the next page worth writing — create the stub draft
+  // with real wikilinks back to its citers (born connected, never an
+  // orphan) and drop the maintainer straight into it; the next scan
+  // resolves the links
+  const createDraftFromGap = (name: string, citers: Api.Wiki.HealthGap['cited_by']) => {
+    setCreatingGap(name);
+    const related = (citers || [])
+      .map(ref => `- [[${ref.title}]]`)
+      .join('\n');
+    createWikiArticle({
+      kb_id: kbId,
+      title: name,
+      page_type: 'concept',
+      status: 'draft',
+      summary: t('page.wiki.health.gapDraftSummary'),
+      content:
+        t('page.wiki.health.gapDraftContent', { name }) +
+        (related ? `\n\n## ${t('page.wiki.health.relatedSection')}\n\n${related}\n` : '')
+    })
+      .then(res => {
+        if ((res as any)?._id) {
+          message.success(t('page.wiki.health.draftCreated'));
+          nav(`/wiki/article/${(res as any)._id}?kb=${kbId}`);
+        }
+      })
+      .finally(() => setCreatingGap(null));
+  };
 
   const counts = report?.counts || {};
 
@@ -105,6 +134,20 @@ export function KbHealth({ kbId }: { readonly kbId: string }) {
             {ref.title}
           </a>
         ))
+    },
+    {
+      title: t('page.wiki.health.actions'),
+      width: 120,
+      render: (_: unknown, row: Api.Wiki.HealthGap) => (
+        <Button
+          loading={creatingGap === row.name}
+          onClick={() => createDraftFromGap(row.name, row.cited_by)}
+          size='small'
+          type='link'
+        >
+          {t('page.wiki.health.createDraft')}
+        </Button>
+      )
     }
   ];
 

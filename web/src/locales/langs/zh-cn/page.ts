@@ -411,6 +411,12 @@ const page: App.I18n.Schema['translation']['page'] = {
       demand: '需求热度',
       citedBy: '被这些页面引用',
       hubPage: '枢纽页面',
+      actions: '操作',
+      createDraft: '创建草稿',
+      draftCreated: '草稿已创建，开始补充内容吧',
+      gapDraftSummary: '从知识缺口创建的草稿页面',
+      gapDraftContent: '# {{name}}\n\n这个页面由知识库体检的知识缺口创建——有页面引用了「{{name}}」但还没有页面回答它。\n\n## 定义\n\n（待补充）',
+      relatedSection: '相关页面',
       codes: {
         orphan: '孤儿页',
         thin_content: '内容单薄',

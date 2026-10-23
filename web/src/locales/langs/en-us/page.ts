@@ -411,6 +411,12 @@ const page: App.I18n.Schema['translation']['page'] = {
       demand: 'Demand',
       citedBy: 'Referenced by',
       hubPage: 'Hub page',
+      actions: 'Actions',
+      createDraft: 'Create draft',
+      draftCreated: 'Draft created — start filling it in',
+      gapDraftSummary: 'Draft page created from a knowledge gap',
+      gapDraftContent: '# {{name}}\n\nThis page was created from a knowledge-base health gap — pages reference "{{name}}" but nothing answers it yet.\n\n## Definition\n\n(TODO)',
+      relatedSection: 'Related pages',
       codes: {
         orphan: 'Orphan',
         thin_content: 'Thin content',
