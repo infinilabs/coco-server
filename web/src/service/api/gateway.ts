@@ -75,3 +75,75 @@ export function proxyGatewayInstance(id: string, path: string) {
     url: `/gateway/instances/${id}/proxy?path=${encodeURIComponent(path)}`
   });
 }
+
+// ─── pipeline deployments (framework Fleet API) ───────────────────────────
+
+export interface PipelineDeployment {
+  id: string;
+  name: string;
+  pipeline_id: string;
+  enabled: boolean;
+  version: number;
+  placement: {
+    selector?: Record<string, string>;
+    instances?: string[];
+    strategy: string; // all | singleton
+    rollout?: { canary?: number; batch?: number; max_unavailable?: number };
+  };
+  created?: string;
+  updated?: string;
+}
+
+export interface DeploymentInstanceReport {
+  instance_id: string;
+  state: string; // RUNNING | PENDING | stopped | failed | unknown
+  version: number;
+  last_seen: string;
+  reason?: string;
+  stale?: boolean;
+}
+
+export interface DeploymentStatus {
+  deployment_id: string;
+  version: number;
+  instances: DeploymentInstanceReport[];
+  desired_count: number;
+  ready_count: number;
+}
+
+export function fetchPipelineDeployments() {
+  return request<{ total: number; items: PipelineDeployment[] }>({
+    method: 'get',
+    url: '/pipeline/deployments/'
+  });
+}
+
+export function createPipelineDeployment(data: Partial<PipelineDeployment>) {
+  return request<PipelineDeployment>({
+    method: 'post',
+    data,
+    url: '/pipeline/deployments/'
+  });
+}
+
+export function updatePipelineDeployment(id: string, data: Partial<PipelineDeployment>) {
+  return request<PipelineDeployment>({
+    method: 'put',
+    data,
+    url: `/pipeline/deployments/${id}`
+  });
+}
+
+export function deletePipelineDeployment(id: string) {
+  return request<{ deleted: boolean; id: string }>({
+    method: 'delete',
+    url: `/pipeline/deployments/${id}`
+  });
+}
+
+export function fetchPipelineDeploymentStatus(id: string) {
+  return request<DeploymentStatus>({
+    method: 'get',
+    url: `/pipeline/deployments/${id}/status`
+  });
+}

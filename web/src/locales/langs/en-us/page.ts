@@ -1871,7 +1871,37 @@ const page: App.I18n.Schema['translation']['page'] = {
   },
   gateway: {
     title: 'Ingestion Center',
-    subtitle: 'Onboard gateway/agent instances: admission approval, heartbeat state and config delivery',
+    subtitle: 'Onboard gateway/agent instances: admission approval, heartbeat state and pipeline delivery',
+    tabInstances: 'Instances',
+    tabDeployments: 'Deployments',
+    deploy: {
+      hint: 'A deployment is desired state: pick a pipeline and target instances; the reconciler converges every 15s and delivers through the config channel (instances show PENDING until their next sync)',
+      create: 'New Deployment',
+      createTitle: 'New Pipeline Deployment',
+      editTitle: 'Edit Pipeline Deployment',
+      namePlaceholder: 'Deployment name, e.g. doc-enrich-edge',
+      pipelinePlaceholder: 'Select the pipeline to deliver',
+      targetLabel: 'Target Instances',
+      targetPlaceholder: 'Instances to receive this pipeline (must be approved)',
+      singleton: 'Singleton',
+      allInstances: 'All instances',
+      deleteConfirm: 'Delete deployment "{{name}}"? If no other deployment references the same pipeline, pushed configs are recalled.',
+      statusTitle: 'Deployment Status (instance-reported)',
+      readyCount: 'Ready {{ready}} / Desired {{desired}}',
+      reportState: 'Reported',
+      lastSeen: 'Last Seen',
+      reason: 'Reason',
+      stale: 'Out of scope',
+      columns: {
+        name: 'Deployment',
+        pipeline: 'Pipeline',
+        strategy: 'Strategy',
+        targets: 'Targets',
+        rollout: 'Rollout',
+        version: 'Version',
+        enabled: 'Enabled'
+      }
+    },
     columns: {
       name: 'Name',
       type: 'Type',

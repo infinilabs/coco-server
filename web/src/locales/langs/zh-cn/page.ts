@@ -2314,7 +2314,37 @@ const page: App.I18n.Schema['translation']['page'] = {
   },
   gateway: {
     title: '接入中心',
-    subtitle: '接入并纳管 Gateway/Agent 实例：注册审批、心跳状态与配置下发',
+    subtitle: '接入并纳管 Gateway/Agent 实例：注册审批、心跳状态与管道下发',
+    tabInstances: '实例',
+    tabDeployments: '管道部署',
+    deploy: {
+      hint: '部署是期望状态：选定管道与目标实例后，后台每 15 秒对账一次，经配置通道下发到实例（实例在最近一次 sync 前显示 PENDING）',
+      create: '新建部署',
+      createTitle: '新建管道部署',
+      editTitle: '编辑管道部署',
+      namePlaceholder: '部署名称，如：文档增强-边缘下发',
+      pipelinePlaceholder: '选择要下发的管道',
+      targetLabel: '目标实例',
+      targetPlaceholder: '选择接收该管道的实例（须已准入）',
+      singleton: '单实例运行',
+      allInstances: '全实例运行',
+      deleteConfirm: '删除部署 "{{name}}"? 若无其他部署引用同一管道，已下发配置将级联回收。',
+      statusTitle: '部署状态（实例上报）',
+      readyCount: '就绪 {{ready}} / 期望 {{desired}}',
+      reportState: '上报状态',
+      lastSeen: '最近上报',
+      reason: '原因',
+      stale: '已移出范围',
+      columns: {
+        name: '部署名称',
+        pipeline: '管道',
+        strategy: '策略',
+        targets: '目标',
+        rollout: '下发状态',
+        version: '版本',
+        enabled: '启用'
+      }
+    },
     columns: {
       name: '名称',
       type: '类型',

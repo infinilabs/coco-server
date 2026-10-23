@@ -2,9 +2,10 @@ import { SyncOutlined } from '@ant-design/icons';
 import PageHeaderTitle from '@/components/stateless/common/PageHeaderTitle';
 import { RadioTower } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Badge, Button, Card, Descriptions, Drawer, Empty, Popconfirm, Radio, Space, Spin, Table, Tag, Tooltip, message } from 'antd';
+import { Badge, Button, Card, Descriptions, Drawer, Empty, Popconfirm, Radio, Space, Spin, Table, Tabs, Tag, Tooltip, message } from 'antd';
 import { useEffect, useState } from 'react';
 
+import { Deployments } from './Deployments';
 import {
   approveGatewayInstance,
   fetchGatewayInstanceDetail,
@@ -222,19 +223,39 @@ export function Component() {
           title={t('page.gateway.title')}
         />
       }
-      extra={
-        <Space>
-          <Radio.Group value={typeFilter} onChange={e => setTypeFilter(e.target.value)} size="small">
-            <Radio.Button value="">{t('page.gateway.filterAll')}</Radio.Button>
-            <Radio.Button value="gateway">{t('page.gateway.filterGateway')}</Radio.Button>
-            <Radio.Button value="agent">{t('page.gateway.filterAgent')}</Radio.Button>
-          </Radio.Group>
-          <span className="text-13px text-[var(--ant-color-text-tertiary)]">{t('common.totalItems', { total: data.length })}</span>
-          <Button icon={<SyncOutlined />} onClick={fetchData} />
-        </Space>
-      }
     >
-      <Table rowKey="id" loading={loading} columns={columns} dataSource={data} pagination={false} />
+      <Tabs
+        defaultActiveKey="instances"
+        items={[
+          {
+            key: 'instances',
+            label: t('page.gateway.tabInstances'),
+            children: (
+              <>
+                <div className="mb-12px flex items-center justify-between">
+                  <Radio.Group value={typeFilter} onChange={e => setTypeFilter(e.target.value)} size="small">
+                    <Radio.Button value="">{t('page.gateway.filterAll')}</Radio.Button>
+                    <Radio.Button value="gateway">{t('page.gateway.filterGateway')}</Radio.Button>
+                    <Radio.Button value="agent">{t('page.gateway.filterAgent')}</Radio.Button>
+                  </Radio.Group>
+                  <Space>
+                    <span className="text-13px text-[var(--ant-color-text-tertiary)]">
+                      {t('common.totalItems', { total: data.length })}
+                    </span>
+                    <Button icon={<SyncOutlined />} onClick={fetchData} />
+                  </Space>
+                </div>
+                <Table rowKey="id" loading={loading} columns={columns} dataSource={data} pagination={false} />
+              </>
+            )
+          },
+          {
+            key: 'deployments',
+            label: t('page.gateway.tabDeployments'),
+            children: <Deployments onRefreshTargets={fetchData} />
+          }
+        ]}
+      />
       <Drawer
         destroyOnClose
         open={!!detailId}
