@@ -2338,7 +2338,18 @@ const page: App.I18n.Schema['translation']['page'] = {
       taskRunning: '运行中',
       taskIdle: '空闲',
       noTasks: '实例上没有运行中的管道任务',
-      tasksHint: '刷新任务列表'
+      tasksHint: '刷新任务列表',
+      actions: '操作',
+      browseMessages: '查看消息',
+      msgTitle: '队列消息',
+      msgEmpty: '队列为空，没有可浏览的消息',
+      page: '页',
+      prevPage: '上一页',
+      nextPage: '下一页',
+      refreshPage: '刷新当前页',
+      truncated: '已截断',
+      keyword: '关键字过滤',
+      tailTruncated: '匹配行数超出上限，结果已截断——请收紧关键字或减小行数'
     },
     deploy: {
       hint: '部署是期望状态：选定管道与目标实例后，后台每 15 秒对账一次，经配置通道下发到实例（实例在最近一次 sync 前显示 PENDING）',

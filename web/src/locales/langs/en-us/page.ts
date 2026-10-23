@@ -1895,7 +1895,18 @@ const page: App.I18n.Schema['translation']['page'] = {
       taskRunning: 'Running',
       taskIdle: 'Idle',
       noTasks: 'No running pipeline tasks on this instance',
-      tasksHint: 'Refresh tasks'
+      tasksHint: 'Refresh tasks',
+      actions: 'Actions',
+      browseMessages: 'Browse',
+      msgTitle: 'Queue messages',
+      msgEmpty: 'Queue is empty — nothing to browse',
+      page: 'page',
+      prevPage: 'Previous',
+      nextPage: 'Next',
+      refreshPage: 'Refresh current page',
+      truncated: 'Truncated',
+      keyword: 'Keyword filter',
+      tailTruncated: 'More matching lines than the limit — results truncated; tighten the keyword'
     },
     deploy: {
       hint: 'A deployment is desired state: pick a pipeline and target instances; the reconciler converges every 15s and delivers through the config channel (instances show PENDING until their next sync)',
