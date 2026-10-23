@@ -31,6 +31,14 @@ const STATUS_TAG_COLOR: Record<string, string> = {
   retired: 'default'
 };
 
+// raw enum → locale key suffix; statuses the schema doesn't know fall back to raw
+const STATUS_LABEL_KEY: Record<string, string> = {
+  proposed: 'statusProposed',
+  reviewed: 'statusReviewed',
+  published: 'statusPublished',
+  retired: 'statusRetired'
+};
+
 /* ---------------- property form controls (schema-driven) ---------------- */
 
 function PropertyControl({ def, value, onChange }: { def: OntologyPropertyDef; value: unknown; onChange: (v: unknown) => void }) {
@@ -114,6 +122,9 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
     create: hasAuth('coco#wiki_entity/create'),
     update: hasAuth('coco#wiki_entity/update')
   };
+
+  const statusLabel = (s: string) => (STATUS_LABEL_KEY[s] ? t(`page.wiki.entityManager.${STATUS_LABEL_KEY[s]}`) : s);
+  const statusOptions = ['proposed', 'reviewed', 'published'].map(s => ({ value: s, label: statusLabel(s) }));
 
   const [selectedIds, setSelectedIds] = useState<React.Key[]>([]);
   const [batchStatus, setBatchStatus] = useState<string>('reviewed');
@@ -311,7 +322,7 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
       title: t('page.wiki.entityManager.columns.status'),
       dataIndex: 'status',
       width: 110,
-      render: (status: string) => (status ? <Tag color={STATUS_TAG_COLOR[status]}>{status}</Tag> : '—')
+      render: (status: string) => (status ? <Tag color={STATUS_TAG_COLOR[status]}>{statusLabel(status)}</Tag> : '—')
     },
     {
       title: t('page.wiki.entityManager.columns.relations'),
@@ -331,9 +342,9 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
             </Button>
           )}
           {permissions.update && STATUS_FLOW[row.status || ''] && (
-            <Popconfirm title={t('page.wiki.entityManager.advanceConfirm', { status: STATUS_FLOW[row.status || '']! })} onConfirm={() => advanceStatus(row)}>
+            <Popconfirm title={t('page.wiki.entityManager.advanceConfirm', { status: statusLabel(STATUS_FLOW[row.status || '']!) })} onConfirm={() => advanceStatus(row)}>
               <Button type="link" size="small" className="!px-0">
-                {t('page.wiki.entityManager.advance', { status: STATUS_FLOW[row.status || '']! })}
+                {t('page.wiki.entityManager.advance', { status: statusLabel(STATUS_FLOW[row.status || '']!) })}
               </Button>
             </Popconfirm>
           )}
@@ -426,7 +437,7 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
           allowClear
           placeholder={t('page.wiki.entityManager.statusFilter')}
           value={statusFilter}
-          options={['proposed', 'reviewed', 'published'].map(s => ({ value: s, label: s }))}
+          options={statusOptions}
           onChange={v => {
             setStatusFilter(v);
             setPage(0);
@@ -491,7 +502,7 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
             <Select mode="tags" open={false} tokenSeparators={[',']} />
           </Form.Item>
           <Form.Item name="status" label={t('page.wiki.entityManager.columns.status')}>
-            <Select options={['proposed', 'reviewed', 'published'].map(s => ({ value: s, label: s }))} />
+            <Select options={statusOptions} />
           </Form.Item>
 
           {(typeDef?.properties || []).length > 0 && (
