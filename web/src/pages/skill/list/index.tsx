@@ -317,9 +317,10 @@ export function Component() {
             rules={[{ required: true }]}
             extra={t('page.skill.instructions.hint')}
           >
+            {/* bare autoSize ignores rows and an empty form renders ~1 row —
+                pin minRows so the editor starts tall and still grows with long prompts */}
             <Input.TextArea
-              autoSize
-              rows={10}
+              autoSize={{ minRows: 14, maxRows: 28 }}
             />
           </Form.Item>
           <Form.Item
