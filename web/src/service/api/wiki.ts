@@ -966,3 +966,29 @@ export function proposeWikiSkills(kbId: string) {
     url: `/wiki/kb/${kbId}/_propose`
   }).then(res => (res as any)?.data);
 }
+
+/** the KB's company map — the published page_type=map entry page (what we
+ * do, priorities, source priority, navigation); found:false when none */
+export function getWikiCompanyMap(kbId: string) {
+  return request<{
+    found: boolean;
+    id?: string;
+    map?: { kb_id: string; title: string; summary?: string; content?: string; updated?: string; url?: string };
+  }>({
+    method: 'get',
+    url: `/wiki/company-map?kb=${kbId}`
+  }).then(res => (res as any)?.data ?? { found: false });
+}
+
+/** re-organize draft pages against whole-KB context: fold thin pages into
+ * their dimension overview, merge near-duplicate titles; published pages
+ * are never touched */
+export function consolidateWikiKb(kbId: string) {
+  return request<{
+    result: string;
+    stats: { scanned: number; merged: number; deduped: number; kept: number; merged_into?: string[]; removed_ids?: string[] };
+  }>({
+    method: 'post',
+    url: `/wiki/kb/${kbId}/_consolidate`
+  }).then(res => (res as any)?.data);
+}

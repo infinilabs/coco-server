@@ -360,6 +360,14 @@ const page: App.I18n.Schema['translation']['page'] = {
       uploadFailed: '上传失败',
       columns: { title: '标题', size: '大小', created: '日期', hangFrom: '挂载于', articles: '关联文章' }
     },
+    companyMap: {
+      title: '公司地图',
+      view: '查看地图',
+      open: '打开页面',
+      defaultTitle: '公司地图',
+      createHint: '尚无公司地图(已发布的地图页)。它是本库的导航入口:说明团队做什么、当前优先级与来源优先级,建议创建一篇。',
+      create: '创建公司地图'
+    },
     kb: {
       newArticle: '新建文章',
       aiGenerate: 'AI 生成',
@@ -367,6 +375,10 @@ const page: App.I18n.Schema['translation']['page'] = {
       importSkillHint: '粘贴 SKILL.md 全文(frontmatter 的 name 必填),将以草稿技能页写入本知识库,审核后发布。',
       importSkillExists: '同名技能页已存在,未重复导入',
       importSkillDone: '已创建草稿技能页,待审核',
+      consolidate: '整理重复页',
+      consolidateConfirm: '将扫描本库草稿页:过薄的单主张页并入所属维度页、标题近似的草稿合并,已发布页面不受影响。继续?',
+      consolidateDone: '整理完成:合并 {{merged}} 页、去重 {{deduped}} 页,保留 {{kept}} 页草稿',
+      consolidateNothing: '未发现需整理的草稿页(共扫描 {{scanned}} 页)',
       toc: '目录',
       notFound: '知识库不存在',
             docsUnit: '篇文档',

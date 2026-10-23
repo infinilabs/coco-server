@@ -386,7 +386,7 @@ declare namespace Api {
     type Visibility = 'public' | 'private' | 'team';
     type SyncStrategy = 'realtime' | 'scheduled' | 'manual';
     type AiStatus = 'ready' | 'processing' | 'queued' | 'updating';
-    type PageType = 'entity' | 'concept' | 'source' | 'topic' | 'pattern' | 'skill';
+    type PageType = 'entity' | 'concept' | 'source' | 'topic' | 'pattern' | 'skill' | 'map';
     type ArticleStatus = 'draft' | 'reviewed' | 'published' | 'archived';
     type Confidence = 'high' | 'medium' | 'low';
     type MemberRole = 'owner' | 'editor' | 'viewer' | 'agent';

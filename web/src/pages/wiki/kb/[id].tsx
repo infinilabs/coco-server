@@ -4,6 +4,7 @@ import {
   DatabaseOutlined,
   DeleteOutlined,
   FileAddOutlined,
+  MergeOutlined,
   ReloadOutlined,
   RobotOutlined,
   SearchOutlined
@@ -13,6 +14,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
+  consolidateWikiKb,
   createWikiArticle,
   deleteWikiArticle,
   getWikiKb,
@@ -167,6 +169,26 @@ const readKbPageCache = (kbId?: string): KbPageCache | null =>
         fetchAll();
       })
       .finally(() => setImportingSkill(false));
+  };
+  // draft-level reorganization: fold thin pages into their dimension
+  // overview, merge near-duplicate titles — published pages stay untouched
+  const [consolidating, setConsolidating] = useState(false);
+  const onConsolidate = () => {
+    if (!id) return;
+    setConsolidating(true);
+    consolidateWikiKb(id)
+      .then(res => {
+        const s = res?.stats;
+        if (!s || (!s.merged && !s.deduped)) {
+          window.$message?.info(t('page.wiki.kb.consolidateNothing', { scanned: s?.scanned ?? 0 }));
+        } else {
+          window.$message?.success(
+            t('page.wiki.kb.consolidateDone', { merged: s.merged, deduped: s.deduped, kept: s.kept })
+          );
+        }
+        fetchAll();
+      })
+      .finally(() => setConsolidating(false));
   };
   const [artKeyword, setArtKeyword] = useState('');
   const [artStatus, setArtStatus] = useState<string>('all');
@@ -371,6 +393,19 @@ const readKbPageCache = (kbId?: string): KbPageCache | null =>
                       >
                         {t('page.wiki.kb.importSkill')}
                       </Button>
+                    )}
+                    {canUpdateKb && (
+                      <Popconfirm
+                        title={t('page.wiki.kb.consolidateConfirm')}
+                        onConfirm={onConsolidate}
+                      >
+                        <Button
+                          icon={<MergeOutlined />}
+                          loading={consolidating}
+                        >
+                          {t('page.wiki.kb.consolidate')}
+                        </Button>
+                      </Popconfirm>
                     )}
                   </div>
                   <List

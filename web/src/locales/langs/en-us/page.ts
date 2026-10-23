@@ -360,6 +360,14 @@ const page: App.I18n.Schema['translation']['page'] = {
       uploadFailed: 'Upload failed',
       columns: { title: 'Title', source: 'Source', status: 'Status', size: 'Size', created: 'Date', hangFrom: 'Used by', articles: 'Citing articles' }
     },
+    companyMap: {
+      title: 'Company map',
+      view: 'View map',
+      open: 'Open page',
+      defaultTitle: 'Company Map',
+      createHint: 'No company map yet (a published map page). It is this KB\'s navigation entry: what the team does, current priorities and source priority — worth creating one.',
+      create: 'Create company map'
+    },
     kb: {
       newArticle: 'New Article',
       aiGenerate: 'AI Generate',
@@ -367,6 +375,10 @@ const page: App.I18n.Schema['translation']['page'] = {
       importSkillHint: 'Paste a full SKILL.md document (frontmatter name required); it lands in this KB as a draft skill page pending review.',
       importSkillExists: 'A skill page with the same title already exists — nothing was imported',
       importSkillDone: 'Draft skill page created, awaiting review',
+      consolidate: 'Consolidate pages',
+      consolidateConfirm: 'Scans this KB\'s drafts: thin single-claim pages fold into their dimension overview, near-duplicate drafts merge. Published pages are never touched. Continue?',
+      consolidateDone: 'Consolidated: merged {{merged}}, deduped {{deduped}}, {{kept}} drafts kept',
+      consolidateNothing: 'No drafts needed consolidating (scanned {{scanned}})',
       toc: 'Contents',
       notFound: 'Knowledge base not found',
             docsUnit: 'docs',
