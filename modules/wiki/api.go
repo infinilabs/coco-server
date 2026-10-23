@@ -218,17 +218,28 @@ func tocMutate(kbID string, mutate func(nodes []core.WikiTocNode) ([]core.WikiTo
 }
 
 // addArticleToToc appends an article node at the tree root unless it is
-// already placed somewhere (the user may have moved it).
+// already placed somewhere (the user may have moved it). When the node did
+// land at the root and the KB opted into 自动归档, a background semantic
+// pass follows to file it (see maybeAutoOrganizeToc).
 func addArticleToToc(kbID, articleID, title string) error {
 	if kbID == "" || articleID == "" {
 		return nil
 	}
-	return tocMutate(kbID, func(nodes []core.WikiTocNode) ([]core.WikiTocNode, bool) {
+	added := false
+	err := tocMutate(kbID, func(nodes []core.WikiTocNode) ([]core.WikiTocNode, bool) {
 		if nodeForArticle(nodes, articleID) != nil {
 			return nodes, false
 		}
+		added = true
 		return append(nodes, core.WikiTocNode{ID: "toc-" + articleID, Title: title, Type: "article", ArticleID: articleID}), true
 	})
+	if err != nil {
+		return err
+	}
+	if added {
+		maybeAutoOrganizeToc(kbID)
+	}
+	return nil
 }
 
 // syncArticleTitleInToc keeps the tree label aligned with the article.

@@ -152,6 +152,12 @@ type WikiKnowledgeBase struct {
 	// votes) land as WikiExperience records the distiller mines. Off by
 	// default — traces contain user questions.
 	ExperienceCapture bool `json:"experience_capture" elastic_mapping:"experience_capture:{type:boolean}"`
+	// AutoOrganizeToc (自动归档): opt-in per KB. When on, a newly created
+	// article that lands at the tree root triggers the background semantic
+	// pass (the same one as the toolbar button — it reuses existing folders
+	// via merge). Never blocks the create path; a slow model just means the
+	// page sits at the root for a couple of minutes.
+	AutoOrganizeToc bool `json:"auto_organize_toc" elastic_mapping:"auto_organize_toc:{type:boolean}"`
 }
 
 // WikiTocLayoutFolder is one top-level department folder of the KB layout.

@@ -432,6 +432,8 @@ declare namespace Api {
       auto_approve?: boolean;
       /** 经验捕获(LLM-wiki P1): 绑定智能体的纠错/反馈留存为经验记录供蒸馏 */
       experience_capture?: boolean;
+      /** 自动归档:新文章落入目录根部后自动触发后台语义整理(复用已有主题文件夹) */
+      auto_organize_toc?: boolean;
     }
 
     interface SourceRef {

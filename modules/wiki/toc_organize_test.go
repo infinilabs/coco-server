@@ -7,6 +7,26 @@ import (
 	"infini.sh/coco/core"
 )
 
+func allClassified(nodes []core.WikiTocNode, more ...string) map[string]bool {
+	set := map[string]bool{}
+	var walk func(ns []core.WikiTocNode)
+	walk = func(ns []core.WikiTocNode) {
+		for _, n := range ns {
+			if n.ArticleID != "" {
+				set[n.ArticleID] = true
+			}
+			if len(n.Children) > 0 {
+				walk(n.Children)
+			}
+		}
+	}
+	walk(nodes)
+	for _, id := range more {
+		set[id] = true
+	}
+	return set
+}
+
 func node(id, title, kind, articleID string, children ...core.WikiTocNode) core.WikiTocNode {
 	n := core.WikiTocNode{ID: id, Title: title, Type: kind, ArticleID: articleID}
 	if len(children) > 0 {
@@ -66,7 +86,7 @@ func TestBuildOrganizedToc(t *testing.T) {
 	}
 	categories := []string{"数据连接器", "安全与认证", "空类别"}
 
-	out, stats := buildOrganizedToc([]core.WikiTocNode{looseA, manual, looseB, looseC}, assigns, categories, "kb1")
+	out, stats := buildOrganizedToc([]core.WikiTocNode{looseA, manual, looseB, looseC}, assigns, categories, allClassified([]core.WikiTocNode{looseA, manual, looseB, looseC}), "kb1")
 
 	if stats.Loose != 3 || stats.Moved != 3 || stats.KeptFolders != 1 {
 		t.Fatalf("stats wrong: %+v", stats)
@@ -101,7 +121,7 @@ func TestBuildOrganizedToc(t *testing.T) {
 		}
 	}
 	// folder ids stable across runs (same kb+category → same id)
-	again, _ := buildOrganizedToc([]core.WikiTocNode{looseA, looseB}, map[string]string{"art-a": "数据连接器", "art-b": "安全与认证"}, categories, "kb1")
+	again, _ := buildOrganizedToc([]core.WikiTocNode{looseA, looseB}, map[string]string{"art-a": "数据连接器", "art-b": "安全与认证"}, categories, allClassified([]core.WikiTocNode{looseA, looseB}), "kb1")
 	for i := range out {
 		if out[i].Type == "folder" && strings.HasPrefix(out[i].ID, "folder-ai-") && again[len(again)-1].ID != "" {
 			// ids depend only on category+kb; spot-check one
@@ -122,7 +142,7 @@ func TestBuildOrganizedTocKeepsAllLoose(t *testing.T) {
 		node("t2", "B", "article", "a2"),
 	}
 	// no assignments at all → everything lands in the fallback folder
-	out, stats := buildOrganizedToc(loose, map[string]string{}, []string{"Cat"}, "kb")
+	out, stats := buildOrganizedToc(loose, map[string]string{}, []string{"Cat"}, allClassified(loose), "kb")
 	total := 0
 	for _, n := range out {
 		if n.Type == "folder" {
@@ -145,7 +165,7 @@ func TestBuildOrganizedTocMergesIntoExistingFolder(t *testing.T) {
 	}
 	out, stats := buildOrganizedToc(existing,
 		map[string]string{"a2": "Connectors", "a3": "Connectors"},
-		[]string{"Connectors"}, "kb")
+		[]string{"Connectors"}, allClassified(existing), "kb")
 	if len(out) != 1 || out[0].ID != aiID {
 		t.Fatalf("must merge into the existing folder, got %d nodes, first id %s", len(out), out[0].ID)
 	}
@@ -171,7 +191,7 @@ func TestBuildOrganizedTocMergeKeepsManualFolderOrder(t *testing.T) {
 	}
 	out, stats := buildOrganizedToc(existing,
 		map[string]string{"a3": "产品与服务"},
-		[]string{"产品与服务"}, "kb")
+		[]string{"产品与服务"}, allClassified(existing), "kb")
 	if len(out) != 1 || out[0].ID != "folder-manual" {
 		t.Fatalf("must merge into the manual folder, got %d nodes", len(out))
 	}
@@ -202,5 +222,41 @@ func TestBuildProposalPrompt(t *testing.T) {
 	}
 	if strings.Contains(large, "Existing folders") {
 		t.Fatalf("no existing-titles line when the tree has none: %s", large)
+	}
+}
+
+func TestBuildOrganizedTocLeavesMidPassPagesAtRoot(t *testing.T) {
+	existing := []core.WikiTocNode{
+		node("t1", "Classified Page", "article", "a1"),
+		node("t2", "Created Mid-Pass", "article", "a2"), // not in the classify set
+	}
+	out, stats := buildOrganizedToc(existing,
+		map[string]string{"a1": "Cat"},
+		[]string{"Cat"}, map[string]bool{"a1": true}, "kb")
+	// a1 filed into the new folder; a2 stays at the root for the next pass
+	if len(out) != 2 || out[0].Type != "folder" || out[1].ArticleID != "a2" {
+		t.Fatalf("mid-pass page must stay at root: %+v", out)
+	}
+	if stats.Other != 0 || stats.Moved != 1 {
+		t.Fatalf("mid-pass page must not hit the fallback: moved=%d other=%d", stats.Moved, stats.Other)
+	}
+}
+
+func TestEntriesBlockExcerpt(t *testing.T) {
+	nodes := []core.WikiTocNode{node("t1", "Division", "article", "a1")}
+	summaries := map[string]string{"a1": "香港美心集团 旗下\n分店网络 与业务分工"}
+	block := entriesBlock(nodes, summaries)
+	// excerpt flattened to one line, appended after the title
+	if block != "a1. Division — 香港美心集团 旗下 分店网络 与业务分工\n" {
+		t.Fatalf("unexpected block: %q", block)
+	}
+	// long summary is capped
+	long := strings.Repeat("字", 200)
+	if got := excerptLine(long, 120); len([]rune(got)) != 121 {
+		t.Fatalf("excerpt not capped: %d runes", len([]rune(got)))
+	}
+	// no summary → bare title line, no dash
+	if block2 := entriesBlock(nodes, nil); block2 != "a1. Division\n" {
+		t.Fatalf("unexpected bare block: %q", block2)
 	}
 }

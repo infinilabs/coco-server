@@ -28,6 +28,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       autoApproveHint: 'When on: new entities publish directly, governance proposals (compile/tree/rebuild) apply automatically and generated pages publish — the KB updates without manual review. Corrections and knowledge-gap signals always stay manual',
       experienceCapture: 'Experience capture',
       experienceCaptureHint: 'When on, corrections and answer feedback from the KB\'s bound assistant are kept as experience records (90-day retention) for the distiller to mine failure patterns. Raw traces contain user questions — enable with care',
+      autoOrganizeToc: 'Auto-file new pages',
+      autoOrganizeTocHint: 'When on, a new article landing at the tree root triggers a background semantic pass: it files into existing topic folders (creating one only when nothing fits); manually arranged structure is never touched. Runs on the language model — each new page settles within a minute or two',
       basic: 'Basic Info',
       agent: 'AI Agent',
       agentTooltip: 'When bound, AI generation and AI editing for this KB use the model configured on this assistant',

@@ -45,6 +45,7 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
       workspace_id: kb.workspace_id || undefined,
       auto_approve: !!kb.auto_approve,
       experience_capture: !!kb.experience_capture,
+      auto_organize_toc: !!kb.auto_organize_toc,
       toc_layout: (kb.toc_layout || []).map(f => ({
         title: f.title,
         prefixes: (f.path_prefixes || []).join(', '),
@@ -117,6 +118,7 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
             icon: kb.icon,
             visibility: kb.visibility,
             auto_approve: !!kb.auto_approve,
+            auto_organize_toc: !!kb.auto_organize_toc,
             assistant_id: kb.assistant_id,
             datasource_ids: kb.datasource_ids,
             toc_layout: (kb.toc_layout || []).map(f => ({
@@ -150,6 +152,14 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
             label={t('page.wiki.settings.experienceCapture')}
             tooltip={t('page.wiki.settings.experienceCaptureHint')}
             name="experience_capture"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item
+            label={t('page.wiki.settings.autoOrganizeToc')}
+            tooltip={t('page.wiki.settings.autoOrganizeTocHint')}
+            name="auto_organize_toc"
             valuePropName="checked"
           >
             <Switch />

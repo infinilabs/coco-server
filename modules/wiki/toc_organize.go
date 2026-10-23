@@ -17,6 +17,7 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant/langchain"
 	llmmodule "infini.sh/coco/modules/llm"
+	"infini.sh/framework/core/elastic"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
@@ -116,7 +117,7 @@ func buildProposalPrompt(pageCount int, existingTitles []string) string {
 	}
 	var b strings.Builder
 	b.WriteString("You are organizing the table of contents of a knowledge base.\n")
-	fmt.Fprintf(&b, "You will see a sample of page titles. Propose between %d and %d category names that group them meaningfully by topic.\n", minCats, organizeMaxCats)
+	fmt.Fprintf(&b, "You will see a sample of pages (title, sometimes with a one-line excerpt). Propose between %d and %d category names that group them meaningfully by topic.\n", minCats, organizeMaxCats)
 	if len(existingTitles) > 0 {
 		fmt.Fprintf(&b, "Existing folders: %s. Reuse these names where they fit; propose new ones only for topics with no home among them.\n", strings.Join(existingTitles, " | "))
 	}
@@ -218,19 +219,26 @@ func extractJSONArray(s, _ string) string {
 // category whose name matches an existing folder files INTO it instead of
 // spawning a sibling synonym; brand-new category folders follow in proposal
 // order; anything unassigned or filed into an invented category lands in the
-// fallback folder (only created when non-empty).
-func buildOrganizedToc(existing []core.WikiTocNode, assigns map[string]string, categories []string, folderIDSuffix string) ([]core.WikiTocNode, organizeStats) {
+// fallback folder (only created when non-empty). A loose article that was
+// never shown to the model (created after the pass snapshot) stays at the
+// root — the next pass picks it up instead of burying it in the fallback.
+func buildOrganizedToc(existing []core.WikiTocNode, assigns map[string]string, categories []string, classified map[string]bool, folderIDSuffix string) ([]core.WikiTocNode, organizeStats) {
 	stats := organizeStats{Categories: []string{}}
 
 	folders := []core.WikiTocNode{}
 	folderIdx := map[string]int{} // title → position in folders, for merging
 	var loose []core.WikiTocNode
+	var fresh []core.WikiTocNode // created mid-pass, left at the root
 	for _, n := range existing {
 		if n.Type == "folder" {
 			if _, dup := folderIdx[n.Title]; !dup {
 				folderIdx[n.Title] = len(folders)
 			}
 			folders = append(folders, n)
+			continue
+		}
+		if n.ArticleID != "" && !classified[n.ArticleID] {
+			fresh = append(fresh, n)
 			continue
 		}
 		loose = append(loose, n)
@@ -294,7 +302,7 @@ func buildOrganizedToc(existing []core.WikiTocNode, assigns map[string]string, c
 		stats.Moved += len(ns)
 		stats.Other = len(ns)
 	}
-	return folders, stats
+	return append(folders, fresh...), stats
 }
 
 // organizeFolderID derives a stable id from the category so a re-run moves
@@ -356,14 +364,22 @@ func OrganizeTocSemantically(parent context.Context, kbID string) (*organizeStat
 		}
 	}
 
-	categories, assigns, err := classifyForOrganize(parent, order, existingTitles)
+	// summaries sharpen filing for vague titles ("Division", "Case") — one
+	// terms query, one capped line per page in the prompt
+	summaries := fetchArticleSummaries(parent, loose)
+
+	categories, assigns, err := classifyForOrganize(parent, order, existingTitles, summaries)
 	if err != nil {
 		return nil, err
 	}
 
+	classified := make(map[string]bool, len(order))
+	for _, n := range order {
+		classified[n.ArticleID] = true
+	}
 	var stats *organizeStats
 	saveErr := tocMutate(kbID, func(nodes []core.WikiTocNode) ([]core.WikiTocNode, bool) {
-		next, s := buildOrganizedToc(nodes, assigns, categories, kbID)
+		next, s := buildOrganizedToc(nodes, assigns, categories, classified, kbID)
 		stats = &s
 		return next, true
 	})
@@ -374,8 +390,8 @@ func OrganizeTocSemantically(parent context.Context, kbID string) (*organizeStat
 }
 
 // classifyForOrganize runs the two LLM phases: propose categories from a
-// title sample, then assign every loose article to one of them.
-func classifyForOrganize(ctx context.Context, order []core.WikiTocNode, existingTitles []string) ([]string, map[string]string, error) {
+// sample, then assign every loose article to one of them.
+func classifyForOrganize(ctx context.Context, order []core.WikiTocNode, existingTitles []string, summaries map[string]string) ([]string, map[string]string, error) {
 	model := llmmodule.ResolveModel(core.LLMTypeLanguage, nil)
 	if model == nil {
 		return nil, nil, fmt.Errorf("no default language model configured")
@@ -391,7 +407,7 @@ func classifyForOrganize(ctx context.Context, order []core.WikiTocNode, existing
 	}
 	catResp, err := llm.GenerateContent(ctx, []llms.MessageContent{
 		langchain.SystemTextParts(buildProposalPrompt(len(order), existingTitles)),
-		llms.TextParts(llms.ChatMessageTypeHuman, titlesBlock(sample)),
+		llms.TextParts(llms.ChatMessageTypeHuman, entriesBlock(sample, summaries)),
 	}, llms.WithMaxTokens(400))
 	if err != nil {
 		return nil, nil, fmt.Errorf("category proposal failed: %w", err)
@@ -412,7 +428,7 @@ func classifyForOrganize(ctx context.Context, order []core.WikiTocNode, existing
 			end = len(order)
 		}
 		batch := order[start:end]
-		userText := "Allowed categories: " + allowed + "\n\nPages:\n" + titlesBlock(batch)
+		userText := "Allowed categories: " + allowed + "\n\nPages:\n" + entriesBlock(batch, summaries)
 		resp, err := llm.GenerateContent(ctx, []llms.MessageContent{
 			langchain.SystemTextParts(organizeAssignPrompt),
 			llms.TextParts(llms.ChatMessageTypeHuman, userText),
@@ -430,17 +446,62 @@ func classifyForOrganize(ctx context.Context, order []core.WikiTocNode, existing
 	return categories, assigns, nil
 }
 
-// titlesBlock renders one "id. title" line per article — the id is what the
-// assignment phase echoes back, the title is what the model judges by.
-func titlesBlock(nodes []core.WikiTocNode) string {
+// fetchArticleSummaries pulls the loose articles' summaries in one terms
+// query; on any error classification falls back to titles alone.
+func fetchArticleSummaries(parent context.Context, loose []core.WikiTocNode) map[string]string {
+	ids := make([]string, 0, len(loose))
+	for _, n := range loose {
+		ids = append(ids, n.ArticleID)
+	}
+	ctx := orm.NewContextWithParent(parent)
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(ctx, &core.WikiArticle{})
+	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(len(ids)).Filter(orm.TermsQuery("id", ids)))
+	if err != nil {
+		return nil
+	}
+	articles, _, err := elastic.DecodeHits[core.WikiArticle](res)
+	if err != nil {
+		return nil
+	}
+	out := make(map[string]string, len(articles))
+	for i := range articles {
+		out[articles[i].ID] = articles[i].Summary
+	}
+	return out
+}
+
+// entriesBlock renders one "id. title — excerpt" line per article — the id
+// is what the assignment phase echoes back, the title plus the one-line
+// summary excerpt is what the model judges by.
+func entriesBlock(nodes []core.WikiTocNode, summaries map[string]string) string {
 	var b strings.Builder
 	for _, n := range nodes {
 		b.WriteString(n.ArticleID)
 		b.WriteString(". ")
 		b.WriteString(n.Title)
+		if s := excerptLine(summaries[n.ArticleID], 120); s != "" {
+			b.WriteString(" — ")
+			b.WriteString(s)
+		}
 		b.WriteString("\n")
 	}
 	return b.String()
+}
+
+// excerptLine flattens a summary to one space-separated line capped at
+// maxRunes, so a multi-line summary cannot smuggle fake "id. title" rows
+// into the prompt.
+func excerptLine(s string, maxRunes int) string {
+	s = strings.Join(strings.Fields(s), " ")
+	if s == "" {
+		return ""
+	}
+	runes := []rune(s)
+	if len(runes) > maxRunes {
+		return string(runes[:maxRunes]) + "…"
+	}
+	return s
 }
 
 // countLooseRootArticles reads a KB's toc and counts the un-filed root
@@ -466,22 +527,36 @@ func (h *APIHandler) organizeToc(w http.ResponseWriter, req *http.Request, ps ht
 	kbID := ps.ByName("id")
 	userID := requestUserID(req)
 
-	loose, err := countLooseRootArticles(kbID)
+	started, loose, err := startOrganizeRun(kbID, userID)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if loose == 0 {
+	if !started {
+		if loose > 0 {
+			h.WriteJSON(w, util.MapStr{"started": false, "already_running": true, "loose": loose}, http.StatusTooManyRequests)
+			return
+		}
 		h.WriteJSON(w, util.MapStr{"started": false, "loose": 0}, http.StatusOK)
 		return
 	}
+	h.WriteJSON(w, util.MapStr{"started": true, "loose": loose}, http.StatusOK)
+}
 
-	// the two-phase classification makes 1 + N model calls and a slow model
-	// pushes that past any sane HTTP timeout — run it in the background
-	// (the eval-replay pattern) and let the UI poll the status endpoint
+// startOrganizeRun launches one background pass (guard-protected): the HTTP
+// button and the per-KB auto-archive hook both come through here. Returns
+// started plus the loose count it picked up; !started with loose > 0 means
+// a pass is already running.
+func startOrganizeRun(kbID, userID string) (bool, int, error) {
+	loose, err := countLooseRootArticles(kbID)
+	if err != nil {
+		return false, 0, err
+	}
+	if loose == 0 {
+		return false, 0, nil
+	}
 	if !organizeRuns.TryReserve(kbID, loose) {
-		h.WriteJSON(w, util.MapStr{"started": false, "already_running": true, "loose": loose}, http.StatusTooManyRequests)
-		return
+		return false, loose, nil
 	}
 	go func() {
 		stats, runErr := func() (stats *organizeStats, runErr error) {
@@ -504,8 +579,31 @@ func (h *APIHandler) organizeToc(w http.ResponseWriter, req *http.Request, ps ht
 			map[string]interface{}{"categories": stats.Categories, "moved": stats.Moved, "merged": stats.Merged, "other": stats.Other, "kept_folders": stats.KeptFolders})
 		log.Infof("wiki: toc organize kb %s: %d pages into %v (%d merged)", kbID, stats.Moved, stats.Categories, stats.Merged)
 	}()
+	return true, loose, nil
+}
 
-	h.WriteJSON(w, util.MapStr{"started": true, "loose": loose}, http.StatusOK)
+// maybeAutoOrganizeToc fires the background pass when the KB opted into
+// 自动归档 (KB.AutoOrganizeToc) — new pages publish to the tree root, this
+// keeps the tree filed without anyone clicking the toolbar button.
+// Best-effort: the guard collapses create bursts (every page in a batch
+// tries, one pass wins) and a page created mid-pass just stays at the root
+// for the next trigger.
+func maybeAutoOrganizeToc(kbID string) {
+	if kbID == "" {
+		return
+	}
+	kctx := orm.NewContext()
+	kctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(kctx, &core.WikiKnowledgeBase{})
+	var kb core.WikiKnowledgeBase
+	kb.SetID(kbID)
+	exists, err := orm.GetV2(kctx, &kb)
+	if err != nil || !exists || !kb.AutoOrganizeToc {
+		return
+	}
+	if _, _, err := startOrganizeRun(kbID, "auto-organize"); err != nil {
+		log.Warnf("wiki: auto toc organize failed to start for kb %s: %v", kbID, err)
+	}
 }
 
 // organizeTocStatus answers "is a pass running and what did the last one

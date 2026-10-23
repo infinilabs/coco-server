@@ -28,6 +28,8 @@ const page: App.I18n.Schema['translation']['page'] = {
       autoApproveHint: '开启后:新抽取的实体直接发布,知识编译/目录/重建等治理提案自动应用,编译页面直接发布——知识库无需人工审核自动更新。纠错与知识缺口信号始终保留人工处理',
       experienceCapture: '经验捕获',
       experienceCaptureHint: '开启后,该知识库绑定智能体的纠错与回答反馈会以经验记录形式留存(默认保留90天),供经验蒸馏挖掘失败模式。原始经验含用户提问,请谨慎开启',
+      autoOrganizeToc: '目录自动归档',
+      autoOrganizeTocHint: '开启后,新文章落入目录根部时自动触发后台语义整理:按主题归入已有文件夹(没有合适主题时新建),已手动整理的结构不受影响。整理依赖语言模型,每篇新文章约需一两分钟后台完成',
       basic: '基本信息',
       agent: 'AI 智能体',
       agentTooltip: '绑定后,该知识库的「AI 生成」与「AI 编辑」将使用此智能体配置的模型',
