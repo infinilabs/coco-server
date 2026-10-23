@@ -708,6 +708,43 @@ declare namespace Api {
       no_action: boolean;
       skipped_notes?: string[];
     }
+
+    /** mirror of core.WikiEvalCase — one golden query for a KB (LLM-wiki P3) */
+    interface EvalCase {
+      id: string;
+      kb_id: string;
+      query: string;
+      expected_ids: string[];
+      expected_titles?: string[];
+      note?: string;
+      created?: string;
+    }
+
+    /** per-case outcome inside a replay run */
+    interface EvalCaseResult {
+      query: string;
+      hit_rank: number;
+      total?: number;
+      top_ids?: string[];
+      top_titles?: string[];
+      error?: string;
+      took_ms?: number;
+    }
+
+    /** mirror of core.WikiEvalRun — one scoring pass over the KB's set */
+    interface EvalRun {
+      id: string;
+      kb_id: string;
+      total_cases: number;
+      top4_hits: number;
+      top4_rate: number;
+      mrr: number;
+      avg_took_ms?: number;
+      cases?: EvalCaseResult[];
+      /** 'manual' (operator) | 'skill_applied' (post-apply gate tie-in) */
+      trigger?: string;
+      created?: string;
+    }
   }
 }
 

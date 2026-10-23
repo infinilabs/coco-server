@@ -242,6 +242,7 @@ const (
 	WikiEvolutionGateVerdict       = "gate_verdict"       // the reviewer LLM judged a skill proposal
 	WikiEvolutionCompileAgent      = "compile_agent"      // one EINO compile-agent iteration (patch filed or no_action)
 	WikiEvolutionFreshness         = "freshness"          // a freshness sweep regenerated stale pages from changed sources
+	WikiEvolutionEvalRun           = "eval_run"           // a validation-set replay scored the KB (LLM-wiki P3)
 )
 
 // WikiEvolutionEntry is one append-only line of a KB's decision log.

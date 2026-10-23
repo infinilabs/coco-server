@@ -398,6 +398,12 @@ func applyOneProposal(ctx *orm.Context, proposal *core.WikiGovernanceProposal, u
 	// evolution log (LLM-wiki P0): record the fix after it landed — one
 	// line per applied proposal, actor separates manual/batch/auto-approve
 	recordProposalApplied(ctx, proposal, userID, applied)
+	// a skill landing in a KB with a validation set fires the post-apply
+	// replay (LLM-wiki P3 G4): scores land in the evolution log next to
+	// the skill they gated; best-effort, the apply already succeeded
+	if proposal.Type == core.WikiGovernanceSkillCreate || proposal.Type == core.WikiGovernanceSkillPatch {
+		ScheduleSkillEvalReplay(proposal.KbID, userID)
+	}
 	return applied, articleID, nil
 }
 

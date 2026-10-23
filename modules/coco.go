@@ -58,6 +58,9 @@ func (this *Coco) Setup() {
 	orm.MustRegisterSchemaWithIndexName(core.WikiOntologySchema{}, "wiki-ontology-schema"+suffix)
 	// contribution inverted index doc→page (incremental-compile P2)
 	orm.MustRegisterSchemaWithIndexName(core.WikiContribution{}, "wiki-contribution"+suffix)
+	// per-KB validation set + replay runs (LLM-wiki P3)
+	orm.MustRegisterSchemaWithIndexName(core.WikiEvalCase{}, "wiki-evalcase"+suffix)
+	orm.MustRegisterSchemaWithIndexName(core.WikiEvalRun{}, "wiki-evalrun"+suffix)
 }
 
 func (this *Coco) Start() error {

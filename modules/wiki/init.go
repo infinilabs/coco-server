@@ -113,6 +113,20 @@ func init() {
 	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_import_skill_pack", handler.importSkillPack,
 		api.RequireLogin(), api.RequirePermission(updateKbPermission))
 
+	// per-KB validation set (LLM-wiki P3): golden queries scored against
+	// KB-scoped published-page retrieval; a skill landing in a KB with
+	// cases fires a replay whose scores land in the evolution log
+	api.HandleUIMethod(api.GET, "/wiki/kb/:id/_evalset", handler.listWikiEvalCasesHandler,
+		api.RequireLogin(), api.RequirePermission(readArticlePermission))
+	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_evalset", handler.upsertWikiEvalCaseHandler,
+		api.RequireLogin(), api.RequirePermission(updateKbPermission))
+	api.HandleUIMethod(api.DELETE, "/wiki/kb/:id/_evalset/:cid", handler.deleteWikiEvalCaseHandler,
+		api.RequireLogin(), api.RequirePermission(updateKbPermission))
+	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_evalset/_run", handler.runWikiEvalHandler,
+		api.RequireLogin(), api.RequirePermission(updateKbPermission))
+	api.HandleUIMethod(api.GET, "/wiki/kb/:id/_evalset/_runs", handler.listWikiEvalRunsHandler,
+		api.RequireLogin(), api.RequirePermission(readArticlePermission))
+
 	// read-only version history (article-level read); exposed to agents so
 	// they can see how a page's knowledge evolved (P3)
 	api.HandleUIMethod(api.GET, "/wiki/article/:id/versions", handler.articleVersions,

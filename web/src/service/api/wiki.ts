@@ -1034,3 +1034,48 @@ export function clearWikiCompileDeadLetters(kbId: string) {
     url: `/wiki/kb/${kbId}/_opdead`
   });
 }
+
+/* ---- per-KB validation set (LLM-wiki P3) ---- */
+
+/** golden queries of a KB's validation set, newest first */
+export function fetchWikiEvalCases(kbId: string) {
+  return request<{ total: number; data: Api.Wiki.EvalCase[] }>({
+    method: 'get',
+    url: `/wiki/kb/${kbId}/_evalset`
+  }).then(res => (res as any)?.data ?? { total: 0, data: [] });
+}
+
+/** upsert keyed on (kb, normalized query) — re-annotating replaces the expectation */
+export function saveWikiEvalCase(
+  kbId: string,
+  data: { query: string; expected_ids: string[]; expected_titles?: string[]; note?: string }
+) {
+  return request<Api.Wiki.EvalCase>({
+    data,
+    method: 'post',
+    url: `/wiki/kb/${kbId}/_evalset`
+  }).then(res => (res as any)?.data);
+}
+
+export function deleteWikiEvalCase(kbId: string, caseId: string) {
+  return request({
+    method: 'delete',
+    url: `/wiki/kb/${kbId}/_evalset/${caseId}`
+  });
+}
+
+/** replay every case through KB-scoped published-page retrieval; returns the stored run */
+export function runWikiEval(kbId: string) {
+  return request<Api.Wiki.EvalRun>({
+    method: 'post',
+    url: `/wiki/kb/${kbId}/_evalset/_run`
+  }).then(res => (res as any)?.data);
+}
+
+/** score trend, newest first */
+export function fetchWikiEvalRuns(kbId: string) {
+  return request<{ total: number; data: Api.Wiki.EvalRun[] }>({
+    method: 'get',
+    url: `/wiki/kb/${kbId}/_evalset/_runs`
+  }).then(res => (res as any)?.data ?? { total: 0, data: [] });
+}
