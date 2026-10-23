@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/orm"
@@ -26,7 +28,57 @@ import (
 const (
 	correctionMaxComment = 4000
 	correctionMaxAnswer  = 4000
+	// the endpoint is login-only by design (anyone at work can flag a wrong
+	// answer), so the abuse ceiling is a per-user window: a human files a
+	// handful of corrections an hour, a loop files thousands. Distinct
+	// comments each spawn a proposal, so the anchor dedupe alone is not a cap.
+	correctionUserLimit  = 20
+	correctionUserWindow = time.Hour
 )
+
+// windowLimiter is a per-key sliding window (in-memory, process-local —
+// one node's cap; a multi-node deployment caps per node, which is still a
+// 20x reduction in abuse surface for a login-only write endpoint).
+type windowLimiter struct {
+	mu     sync.Mutex
+	hits   map[string][]time.Time
+	limit  int
+	window time.Duration
+}
+
+func newWindowLimiter(limit int, window time.Duration) *windowLimiter {
+	return &windowLimiter{hits: map[string][]time.Time{}, limit: limit, window: window}
+}
+
+func (l *windowLimiter) Allow(key string) bool {
+	now := time.Now()
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	fresh := l.hits[key][:0]
+	for _, t := range l.hits[key] {
+		if now.Sub(t) < l.window {
+			fresh = append(fresh, t)
+		}
+	}
+	if len(fresh) >= l.limit {
+		l.hits[key] = fresh
+		return false
+	}
+	l.hits[key] = append(fresh, now)
+	// opportunistic eviction: drop idle keys so the map cannot grow with
+	// the user base
+	if len(l.hits) > 10000 {
+		for k, v := range l.hits {
+			if len(v) == 0 || now.Sub(v[len(v)-1]) >= l.window {
+				delete(l.hits, k)
+			}
+		}
+	}
+	return true
+}
+
+// correctionLimiter bounds correction reports per logged-in user.
+var correctionLimiter = newWindowLimiter(correctionUserLimit, correctionUserWindow)
 
 // correctionRouteHints maps the client-supplied route hint to the layer the
 // fix likely belongs to (the J.B. routing table, review-side).
@@ -75,6 +127,10 @@ func (h *APIHandler) createCorrection(w http.ResponseWriter, req *http.Request, 
 	user, err := security.GetUserFromRequest(req)
 	if err != nil || user == nil {
 		h.WriteError(w, "login required", http.StatusUnauthorized)
+		return
+	}
+	if !correctionLimiter.Allow(user.UserID) {
+		h.WriteError(w, fmt.Sprintf("too many corrections (max %d per hour), try again later", correctionUserLimit), http.StatusTooManyRequests)
 		return
 	}
 
@@ -173,12 +229,11 @@ func correctionAnchor(messageID, query, comment string) string {
 }
 
 func truncateForTitle(s string) string {
-	s = strings.TrimSpace(s)
-	if len(s) > 120 {
-		return s[:120]
-	}
-	if s == "" {
+	// rune-aware: byte slicing can split a CJK character mid-sequence and
+	// land invalid UTF-8 in the stored title
+	title := truncateRunes(strings.TrimSpace(s), 120)
+	if title == "" {
 		return "correction"
 	}
-	return s
+	return title
 }

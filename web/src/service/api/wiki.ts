@@ -896,14 +896,19 @@ export function getWikiEvolutionLog(kbId: string, from = 0, size = 50) {
   });
 }
 
-/** raw work signals captured for this KB (chat votes, corrections, gaps) */
+/** raw work signals captured for this KB (chat votes, corrections, gaps),
+ * plus the distill schedule facts (interval + last run) */
 export function listWikiExperience(kbId: string, from = 0, size = 50) {
-  return request<{ total: number; entries: any[] }>({
+  return request<{ total: number; entries: any[]; distill?: { interval: string; last_run?: string } }>({
     method: 'get',
     url: `/wiki/kb/${kbId}/_experience?from=${from}&size=${size}`
   }).then(res => {
     const body = (res as any)?.data;
-    return { total: body?.total ?? 0, entries: (body?.entries ?? []) as Api.Wiki.Experience[] };
+    return {
+      total: body?.total ?? 0,
+      entries: (body?.entries ?? []) as Api.Wiki.Experience[],
+      distill: body?.distill as Api.Wiki.DistillInfo | undefined
+    };
   });
 }
 

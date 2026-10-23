@@ -46,6 +46,7 @@ export function KbEvolution({ kb }: { readonly kb: Api.Wiki.Kb }) {
 
   const [experiences, setExperiences] = useState<Api.Wiki.Experience[]>([]);
   const [expTotal, setExpTotal] = useState(0);
+  const [distillInfo, setDistillInfo] = useState<Api.Wiki.DistillInfo | null>(null);
   const [log, setLog] = useState<Api.Wiki.EvolutionEntry[]>([]);
   const [logTotal, setLogTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -60,6 +61,7 @@ export function KbEvolution({ kb }: { readonly kb: Api.Wiki.Kb }) {
       .then(([exp, logRes]) => {
         setExperiences(exp.entries);
         setExpTotal(exp.total);
+        setDistillInfo(exp.distill ?? null);
         setLog(logRes.entries);
         setLogTotal(logRes.total);
       })
@@ -132,6 +134,23 @@ export function KbEvolution({ kb }: { readonly kb: Api.Wiki.Kb }) {
       width: '30%',
       ellipsis: true,
       render: (v: string) => v || '—'
+    },
+    {
+      title: t('page.wiki.evolution.expiry'),
+      dataIndex: 'retention',
+      width: 110,
+      // expired traces are swept by the distiller — a red tag says why a row
+      // the operator just read may be gone tomorrow
+      render: (v: string) => {
+        if (!v) return '—';
+        const expired = new Date(v).getTime() < Date.now();
+        return (
+          <Tag color={expired ? 'red' : 'default'}>
+            {fmtTime(v).slice(0, 10)}
+            {expired ? ` · ${t('page.wiki.evolution.expired')}` : ''}
+          </Tag>
+        );
+      }
     }
   ];
 
@@ -154,7 +173,25 @@ export function KbEvolution({ kb }: { readonly kb: Api.Wiki.Kb }) {
       title: t('page.wiki.evolution.summary'),
       dataIndex: 'summary',
       ellipsis: true,
-      render: (v: string) => v || '—'
+      // one hop from log line to the artifact it talks about: applied or
+      // dismissed proposals link into the governance queue (focus mode),
+      // entries carrying an article_id link straight to the article
+      render: (v: string, record: any) => {
+        const detail = (record?.detail || {}) as { article_id?: string; article_title?: string };
+        const govId = record?.target_type === 'governance' ? record?.target_id : undefined;
+        if (!detail.article_id && !govId) return v || '—';
+        return (
+          <Space size={4} wrap>
+            <span>{v || '—'}</span>
+            {detail.article_id && (
+              <a href={`#/wiki/article/${detail.article_id}?kb=${kb.id}`}>
+                {detail.article_title || t('page.wiki.evolution.openArticle')}
+              </a>
+            )}
+            {govId && <a href={`#/wiki/governance?focus=${govId}`}>{t('page.wiki.evolution.openProposal')}</a>}
+          </Space>
+        );
+      }
     }
   ];
 
@@ -187,6 +224,21 @@ export function KbEvolution({ kb }: { readonly kb: Api.Wiki.Kb }) {
         </div>
         <div className='p-16px pt-8px'>
           {!kb.experience_capture && <Alert className='mb-12px' showIcon type='info' message={t('page.wiki.evolution.captureOff')} />}
+          {distillInfo && (
+            <Alert
+              className='mb-12px'
+              showIcon
+              type='info'
+              message={
+                ['off', 'disabled', '0'].includes(distillInfo.interval.toLowerCase())
+                  ? t('page.wiki.evolution.distillOff')
+                  : t('page.wiki.evolution.distillSchedule', {
+                      interval: distillInfo.interval,
+                      last: distillInfo.last_run ? fmtTime(distillInfo.last_run) : t('page.wiki.evolution.distillNeverRan')
+                    })
+              }
+            />
+          )}
           <Table
             columns={expColumns}
             dataSource={experiences}

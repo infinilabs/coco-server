@@ -167,6 +167,13 @@ const page: App.I18n.Schema['translation']['page'] = {
       kind: 'Kind',
       actor: 'Actor',
       summary: 'Summary',
+      openArticle: 'Open article',
+      openProposal: 'Governance proposal',
+      expiry: 'Expires',
+      expired: 'expired',
+      distillSchedule: 'Automatic distill runs every {{interval}}; last run for this KB: {{last}}',
+      distillOff: 'Automatic distill is off (WIKI_DISTILL_INTERVAL) — manual distill only',
+      distillNeverRan: 'never ran',
       feedback: 'Feedback',
       question: 'Question',
       note: 'Note',
@@ -290,7 +297,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       duplicateOf: 'Possible duplicate of, click to view',
       pendingVersion: 'Auto-updated version v{{version}} awaiting review',
       empty: 'Queue is clean, nothing to review',
-      type: { stale: 'Stale', duplicate: 'Duplicate', conflict: 'Conflict', low_quality: 'Low quality', orphan: 'Orphaned', entity_duplicate: 'Entity duplicate', entity_conflict: 'Entity type conflict', knowledge_gap: 'Knowledge gap', correction: 'Correction', knowledge_compile: 'Knowledge compile', pattern_create: 'Distilled pattern (new)', pattern_update: 'Distilled pattern (update)', skill_create: 'Distilled skill (new)', skill_patch: 'Distilled skill (update)', compile_patch: 'Compile revision', impact_archive: 'Archive low-impact page', tree_organize: 'TOC organization', drift: 'Ontology drift', article_refresh: 'Refresh after entity edit' },
+      type: { stale: 'Stale', duplicate: 'Duplicate', conflict: 'Conflict', low_quality: 'Low quality', orphan: 'Orphaned', entity_duplicate: 'Entity duplicate', entity_conflict: 'Entity type conflict', knowledge_gap: 'Knowledge gap', correction: 'Correction', knowledge_compile: 'Knowledge compile', pattern_create: 'Distilled pattern (new)', pattern_update: 'Distilled pattern (update)', skill_create: 'Distilled skill (new)', skill_patch: 'Distilled skill (update)', compile_patch: 'Compile revision', impact_archive: 'Archive low-impact page', tree_organize: 'TOC organization', drift: 'Ontology drift', article_refresh: 'Refresh after entity edit', document_amendment: 'Document amendment' },
       hint: '{{count}} proposal(s) waiting',
       treePreview: 'Proposed TOC: {{count}} pages across {{folders}} departments',
       targetFolder: 'target folder',
@@ -423,6 +430,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         title: 'Quality hints',
         thinContent: 'Body is short — this page is still close to a stub',
         noSources: 'Concept/topic page has no cited sources; add evidence before it enters retrieval',
+        missingProvenance: 'Skill page has no provenance (a pattern page reference or wiki link)',
         impactHits: 'Cited in {{count}} answers'
       },
       claimsToggle: 'Source claims · {{count}} (click to expand)',
@@ -877,6 +885,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     commons: {
       error: {
+        datasource_name_required: 'Please input datasource name',
         extensions_format: "Invalid file extensions. Use formats like 'pdf' or '.pdf', with only letters and numbers."
       }
     },
@@ -945,6 +954,59 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     every: 'Every',
     file_paths_add: 'Add File Path',
+    git_commons: {
+      error: {
+        owner_required: 'Please input the repository owner',
+        repo_required: 'Please input the repository name',
+        token_required: 'Please input the personal access token'
+      },
+      labels: {
+        index_issues: 'Index issues',
+        owner: 'Repository Owner',
+        repos: 'Repository Name',
+        token: 'Personal Access Token'
+      },
+      tooltip: {
+        index_issues: 'Whether to index issues',
+        owner: 'The username or organization that owns the repository',
+        repos: 'The repositories to index. Empty by default, meaning all repositories.'
+      }
+    },
+    gitea: {
+      labels: {
+        base_url: 'Base URL (optional)',
+        index_pull_requests: 'Index pull requests'
+      },
+      tooltip: {
+        base_url: 'Self-hosted Gitea base URL. Leave empty for Gitea.com.',
+        index_pull_requests: 'Whether to index pull requests',
+        token: 'A Gitea personal access token (PAT) with the "repo" scope.'
+      }
+    },
+    github: {
+      labels: {
+        index_pull_requests: 'Index pull requests'
+      },
+      tooltip: {
+        index_pull_requests: 'Whether to index pull requests',
+        token: 'A GitHub personal access token (PAT) with the "repo" scope.'
+      }
+    },
+    gitlab: {
+      labels: {
+        base_url: 'Base URL (optional)',
+        index_merge_requests: 'Index merge requests',
+        index_snippets: 'Index snippets',
+        index_wikis: 'Index wikis'
+      },
+      tooltip: {
+        base_url: 'Self-hosted GitLab base URL. Leave empty for GitLab.com.',
+        index_merge_requests: 'Whether to index merge requests',
+        index_snippets: 'Whether to index snippets',
+        index_wikis: 'Whether to index wikis',
+        token: 'A GitLab personal access token (PAT) with the "repo" scope.'
+      }
+    },
     hours: 'hours',
     minutes: 'minutes',
     neo4j: {
@@ -960,6 +1022,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         parameter_key_required: 'Please input parameter key!',
         password_required: 'Please input password!',
         path_property_required: 'Please input path property!',
+        property_required: 'Please input tracking property name!',
+        tie_breaker_required: 'Please input tie-breaker field!',
         username_required: 'Please input username!'
       },
       labels: {
@@ -999,10 +1063,14 @@ const page: App.I18n.Schema['translation']['page'] = {
         password_placeholder: 'Enter Neo4j password',
         path_property: 'Path Property',
         path_separator: 'Path Separator',
+        property: 'Tracking Property',
+        property_type: 'Property Type',
         property_type_datetime: 'Datetime',
         property_type_float: 'Float',
         property_type_int: 'Integer',
         property_type_string: 'String',
+        resume_from: 'Resume From Value',
+        tie_breaker: 'Tie-breaker Field',
         title_field: 'Title Field',
         url_field: 'URL Field',
         username: 'Username'
@@ -1024,7 +1092,38 @@ const page: App.I18n.Schema['translation']['page'] = {
         incremental_tie_breaker: 'Expression used to sort rows that share the same watermark (e.g., elementId(n)).',
         page_size: 'Number of records to fetch per page',
         pagination: 'Enable this if database queries should be paginated. Recommended for large graph databases.',
-        parameters: 'Optional key/value parameters passed to the Cypher query.'
+        parameters: 'Optional key/value parameters passed to the Cypher query.',
+        property: 'Field name used to track changes',
+        property_type: 'The data type of the tracking property, used for correct comparison',
+        resume_from: 'Optional manual starting point for the first sync',
+        tie_breaker: 'Secondary field that breaks ties when multiple records share the same property value'
+      }
+    },
+    network_drive: {
+      error: {
+        endpoint_format: 'Invalid format, please use "host:port" or "[ipv6]:port"',
+        endpoint_invalid: 'Invalid server endpoint',
+        endpoint_required: 'Please input the server endpoint',
+        folder_paths: 'Please input folder paths',
+        folder_paths_prefix: 'Invalid folder path, it must not start with /',
+        share_required: 'Please input the share name',
+        username_required: 'Please input the username'
+      },
+      labels: {
+        domain: 'User Domain',
+        endpoint: 'Server Endpoint',
+        folder_paths: 'Folder Paths',
+        password: 'Password',
+        share: 'Network Drive Share Name',
+        username: 'Username'
+      },
+      tooltip: {
+        domain: 'The user domain, e.g., WORKGROUP',
+        endpoint: 'Network drive service address, e.g., 127.0.0.1:445',
+        folder_paths: 'Paths of the folders you want to scan',
+        password: 'Password for network drive authentication',
+        share: 'The network drive share name you want to scan',
+        username: 'Username for network drive authentication'
       }
     },
     jira: {
@@ -1093,6 +1192,22 @@ const page: App.I18n.Schema['translation']['page'] = {
       }
     },
     rdbms: {
+      error: {
+        connection_uri_required: 'Please input the connection URI!',
+        page_size_required: 'Please input the page size!',
+        sql_required: 'Please input the SQL query!'
+      },
+      labels: {
+        connection_uri: 'Connection URI',
+        data_processing: 'Data Processing',
+        dest_field: 'Destination Field',
+        field_mapping: 'Field Mapping',
+        last_modified_field: 'Last Modified Field (optional)',
+        page_size: 'Page Size',
+        pagination: 'Enable Pagination',
+        sql: 'SQL Query',
+        src_field: 'Source Field'
+      },
       placeholder: {
         field_name: 'Field Name',
         metadata_name: 'Metadata Name',
@@ -1106,10 +1221,17 @@ const page: App.I18n.Schema['translation']['page'] = {
       },
       tooltip: {
         connection_uri: {
+          mssql: 'Microsoft SQL Server connection string, e.g., sqlserver://user:password@host:1433/database',
           mysql: 'MySQL connection string. e.g., mysql://user:password@tcp(localhost:3306)/database',
+          oracle: 'Oracle connection string, e.g., oracle://user:password@host:1521/service_name',
           postgresql:
             'PostgreSQL connection string. e.g., postgresql://user:password@localhost:5432/database?sslmode=disable'
-        }
+        },
+        last_modified_field:
+          'For incremental sync, specify a field that tracks the last modification time (e.g., updated_at). Its type should be timestamp or datetime.',
+        page_size: 'Number of records to fetch per page.',
+        pagination: 'Enable this if database queries should be paginated. Recommended for large tables.',
+        sql: 'The SQL query used to fetch data.'
       },
       validation: {
         field_name_required: 'Please input field',
@@ -1139,6 +1261,70 @@ const page: App.I18n.Schema['translation']['page'] = {
       tooltip: {
         endpoint: 'Endpoint of your S3 server, like：s3.amazonaws.com or localhost:9000',
         prefix: 'Only index objects that begin with this prefix'
+      }
+    },
+    milvus: {
+      error: {
+        address_required: 'Please input the Milvus service address!',
+        collection_required: 'Please input the collection name!',
+        page_size_required: 'Please input the page size!',
+        incremental_property_required: 'Please input the incremental property!',
+        incremental_resume_invalid: 'Please use an RFC3339 timestamp, e.g., 2025-01-01T00:00:00Z.',
+        incremental_resume_invalid_float: 'Please enter a valid number value!',
+        incremental_resume_invalid_int: 'Please enter a valid integer value!',
+        incremental_tie_breaker_required: 'Please input the tie-breaker property!',
+        property_required: 'Please input the tracking property name!',
+        tie_breaker_required: 'Please input the tie-breaker field!'
+      },
+      labels: {
+        address: 'Service Address',
+        username: 'Username',
+        password: 'Password',
+        db_name: 'Database Name',
+        collection: 'Collection',
+        output_fields: 'Output Fields',
+        filter: 'Filter Expression',
+        page_size: 'Page Size',
+        data_processing: 'Data Processing',
+        field_mapping: 'Field Mapping',
+        enable_field_mapping: 'Enable Field Mapping',
+        enable_pagination: 'Enable Pagination',
+        incremental_sync: 'Incremental Sync',
+        incremental_property: 'Watermark Property',
+        incremental_property_type: 'Watermark Type',
+        incremental_resume_from: 'Resume From Value',
+        incremental_tie_breaker: 'Tie-breaker Property',
+        property: 'Tracking Property',
+        property_type: 'Property Type',
+        property_type_datetime: 'Datetime',
+        property_type_string: 'String',
+        property_type_int: 'Integer',
+        property_type_float: 'Float',
+        resume_from: 'Resume From Value',
+        tie_breaker: 'Tie-breaker Field',
+        username_placeholder: 'Optional Milvus username',
+        password_placeholder: 'Optional Milvus password',
+        db_name_placeholder: 'Optional database name'
+      },
+      tooltip: {
+        address: 'Milvus service address, e.g., localhost:19530',
+        username: 'Optional Milvus authentication username',
+        password: 'Optional Milvus authentication password',
+        db_name: 'Optional database name (Milvus 2.2.0+). Empty means the default database.',
+        collection: 'The Milvus collection to query',
+        output_fields: 'Comma-separated field list. Empty retrieves all scalar fields.',
+        filter: 'Optional scalar filter expression, e.g., age > 10 and name like "abc%"',
+        page_size: 'Documents fetched per page (1-10000)',
+        pagination: 'Enable pagination for large collections',
+        incremental_property: 'The Milvus field used as the watermark. Every vector must include it.',
+        incremental_property_type: 'Choose the data type of the watermark property to ensure stable ordering.',
+        incremental_resume_from: 'Optional manual watermark to start from on the first run.',
+        incremental_sync: 'Enable to resume scans from the last seen property value (watermark).',
+        incremental_tie_breaker: 'Field that separates records sharing the same watermark, e.g., id.',
+        property: 'Field name used to track changes',
+        property_type: 'The data type of the tracking property, used for correct comparison',
+        resume_from: 'Optional manual starting point for the first sync',
+        tie_breaker: 'Secondary field that breaks ties when multiple documents share the same property value'
       }
     },
     mongodb: {
@@ -1176,6 +1362,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       tooltip: {
         connection_uri:
           'MongoDB connection string, e.g., mongodb://localhost:27017 or mongodb+srv://cluster.mongodb.net',
+        incremental_sync: 'Enable to resume scans from the last seen property value (watermark).',
         query: 'Optional BSON query filter in JSON format, e.g., {"status": "published"}',
         sort: 'Optional sort specification in JSON format, e.g., {"updated_at": 1, "_id": 1}',
         pagination: 'Enable pagination for large collections',
@@ -2384,7 +2571,15 @@ const page: App.I18n.Schema['translation']['page'] = {
       leave: 'You are about to leave Coco AI and open the original link of the file',
       externalLinkWarning: 'Coco AI cannot guarantee the availability and security of external links'
     }
-  }
+  },
+  search_settings: {
+    labels: {
+      enabled: 'Enabled',
+      integration: 'Widget'
+    },
+    title: 'Search Settings'
+  },
+  setupLater: 'Set Up Later'
 };
 
 export default page;

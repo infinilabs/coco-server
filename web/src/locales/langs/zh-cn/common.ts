@@ -43,6 +43,8 @@ const common: App.I18n.Schema['translation']['common'] = {
   },
   expandColumn: '展开列',
   index: '序号',
+  install: '安装',
+  installSuccess: '安装成功',
   keywordSearch: '请输入关键词搜索',
   language: {
     en: 'English',

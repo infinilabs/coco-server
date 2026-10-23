@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -179,4 +180,15 @@ func TestCorrectionReopenAfterResolve(t *testing.T) {
 			assert.Equal(t, float64(2), p.Evidence["report_count"])
 		}
 	}
+}
+
+func TestWindowLimiter(t *testing.T) {
+	l := newWindowLimiter(3, 50*time.Millisecond)
+	for i := 0; i < 3; i++ {
+		assert.True(t, l.Allow("u1"), "hit %d within limit", i+1)
+	}
+	assert.False(t, l.Allow("u1"), "4th hit in window must be denied")
+	assert.True(t, l.Allow("u2"), "other users are unaffected")
+	time.Sleep(60 * time.Millisecond)
+	assert.True(t, l.Allow("u1"), "window slides — old hits expire")
 }

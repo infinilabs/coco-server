@@ -52,11 +52,7 @@ const (
 )
 
 func init() {
-	interval := strings.TrimSpace(os.Getenv("WIKI_DISTILL_INTERVAL"))
-	if interval == "" {
-		interval = distillDefaultInterval
-	}
-	switch strings.ToLower(interval) {
+	switch strings.ToLower(distillScheduleInterval()) {
 	case "off", "disabled", "0":
 		return
 	}
@@ -64,10 +60,36 @@ func init() {
 		ID:          distillTaskID,
 		Group:       "wiki",
 		Description: "Wiki 经验蒸馏:维护者从经验记录里挖掘失败模式,产出 pattern 提案(LLM-wiki P1)",
-		Interval:    interval,
+		Interval:    distillScheduleInterval(),
 		Singleton:   true,
 		Task:        distillSweep,
 	})
+}
+
+// distillScheduleInterval is the effective WIKI_DISTILL_INTERVAL (default 6h,
+// never empty — "off"/"disabled"/"0" disable the schedule). Surfaced on the
+// experience endpoint so the UI can say when the next automatic run is.
+func distillScheduleInterval() string {
+	interval := strings.TrimSpace(os.Getenv("WIKI_DISTILL_INTERVAL"))
+	if interval == "" {
+		return distillDefaultInterval
+	}
+	return interval
+}
+
+// distillLastRun reports the watermark of this KB's last distill pass; nil
+// when it never ran (a fresh KB falls back to a lookback window internally,
+// but "never ran" is the fact worth showing).
+func distillLastRun(kbID string) *time.Time {
+	value, err := kv.GetValue(distillKVBucket, []byte(kbID))
+	if err != nil || len(value) == 0 {
+		return nil
+	}
+	var watermark time.Time
+	if err := util.FromJSONBytes(value, &watermark); err != nil {
+		return nil
+	}
+	return &watermark
 }
 
 func distillSweep(ctx context.Context) {

@@ -242,7 +242,13 @@ export function KbOverview({
                 {agentReport.no_action ? t('page.wiki.kb.agentNoAction') : t('page.wiki.kb.agentFiled')}
               </Descriptions.Item>
               {agentReport.notes && agentReport.notes.length > 0 && (
-                <Descriptions.Item label={t('page.wiki.kb.agentNotes')}>{agentReport.notes.join('；')}</Descriptions.Item>
+                <Descriptions.Item label={t('page.wiki.kb.agentNotes')}>
+                  <ul className='mb-0 pl-16px list-disc'>
+                    {agentReport.notes.map((n, i) => (
+                      <li key={i}>{n}</li>
+                    ))}
+                  </ul>
+                </Descriptions.Item>
               )}
             </Descriptions>
             {agentReport.patches > 0 && (

@@ -48,6 +48,7 @@
     "preview": "vite preview",
     "release": "sa release",
     "typecheck": "tsc --noEmit --skipLibCheck",
+    "locale:check": "node scripts/check-locales.mjs",
     "update-pkg": "sa update-pkg",
     "typecheck:gate": "node scripts/typecheck-gate.mjs",
     "typecheck:update-baseline": "node scripts/update-typecheck-baseline.mjs"

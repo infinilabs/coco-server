@@ -8,7 +8,7 @@ import {
 } from '@ant-design/icons';
 import { Badge, Button, Checkbox, Empty, List, Popconfirm, Segmented, Space, Tag, Tooltip, Tree } from 'antd';
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { type GovernanceProposal, applyWikiGovernanceProposal, batchUpdateWikiGovernanceStatus, getBatchApplyProgress, searchWikiGovernance, startBatchApply, updateWikiGovernanceStatus } from '@/service/api';
 import { WikiShell } from '../components/WikiShell';
@@ -225,7 +225,13 @@ function TreeProposalPreview({ tree }: { tree: RawTocNode[] }) {
 export function Component() {
   const { t } = useTranslation();
   const nav = useNavigate();
-  const [status, setStatus] = useState<string>('open');
+  // deep link from the evolution log: ?focus=<proposalId> switches to the
+  // all-status view (applied/dismissed entries live there) and highlights
+  // the row — the log's 治理提案 link lands exactly on its decision
+  const [searchParams] = useSearchParams();
+  const focusId = searchParams.get('focus') || '';
+  const focusDoneRef = useRef(false);
+  const [status, setStatus] = useState<string>(focusId ? 'all' : 'open');
   const [proposals, setProposals] = useState<GovernanceProposal[]>([]);
   const [loading, setLoading] = useState(true);
   // batch review: the checked ids and the in-flight flag for the toolbar
@@ -251,6 +257,19 @@ export function Component() {
     setSelected([]);
     setPageCurrent(1);
   }, [status]);
+
+  // once the focused proposal is in the fetched window, jump pagination to
+  // its page and bring it into view
+  useEffect(() => {
+    if (!focusId || focusDoneRef.current || loading || !proposals.length) return;
+    focusDoneRef.current = true;
+    const idx = proposals.findIndex(p => p.id === focusId);
+    if (idx < 0) return;
+    setPageCurrent(Math.floor(idx / pageSize) + 1);
+    requestAnimationFrame(() => {
+      document.querySelector(`li[data-proposal-id="${focusId}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+  }, [focusId, loading, proposals, pageSize]);
 
   const toggleSelected = (id: string, checked: boolean) => {
     setSelected(prev => (checked ? [...prev, id] : prev.filter(x => x !== id)));
@@ -542,6 +561,11 @@ export function Component() {
               const dupOf = proposal.evidence?.duplicate_of;
               return (
                 <List.Item
+                  className={proposal.id === focusId ? 'wiki-gov-focus' : undefined}
+                  data-proposal-id={proposal.id}
+                  style={proposal.id === focusId
+                    ? { background: 'var(--ant-color-primary-bg)', borderColor: 'var(--ant-color-primary-border)' }
+                    : undefined}
                   actions={[
                     APPLICABLE.has(proposal.type) && (
                       <Popconfirm

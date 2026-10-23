@@ -251,7 +251,17 @@ func (h *APIHandler) listExperience(w http.ResponseWriter, req *http.Request, ps
 	if entries == nil {
 		entries = []core.WikiExperience{}
 	}
-	h.WriteOKJSON(w, util.MapStr{"total": total, "entries": entries})
+	// the loop's schedule facts ride along: when the next automatic distill
+	// fires and when this KB's last one ran (nil = never)
+	lastRun := distillLastRun(kbID)
+	h.WriteOKJSON(w, util.MapStr{
+		"total":   total,
+		"entries": entries,
+		"distill": util.MapStr{
+			"interval": distillScheduleInterval(),
+			"last_run": lastRun,
+		},
+	})
 }
 
 // voteRequest is the assistant-side capture payload: the chat UI knows the

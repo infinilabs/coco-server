@@ -679,7 +679,14 @@ declare namespace Api {
       note?: string;
       outcome?: string;
       citations?: { doc_id?: string }[];
+      retention?: string;
       created?: string;
+    }
+
+    /** the KB's distill schedule facts (rides on the experience response) */
+    interface DistillInfo {
+      interval: string;
+      last_run?: string;
     }
 
     /** one skill-proposer run over a KB's recent experiences */
