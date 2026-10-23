@@ -661,7 +661,7 @@ export function Component() {
     }
     setRepairOpen(false);
     if (okCount > 0) {
-      window.$message?.success(t('page.wiki.repair.success', { count: String(okCount) }));
+      window.$message?.success(t('page.wiki.repair.success', { count: okCount }));
       fetchArticle();
     } else {
       window.$message?.error(t('page.wiki.repair.failed'));
@@ -1075,7 +1075,7 @@ export function Component() {
         {!article || editing || unresolvedLinks.length === 0 ? null : (
           <div className='mb-3 flex items-center justify-between border border-gray-300 rounded-6px border-dashed px-12px py-8px dark:border-gray-600'>
             <span className='text-13px text-gray-500'>
-              {t('page.wiki.repair.hint', { count: String(unresolvedLinks.length) })}
+              {t('page.wiki.repair.hint', { count: unresolvedLinks.length })}
               {unresolvedLinks.slice(0, 5).map(lp => (
                 <Tag
                   className='ml-2'

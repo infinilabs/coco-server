@@ -197,7 +197,7 @@ export default function ProcessingTimeline({
         <div className='flex flex-wrap items-center gap-8px'>
           {statusTag(timeline?.status)}
           <Typography.Text type='secondary' className='text-12px'>
-            {t('page.preview.processing.runsCount', { count: String(runs.length) })}
+            {t('page.preview.processing.runsCount', { count: runs.length })}
           </Typography.Text>
           {timeline?.embedding_model ? (
             <Typography.Text type='secondary' className='ml-auto font-mono text-12px'>
@@ -260,7 +260,7 @@ export default function ProcessingTimeline({
 
         {truncated ? (
           <Typography.Text type='secondary' className='text-12px'>
-            {t('page.preview.processing.recentRuns', { count: String(visibleRuns.length) })}
+            {t('page.preview.processing.recentRuns', { count: visibleRuns.length })}
           </Typography.Text>
         ) : null}
       </div>

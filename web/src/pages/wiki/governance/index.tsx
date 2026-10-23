@@ -699,7 +699,7 @@ export function Component() {
           />
           {status === 'open' && openCount > 0 && (
             <div className='mt-2 text-xs color-[var(--wiki-text-3)]'>
-              {t('page.wiki.governance.hint', { count: String(openCount) })}
+              {t('page.wiki.governance.hint', { count: openCount })}
             </div>
           )}
         </div>
