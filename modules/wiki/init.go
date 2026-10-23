@@ -182,6 +182,13 @@ func init() {
 		api.RequireLogin(), api.RequirePermission(readKbPermission),
 		api.MCPTool("kb_graph", "Get the knowledge graph of a knowledge base: article and entity nodes, wikilink and typed-relation edges with schema labels"))
 
+	// KB health report (LLM-wiki lint, whole-KB 体检): orphan pages,
+	// red-link knowledge gaps, thin/unbacked pages and hub stats — one
+	// scan tells maintainers where attention pays off next
+	api.HandleUIMethod(api.GET, "/wiki/kb/:id/_health", handler.kbHealth,
+		api.RequireLogin(), api.RequirePermission(readKbPermission),
+		api.MCPTool("kb_health", "Get a knowledge base health report: orphan pages, red-link knowledge gaps worth writing next, thin pages, unbacked concept pages and hub pages"))
+
 	// KB-level files: raw material listing + manual uploads (same pipeline
 	// as synced content, manual delivery)
 	api.HandleUIMethod(api.GET, "/wiki/kb/:id/_files", handler.kbFiles,

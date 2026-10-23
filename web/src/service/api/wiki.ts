@@ -514,6 +514,11 @@ export function fetchWikiKbGraph(kbId: string) {
   });
 }
 
+/** Whole-KB health report (LLM-wiki 体检): orphan pages, red-link knowledge gaps, thin/unbacked pages, hubs. */
+export function fetchKbHealth(kbId: string) {
+  return request<{ data: Api.Wiki.KbHealth }>({ method: 'get', url: `/wiki/kb/${kbId}/_health` });
+}
+
 export function searchWikiEntities(ids?: string[], kbId?: string) {
   const searchParams = new URLSearchParams();
   if (ids?.length) searchParams.set('filter', `id:${ids.join(',')}`);

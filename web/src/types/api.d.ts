@@ -747,6 +747,38 @@ declare namespace Api {
       trigger?: string;
       created?: string;
     }
+
+    /** one flagged page in the KB health report (mirror of modules/wiki/health.go) */
+    interface HealthArticle {
+      id: string;
+      title: string;
+      page_type?: string;
+      status?: string;
+      /** orphan | thin_content | no_sources | missing_provenance */
+      codes?: string[];
+      inbound_links: number;
+      content_len: number;
+    }
+
+    /** a red link aggregated across the KB — the next page worth writing */
+    interface HealthGap {
+      name: string;
+      count: number;
+      cited_by: { id: string; title: string }[];
+    }
+
+    /** mirror of KBHealthReport — live whole-KB lint scan */
+    interface KbHealth {
+      kb_id: string;
+      generated_at: string;
+      total_pages: number;
+      archived_pages: number;
+      counts: Record<string, number>;
+      knowledge_gaps?: HealthGap[];
+      orphans?: HealthArticle[];
+      hubs?: HealthArticle[];
+      flagged?: HealthArticle[];
+    }
   }
 }
 

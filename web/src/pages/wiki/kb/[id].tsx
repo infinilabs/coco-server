@@ -28,6 +28,7 @@ import { GenerateModal } from '../components/GenerateModal';
 import { KbEvalSet } from '../components/KbEvalSet';
 import { KbEvolution } from '../components/KbEvolution';
 import { KbGraph } from '../components/KbGraph';
+import { KbHealth } from '../components/KbHealth';
 import { WikiEntityManager } from '../components/WikiEntityManager';
 import { KbFileManager } from '../components/KbFileManager';
 import { KbOverview } from '../components/KbOverview';
@@ -472,6 +473,15 @@ const readKbPageCache = (kbId?: string): KbPageCache | null =>
                     focusEntityId={focusEntityId}
                     kbId={id || ''}
                   />
+                </div>
+              )
+            },
+            {
+              key: 'health',
+              label: t('page.wiki.kb.tabs.health'),
+              children: (
+                <div className='wiki-panel p-16px'>
+                  <KbHealth kbId={id || ''} />
                 </div>
               )
             },
