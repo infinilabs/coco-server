@@ -23,6 +23,7 @@ import {
   CodeOutlined,
   TableOutlined,
   FileTextOutlined,
+  FileSyncOutlined,
   PaperClipOutlined} from '@ant-design/icons';
 import {
   Avatar,
@@ -63,6 +64,7 @@ import {
   getWikiArticleAttachments,
   getWikiEntity,
   relinkWikiArticle,
+  rewriteWikiArticle,
   searchWikiBookmarks,
   searchWikiEntities,
   searchWikiLikes,
@@ -479,12 +481,30 @@ export function Component() {
   const [versionView, setVersionView] = useState<Api.Wiki.Version | null>(null);
   const [diffPair, setDiffPair] = useState<{ older: Api.Wiki.Version; newer: Api.Wiki.Version } | null>(null);
   const [aiEditOpen, setAiEditOpen] = useState(false);
+  const [rewriting, setRewriting] = useState(false);
   const [bookmarkId, setBookmarkId] = useState<string | null>(null);
   const [likeId, setLikeId] = useState<string | null>(null);
   const [likeCount, setLikeCount] = useState(0);
 
   // edit form state (kept flat — the form is a single record)
   const [draft, setDraft] = useState<Partial<Api.Wiki.Article>>({});
+
+  // whole-page REFINE rewrite from the page's own source claims; a version
+  // snapshot keeps it revertable, so a plain confirm is enough
+  const onRewriteFull = () => {
+    if (!id) return;
+    setRewriting(true);
+    rewriteWikiArticle(id)
+      .then(res => {
+        if (res?.rewritten) {
+          window.$message?.success(t('page.wiki.article.rewriteDone'));
+          fetchArticle();
+        } else {
+          window.$message?.warning(t('page.wiki.article.rewriteNoModel', { reason: res?.reason || '' }));
+        }
+      })
+      .finally(() => setRewriting(false));
+  };
 
   const fetchArticle = () => {
     if (!id) return;
@@ -962,6 +982,17 @@ export function Component() {
                   onClick={onExportMarkdown}
                 />
               </Tooltip>
+              {canEditArticle && (
+                <Popconfirm title={t('page.wiki.article.rewriteConfirm')} onConfirm={onRewriteFull}>
+                  <Button
+                    icon={<FileSyncOutlined />}
+                    loading={rewriting}
+                    type='text'
+                  >
+                    {t('page.wiki.article.rewriteFull')}
+                  </Button>
+                </Popconfirm>
+              )}
               {canEditArticle && (
                 <Button
                   icon={<RobotOutlined />}

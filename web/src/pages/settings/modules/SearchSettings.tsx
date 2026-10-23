@@ -3,6 +3,7 @@ import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import '../index.scss';
 import { fetchIntegration, updateIntegration } from '@/service/api/integration';
 import { fetchSettings, updateSettings } from '@/service/api/server';
+import { backfillWikiProjection } from '@/service/api';
 import DataSourceSelect from '@/pages/data-source/modules/DataSourceSelect';
 import { DocTableSelect } from './DocPicker';
 import BlockedPatternsField from './BlockedPatternsField';
@@ -101,6 +102,21 @@ const SearchSettings = memo(() => {
   // re-applies everything (its fields live in its own form + local states)
   const [widgetResetKey, setWidgetResetKey] = useState(0);
   const widgetSubmitRef = useRef<null | (() => Promise<void>)>(null);
+
+  // one-off wiki projection backfill — the preparation step the
+  // wiki_projection toggle's hint refers to (article-update permission,
+  // mirroring the endpoint's gate)
+  const [backfilling, setBackfilling] = useState(false);
+  const onBackfillProjection = () => {
+    setBackfilling(true);
+    backfillWikiProjection()
+      .then(res => {
+        window.$message?.success(
+          t('page.settings.search_settings.labels.backfill_done', { projected: res?.projected ?? 0, total: res?.total ?? 0 })
+        );
+      })
+      .finally(() => setBackfilling(false));
+  };
 
   // `?tab=` seeds the requested tab. Tab clicks stay local-state on purpose:
   // routing them through setSearchParams trips the hash router's navigation
@@ -551,6 +567,15 @@ const SearchSettings = memo(() => {
                     >
                       <Switch size="small" />
                     </Form.Item>
+                    <div className='mb-16px'>
+                      <Button
+                        loading={backfilling}
+                        onClick={onBackfillProjection}
+                        size="small"
+                      >
+                        {t('page.settings.search_settings.labels.backfill_action')}
+                      </Button>
+                    </div>
                     <Form.Item
                       label={t('page.settings.search_settings.labels.chunk_route')}
                       name={['chunk_route']}

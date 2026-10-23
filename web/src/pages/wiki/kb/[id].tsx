@@ -20,6 +20,7 @@ import {
   searchWikiArticles
 } from '@/service/api';
 import { GenerateModal } from '../components/GenerateModal';
+import { KbEvolution } from '../components/KbEvolution';
 import { KbGraph } from '../components/KbGraph';
 import { WikiEntityManager } from '../components/WikiEntityManager';
 import { KbFileManager } from '../components/KbFileManager';
@@ -413,6 +414,11 @@ const readKbPageCache = (kbId?: string): KbPageCache | null =>
                   <WikiEntityManager kbId={id || ''} />
                 </div>
               )
+            },
+            {
+              key: 'evolution',
+              label: t('page.wiki.kb.tabs.evolution'),
+              children: <KbEvolution kb={kb as Api.Wiki.Kb} />
             },
             {
               key: 'files',

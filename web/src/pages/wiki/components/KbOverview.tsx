@@ -1,7 +1,11 @@
-import { FileAddOutlined, RobotOutlined } from '@ant-design/icons';
-import { Button, Empty, Space, Tag } from 'antd';
+import { FileAddOutlined, RobotOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { Button, Descriptions, Empty, List, Modal, Space, Tag, message } from 'antd';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+
+import { runWikiCompileAgent } from '@/service/api';
+import { useAuth } from '@/hooks/business/auth';
 
 const STATUS_COLOR: Record<string, string> = {
   draft: 'default',
@@ -9,6 +13,8 @@ const STATUS_COLOR: Record<string, string> = {
   published: 'success',
   archived: 'warning'
 };
+
+type AgentReport = { iterations: number; patches: number; no_action: boolean; notes?: string[] };
 
 /**
  * KB landing tab: headline numbers, recently touched articles, quick actions — mrdoc-style divided stat band over a
@@ -27,6 +33,20 @@ export function KbOverview({
 }) {
   const { t } = useTranslation();
   const nav = useNavigate();
+  const { hasAuth } = useAuth();
+  const canUpdateKb = hasAuth('coco#wiki_kb/update');
+  // the agent run is synchronous and LLM-slow — the report lands in a modal
+  const [agentLoading, setAgentLoading] = useState(false);
+  const [agentReport, setAgentReport] = useState<AgentReport | null>(null);
+
+  const runAgent = () => {
+    setAgentLoading(true);
+    runWikiCompileAgent(kb.id)
+      .then(report => {
+        setAgentReport(report ?? null);
+      })
+      .finally(() => setAgentLoading(false));
+  };
 
   const published = articles.filter(a => a.status === 'published').length;
   const aiGenerated = articles.filter(a => a.ai_generated).length;
@@ -59,6 +79,15 @@ export function KbOverview({
         <div className='wiki-panel-head'>
           <span className='wiki-panel-title'>{t('page.wiki.overview.recent')}</span>
           <Space>
+            {canUpdateKb && (
+              <Button
+                icon={<ThunderboltOutlined />}
+                loading={agentLoading}
+                onClick={runAgent}
+              >
+                {t('page.wiki.kb.agentCompile')}
+              </Button>
+            )}
             <Button
               icon={<RobotOutlined />}
               onClick={onAiGenerate}
@@ -108,6 +137,31 @@ export function KbOverview({
           )}
         </div>
       </section>
+
+      <Modal
+        footer={null}
+        onCancel={() => setAgentReport(null)}
+        open={!!agentReport}
+        title={t('page.wiki.kb.agentReportTitle')}
+      >
+        {agentReport && (
+          <>
+            <Descriptions column={1} size='small'>
+              <Descriptions.Item label={t('page.wiki.kb.agentIterations')}>{agentReport.iterations}</Descriptions.Item>
+              <Descriptions.Item label={t('page.wiki.kb.agentPatches')}>{agentReport.patches}</Descriptions.Item>
+              <Descriptions.Item label={t('page.wiki.kb.agentVerdict')}>
+                {agentReport.no_action ? t('page.wiki.kb.agentNoAction') : t('page.wiki.kb.agentFiled')}
+              </Descriptions.Item>
+              {agentReport.notes && agentReport.notes.length > 0 && (
+                <Descriptions.Item label={t('page.wiki.kb.agentNotes')}>{agentReport.notes.join('；')}</Descriptions.Item>
+              )}
+            </Descriptions>
+            {agentReport.patches > 0 && (
+              <div className='text-13px color-[var(--ant-color-text-tertiary)]'>{t('page.wiki.kb.agentHint')}</div>
+            )}
+          </>
+        )}
+      </Modal>
     </div>
   );
 }

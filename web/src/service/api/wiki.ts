@@ -877,3 +877,63 @@ export function mergeWikiEntities(ids: string[]) {
     url: '/wiki/entity/_merge'
   }).then(res => (res as any)?.data);
 }
+
+/* ---- LLM-wiki P1 loop surfaces (experience → distill → governance → evolution log) ---- */
+
+/** append-only KB decision log: applied/dismissed proposals, distill runs,
+ * compile-agent iterations — humans and auto-approve alike */
+export function getWikiEvolutionLog(kbId: string, from = 0, size = 50) {
+  return request<{ total: number; entries: any[] }>({
+    method: 'get',
+    url: `/wiki/kb/${kbId}/_evolution_log?from=${from}&size=${size}`
+  }).then(res => {
+    const body = (res as any)?.data;
+    return { total: body?.total ?? 0, entries: (body?.entries ?? []) as Api.Wiki.EvolutionEntry[] };
+  });
+}
+
+/** raw work signals captured for this KB (chat votes, corrections, gaps) */
+export function listWikiExperience(kbId: string, from = 0, size = 50) {
+  return request<{ total: number; entries: any[] }>({
+    method: 'get',
+    url: `/wiki/kb/${kbId}/_experience?from=${from}&size=${size}`
+  }).then(res => {
+    const body = (res as any)?.data;
+    return { total: body?.total ?? 0, entries: (body?.entries ?? []) as Api.Wiki.Experience[] };
+  });
+}
+
+/** mine this KB's experiences into pattern proposals (governance queue) */
+export function distillWikiKb(kbId: string) {
+  return request<{ sampled: number; proposals: number; expired: number }>({
+    method: 'post',
+    url: `/wiki/kb/${kbId}/_distill`
+  }).then(res => (res as any)?.data);
+}
+
+/** run one on-demand pass of the EINO compile agent (files at most one
+ * compile_patch proposal per iteration); synchronous, LLM-slow */
+export function runWikiCompileAgent(kbId: string) {
+  return request<{ iterations: number; patches: number; no_action: boolean; notes?: string[] }>({
+    method: 'post',
+    url: `/wiki/kb/${kbId}/_agent_compile`
+  }).then(res => (res as any)?.data);
+}
+
+/** rewrite an article's prose from its own source claims (REFINE pass);
+ * keeps a version snapshot, returns rewritten:false when no LM is set */
+export function rewriteWikiArticle(id: string) {
+  return request<{ rewritten: boolean; reason?: string }>({
+    method: 'post',
+    url: `/wiki/article/${id}/_rewrite`
+  }).then(res => (res as any)?.data);
+}
+
+/** one-off projection of published wiki articles into the document index —
+ * the preparation step for the wiki_projection search branch */
+export function backfillWikiProjection() {
+  return request<{ total: number; projected: number; skipped: number }>({
+    method: 'post',
+    url: '/wiki/_backfill_projection'
+  }).then(res => (res as any)?.data);
+}

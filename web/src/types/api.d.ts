@@ -654,6 +654,33 @@ declare namespace Api {
       read: boolean;
       created_at?: string;
     }
+
+    /** one append-only line of a KB's decision log (governance applies/dismissals, distill runs, compile-agent iterations) */
+    interface EvolutionEntry {
+      id: string;
+      kb_id: string;
+      kind: string;
+      actor?: string;
+      target_type?: string;
+      target_id?: string;
+      summary?: string;
+      detail?: Record<string, unknown>;
+      created?: string;
+    }
+
+    /** a captured work signal: chat vote, correction or knowledge gap */
+    interface Experience {
+      id: string;
+      kb_id: string;
+      kind: string;
+      question?: string;
+      answer?: string;
+      feedback?: string;
+      note?: string;
+      outcome?: string;
+      citations?: { doc_id?: string }[];
+      created?: string;
+    }
   }
 }
 
