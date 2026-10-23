@@ -135,3 +135,72 @@ func TestBuildOrganizedTocKeepsAllLoose(t *testing.T) {
 		t.Fatalf("lost nodes: total=%d moved=%d", total, stats.Moved)
 	}
 }
+
+func TestBuildOrganizedTocMergesIntoExistingFolder(t *testing.T) {
+	aiID := organizeFolderID("Connectors", "kb")
+	existing := []core.WikiTocNode{
+		node(aiID, "Connectors", "folder", "", node("t1", "ZZ Old Page", "article", "a1")),
+		node("t2", "New Page", "article", "a2"),
+		node("t3", "Another New", "article", "a3"),
+	}
+	out, stats := buildOrganizedToc(existing,
+		map[string]string{"a2": "Connectors", "a3": "Connectors"},
+		[]string{"Connectors"}, "kb")
+	if len(out) != 1 || out[0].ID != aiID {
+		t.Fatalf("must merge into the existing folder, got %d nodes, first id %s", len(out), out[0].ID)
+	}
+	titles := []string{}
+	for _, c := range out[0].Children {
+		titles = append(titles, c.Title)
+	}
+	// AI folder → merged children re-sort alphabetically
+	if strings.Join(titles, "|") != "Another New|New Page|ZZ Old Page" {
+		t.Fatalf("merged children out of order: %v", titles)
+	}
+	if stats.Moved != 2 || stats.Merged != 2 || stats.KeptFolders != 1 {
+		t.Fatalf("stats: moved=%d merged=%d kept=%d", stats.Moved, stats.Merged, stats.KeptFolders)
+	}
+}
+
+func TestBuildOrganizedTocMergeKeepsManualFolderOrder(t *testing.T) {
+	existing := []core.WikiTocNode{
+		node("folder-manual", "产品与服务", "folder", "",
+			node("t1", "Zed", "article", "a1"),
+			node("t2", "Alpha", "article", "a2")),
+		node("t3", "Mid Product", "article", "a3"),
+	}
+	out, stats := buildOrganizedToc(existing,
+		map[string]string{"a3": "产品与服务"},
+		[]string{"产品与服务"}, "kb")
+	if len(out) != 1 || out[0].ID != "folder-manual" {
+		t.Fatalf("must merge into the manual folder, got %d nodes", len(out))
+	}
+	titles := []string{}
+	for _, c := range out[0].Children {
+		titles = append(titles, c.Title)
+	}
+	// hand-built folder: original order untouched, new pages appended
+	if strings.Join(titles, "|") != "Zed|Alpha|Mid Product" {
+		t.Fatalf("manual order must survive: %v", titles)
+	}
+	if stats.Merged != 1 || stats.Moved != 1 {
+		t.Fatalf("stats: moved=%d merged=%d", stats.Moved, stats.Merged)
+	}
+}
+
+func TestBuildProposalPrompt(t *testing.T) {
+	small := buildProposalPrompt(6, []string{"专题与概念"})
+	if !strings.Contains(small, "between 2 and 10") {
+		t.Fatalf("small set must relax the lower bound: %s", small)
+	}
+	if !strings.Contains(small, "Existing folders: 专题与概念") {
+		t.Fatalf("existing titles must be offered for reuse: %s", small)
+	}
+	large := buildProposalPrompt(120, nil)
+	if !strings.Contains(large, "between 4 and 10") {
+		t.Fatalf("large set keeps the full spread: %s", large)
+	}
+	if strings.Contains(large, "Existing folders") {
+		t.Fatalf("no existing-titles line when the tree has none: %s", large)
+	}
+}

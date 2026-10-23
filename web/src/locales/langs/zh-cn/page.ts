@@ -64,6 +64,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       organizeDone: '已把 {{moved}} 篇页面归入主题文件夹',
       organizeEmpty: '没有需要整理的散落页面',
       organizeRunning: '已有一次整理在进行中',
+      organizeStillRunning: '整理仍在后台进行，可稍后刷新页面查看结果',
       organizeFailed: '整理失败'
     },
     assistantGroup: { chat: '对话使用', search: 'AI 搜索', deepThink: '深度思考', deepResearch: '深度研究', dataProcessing: '数据加工' },

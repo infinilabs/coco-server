@@ -64,6 +64,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       organizeDone: 'Filed {{moved}} pages into topic folders',
       organizeEmpty: 'No loose pages to organize',
       organizeRunning: 'An organize pass is already running',
+      organizeStillRunning: 'Still organizing in the background — refresh later to see the result',
       organizeFailed: 'Organize failed'
     },
     assistantGroup: { chat: 'Chat assistants', search: 'AI Search', deepThink: 'Deep thinking', deepResearch: 'Deep research', dataProcessing: 'Data processing' },

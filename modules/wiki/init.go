@@ -64,6 +64,9 @@ func init() {
 	// folders are preserved — the AI only re-files what was left unfiled
 	api.HandleUIMethod(api.POST, "/wiki/kb/:id/toc/_organize", handler.organizeToc,
 		api.RequireLogin(), api.RequirePermission(updateKbPermission))
+	// polling target for the running pass — read-only, so read permission
+	api.HandleUIMethod(api.GET, "/wiki/kb/:id/toc/_organize", handler.organizeTocStatus,
+		api.RequireLogin(), api.RequirePermission(readKbPermission))
 
 	// evolution log (LLM-wiki P0): the KB's append-only decision record —
 	// applied/dismissed proposals with actor and outcome

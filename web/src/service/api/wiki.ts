@@ -925,8 +925,8 @@ export function distillWikiKb(kbId: string) {
 }
 
 /** semantically group the loose TOC pages into AI category folders
- * (manual folders preserved); runs in the background — poll the toc until
- * the loose count drops */
+ * (manual folders preserved); runs in the background — poll
+ * getWikiTocOrganizeStatus until running flips to false */
 export function organizeWikiToc(kbId: string) {
   return request<{
     started: boolean;
@@ -934,6 +934,23 @@ export function organizeWikiToc(kbId: string) {
     loose: number;
   }>({
     method: 'post',
+    url: `/wiki/kb/${kbId}/toc/_organize`
+  }).then(res => (res as any)?.data);
+}
+
+export interface WikiTocOrganizeStatus {
+  running: boolean;
+  loose: number;
+  last?: { moved: number; merged: number; categories: string[]; kept_folders: number; other: number };
+  last_error?: string;
+  last_at?: string;
+}
+
+/** background-pass state: survives page reloads, so a UI opened mid-run can
+ * pick its spinner back up instead of guessing from the tree */
+export function getWikiTocOrganizeStatus(kbId: string) {
+  return request<WikiTocOrganizeStatus>({
+    method: 'get',
     url: `/wiki/kb/${kbId}/toc/_organize`
   }).then(res => (res as any)?.data);
 }

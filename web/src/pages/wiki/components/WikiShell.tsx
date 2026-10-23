@@ -20,7 +20,7 @@ import { useAuth } from '@/hooks/business/auth';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useResponsive } from 'ahooks';
-import { getWikiToc, createWikiWorkspace, organizeWikiToc, searchWikiGovernance, searchWikiKbs, searchWikiNotifications, searchWikiWorkspaces, updateWikiToc } from '@/service/api';
+import { getWikiToc, createWikiWorkspace, getWikiTocOrganizeStatus, organizeWikiToc, searchWikiGovernance, searchWikiKbs, searchWikiNotifications, searchWikiWorkspaces, updateWikiToc } from '@/service/api';
 import { dropPositionFromAntd, findNode, moveNode, removeNode, toAntdTreeData, tocIdForArticle } from '../shared/toc';
 
 /**
@@ -553,9 +553,54 @@ export function WikiShell({ kbId, articleId, children }: Props) {
 
   // AI semantic grouping of the loose root pages: the pass runs in the
   // backend background (slow model × several calls outlives any HTTP
-  // timeout), so the button spins while we poll the tree until the loose
-  // count drops, then refresh
+  // timeout): poll the status endpoint until running flips false — the
+  // backend state survives page reloads, so a UI opened mid-run (or after a
+  // server-triggered pass) picks its spinner back up from the same place
   const [organizing, setOrganizing] = useState(false);
+  const organizeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stopOrganizePolling = () => {
+    if (organizeTimer.current) {
+      clearTimeout(organizeTimer.current);
+      organizeTimer.current = null;
+    }
+  };
+  const pollOrganize = (id: string, startedAt: number) => {
+    stopOrganizePolling();
+    const poll = async () => {
+      try {
+        const st = await getWikiTocOrganizeStatus(id);
+        if (!st) throw new Error('empty status');
+        if (!st.running) {
+          setOrganizing(false);
+          // a result timestamped before our trigger belongs to an earlier
+          // pass — treat only fresh outcomes as this run's
+          const finishedAt = st.last_at ? Date.parse(st.last_at) : 0;
+          if (st.last && finishedAt >= startedAt - 60_000) {
+            if (st.last_error) {
+              window.$message?.error(t('page.wiki.toc.organizeFailed'));
+            } else if (st.last.moved > 0) {
+              onRefresh();
+              window.$message?.success(t('page.wiki.toc.organizeDone', { moved: st.last.moved }));
+            } else {
+              window.$message?.info(t('page.wiki.toc.organizeEmpty'));
+            }
+          } else {
+            onRefresh(); // run ended without a fresh record — resync anyway
+          }
+          return;
+        }
+      } catch {
+        // transient poll failure — keep waiting
+      }
+      if (Date.now() - startedAt > 30 * 60 * 1000) {
+        setOrganizing(false);
+        window.$message?.info(t('page.wiki.toc.organizeStillRunning'));
+        return;
+      }
+      organizeTimer.current = setTimeout(poll, 6000);
+    };
+    organizeTimer.current = setTimeout(poll, 6000);
+  };
   const onOrganize = () => {
     if (!kbId || organizing) return;
     Modal.confirm({
@@ -563,37 +608,21 @@ export function WikiShell({ kbId, articleId, children }: Props) {
       content: t('page.wiki.toc.organizeHint'),
       okText: t('page.wiki.toc.organizeOk'),
       onOk: async () => {
+        const startedAt = Date.now();
         setOrganizing(true);
         try {
           const res = await organizeWikiToc(kbId);
           if (!res || res.started === false) {
-            window.$message?.info(res?.already_running ? t('page.wiki.toc.organizeRunning') : t('page.wiki.toc.organizeEmpty'));
+            if (res?.already_running) {
+              window.$message?.info(t('page.wiki.toc.organizeRunning'));
+              pollOrganize(kbId, startedAt);
+              return;
+            }
             setOrganizing(false);
+            window.$message?.info(t('page.wiki.toc.organizeEmpty'));
             return;
           }
-          const before: number = res.loose || 0;
-          const deadline = Date.now() + 12 * 60 * 1000;
-          const poll = async () => {
-            try {
-              const { nodes } = await getWikiToc(kbId);
-              const loose = (nodes || []).filter((n: Api.Wiki.TocNode) => n.type !== 'folder').length;
-              if (loose < before) {
-                onRefresh();
-                window.$message?.success(t('page.wiki.toc.organizeDone', { moved: before - loose }));
-                setOrganizing(false);
-                return;
-              }
-              if (Date.now() > deadline) {
-                window.$message?.error(t('page.wiki.toc.organizeFailed'));
-                setOrganizing(false);
-                return;
-              }
-            } catch {
-              // transient poll failure — keep waiting until the deadline
-            }
-            setTimeout(poll, 6000);
-          };
-          setTimeout(poll, 6000);
+          pollOrganize(kbId, startedAt);
         } catch (e: any) {
           window.$message?.error(e?.response?.data?.error?.reason ?? e?.message ?? t('page.wiki.toc.organizeFailed'));
           setOrganizing(false);
@@ -601,6 +630,25 @@ export function WikiShell({ kbId, articleId, children }: Props) {
       }
     });
   };
+  // a reload mid-run (or a pass triggered outside the UI) should still show
+  // the in-progress state instead of an idle button
+  useEffect(() => {
+    if (!kbId) return undefined;
+    let cancelled = false;
+    getWikiTocOrganizeStatus(kbId)
+      .then(st => {
+        if (!cancelled && st?.running) {
+          setOrganizing(true);
+          pollOrganize(kbId, Date.now() - 60_000);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kbId]);
+  useEffect(() => stopOrganizePolling, []);
 
   // the hub card wall is now the sider's "workspace home" entry
   const isHub = location.pathname === '/wiki/list' || location.pathname === '/wiki';

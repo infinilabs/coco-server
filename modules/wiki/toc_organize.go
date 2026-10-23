@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
@@ -43,37 +44,86 @@ const (
 )
 
 // organizeRunGuard keeps one organize pass per KB — a second click while the
-// first is still classifying would race on the tree save.
+// first is still classifying would race on the tree save — and remembers the
+// last outcome so the status endpoint can answer across page reloads.
 type organizeRunGuard struct {
 	mu sync.Mutex
-	m  map[string]bool
+	m  map[string]*organizeRunState
 }
 
-func (g *organizeRunGuard) TryReserve(kbID string) bool {
+type organizeRunState struct {
+	Running    bool
+	StartLoose int
+	Last       *organizeStats
+	LastErr    string
+	LastAt     time.Time
+}
+
+func (g *organizeRunGuard) TryReserve(kbID string, loose int) bool {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	if g.m == nil {
-		g.m = map[string]bool{}
+		g.m = map[string]*organizeRunState{}
 	}
-	if g.m[kbID] {
+	st := g.m[kbID]
+	if st != nil && st.Running {
 		return false
 	}
-	g.m[kbID] = true
+	g.m[kbID] = &organizeRunState{Running: true, StartLoose: loose}
 	return true
 }
 
-func (g *organizeRunGuard) Release(kbID string) {
+// Finish closes a run and records its outcome for the status endpoint.
+func (g *organizeRunGuard) Finish(kbID string, stats *organizeStats, runErr error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	delete(g.m, kbID)
+	st := g.m[kbID]
+	if st == nil {
+		return
+	}
+	st.Running = false
+	st.Last, st.LastAt = stats, time.Now()
+	if runErr != nil {
+		st.LastErr = runErr.Error()
+	} else {
+		st.LastErr = ""
+	}
+}
+
+func (g *organizeRunGuard) State(kbID string) organizeRunState {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if st := g.m[kbID]; st != nil {
+		return *st
+	}
+	return organizeRunState{}
 }
 
 var organizeRuns organizeRunGuard
 
-const organizeCategoryPrompt = `You are organizing the table of contents of a knowledge base.
-You will see a sample of page titles. Propose between 4 and 10 category names that group them meaningfully by topic.
-Rules: short names (2-8 characters for Chinese), the same language as the titles, mutually exclusive, no numbering, no explanations.
-Return ONLY a JSON array of strings, e.g. ["产品与服务","数据与检索","部署与运维"].`
+// organizeFolderAIPrefix marks folders this feature created — a merge into
+// one of them re-sorts the children (they were alphabetical anyway), while
+// hand-built folders keep their manual child order.
+const organizeFolderAIPrefix = "folder-ai-"
+
+// buildProposalPrompt adapts the category proposal to the run: small page
+// sets would be shredded by the full 4-10 spread, and existing folder names
+// come first so repeated runs consolidate instead of spawning synonyms.
+func buildProposalPrompt(pageCount int, existingTitles []string) string {
+	minCats := organizeMinCats
+	if pageCount < 24 {
+		minCats = 2
+	}
+	var b strings.Builder
+	b.WriteString("You are organizing the table of contents of a knowledge base.\n")
+	fmt.Fprintf(&b, "You will see a sample of page titles. Propose between %d and %d category names that group them meaningfully by topic.\n", minCats, organizeMaxCats)
+	if len(existingTitles) > 0 {
+		fmt.Fprintf(&b, "Existing folders: %s. Reuse these names where they fit; propose new ones only for topics with no home among them.\n", strings.Join(existingTitles, " | "))
+	}
+	b.WriteString("Rules: short names (2-8 characters for Chinese), the same language as the titles, mutually exclusive, no numbering, no explanations.\n")
+	b.WriteString(`Return ONLY a JSON array of strings, e.g. ["产品与服务","数据与检索","部署与运维"].`)
+	return b.String()
+}
 
 const organizeAssignPrompt = `You are filing knowledge-base pages into fixed categories.
 For every page id given, choose exactly ONE category from the allowed list. Judge by the title.
@@ -81,10 +131,13 @@ Rules: every id in the input must appear exactly once in the output; use only al
 Return ONLY a JSON array of objects {"id":"...","category":"..."} .`
 
 // organizeStats reports what one organize pass did — surfaced in the HTTP
-// response, the evolution log and the UI toast.
+// response, the evolution log and the UI toast. Moved counts every re-filed
+// page (new folders + merges alike); Merged is the subset that landed in
+// folders the tree already had.
 type organizeStats struct {
 	Loose       int      `json:"loose"`
 	Moved       int      `json:"moved"`
+	Merged      int      `json:"merged"`
 	Categories  []string `json:"categories"`
 	KeptFolders int      `json:"kept_folders"`
 	Other       int      `json:"other"`
@@ -161,31 +214,35 @@ func extractJSONArray(s, _ string) string {
 }
 
 // buildOrganizedToc re-files the loose root articles into category folders.
-// Manual folders (with their whole subtrees) keep their order at the top;
-// category folders follow in proposal order; articles inside a folder are
-// alphabetical; anything unassigned or filed into an invented category lands
-// in the fallback folder (only created when non-empty).
+// Existing folders keep their order at the top (whole subtrees intact); a
+// category whose name matches an existing folder files INTO it instead of
+// spawning a sibling synonym; brand-new category folders follow in proposal
+// order; anything unassigned or filed into an invented category lands in the
+// fallback folder (only created when non-empty).
 func buildOrganizedToc(existing []core.WikiTocNode, assigns map[string]string, categories []string, folderIDSuffix string) ([]core.WikiTocNode, organizeStats) {
 	stats := organizeStats{Categories: []string{}}
-	out := make([]core.WikiTocNode, 0, len(existing))
 
-	kept := []core.WikiTocNode{}
-	buckets := map[string][]core.WikiTocNode{}
-	catSet := map[string]bool{}
-	for _, c := range categories {
-		catSet[c] = true
-	}
+	folders := []core.WikiTocNode{}
+	folderIdx := map[string]int{} // title → position in folders, for merging
 	var loose []core.WikiTocNode
 	for _, n := range existing {
 		if n.Type == "folder" {
-			kept = append(kept, n)
+			if _, dup := folderIdx[n.Title]; !dup {
+				folderIdx[n.Title] = len(folders)
+			}
+			folders = append(folders, n)
 			continue
 		}
 		loose = append(loose, n)
 	}
 	stats.Loose = len(loose)
-	stats.KeptFolders = len(kept)
+	stats.KeptFolders = len(folders)
 
+	buckets := map[string][]core.WikiTocNode{}
+	catSet := map[string]bool{}
+	for _, c := range categories {
+		catSet[c] = true
+	}
 	for _, n := range loose {
 		cat, ok := assigns[n.ArticleID]
 		if !ok || !catSet[cat] {
@@ -199,35 +256,45 @@ func buildOrganizedToc(existing []core.WikiTocNode, assigns map[string]string, c
 		sort.SliceStable(ns, func(i, j int) bool { return ns[i].Title < ns[j].Title })
 	}
 
-	out = append(out, kept...)
+	// fileBucket lands one category's pages, merging into an existing folder
+	// of the same title when there is one (AI folders re-sort alphabetically,
+	// hand-built folders keep their manual child order and just append).
+	fileBucket := func(cat string, ns []core.WikiTocNode) {
+		if idx, ok := folderIdx[cat]; ok {
+			f := folders[idx]
+			f.Children = append(f.Children, ns...)
+			if strings.HasPrefix(f.ID, organizeFolderAIPrefix) {
+				byTitle(f.Children)
+			}
+			folders[idx] = f
+			stats.Merged += len(ns)
+			return
+		}
+		byTitle(ns)
+		folders = append(folders, core.WikiTocNode{
+			ID:       organizeFolderID(cat, folderIDSuffix),
+			Title:    cat,
+			Type:     "folder",
+			Children: ns,
+		})
+	}
+
 	for _, c := range categories {
 		ns := buckets[c]
 		if len(ns) == 0 {
 			continue // a category nobody landed in must not leave an empty folder
 		}
-		byTitle(ns)
-		out = append(out, core.WikiTocNode{
-			ID:       organizeFolderID(c, folderIDSuffix),
-			Title:    c,
-			Type:     "folder",
-			Children: ns,
-		})
+		fileBucket(c, ns)
 		stats.Categories = append(stats.Categories, c)
 		stats.Moved += len(ns)
 	}
 	if ns := buckets[organizeFallbackCategory]; len(ns) > 0 {
-		byTitle(ns)
-		out = append(out, core.WikiTocNode{
-			ID:       organizeFolderID(organizeFallbackCategory, folderIDSuffix),
-			Title:    organizeFallbackCategory,
-			Type:     "folder",
-			Children: ns,
-		})
+		fileBucket(organizeFallbackCategory, ns)
 		stats.Categories = append(stats.Categories, organizeFallbackCategory)
 		stats.Moved += len(ns)
 		stats.Other = len(ns)
 	}
-	return out, stats
+	return folders, stats
 }
 
 // organizeFolderID derives a stable id from the category so a re-run moves
@@ -280,7 +347,16 @@ func OrganizeTocSemantically(parent context.Context, kbID string) (*organizeStat
 	copy(order, loose)
 	sort.SliceStable(order, func(i, j int) bool { return order[i].Title < order[j].Title })
 
-	categories, assigns, err := classifyForOrganize(parent, order)
+	// existing folder names go into the proposal so repeat runs consolidate
+	// into the folders the tree already has instead of spawning synonyms
+	existingTitles := make([]string, 0, len(toc.Nodes))
+	for _, n := range toc.Nodes {
+		if n.Type == "folder" {
+			existingTitles = append(existingTitles, n.Title)
+		}
+	}
+
+	categories, assigns, err := classifyForOrganize(parent, order, existingTitles)
 	if err != nil {
 		return nil, err
 	}
@@ -299,7 +375,7 @@ func OrganizeTocSemantically(parent context.Context, kbID string) (*organizeStat
 
 // classifyForOrganize runs the two LLM phases: propose categories from a
 // title sample, then assign every loose article to one of them.
-func classifyForOrganize(ctx context.Context, order []core.WikiTocNode) ([]string, map[string]string, error) {
+func classifyForOrganize(ctx context.Context, order []core.WikiTocNode, existingTitles []string) ([]string, map[string]string, error) {
 	model := llmmodule.ResolveModel(core.LLMTypeLanguage, nil)
 	if model == nil {
 		return nil, nil, fmt.Errorf("no default language model configured")
@@ -314,7 +390,7 @@ func classifyForOrganize(ctx context.Context, order []core.WikiTocNode) ([]strin
 		sample = sample[:organizeSampleSize]
 	}
 	catResp, err := llm.GenerateContent(ctx, []llms.MessageContent{
-		langchain.SystemTextParts(organizeCategoryPrompt),
+		langchain.SystemTextParts(buildProposalPrompt(len(order), existingTitles)),
 		llms.TextParts(llms.ChatMessageTypeHuman, titlesBlock(sample)),
 	}, llms.WithMaxTokens(400))
 	if err != nil {
@@ -367,25 +443,33 @@ func titlesBlock(nodes []core.WikiTocNode) string {
 	return b.String()
 }
 
-func (h *APIHandler) organizeToc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-	kbID := ps.ByName("id")
-	userID := requestUserID(req)
-
-	// read-side precheck for an honest immediate answer (no loose pages →
-	// nothing to do) and the count the UI polls against
-	ctx := orm.NewContextWithParent(req.Context())
+// countLooseRootArticles reads a KB's toc and counts the un-filed root
+// articles — the precheck for "nothing to do" and the number the UI shows.
+func countLooseRootArticles(kbID string) (int, error) {
+	ctx := orm.NewContext()
 	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	orm.WithModel(ctx, &core.WikiToc{})
 	toc, _, err := findToc(ctx, kbID)
 	if err != nil {
-		h.WriteError(w, err.Error(), http.StatusInternalServerError)
-		return
+		return 0, err
 	}
 	loose := 0
 	for _, n := range toc.Nodes {
 		if n.Type != "folder" && n.ArticleID != "" {
 			loose++
 		}
+	}
+	return loose, nil
+}
+
+func (h *APIHandler) organizeToc(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	kbID := ps.ByName("id")
+	userID := requestUserID(req)
+
+	loose, err := countLooseRootArticles(kbID)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	if loose == 0 {
 		h.WriteJSON(w, util.MapStr{"started": false, "loose": 0}, http.StatusOK)
@@ -394,30 +478,58 @@ func (h *APIHandler) organizeToc(w http.ResponseWriter, req *http.Request, ps ht
 
 	// the two-phase classification makes 1 + N model calls and a slow model
 	// pushes that past any sane HTTP timeout — run it in the background
-	// (the eval-replay pattern) and let the UI poll the tree until the
-	// loose count drops
-	if !organizeRuns.TryReserve(kbID) {
+	// (the eval-replay pattern) and let the UI poll the status endpoint
+	if !organizeRuns.TryReserve(kbID, loose) {
 		h.WriteJSON(w, util.MapStr{"started": false, "already_running": true, "loose": loose}, http.StatusTooManyRequests)
 		return
 	}
 	go func() {
-		defer organizeRuns.Release(kbID)
-		defer func() {
-			if r := recover(); r != nil {
-				log.Warnf("wiki: toc organize recovered: %v", r)
-			}
+		stats, runErr := func() (stats *organizeStats, runErr error) {
+			defer func() {
+				if r := recover(); r != nil {
+					stats, runErr = nil, fmt.Errorf("panic: %v", r)
+					log.Warnf("wiki: toc organize recovered: %v", r)
+				}
+			}()
+			return OrganizeTocSemantically(context.Background(), kbID)
 		}()
-		stats, err := OrganizeTocSemantically(context.Background(), kbID)
-		if err != nil {
-			log.Warnf("wiki: toc organize failed for kb %s: %v", kbID, err)
+		organizeRuns.Finish(kbID, stats, runErr)
+		if runErr != nil {
+			log.Warnf("wiki: toc organize failed for kb %s: %v", kbID, runErr)
 			return
 		}
 		AppendEvolutionEntry(orm.NewContext(), kbID, core.WikiEvolutionTocOrganize, userID,
 			"kb", kbID,
-			fmt.Sprintf("semantic toc organize: %d loose pages filed into %d categories (%d manual folders kept)", stats.Moved, len(stats.Categories), stats.KeptFolders),
-			map[string]interface{}{"categories": stats.Categories, "moved": stats.Moved, "other": stats.Other, "kept_folders": stats.KeptFolders})
-		log.Infof("wiki: toc organize kb %s: %d pages into %v", kbID, stats.Moved, stats.Categories)
+			fmt.Sprintf("semantic toc organize: %d loose pages filed into %d categories (%d into existing folders, %d folders kept)", stats.Moved, len(stats.Categories), stats.Merged, stats.KeptFolders),
+			map[string]interface{}{"categories": stats.Categories, "moved": stats.Moved, "merged": stats.Merged, "other": stats.Other, "kept_folders": stats.KeptFolders})
+		log.Infof("wiki: toc organize kb %s: %d pages into %v (%d merged)", kbID, stats.Moved, stats.Categories, stats.Merged)
 	}()
 
 	h.WriteJSON(w, util.MapStr{"started": true, "loose": loose}, http.StatusOK)
+}
+
+// organizeTocStatus answers "is a pass running and what did the last one
+// do" — the polling target that survives page reloads (a UI that reloads
+// mid-run picks its spinner back up from here).
+func (h *APIHandler) organizeTocStatus(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	kbID := ps.ByName("id")
+	st := organizeRuns.State(kbID)
+	resp := util.MapStr{"running": st.Running}
+	if st.Running {
+		resp["loose"] = st.StartLoose
+	} else if loose, err := countLooseRootArticles(kbID); err == nil {
+		resp["loose"] = loose
+	} else {
+		resp["loose"] = -1
+	}
+	if st.Last != nil {
+		resp["last"] = st.Last
+	}
+	if st.LastErr != "" {
+		resp["last_error"] = st.LastErr
+	}
+	if !st.LastAt.IsZero() {
+		resp["last_at"] = st.LastAt.Format(time.RFC3339)
+	}
+	h.WriteJSON(w, resp, http.StatusOK)
 }
