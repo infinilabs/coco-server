@@ -56,6 +56,8 @@ func (this *Coco) Setup() {
 	orm.MustRegisterSchemaWithIndexName(core.WikiLike{}, "wiki-like"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.WikiEntity{}, "wiki-entity"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.WikiOntologySchema{}, "wiki-ontology-schema"+suffix)
+	// contribution inverted index doc→page (incremental-compile P2)
+	orm.MustRegisterSchemaWithIndexName(core.WikiContribution{}, "wiki-contribution"+suffix)
 }
 
 func (this *Coco) Start() error {

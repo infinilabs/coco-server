@@ -304,6 +304,19 @@ type WikiArticle struct {
 	Skill *WikiSkill `json:"skill,omitempty" elastic_mapping:"skill:{type:object,enabled:false}"`
 }
 
+// WikiContribution is the persistent inverted index doc → page over article
+// Sources (incremental-compile P2): the compile lane turns changed doc ids
+// into the affected page set without scanning every article. ID is
+// deterministic (md5 of kb|doc|page) so re-syncs are idempotent.
+// Scope: articles only — entities live in the ontology pool and never feed
+// the topic compiler's claim pool.
+type WikiContribution struct {
+	orm.ORMObjectBase
+	KbID   string `json:"kb_id" elastic_mapping:"kb_id:{type:keyword}"`
+	DocID  string `json:"doc_id" elastic_mapping:"doc_id:{type:keyword}"`
+	PageID string `json:"page_id" elastic_mapping:"page_id:{type:keyword}"`
+}
+
 // WikiPattern is the structured body of a pattern page (the WikiSkill
 // pattern-page shape: PROBLEM + ROOT CAUSE + FIX in 10-30 lines). Evidence
 // points at the experience records / documents it was distilled from.

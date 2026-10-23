@@ -443,11 +443,65 @@ func runCompilePipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *
 	}
 
 	// MAP over chunk batches with fingerprint cache
+	allExtracts := mapDocumentsForCompile(ctx, model, job, docs, summary)
+	summary.Extracts = len(allExtracts)
+	if job != nil {
+		job.Extracts = summary.Extracts
+	}
+	if len(allExtracts) == 0 {
+		if job != nil {
+			job.log("no extracts — nothing to compile")
+			job.finish("done")
+		}
+		return summary, nil
+	}
+
+	// REDUCE
+	if job != nil {
+		job.Stage = "reduce"
+	}
+	reduced := ReduceExtracts(allExtracts)
+	summary.Reduced = len(reduced)
+	if job != nil {
+		job.Reduced = summary.Reduced
+		job.log("reduced to %d keys", summary.Reduced)
+	}
+
+	// TOPIC PIPELINE (DESIGN-topic-pages.md): pages are subjects, not
+	// single entities — CLUSTER the reduced keys into topics, NAME them,
+	// plan each page's OUTLINE, FILL its sections from the pooled claims,
+	// and file one rich proposal per topic. The per-entity article path is
+	// retired: entities live in the ontology pool, peer to pages.
+	pctx := orm.NewContext()
+	// the write flag passes create/update hooks; the READ flag is what the
+	// search hooks bypass on — compileGeneration searches with this same
+	// context to derive each proposal's generation, and without it the
+	// first proposal filing panicked the whole compile
+	pctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	pctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	existing := compileExistingArticles(ctx, kb.ID)
+	summary.Proposals = runTopicPipeline(ctx, kb, model, job, reduced, existing, summary.Docs, pctx)
+	if job != nil {
+		job.log("filed %d topic proposals", summary.Proposals)
+	}
+
+	// dimension organization: propose a TOC that groups the KB's pages into
+	// 客户与组织 / 产品与服务 / 专题与概念 folders — the human confirms it in
+	// the governance queue, confirming applies the tree
+	proposeTreeOrganization(pctx, kb, existing)
+	return summary, nil
+}
+
+// mapDocumentsForCompile is the MAP stage shared by the full and the
+// incremental pipelines: per-document chunk batches through the LLM with
+// the fingerprint cache — unchanged documents replay from cache at zero
+// LLM cost.
+func mapDocumentsForCompile(ctx context.Context, model *core.ModelId, job *CompileJob, docs []core.Document, summary *compileSummary) []CompileExtract {
 	var allExtracts []CompileExtract
 	for _, doc := range docs {
 		if job != nil {
 			if job.cancelled() {
-				return summary, context.Canceled
+				return allExtracts
 			}
 			job.Current = doc.Title
 		}
@@ -458,7 +512,7 @@ func runCompilePipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *
 		}
 		for bi, batch := range batches {
 			if job != nil && job.cancelled() {
-				return summary, context.Canceled
+				return allExtracts
 			}
 			fp, _, okFp := fingerprint.Compute(fmt.Sprintf("%s|%s/%s|%s", model.ProviderID, model.ID, doc.ID, fingerprint.Normalize(batch)))
 			if !okFp {
@@ -504,11 +558,101 @@ func runCompilePipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *
 			allExtracts = append(allExtracts, extracts...)
 		}
 	}
-	summary.Extracts = len(allExtracts)
+	return allExtracts
+}
+
+/* ---------------- incremental pipeline (compileops P2) ---------------- */
+
+// opDocIDsOf lists the distinct non-empty op doc ids.
+func opDocIDsOf(ops []CompileOp) []string {
+	seen := map[string]bool{}
+	var ids []string
+	for _, op := range ops {
+		if op.DocID != "" && !seen[op.DocID] {
+			seen[op.DocID] = true
+			ids = append(ids, op.DocID)
+		}
+	}
+	return ids
+}
+
+// compileDocsByIDs loads exactly the documents an incremental pass maps —
+// deleted ids simply drop out of the claim pool.
+func compileDocsByIDs(ctx context.Context, docIDs []string) []core.Document {
+	if len(docIDs) == 0 {
+		return nil
+	}
+	octx := orm.NewContextWithParent(ctx)
+	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(octx, &core.Document{})
+	docs := make([]core.Document, 0, len(docIDs))
+	for _, id := range docIDs {
+		doc := core.Document{}
+		doc.ID = id
+		exists, err := orm.GetV2(octx, &doc)
+		if err != nil || !exists {
+			continue
+		}
+		doc.Content = StripImageMarkers(doc.Content)
+		docs = append(docs, doc)
+	}
+	return docs
+}
+
+// kbDocumentCount is the topic-clustering基数 the full pipeline feeds on
+// (maxTopics = docCount/3): incremental passes map a subset, but topics
+// must cap against the whole corpus like a full run would.
+func kbDocumentCount(ctx context.Context, kb *core.WikiKnowledgeBase) int {
+	if len(kb.DatasourceIDs) == 0 {
+		return 0
+	}
+	octx := orm.NewContextWithParent(ctx)
+	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(octx, &core.Document{})
+	res, err := orm.SearchV2(octx, orm.NewQuery().Size(1).
+		Filter(orm.TermsQuery("source.id", kb.DatasourceIDs)))
+	if err != nil || res == nil {
+		return 0
+	}
+	_, total, derr := elastic.DecodeHits[core.Document](res)
+	if derr != nil {
+		return 0
+	}
+	return int(total)
+}
+
+// runIncrementalCompile reconciles only what a corpus change can touch
+// (DESIGN-incremental-compile.md 3.4): op docs ∪ the docs cited by the
+// affected pages are mapped — the cited-but-unchanged ones replay from the
+// fingerprint cache so claim pools stay whole — then reduced and fed
+// through the same topic pipeline with the FULL existing page list, so
+// matching and generation behave exactly like a full run. Topics no
+// changed document feeds are never proposed; proposals-only stays the
+// contract.
+func runIncrementalCompile(ctx context.Context, kb *core.WikiKnowledgeBase, model *core.ModelId, job *CompileJob, ops []CompileOp) (*compileSummary, error) {
+	summary := &compileSummary{}
+
+	opDocs := opDocIDsOf(ops)
+	byDoc := contributionsForDocs(ctx, kb.ID, opDocs)
+	scope := planIncrementalScope(ops, byDoc, nil) // phase 1: affected pages
+	byPage := contributionsForPages(ctx, kb.ID, scope.AffectedPages)
+	scope = planIncrementalScope(ops, byDoc, byPage) // phase 2: full map scope
+
+	if job != nil {
+		job.log("incremental scope: %d ops, %d affected pages, %d docs to map", len(ops), len(scope.AffectedPages), len(scope.MapDocs))
+	}
+	docs := compileDocsByIDs(ctx, scope.MapDocs)
+	summary.Docs = len(docs)
+	if job != nil {
+		job.Docs = summary.Docs
+	}
+
+	extracts := mapDocumentsForCompile(ctx, model, job, docs, summary)
+	summary.Extracts = len(extracts)
 	if job != nil {
 		job.Extracts = summary.Extracts
 	}
-	if len(allExtracts) == 0 {
+	if len(extracts) == 0 {
 		if job != nil {
 			job.log("no extracts — nothing to compile")
 			job.finish("done")
@@ -516,38 +660,30 @@ func runCompilePipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *
 		return summary, nil
 	}
 
-	// REDUCE
 	if job != nil {
 		job.Stage = "reduce"
 	}
-	reduced := ReduceExtracts(allExtracts)
+	reduced := ReduceExtracts(extracts)
 	summary.Reduced = len(reduced)
 	if job != nil {
 		job.Reduced = summary.Reduced
 		job.log("reduced to %d keys", summary.Reduced)
 	}
 
-	// TOPIC PIPELINE (DESIGN-topic-pages.md): pages are subjects, not
-	// single entities — CLUSTER the reduced keys into topics, NAME them,
-	// plan each page's OUTLINE, FILL its sections from the pooled claims,
-	// and file one rich proposal per topic. The per-entity article path is
-	// retired: entities live in the ontology pool, peer to pages.
 	pctx := orm.NewContext()
-	// the write flag passes create/update hooks; the READ flag is what the
-	// search hooks bypass on — compileGeneration searches with this same
-	// context to derive each proposal's generation, and without it the
-	// first proposal filing panicked the whole compile
+	// same flags as the full run: the write flag passes create/update
+	// hooks; compileGeneration needs the read flag to derive generations
 	pctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 	pctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	existing := compileExistingArticles(ctx, kb.ID)
-	summary.Proposals = runTopicPipeline(ctx, kb, model, job, reduced, existing, summary.Docs, pctx)
-	if job != nil {
-		job.log("filed %d topic proposals", summary.Proposals)
+	docCount := kbDocumentCount(ctx, kb)
+	if docCount == 0 {
+		docCount = summary.Docs
 	}
-
-	// dimension organization: propose a TOC that groups the KB's pages into
-	// 客户与组织 / 产品与服务 / 专题与概念 folders — the human confirms it in
-	// the governance queue, confirming applies the tree
+	summary.Proposals = runTopicPipeline(ctx, kb, model, job, reduced, existing, docCount, pctx)
+	if job != nil {
+		job.log("filed %d topic proposals (incremental)", summary.Proposals)
+	}
 	proposeTreeOrganization(pctx, kb, existing)
 	return summary, nil
 }

@@ -265,4 +265,5 @@ func init() {
 	scheduleSeedBuiltinKmAssistant()
 	scheduleBackfillDraftEntityContent()
 	scheduleBackfillLinkedPages()
+	scheduleReconcileContributions()
 }

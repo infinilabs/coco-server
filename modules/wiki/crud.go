@@ -171,6 +171,7 @@ func articleConfig() crud.Config[core.WikiArticle] {
 				return err
 			}
 			persistLinkedPages(obj)
+			syncArticleContributions(obj)
 			if err := addArticleToToc(obj.KbID, obj.ID, obj.Title); err != nil {
 				return err
 			}
@@ -183,6 +184,9 @@ func articleConfig() crud.Config[core.WikiArticle] {
 				return err
 			}
 			persistLinkedPages(obj)
+			// contribution inverted index follows the article's Sources
+			// (incremental-compile P2)
+			syncArticleContributions(obj)
 			// published-article projection (W16a): content edits on a
 			// published page re-project; edits elsewhere reconcile to no row
 			SyncArticleProjection(obj)
@@ -193,6 +197,8 @@ func articleConfig() crud.Config[core.WikiArticle] {
 			if err := removeArticleProjection(obj.ID); err != nil {
 				log.Debugf("wiki: projection removal on delete failed for [%s]: %v", obj.ID, err)
 			}
+			// so do its contribution rows
+			dropPageContributions(nil, obj.ID)
 			ctx := orm.NewContext()
 			ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 			ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)

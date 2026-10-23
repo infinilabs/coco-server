@@ -839,11 +839,14 @@ func pruneOldVersions(articleID string) {
 // snapshotPipelineWrite versions agent/pipeline-authored content so every
 // non-human write stays visible and revertable in the history UI — the
 // compile/rebuild/backfill paths write outside the save handler and would
-// otherwise be invisible to 版本历史.
+// otherwise be invisible to 版本历史. It is also the choke point where the
+// contribution inverted index follows the pipeline's Sources changes
+// (incremental-compile P2).
 func snapshotPipelineWrite(article *core.WikiArticle, changeSummary string) {
 	if err := writeVersionSnapshot(article, nextVersionNumber(article.ID), core.WikiChangeAIGenerated, changeSummary); err != nil {
 		log.Warnf("wiki: pipeline version snapshot failed for [%s]: %v", article.Title, err)
 	}
+	syncArticleContributions(article)
 }
 
 // writeVersionIfChanged snapshots only when the content differs from the

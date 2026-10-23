@@ -360,7 +360,22 @@ func runLaneCompile(ctx context.Context, kbID string, ops []CompileOp) {
 	job.cancel = func() {}
 	compileJobs.Store(kbID, job)
 
-	summary, err := runCompilePipeline(octx, &kb, model, job)
+	// doc-scoped ops run the incremental pipeline (compileops P2): only the
+	// changed docs and the pages citing them are reconciled; a whole-corpus
+	// op (empty doc_id) falls back to the full run
+	var summary *compileSummary
+	wholeCorpus := false
+	for _, op := range ops {
+		if op.DocID == "" {
+			wholeCorpus = true
+			break
+		}
+	}
+	if wholeCorpus {
+		summary, err = runCompilePipeline(octx, &kb, model, job)
+	} else {
+		summary, err = runIncrementalCompile(octx, &kb, model, job, ops)
+	}
 	if err != nil {
 		job.finish("failed")
 		noteCompileFailure(kbID)
@@ -370,8 +385,8 @@ func runLaneCompile(ctx context.Context, kbID string, ops []CompileOp) {
 	}
 	deleteCompileOps(kbID)
 	job.finish("done")
-	log.Infof("wiki compileops: lane run for kb [%s] — %d ops consumed, %d extracts, %d reduced, %d proposals",
-		kb.Name, len(ops), summary.Extracts, summary.Reduced, summary.Proposals)
+	log.Infof("wiki compileops: lane run for kb [%s] — %d ops consumed (wholeCorpus=%v), %d extracts, %d reduced, %d proposals",
+		kb.Name, len(ops), wholeCorpus, summary.Extracts, summary.Reduced, summary.Proposals)
 }
 
 /* ---------------- HTTP: dead letter ---------------- */
