@@ -138,6 +138,7 @@ export const ResultDetail: FC<ResultDetailProps> = props => {
             preview: t('labels.preview'),
             previewUnavailableTitle: t('labels.previewUnavailableTitle'),
             previewUnavailableDescription: t('labels.previewUnavailableDescription'),
+            capturedSummary: t('labels.capturedSummary'),
             openSource: t('labels.openSourceFromPreview'),
             aiInterpretation: t('labels.aiInterpretation')
           }

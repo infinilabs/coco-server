@@ -103,6 +103,7 @@ const resources = {
         previewUnavailableTitle: "This document can't be previewed",
         previewUnavailableDescription:
           'The document format may be unsupported or the content is temporarily unavailable',
+        capturedSummary: 'Only a summary was captured from the original source:',
         openSourceFromPreview: 'Open Source',
         fileLoading: 'File Loading...',
         fileLoadFailed: 'File Load Failed',
@@ -409,6 +410,7 @@ const resources = {
         preview: '预览',
         previewUnavailableTitle: '该文档暂无预览',
         previewUnavailableDescription: '可能是文档格式不支持或内容暂不可用',
+        capturedSummary: '仅采集到以下摘要内容：',
         openSourceFromPreview: '打开来源',
         fileLoading: '文件加载中...',
         fileLoadFailed: '文件加载失败',

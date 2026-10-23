@@ -203,6 +203,7 @@ export const PreviewContent: FC<PreviewContentProps> = props => {
           preview: t('page.preview.labels.preview'),
           previewUnavailableTitle: t('page.preview.labels.previewUnavailableTitle'),
           previewUnavailableDescription: t('page.preview.labels.previewUnavailableDescription'),
+          capturedSummary: t('page.preview.hints.capturedSummary'),
           openSource: t('page.preview.labels.openSourceFromPreview'),
           aiInterpretation: t('page.preview.labels.aiInterpretation')
         }}

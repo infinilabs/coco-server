@@ -16,6 +16,7 @@ import {
   UserRound
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import Markdown from '@infinilabs/markdown';
 
 import { type ComponentType, type FC, type HTMLAttributes, type ReactNode, useMemo, useState } from 'react';
 import Preview from './components/Preview';
@@ -67,6 +68,8 @@ export type MetadataContentType = 'docx' | 'image' | 'markdown' | 'pdf' | 'pptx'
 export interface DocDetailProps extends HTMLAttributes<HTMLDivElement> {
   readonly data: {
     id?: string;
+    /** captured body, when the connector/wiki stored one (no file stream behind it) */
+    content?: string;
     created?: ReactNode;
     updated?: ReactNode;
     /** compact variant of `updated` (e.g. short relative time) for the one-line meta header; falls back to `updated` */
@@ -148,6 +151,7 @@ export interface DocDetailProps extends HTMLAttributes<HTMLDivElement> {
       preview?: string;
       previewUnavailableTitle?: string;
       previewUnavailableDescription?: string;
+      capturedSummary?: string;
       openSource?: string;
       aiInterpretation?: string;
     };
@@ -384,6 +388,13 @@ const DocDetail: FC<DocDetailProps> = props => {
     !isInlinePreview &&
     !hasCollapsiblePreview;
 
+  // link-only documents (wiki/RSS/Hugo captures) have no file stream to
+  // preview, but the hit itself carries the captured body — content first,
+  // summary as the fallback — which beats the empty state every time
+  const hasFilePreview = isInlinePreview || hasCollapsiblePreview || hasGenericPreview;
+  const capturedBody: string = hasFilePreview ? '' : data?.content || data?.summary || '';
+  const isSummaryOnly = Boolean(capturedBody) && !data?.content;
+
   const collapseItems = useMemo(() => {
     const items: { key: string; label: ReactNode | string; children: ReactNode }[] = [];
 
@@ -432,7 +443,7 @@ const DocDetail: FC<DocDetailProps> = props => {
     return items;
   }, [hasCollapsiblePreview, data?.ai_insights?.text, i18n, props]);
 
-  const isContentEmpty = !isInlinePreview && collapseItems.length === 0 && !hasGenericPreview;
+  const isContentEmpty = !isInlinePreview && collapseItems.length === 0 && !hasGenericPreview && !capturedBody;
   // whether any rendered section follows the inline preview in the scroll area
   const hasContentBelow = collapseItems.length > 0 || hasGenericPreview;
 
@@ -567,6 +578,18 @@ const DocDetail: FC<DocDetailProps> = props => {
               src={data?.metadata?.raw_content}
               title={data?.title || 'File preview'}
             />
+          </div>
+        )}
+        {capturedBody && (
+          <div className='flex-1 min-h-0 flex flex-col overflow-hidden'>
+            {isSummaryOnly && (
+              <div className='mb-8px shrink-0 text-12px text-[#999] dark:text-[#666]'>
+                {i18n?.labels?.capturedSummary ?? 'Only a summary was captured from the original source:'}
+              </div>
+            )}
+            <div className='min-h-360px flex-1 overflow-auto'>
+              <Markdown content={capturedBody} />
+            </div>
           </div>
         )}
         {isContentEmpty && (
