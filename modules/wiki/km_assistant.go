@@ -60,6 +60,7 @@ func seedBuiltinKmAssistant() {
 		Type:        "data_processing",
 		Enabled:     true,
 		Builtin:     true,
+		Keepalive:   "30m",
 		RolePrompt:  builtinKmRolePrompt,
 	}
 	assistant.SetID(builtinKmAssistantID)

@@ -61,7 +61,8 @@ export const EditForm = memo((props: AssistantFormProps) => {
       }
       form.setFieldsValue({
         ...initialValues,
-        icon: initialValues.icon || 'font_coco'
+        icon: initialValues.icon || 'font_coco',
+        keepalive: initialValues.keepalive || '30m'
       });
     }
   }, [initialValues]);

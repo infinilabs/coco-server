@@ -140,7 +140,7 @@ export function Component() {
                 />
               </IconWrapper>
             )}
-            {permissions.read && permissions.update && hasEdit(record) ? (
+            {permissions.read && (record.builtin === true || (permissions.update && hasEdit(record))) ? (
               <a
                 className='ant-table-cell-ellipsis max-w-150px cursor-pointer text-[var(--ant-color-link)]'
                 onClick={() => nav(`/ai-assistant/edit/${record.id}`)}
@@ -245,7 +245,7 @@ export function Component() {
       render: (value: boolean, record: Assistant) => {
         return (
           <Switch
-            disabled={!permissions.update || !hasEdit(record)}
+            disabled={!permissions.update || (!hasEdit(record) && record.builtin !== true)}
             size='small'
             value={value}
             onChange={v => onEnabledChange(v, record)}
@@ -260,7 +260,11 @@ export function Component() {
       hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
         const items: MenuProps['items'] = [];
-        if (permissions.read && permissions.update && hasEdit(record)) {
+        // builtin assistants carry no owner (system-seeded): anyone who may
+        // update assistants can view/edit them — the backend only locks the
+        // name and forbids delete
+        const editable = permissions.update && (hasEdit(record) || record.builtin === true);
+        if (permissions.read && editable) {
           items.push({
             label: t('common.edit'),
             key: '2'
@@ -272,7 +276,7 @@ export function Component() {
             key: '1'
           });
         }
-        if (permissions.create && hasEdit(record)) {
+        if (permissions.create && (hasEdit(record) || record.builtin === true)) {
           items.push({
             label: t('common.clone'),
             key: '3'
