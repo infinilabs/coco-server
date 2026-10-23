@@ -514,9 +514,13 @@ export function fetchWikiKbGraph(kbId: string) {
   });
 }
 
-export function searchWikiEntities(ids?: string[]) {
+export function searchWikiEntities(ids?: string[], kbId?: string) {
   const searchParams = new URLSearchParams();
   if (ids?.length) searchParams.set('filter', `id:${ids.join(',')}`);
+  else if (kbId) searchParams.set('filter', `kb_id:${kbId}`);
+  // crud default page size is 10 — the wikilink autocomplete wants the KB's
+  // full entity pool (names + aliases), not the first page
+  searchParams.set('size', '1000');
   return request<{ hits: any }>({ method: 'get', url: `/wiki/entity/_search?${searchParams.toString()}` }).then(res => {
     const es = formatESSearchResult(res?.data);
     return ((es.data || []) as any[]).map(e => ({

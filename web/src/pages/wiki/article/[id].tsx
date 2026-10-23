@@ -248,7 +248,7 @@ export function Component() {
   const [editing, setEditing] = useState(false);
   const contentRef = useRef<any>(null);
   // entity picker options for the wikilink tool (loaded once per edit session)
-  const [entityOptions, setEntityOptions] = useState<{ value: string; type: string }[]>([]);
+  const [entityOptions, setEntityOptions] = useState<{ value: string; type: string; aliasOf?: string }[]>([]);
   // history stack: programmatic insertions break the textarea's native undo,
   // so the editor keeps its own snapshots (Ctrl+Z / Ctrl+Y)
   const undoStack = useRef<{ content: string; caret: number }[]>([]);
@@ -804,9 +804,20 @@ export function Component() {
     setDraft({ title: article.title, summary: article.summary, tags: article.tags, content: article.content });
     setEditing(true);
     setPreview(true);
-    searchWikiEntities()
+    // wikilink autocomplete pool: the KB's entities (entities are KB-scoped —
+    // cross-KB names would never resolve), names plus aliases so typing an
+    // alias still finds the entity (resolution is name-then-alias on save)
+    searchWikiEntities(undefined, kbId || article.kb_id)
       .then(res => {
-        setEntityOptions(((res as any)?.data || []).map((e: Api.Wiki.EntityInfo) => ({ value: e.name || '', type: e.type || '' })));
+        const opts: { value: string; type: string; aliasOf?: string }[] = [];
+        for (const e of ((res as any) || []) as Api.Wiki.EntityInfo[]) {
+          if (!e.name) continue;
+          opts.push({ value: e.name, type: e.type || '' });
+          for (const alias of (e.aliases as string[] | undefined) || []) {
+            if (alias && alias !== e.name) opts.push({ value: alias, type: e.type || '', aliasOf: e.name });
+          }
+        }
+        setEntityOptions(opts);
       })
       .catch(() => {});
   };

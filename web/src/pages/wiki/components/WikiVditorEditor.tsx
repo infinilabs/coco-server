@@ -7,6 +7,8 @@ import { uploadAttachment } from '@/service/api/ai-search';
 export interface WikiEntityOption {
   value: string;
   type: string;
+  /** the option is an alias entry — the canonical entity name to insert */
+  aliasOf?: string;
 }
 
 interface Props {
@@ -220,19 +222,25 @@ export function WikiVditorEditor({
           showSearch
           size='small'
           style={{ minWidth: 220 }}
-          placeholder='插入实体链接(搜索实体名)'
+          placeholder='插入实体链接(名称或别名搜索)'
           filterOption={(input, option) =>
             String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
           }
           value={null}
           onChange={(v: string) => {
             const opt = entityOptions.find(o => o.value === v);
-            insertEntity(v, opt?.type || 'concept');
+            // alias entry → insert the canonical name (resolution is
+            // name-then-alias, but canonical links read consistently)
+            insertEntity(opt?.aliasOf || v, opt?.type || 'concept');
           }}
         >
           {entityOptions.map(o => (
-            <Select.Option key={o.value} value={o.value}>
-              {o.type ? `${o.type} · ${o.value}` : o.value}
+            <Select.Option key={`${o.type}:${o.value}`} value={o.value}>
+              {o.aliasOf
+                ? `${o.type ? `${o.type} · ` : ''}${o.value} → ${o.aliasOf}`
+                : o.type
+                  ? `${o.type} · ${o.value}`
+                  : o.value}
             </Select.Option>
           ))}
         </Select>
