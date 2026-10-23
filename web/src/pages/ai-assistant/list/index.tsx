@@ -1,6 +1,6 @@
 import { CommentOutlined, EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
 import PageHeaderTitle from '@/components/stateless/common/PageHeaderTitle';
-import { Avatar, Button, Dropdown, Switch, Table, message } from 'antd';
+import { Avatar, Button, Dropdown, Switch, Table, Tag, message } from 'antd';
 import type { MenuProps, TableColumnsType, TableProps } from 'antd';
 import Search from 'antd/es/input/Search';
 
@@ -205,7 +205,12 @@ export function Component() {
       dataIndex: 'type',
       minWidth: 90,
       render: (value: string, record: Assistant) => {
-        return ['simple', 'deep_think', 'deep_research'].includes(value) ? t(`page.assistant.mode.${value}`) : '-';
+        if (!value) return '-';
+        // pipeline assistants never surface in chat pickers; tag them so the distinction is visible here
+        if (value === 'data_processing') return <Tag color="purple">{t('page.assistant.mode.data_processing')}</Tag>;
+        return ['simple', 'deep_think', 'deep_research', 'external_workflow'].includes(value)
+          ? t(`page.assistant.mode.${value === 'external_workflow' ? 'workflow' : value}`)
+          : value;
       }
     },
     {

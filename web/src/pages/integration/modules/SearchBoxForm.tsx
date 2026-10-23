@@ -229,7 +229,7 @@ export const SearchBoxForm = memo(props => {
               ]}
               className="mb-0px"
             >
-              <AIAssistantSelect allowClear mode="multiple" className={itemClassNames} onChange={(as) => {
+              <AIAssistantSelect allowClear mode="multiple" className={itemClassNames} filter={{ '!type': ['data_processing'] }} onChange={(as) => {
                 setAssistants(as)
                 const startPageSettings = form.getFieldValue('start_page') || {}
                 const { display_assistants = [] } = startPageSettings 
