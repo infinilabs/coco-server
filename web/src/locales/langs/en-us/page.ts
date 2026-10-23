@@ -172,6 +172,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       kindSkill: 'Skill proposed',
       kindGate: 'Gate verdict',
       kindAgent: 'Compile agent',
+      kindFreshness: 'Freshness sweep',
       expChat: 'Chat',
       expCorrection: 'Correction',
       expGap: 'Knowledge gap',

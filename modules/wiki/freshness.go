@@ -118,6 +118,7 @@ func freshnessSweep(ctx context.Context, llm llms.Model, since time.Time) freshn
 		if len(kbChanged) == 0 {
 			continue
 		}
+		kbRegenerated := 0
 		articles := citingArticles(ctx, kb.ID, changedIDs(kbChanged))
 		for j := range articles {
 			if processed >= freshnessMaxArticlesPerRun {
@@ -130,9 +131,22 @@ func freshnessSweep(ctx context.Context, llm llms.Model, since time.Time) freshn
 			}
 			processed++
 			stats.regenerated++
+			kbRegenerated++
 			notifyOwner(article.GetOwnerID(), "article", article.ID, "auto-updated",
 				fmt.Sprintf("Sources of %q changed; an auto-updated draft version is awaiting review", article.Title))
 			stats.notified++
+		}
+		// the sweep was a black box until now: a KB whose pages were
+		// regenerated gets one evolution entry per run, so the 进化 tab
+		// shows what freshness did without server logs. Runs that changed
+		// nothing stay silent — no log spam on quiet intervals.
+		if kbRegenerated > 0 {
+			AppendEvolutionEntry(orm.NewContextWithParent(ctx), kb.ID, core.WikiEvolutionFreshness, "freshness-sweep", "kb", kb.ID,
+				fmt.Sprintf("新鲜度巡检：%d 篇来源文档更新，重生成 %d 页（草稿待审）", len(kbChanged), kbRegenerated),
+				map[string]interface{}{
+					"changed_docs": len(kbChanged),
+					"regenerated":  kbRegenerated,
+				})
 		}
 	}
 	return stats

@@ -13,7 +13,8 @@ const KIND_COLOR: Record<string, string> = {
   pattern_distilled: 'purple',
   skill_proposed: 'geekblue',
   gate_verdict: 'cyan',
-  compile_agent: 'orange'
+  compile_agent: 'orange',
+  freshness: 'gold'
 };
 const KIND_LABEL: Record<string, string> = {
   proposal_applied: 'kindApplied',
@@ -21,7 +22,8 @@ const KIND_LABEL: Record<string, string> = {
   pattern_distilled: 'kindDistilled',
   skill_proposed: 'kindSkill',
   gate_verdict: 'kindGate',
-  compile_agent: 'kindAgent'
+  compile_agent: 'kindAgent',
+  freshness: 'kindFreshness'
 };
 const EXP_KIND_LABEL: Record<string, string> = { chat: 'expChat', correction: 'expCorrection', gap: 'expGap' };
 const FEEDBACK_LABEL: Record<string, string> = { positive: 'fbPositive', negative: 'fbNegative' };

@@ -248,21 +248,25 @@ func TestWikiFlow_EntityLifecycle(t *testing.T) {
 	kbH, artH, h := setupFlow(t)
 	_ = h
 
-	// seed the ontology: a store (aliased) and a campaign
+	// entities are scoped per knowledge base (isolated pools): the KB comes
+	// first, then its seeded store (aliased) and campaign carry kb_id — a
+	// global entity would be invisible to this KB's wikilink resolution by
+	// design
 	ctx := orm.NewContext()
 	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 
-	store := core.WikiEntity{Type: "store", Name: "Maxim's HK Store 001", Aliases: []string{"HK001"}, Status: core.WikiEntityProposed}
-	require.NoError(t, orm.Create(ctx, &store))
-	campaign := core.WikiEntity{Type: "campaign", Name: "Autumn Promo", Status: core.WikiEntityProposed}
-	require.NoError(t, orm.Create(ctx, &campaign))
-
-	// KB + entity page whose content wikilinks the campaign (typed) and
-	// an unknown concept (unresolvable)
 	w, out := call(t, kbH.Create, "POST", "/wiki/kb/", `{"name":"Ontology KB"}`)
 	require.Equal(t, http.StatusOK, w.Code)
 	kbID, _ := out["_id"].(string)
+	require.NotEmpty(t, kbID)
 
+	store := core.WikiEntity{KbID: kbID, Type: "store", Name: "Maxim's HK Store 001", Aliases: []string{"HK001"}, Status: core.WikiEntityProposed}
+	require.NoError(t, orm.Create(ctx, &store))
+	campaign := core.WikiEntity{KbID: kbID, Type: "campaign", Name: "Autumn Promo", Status: core.WikiEntityProposed}
+	require.NoError(t, orm.Create(ctx, &campaign))
+
+	// entity page whose content wikilinks the campaign (typed) and
+	// an unknown concept (unresolvable)
 	content := "## Definition\n\nStore page linking [[campaign:Autumn Promo]] and [[Unknown Concept]]."
 	w, out = call(t, artH.Create, "POST", "/wiki/article/", `{"kb_id":"`+kbID+`","title":"Store 001","page_type":"entity","entity_id":"`+store.ID+`","content":`+jsonString(content)+`}`)
 	require.Equal(t, http.StatusOK, w.Code)

@@ -172,6 +172,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       kindSkill: '技能提议',
       kindGate: '审核判定',
       kindAgent: '编译 Agent',
+      kindFreshness: '新鲜度巡检',
       expChat: '对话',
       expCorrection: '纠错',
       expGap: '知识缺口',
