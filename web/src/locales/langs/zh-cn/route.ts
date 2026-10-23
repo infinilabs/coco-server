@@ -92,7 +92,7 @@ const route: App.I18n.Schema['translation']['route'] = {
   'wiki-settings': 'AI 知识库',
   'connector-settings': '连接器',
   'data-security': '数据安全',
-  'engine-ai': '引擎 AI',
+  'engine-ai': '语义检索',
   auth: '登录',
   connector: '连接器',
   preview: '预览',

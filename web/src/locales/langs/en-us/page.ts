@@ -2358,11 +2358,11 @@ const page: App.I18n.Schema['translation']['page'] = {
       }
     },
     engine_ai: {
-      title: 'Engine AI',
+      title: 'Semantic Search',
       labels: {
-        engine_ai: 'Engine AI capabilities',
-        engine_ai_desc: 'Coco curates the engine\'s AI pipelines: documents are vectorized at ingest time and semantic/hybrid searches are fused by the engine — one model config here, applied on both sides',
-        enabled: 'Enable engine AI',
+        engine_ai: 'Semantic search capabilities',
+        engine_ai_desc: 'Enable semantic/hybrid search for your documents: pick the embedding model here and Coco compiles it into the engine\'s ingest-time vectorization and search-time fusion pipelines — one config, applied on both sides',
+        enabled: 'Enable semantic search',
         embedding_model: 'Embedding model',
         embedding_model_desc: 'Used by both engine pipelines; falls back to the default embedding model when empty',
         batch_size: 'Ingest batch size',

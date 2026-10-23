@@ -2129,11 +2129,11 @@ const page: App.I18n.Schema['translation']['page'] = {
       }
     },
     engine_ai: {
-      title: '引擎 AI',
+      title: '语义检索',
       labels: {
-        engine_ai: '引擎 AI 能力',
-        engine_ai_desc: 'Coco 统一策展引擎的 AI 管道:文档入库时由引擎向量化,语义/混合检索由引擎完成融合——模型在此配置一次,写入与查询两侧同时生效',
-        enabled: '启用引擎 AI',
+        engine_ai: '语义检索能力',
+        engine_ai_desc: '为文档开启语义/混合检索:在此选定 Embedding 模型,Coco 会把它编译成引擎的入库向量化与检索融合两条管道——模型配置一次,写入与查询两侧同时生效',
+        enabled: '启用语义检索',
         embedding_model: 'Embedding 模型',
         embedding_model_desc: '两条引擎管道共用;留空时回落到默认 Embedding 模型',
         batch_size: '入库批量',
