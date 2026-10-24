@@ -5,6 +5,7 @@
 package codecs
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"infini.sh/framework/core/event"
@@ -34,9 +35,17 @@ func (AttachmentCodec) Decode(data []byte) (*event.Event, error) {
 	if err := util.FromJSONBytes(data, &m); err != nil {
 		return nil, fmt.Errorf("%s: decode payload: %w", CodecNameAttachment, err)
 	}
-	rec := &event.Event{Fields: util.MapStr{FieldAttachment: m}}
+	rec := event.AcquireEvent()
+	if rec.Fields == nil {
+		rec.Fields = util.MapStr{}
+	}
+	rec.Fields[FieldAttachment] = m
 	rec.SetID(asString(m["id"]))
-	labels := util.MapStr{codecLabel: CodecNameAttachment}
+	labels := rec.Metadata.Labels
+	if labels == nil {
+		labels = util.MapStr{}
+	}
+	labels[codecLabel] = CodecNameAttachment
 	putLabel(labels, "mime_type", m["mime_type"])
 	rec.Metadata.Labels = labels
 	return rec, nil
@@ -47,7 +56,7 @@ func (AttachmentCodec) Encode(rec *event.Event) ([]byte, error) {
 	if err != nil || v == nil {
 		return nil, fmt.Errorf("%s: missing %q subtree in record fields", CodecNameAttachment, FieldAttachment)
 	}
-	return hotJSON.Marshal(v)
+	return json.Marshal(v) // stdlib: jsoniter's interface{} encoder allocates per element (see document_codec.go)
 }
 
 func init() {

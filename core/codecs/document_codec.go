@@ -17,8 +17,6 @@ import (
 	"fmt"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
-
 	"infini.sh/framework/core/event"
 	pipeline "infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/util"
@@ -54,16 +52,18 @@ func (DocumentCodec) Namespace() string { return NamespaceDocument }
 // parsed on the hot path; Encode splices the original bytes back verbatim.
 var ColdSubtrees = []string{"document_chunk"}
 
-// hotJSON is the codec hot-path encoder/decoder: jsoniter in stdlib-
-// compatibility mode (behavior gates in codecs_test cover the edge cases
-// where raw jsoniter defaults diverge).
-var hotJSON = jsoniter.ConfigCompatibleWithStandardLibrary
+// hotJSON was jsoniter (D-6); measured on embedding-heavy payloads it
+// LOSES to the stdlib on both directions — jsoniter's generic
+// interface{} encode/decode allocates per float element (~122k allocs for
+// a 1MB document_chunk subtree vs 19 for the stdlib with identical
+// bytes; see for_each_bench_test.go). The stdlib stays; the hot-path
+// wins come from the raw-map two-pass decode and the cold split below.
 
 func (DocumentCodec) Decode(data []byte) (*event.Event, error) {
 	// first pass: keep every top-level value raw so cold subtrees stay
 	// unparsed bytes
 	raw := map[string]json.RawMessage{}
-	if err := hotJSON.Unmarshal(data, &raw); err != nil {
+	if err := json.Unmarshal(data, &raw); err != nil {
 		return nil, fmt.Errorf("%s: decode payload: %w", CodecNameDocument, err)
 	}
 	cold := map[string]bool{}
@@ -77,20 +77,27 @@ func (DocumentCodec) Decode(data []byte) (*event.Event, error) {
 			continue
 		}
 		if len(v) == 0 || string(v) == "null" {
-			// jsoniter diverges from the stdlib on a top-level null into
-			// interface{} (errors instead of setting nil)
 			m[k] = nil
 			continue
 		}
 		var val interface{}
-		if err := hotJSON.Unmarshal(v, &val); err != nil {
+		if err := json.Unmarshal(v, &val); err != nil {
 			return nil, fmt.Errorf("%s: decode field %q: %w", CodecNameDocument, k, err)
 		}
 		m[k] = val
 	}
-	rec := &event.Event{Fields: util.MapStr{FieldDocument: m}}
+	rec := event.AcquireEvent()
+	// reuse the pooled map shells (cleared in place by the pool); only the
+	// inner tree is fresh — one less allocation per record at small sizes
+	if rec.Fields == nil {
+		rec.Fields = util.MapStr{}
+	}
+	rec.Fields[FieldDocument] = m
 	rec.SetID(asString(m["id"]))
-	labels := util.MapStr{}
+	labels := rec.Metadata.Labels
+	if labels == nil {
+		labels = util.MapStr{}
+	}
 	if src, ok := m["source"].(map[string]interface{}); ok {
 		putLabel(labels, "datasource", src["id"])
 		putLabel(labels, "connector_id", src["connector_id"])
@@ -112,7 +119,9 @@ func (DocumentCodec) Encode(rec *event.Event) ([]byte, error) {
 	if err != nil || v == nil {
 		return nil, fmt.Errorf("%s: missing %q subtree in record fields", CodecNameDocument, FieldDocument)
 	}
-	return hotJSON.Marshal(v)
+	// stdlib json.Marshal: jsoniter's interface{} encoder allocates per
+	// element on the cold RawMessage subtree (see the hotJSON note above)
+	return json.Marshal(v)
 }
 
 func init() {

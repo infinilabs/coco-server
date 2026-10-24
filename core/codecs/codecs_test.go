@@ -157,7 +157,9 @@ func TestDocumentDecode_ColdSubtreeStaysRaw(t *testing.T) {
 }
 
 // hotJSON must behave like the stdlib on the edge cases where jsoniter
-// defaults diverge — the compatibility gate for the hot-path swap.
+// The hot path once used jsoniter; the behavior gate for the engine swap
+// survives it: the same edge-case fixtures must round-trip through the
+// codec with stdlib semantics (big numbers, HTML escaping, nil, nesting).
 func TestHotJSON_StdlibCompatibilityGate(t *testing.T) {
 	fixtures := []string{
 		`{"i":9007199254740993,"f":0.1,"big":1.7976931348623157e308}`, // big ints & floats
@@ -166,24 +168,23 @@ func TestHotJSON_StdlibCompatibilityGate(t *testing.T) {
 		`{"z":"","empty":{},"zero":0,"neg":-0.0000001}`,               // zero values
 	}
 	for _, fx := range fixtures {
-		var want, got interface{}
+		rec, err := DocumentCodec{}.Decode([]byte(fx))
+		if err != nil {
+			t.Fatalf("codec decode %s: %v", fx, err)
+		}
+		got, err := DocumentCodec{}.Encode(rec)
+		if err != nil {
+			t.Fatalf("codec encode %s: %v", fx, err)
+		}
+		var want, back interface{}
 		if err := json.Unmarshal([]byte(fx), &want); err != nil {
 			t.Fatal(err)
 		}
-		if err := hotJSON.Unmarshal([]byte(fx), &got); err != nil {
-			t.Fatalf("jsoniter decode %s: %v", fx, err)
+		if err := json.Unmarshal(got, &back); err != nil {
+			t.Fatalf("codec output not valid JSON for %s: %s", fx, got)
 		}
-		if !reflect.DeepEqual(want, got) {
-			t.Fatalf("decode divergence on %s:\nstdlib=%v\njsoniter=%v", fx, want, got)
-		}
-		// encode divergence check via round-trip of the decoded value
-		b1, _ := json.Marshal(want)
-		b2, _ := hotJSON.Marshal(got)
-		var r1, r2 interface{}
-		json.Unmarshal(b1, &r1)
-		hotJSON.Unmarshal(b2, &r2)
-		if !reflect.DeepEqual(r1, r2) {
-			t.Fatalf("encode divergence on %s:\nstdlib=%s\njsoniter=%s", fx, b1, b2)
+		if !reflect.DeepEqual(want, back) {
+			t.Fatalf("codec round-trip divergence on %s:\nstdlib=%v\ncodec=%v", fx, want, back)
 		}
 	}
 }
