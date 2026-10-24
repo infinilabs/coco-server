@@ -369,7 +369,7 @@ export function Component() {
           />
         )}
       >
-        <div className='mb-4 mt-4 flex flex-wrap items-center justify-between gap-12px'>
+        <div className='mb-4 flex flex-wrap items-center justify-between gap-12px'>
           <Search
             addonBefore={<FilterOutlined />}
             className='w-full max-w-360px sm:!w-300px'

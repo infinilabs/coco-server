@@ -155,7 +155,7 @@ export default function MemorySettings() {
 
   return (
     <div>
-      <div className="mt-8px mb-8px">
+      <div className="mb-8px">
         <Segmented
           value={statusFilter}
           onChange={(v) => setStatusFilter(v as string)}

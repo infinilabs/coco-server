@@ -71,7 +71,7 @@ const App = () => {
   return (
     <AConfigProvider
       button={{ classNames: { icon: 'flex items-center' } }}
-      card={{ styles: { body: { flex: 1, overflow: 'hidden', padding: '12px 16px ' } } }}
+      card={{ styles: { body: { flex: 1, overflow: 'hidden', padding: '20px 16px 12px' } } }}
       locale={antdLocales[locale]}
       theme={antdTheme}
     >

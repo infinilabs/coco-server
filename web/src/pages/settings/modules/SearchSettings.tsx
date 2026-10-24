@@ -387,7 +387,7 @@ const SearchSettings = memo(() => {
     <ListContainer>
       <Spin spinning={dataLoading || loading}>
         <Form
-          className="settings-form pt-8px pb-24px"
+          className="settings-form pb-24px"
           colon={false}
           form={form}
           labelAlign="left"

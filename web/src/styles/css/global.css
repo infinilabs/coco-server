@@ -18,6 +18,11 @@ html {
   scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
 }
 
+/* 一级页统一节奏：标题块 → 正文 20px（tabs 直贴页的 tab 栏也走同一间距） */
+.settings-tabs {
+  padding-top: 20px;
+}
+
 .ant-table-header::-webkit-scrollbar {
   background-color: transparent;
 }

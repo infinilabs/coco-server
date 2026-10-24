@@ -189,7 +189,7 @@ const DataSecurity = () => {
   };
 
   return (
-    <div className="py-24px flex flex-col gap-16px">
+    <div className="flex flex-col gap-16px">
       <Card
         loading={loading}
         title={

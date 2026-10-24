@@ -8,6 +8,7 @@ import AppearanceSettings from './modules/Appearance';
 import AppSettings from './modules/AppSettings';
 import DefaultParams from './modules/DefaultParams';
 import Environment from './modules/Environment';
+import ProcessingSettings from './modules/ProcessingSettings';
 
 export function Component() {
   const [searchParams] = useSearchParams();
@@ -41,6 +42,8 @@ export function Component() {
         { component: AppSettings, key: 'app_settings', label: t(`page.settings.app_settings.title`) },
         // 默认模型 + 文档处理合并为「默认参数」（两者同为全局兜底参数）
         { component: DefaultParams, key: 'default_params', label: t(`page.settings.default_params.title`) },
+        // 解析管道：两条固定管道（文档/附件增强）的处理器开关与参数
+        { component: ProcessingSettings, key: 'processing', label: t(`page.settings.processing.title`) },
         { component: Environment, key: 'environment', label: t(`page.settings.environment.title`) }
       ]
     : [];

@@ -175,7 +175,7 @@ const EngineAI = memo(() => {
   }, [permissions.fetchModelProviders]);
 
   return (
-    <div className="settings-form py-24px">
+    <div className="settings-form">
       <Spin spinning={settingsLoading || statusLoading || loading}>
         <Form colon={false} form={form} labelAlign="left" onValuesChange={() => setDirty(true)}>
           <Form.Item label={t('page.settings.engine_ai.labels.enabled')} name="enabled" valuePropName="checked">

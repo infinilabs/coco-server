@@ -1,7 +1,8 @@
-import { ExclamationCircleOutlined, PlusOutlined } from '@ant-design/icons';
+import { ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
 import PageHeaderTitle from '@/components/stateless/common/PageHeaderTitle';
 import { BookOpen, CheckCircle2, Download, ListChecks, Pencil, Plug, Search as SearchIcon, ShieldCheck, Trash } from 'lucide-react';
 import { Button, Card, Drawer, Empty, Form, Input, Popconfirm, Select, Space, Switch, Tag, message } from 'antd';
+import Search from 'antd/es/input/Search';
 import { useState } from 'react';
 
 import useQueryParams from '@/hooks/common/queryParams';
@@ -146,17 +147,16 @@ export function Component() {
         loading={loading && data.length === 0}
         title={<PageHeaderTitle description={t('page.skill.subtitle')} icon={<ListChecks size={16} />} title={t('page.skill.title')} />}
       >
-        <div className="mb-16px flex flex-wrap items-center justify-end gap-12px">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-12px">
+          <Search
+            addonBefore={<FilterOutlined />}
+            className="w-full max-w-360px sm:!w-300px"
+            enterButton={t('common.refresh')}
+            value={keyword}
+            onChange={e => setKeyword(e.target.value)}
+            onSearch={v => onSearch(v)}
+          />
           <Space wrap>
-            <Input
-              allowClear
-              className="w-220px"
-              placeholder={t('page.skill.search')}
-              prefix={<SearchIcon size={14} />}
-              value={keyword}
-              onChange={e => setKeyword(e.target.value)}
-              onPressEnter={e => onSearch((e.target as HTMLInputElement).value)}
-            />
             <Button
               icon={<Download size={14} />}
               onClick={onDownloadSkillsMD}
