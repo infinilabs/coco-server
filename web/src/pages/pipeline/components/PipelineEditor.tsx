@@ -1,14 +1,21 @@
-import { BookOpen, Boxes, Braces, Check, ChevronDown, ChevronUp, File, FileText, FlaskConical, Image, Paperclip, Pencil, Rocket, SlidersHorizontal, Sparkles, Trash, Video } from 'lucide-react';
+import { BookOpen, Boxes, Braces, Check, ChevronDown, ChevronUp, File, FileText, FlaskConical, Image, Paperclip, Pencil, Rocket, SlidersHorizontal, Sparkles, Trash, Video, Workflow } from 'lucide-react';
 import { RightOutlined } from '@ant-design/icons';
 import { Button, Card, Collapse, Drawer, Form, Input, InputNumber, Popconfirm, Select, Space, Switch, Tag, Typography, message } from 'antd';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { aiGeneratePipelineChain, createPipeline, getPipelineProcessors, testPipelineChain, updatePipeline } from '@/service/api/pipeline';
 // shared studio components (ui-common package); the prebuilt stylesheet
 // carries the tailwind utilities they use — coco has no tailwind toolchain
-import { AiGeneratePanel, DryRunDrawer, identityTranslate, type DryRunReport } from '@infinilabs/pipeline-ui';
+import {
+  AiGeneratePanel,
+  DryRunDrawer,
+  ProcessingCanvas,
+  identityTranslate,
+  type CanvasRunState,
+  type DryRunReport
+} from '@infinilabs/pipeline-ui';
 import '@infinilabs/pipeline-ui/styles.css';
 // reuses the settings pages' .settings-form layout (fixed left label column,
 // capped control width) for the name/description + advanced settings section
@@ -28,6 +35,7 @@ export interface PipelineDoc {
   retry_delay_in_ms?: number;
   processor?: Record<string, any>[];
   labels?: Record<string, any>;
+  canvas_layout?: Record<string, { x: number; y: number }>;
 }
 
 // 创建模式持久化：编辑时按此标签还原各自的编辑模式（模板创建→图形化，
@@ -338,7 +346,9 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
   });
 
   const [chain, setChain] = useState<Record<string, any>[]>(() => (Array.isArray(initial?.processor) ? initial!.processor! : []));
-  const [view, setView] = useState<'cards' | 'json'>('cards');
+  const [view, setView] = useState<'cards' | 'json' | 'canvas'>('cards');
+  // 画布节点坐标 (内容指纹键), 随管道配置一起持久化到 canvas_layout (#109)
+  const [canvasLayout, setCanvasLayout] = useState<Record<string, { x: number; y: number }> | undefined>(initial?.canvas_layout);
   const [chainJSON, setChainJSON] = useState(() => JSON.stringify(initial?.processor ?? [], null, 2));
   const [jsonError, setJsonError] = useState<string | null>(null);
 
@@ -379,9 +389,31 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
   // GraphicalChainEditor 需要按名索引的注册表形态
   const registryMeta = useMemo(() => Object.fromEntries(catalog.map(p => [p.name, { properties: p.config || {} }])), [catalog]);
   const [catalogOpen, setCatalogOpen] = useState(false);
+  // 画布的处理器目录适配: 扁平注册表 -> {category: {name: meta}} 分组形态
+  const canvasCatalog = useMemo(
+    () => ({
+      processors: catalog.reduce<Record<string, Record<string, any>>>((acc, p) => {
+        const cat = p.category || 'general';
+        (acc[cat] ??= {})[p.name] = { properties: p.config || {}, category: p.category };
+        return acc;
+      }, {})
+    }),
+    [catalog]
+  );
+  const fetchCanvasCatalog = useCallback(() => Promise.resolve(canvasCatalog), [canvasCatalog]);
 
   const [documentsJSON, setDocumentsJSON] = useState(() => JSON.stringify(DOCUMENT_TEMPLATE, null, 2));
+  // 试跑覆盖层的样本展示形态 (原始 JSON 串)
+  const sampleStrings = useMemo(() => {
+    try {
+      const parsed = JSON.parse(documentsJSON);
+      return (Array.isArray(parsed) ? parsed : [parsed]).map((d: any) => JSON.stringify(d));
+    } catch {
+      return [];
+    }
+  }, [documentsJSON]);
   const [testReport, setTestReport] = useState<DryRunReport | null>(null);
+  const [canvasSampleIdx, setCanvasSampleIdx] = useState(0);
   const [aiMode, setAiMode] = useState<'generate' | 'refine'>('generate');
   const [aiError, setAiError] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
@@ -404,7 +436,7 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
       .catch(() => {});
   }, []);
 
-  const switchView = (v: 'cards' | 'json') => {
+  const switchView = (v: 'cards' | 'json' | 'canvas') => {
     if (v === 'json') {
       setChainJSON(JSON.stringify(chain, null, 2));
       setJsonError(null);
@@ -514,7 +546,9 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
         description: values.description ?? '',
         ...advanced,
         labels: { ...(initial?.labels || {}), [EDITOR_MODE_LABEL]: mode },
-        processor: chain
+        processor: chain,
+        // 画布坐标随配置一起落库 (空则省略键 — PipelineConfigV2 omitempty)
+        ...(canvasLayout && Object.keys(canvasLayout).length > 0 ? { canvas_layout: canvasLayout } : {})
       };
       if (initial?.id) {
         await updatePipeline(initial.id, payload);
@@ -626,6 +660,9 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
                 <Button size="small" type={view === 'cards' ? 'primary' : 'text'} onClick={() => switchView('cards')}>
                   {t('page.pipeline.editor.cardsView')}
                 </Button>
+                <Button size="small" type={view === 'canvas' ? 'primary' : 'text'} icon={<Workflow size={14} />} onClick={() => switchView('canvas')}>
+                  {t('page.pipeline.editor.canvasView')}
+                </Button>
                 <Button size="small" type={view === 'json' ? 'primary' : 'text'} icon={<Braces size={14} />} onClick={() => switchView('json')}>
                   JSON
                 </Button>
@@ -643,6 +680,25 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
               setChain(c);
               setChainJSON(JSON.stringify(c, null, 2));
             }}
+          />
+        ) : view === 'canvas' ? (
+          <ProcessingCanvas
+            processors={chain}
+            sourceLabel={t('page.pipeline.editor.canvasSource')}
+            sinkLabel={t('page.pipeline.editor.canvasSink')}
+            onChange={(c) => {
+              setChain(c);
+              setChainJSON(JSON.stringify(c, null, 2));
+            }}
+            fetchProcessorCatalog={fetchCanvasCatalog}
+            t={identityTranslate}
+            layout={canvasLayout}
+            onLayoutChange={setCanvasLayout}
+            run={
+              testReport && sampleStrings.length > 0
+                ? ({ report: testReport, samples: sampleStrings, sampleIdx: canvasSampleIdx, onSampleIdx: setCanvasSampleIdx } as CanvasRunState)
+                : null
+            }
           />
         ) : view === 'cards' ? (
           <ChainEditor
