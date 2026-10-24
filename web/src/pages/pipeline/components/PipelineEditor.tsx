@@ -537,13 +537,13 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
     setTestResult({ steps: result?.steps, finals: result?.finals });
   };
 
-  const runTest = async () => {
+  const runTest = async (chainOverride?: Record<string, any>[]) => {
     const docs = parseDocuments();
     if (!docs) return;
     if (view === 'json') switchView('cards');
     setTesting(true);
     try {
-      const res = await testPipelineChain({ processor: chain, documents: docs });
+      const res = await testPipelineChain({ processor: chainOverride ?? chain, documents: docs });
       applyTestResult(res?.data);
       message.success(t('page.pipeline.editor.testDone'));
     } catch (e: any) {
@@ -567,20 +567,18 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
         documents: docs.map((d) => JSON.stringify(d)),
         requirements: aiRequirement,
         mode,
-        current_chain: mode === 'refine' ? chain : undefined,
-        auto_test: true
+        current_chain: mode === 'refine' ? chain : undefined
       });
       const data = res?.data ?? {};
-      if (data.validation_error) {
-        message.warning(`${t('page.pipeline.editor.validationError')}: ${data.validation_error}`);
-      }
       const nextChain = Array.isArray(data.chain) ? data.chain : [];
       setChain(nextChain);
       setChainJSON(JSON.stringify(nextChain, null, 2));
       // AI 整链替换后切回自由编排
       setGraphicalSource(null);
-      if (data.test) applyTestResult(data.test);
       message.success(t('page.pipeline.editor.aiDone'));
+      // generated chains are not trusted until the real engine replays
+      // them — run the unified dry-run on the new chain right away
+      if (nextChain.length > 0) await runTest(nextChain);
     } catch (e: any) {
       const msg = e?.response?.data?.message ?? e?.message ?? t('page.pipeline.editor.aiFailed');
       message.error(msg);
@@ -808,7 +806,7 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
                 </div>
               </>
             )}
-            <Button icon={<FlaskConical size={14} />} loading={testing} disabled={chainEmpty} onClick={runTest}>
+            <Button icon={<FlaskConical size={14} />} loading={testing} disabled={chainEmpty} onClick={() => runTest()}>
               {t('page.pipeline.editor.runTest')}
             </Button>
           </div>

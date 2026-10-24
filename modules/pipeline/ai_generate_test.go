@@ -45,7 +45,7 @@ func TestBalancedJSONSpan(t *testing.T) {
 
 func TestStudioSystemPromptContainsCatalog(t *testing.T) {
 	fpipeline.RegisterProcessorPlugin("studio_prompt_probe", func(cfg *config.Config) (fpipeline.Processor, error) {
-		return &studioStubProcessor{name: "studio_prompt_probe", mutate: func(pctx *fpipeline.Context) error { return nil }}, nil
+		return promptProbeProcessor{}, nil
 	})
 	prompt := studioSystemPrompt()
 	if !strings.Contains(prompt, "studio_prompt_probe") {
@@ -55,6 +55,12 @@ func TestStudioSystemPromptContainsCatalog(t *testing.T) {
 		t.Fatal("prompt should state the output contract")
 	}
 }
+
+// promptProbeProcessor is the catalog-presence probe double.
+type promptProbeProcessor struct{}
+
+func (promptProbeProcessor) Name() string                     { return "studio_prompt_probe" }
+func (promptProbeProcessor) Process(*fpipeline.Context) error { return nil }
 
 func TestTruncateRunes(t *testing.T) {
 	in := strings.Repeat("界", 10)
