@@ -160,7 +160,7 @@ func distillKB(parent *orm.Context, kbID string) (*distillRun, error) {
 	sampleCtx := orm.NewContextWithParent(parent)
 	sampleCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	orm.WithModel(sampleCtx, &core.WikiExperience{})
-	res, err := orm.SearchV2(sampleCtx, orm.NewQuery().Size(distillMaxExperiences * 4).
+	res, err := orm.SearchV2(sampleCtx, orm.NewQuery().Size(distillMaxExperiences*4).
 		Filter(orm.TermQuery("kb_id", kbID)).
 		SortBy(orm.Sort{Field: "created", SortType: "desc"}))
 	if err != nil {

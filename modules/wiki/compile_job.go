@@ -18,21 +18,21 @@ import (
 // this while the worker goroutine drives the pipeline. One job per KB —
 // a new run replaces a finished one and is refused while one is running.
 type CompileJob struct {
-	ID            string `json:"id"`
-	KbID          string `json:"kb_id"`
-	Status        string `json:"status"` // running | done | failed | cancelled
-	Stage         string `json:"stage"`  // map | reduce | cluster | compose | done
-	Docs          int    `json:"docs"`
-	Batches       int    `json:"batches"`
-	BatchesDone   int    `json:"batches_done"`
-	BatchesCached int    `json:"batches_cached"`
-	BatchesFailed int    `json:"batches_failed"`
-	Extracts      int    `json:"extracts"`
-	Reduced       int    `json:"reduced"`
-	Topics        int    `json:"topics"`
-	TopicsDone    int    `json:"topics_done"`
-	Proposals     int    `json:"proposals"`
-	Current       string `json:"current,omitempty"`
+	ID            string   `json:"id"`
+	KbID          string   `json:"kb_id"`
+	Status        string   `json:"status"` // running | done | failed | cancelled
+	Stage         string   `json:"stage"`  // map | reduce | cluster | compose | done
+	Docs          int      `json:"docs"`
+	Batches       int      `json:"batches"`
+	BatchesDone   int      `json:"batches_done"`
+	BatchesCached int      `json:"batches_cached"`
+	BatchesFailed int      `json:"batches_failed"`
+	Extracts      int      `json:"extracts"`
+	Reduced       int      `json:"reduced"`
+	Topics        int      `json:"topics"`
+	TopicsDone    int      `json:"topics_done"`
+	Proposals     int      `json:"proposals"`
+	Current       string   `json:"current,omitempty"`
 	Logs          []string `json:"logs,omitempty"`
 
 	// incremental-pass observability (compileops P3): what the lane fed

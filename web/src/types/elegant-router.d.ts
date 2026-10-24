@@ -59,6 +59,7 @@ declare module "@elegant-router/types" {
     "data-source_new": "new";
     "data-source_new-first": "new-first";
     "engine-ai": "/engine-ai";
+    "gateway-instances": "/gateway-instances";
     "guide": "/guide";
     "home": "/home";
     "integration": "/integration";
@@ -163,6 +164,7 @@ declare module "@elegant-router/types" {
     | "data-security"
     | "data-source"
     | "engine-ai"
+    | "gateway-instances"
     | "guide"
     | "home"
     | "integration"
@@ -226,6 +228,7 @@ declare module "@elegant-router/types" {
     | "data-source_new-first"
     | "data-source_new"
     | "engine-ai"
+    | "gateway-instances"
     | "guide"
     | "home"
     | "integration_edit"

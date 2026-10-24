@@ -315,11 +315,11 @@ func ScheduleSkillEvalReplay(kbID, actor string) {
 		AppendEvolutionEntry(ctx, kbID, core.WikiEvolutionEvalRun, actor, "eval_run", run.ID,
 			"验证集回放: hit@4 "+fmt.Sprintf("%.1f", run.Top4Rate*100)+"%, MRR "+fmt.Sprintf("%.3f", run.MRR),
 			map[string]interface{}{
-				"run_id":    run.ID,
-				"hit_rate":  run.Top4Rate,
-				"mrr":       run.MRR,
-				"cases":     run.TotalCases,
-				"trigger":   "skill_applied",
+				"run_id":   run.ID,
+				"hit_rate": run.Top4Rate,
+				"mrr":      run.MRR,
+				"cases":    run.TotalCases,
+				"trigger":  "skill_applied",
 			})
 	}()
 }

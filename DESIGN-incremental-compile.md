@@ -1,6 +1,6 @@
 # 文档级增量编译 op 队列 — 立项设计(2026-10-12)
 
-> 状态:**立项待排期**(工程量:预计 2-3 个批次;依赖:无新外部组件)。
+> 状态:**三期全部落地**(2026-10-23:P1=eeb073ad op 队列/消费 lane/租约/死信;P2=93d3a280 贡献倒排+增量 REDUCE/PLAN,live E2E 500 篇 KB 改 1 文件→`1 ops consumed, docs=1, 1 proposals`,未变文档零 LLM;P3=111ee2f4 编译观测 incremental/ops/affected_pages 进 CompileJob,控制台 Tag 展示——死信横幅+端点已在 P1 交付,独立死信面板按"真用上再排"继续后置)。
 > 背景:WeKnora 自动 Wiki 对照(2026-10 会话)收敛出的最后一块未落机制。本文件是单独立项的设计稿,落地记录回填 [WORKPLAN-knowledge-hub.md](WORKPLAN-knowledge-hub.md)。
 
 ## 一、问题:coco 现状的编译是 KB 级粗粒度

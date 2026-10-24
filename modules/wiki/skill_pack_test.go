@@ -59,8 +59,8 @@ func TestParseSkillPack(t *testing.T) {
 func TestParseSkillPackFlatAndErrors(t *testing.T) {
 	// flat layout: SKILL.md at the zip root
 	zr := zipForTest(t, map[string]string{
-		"SKILL.md":               "---\nname: flat\n---\nbody",
-		"references/notes.md":    "notes",
+		"SKILL.md":            "---\nname: flat\n---\nbody",
+		"references/notes.md": "notes",
 	})
 	doc, prefix, refs, err := parseSkillPack(zr)
 	require.NoError(t, err)
@@ -80,8 +80,8 @@ func TestParseSkillPackFlatAndErrors(t *testing.T) {
 
 	// two SKILL.md candidates at depth <= 1 is ambiguous
 	zr = zipForTest(t, map[string]string{
-		"SKILL.md":        "---\nname: x\n---\n",
-		"other/SKILL.md":  "---\nname: y\n---\n",
+		"SKILL.md":       "---\nname: x\n---\n",
+		"other/SKILL.md": "---\nname: y\n---\n",
 	})
 	_, _, _, err = parseSkillPack(zr)
 	assert.ErrorContains(t, err, "multiple SKILL.md")

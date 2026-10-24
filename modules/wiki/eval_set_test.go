@@ -55,10 +55,10 @@ func TestScoreWikiEvalRun(t *testing.T) {
 	assert.EqualValues(t, 0, avg)
 
 	results := []core.WikiEvalCaseResult{
-		{HitRank: 3, TookMS: 100},  // inside top-4
-		{HitRank: 7, TookMS: 300},  // found but outside top-4
-		{HitRank: 0, TookMS: 50},   // miss
-		{Error: "boom"},            // errored case scores as miss
+		{HitRank: 3, TookMS: 100}, // inside top-4
+		{HitRank: 7, TookMS: 300}, // found but outside top-4
+		{HitRank: 0, TookMS: 50},  // miss
+		{Error: "boom"},           // errored case scores as miss
 	}
 	total, hits, mrr, avg = scoreWikiEvalRun(results)
 	assert.Equal(t, 4, total)

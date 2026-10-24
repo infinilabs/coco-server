@@ -156,7 +156,7 @@ type searchResults struct {
 
 func (t *compileAgentTools) searchDocuments(ctx context.Context, args struct {
 	Query string `json:"query" jsonschema:"关键词查询词"`
-	Size   int    `json:"size,omitempty" jsonschema:"返回条数,默认5,最大10"`
+	Size  int    `json:"size,omitempty" jsonschema:"返回条数,默认5,最大10"`
 }) (*searchResults, error) {
 	log.Infof("wiki: compile agent tool search_documents query=%r size=%d", args.Query, args.Size)
 	size := args.Size

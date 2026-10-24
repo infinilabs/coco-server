@@ -39,8 +39,8 @@ type WikiEvalCaseResult struct {
 	Query string `json:"query"`
 	// HitRank is the 1-based rank of the first expected page inside the
 	// scoring window; 0 = not found.
-	HitRank int    `json:"hit_rank"`
-	Total   int    `json:"total,omitempty"`
+	HitRank int `json:"hit_rank"`
+	Total   int `json:"total,omitempty"`
 	// TopIDs/TopTitles carry the first ranks for display (what DID show).
 	TopIDs    []string `json:"top_ids,omitempty"`
 	TopTitles []string `json:"top_titles,omitempty"`

@@ -1157,7 +1157,6 @@ func topicSummaryFromSections(sections []core.WikiSection) string {
 	return ""
 }
 
-
 // applyCompilePatchProposal materializes the compile agent's revision: the
 // evidence carries the FULL replacement body — the agent was instructed to
 // write whole pages, and the apply gate (human or auto-approve) is what
@@ -1333,7 +1332,7 @@ func applyTopicProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (strin
 	article := core.WikiArticle{
 		KbID:        p.KbID,
 		Title:       p.ArticleTitle,
-		Summary:    topicSummaryFromSections(sections),
+		Summary:     topicSummaryFromSections(sections),
 		PageType:    core.WikiPageTypeTopic,
 		Status:      createStatus,
 		AIGenerated: true,

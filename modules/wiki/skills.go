@@ -25,8 +25,8 @@ import (
 	"infini.sh/framework/core/util"
 
 	"infini.sh/coco/core"
-	"infini.sh/coco/modules/attachment"
 	langchain "infini.sh/coco/modules/assistant/langchain"
+	"infini.sh/coco/modules/attachment"
 	llmmodule "infini.sh/coco/modules/llm"
 )
 
@@ -42,8 +42,8 @@ import (
 // log including rejected proposals (so the same idea is not re-proposed).
 
 const (
-	skillGateTimeout = 60 * time.Second
-	skillProposeTimeout = 120 * time.Second
+	skillGateTimeout     = 60 * time.Second
+	skillProposeTimeout  = 120 * time.Second
 	evolutionLogReadSize = 30
 )
 
@@ -599,11 +599,11 @@ func buildSkillProposal(kbID string, out *llmSkillOut, target *core.WikiArticle)
 		})
 	}
 	proposal := &core.WikiGovernanceProposal{
-		KbID:      kbID,
-		Type:      core.WikiGovernanceSkillCreate,
-		Status:    core.WikiGovernanceOpen,
-		Reason:    truncateRunes(out.Rationale, 200),
-		Evidence:  skillEvidenceMap(skill, provenance),
+		KbID:     kbID,
+		Type:     core.WikiGovernanceSkillCreate,
+		Status:   core.WikiGovernanceOpen,
+		Reason:   truncateRunes(out.Rationale, 200),
+		Evidence: skillEvidenceMap(skill, provenance),
 	}
 	if target != nil {
 		proposal.Type = core.WikiGovernanceSkillPatch
@@ -663,7 +663,6 @@ func gateAndFileSkillProposal(parent *orm.Context, kbID string, proposal *core.W
 }
 
 // errors_Is avoided
-
 
 /* ---------------- SKILL.md export ---------------- */
 

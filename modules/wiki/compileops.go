@@ -54,18 +54,18 @@ const (
 	// per-KB cooldown after a failed run — without it the lane would burn
 	// the 5 allowed attempts in as many ticks
 	compileFailCooldown = 10 * time.Minute
-	compileOpMaxFails  = 5
-	compileDeadCap     = 100
+	compileOpMaxFails   = 5
+	compileDeadCap      = 100
 )
 
 // CompileOp is one pending corpus change. DocID "" means "the whole corpus"
 // (manual marks, KB-level events) — it folds with every other whole-corpus
 // op but never with a specific-document op.
 type CompileOp struct {
-	Op         string     `json:"op"` // ingest | retract
-	DocID      string     `json:"doc_id,omitempty"`
-	Reason     string     `json:"reason,omitempty"` // content-changed | document-deleted | kb-file-uploaded | manual-mark
-	FailCount  int        `json:"fail_count,omitempty"`
+	Op         string    `json:"op"` // ingest | retract
+	DocID      string    `json:"doc_id,omitempty"`
+	Reason     string    `json:"reason,omitempty"` // content-changed | document-deleted | kb-file-uploaded | manual-mark
+	FailCount  int       `json:"fail_count,omitempty"`
 	EnqueuedAt time.Time `json:"enqueued_at"`
 }
 

@@ -2,6 +2,10 @@
 
 > **定稿设计见 [DESIGN-knowledge-hub-v2.md](DESIGN-knowledge-hub-v2.md)**(2026-10-08,第五/六/七篇全部调研的合稿:工作流 W0-W9、批次、验收口径;本文件继续作为调研过程与落地记录日志)
 > **增量编译立项(2026-10-12)**:[DESIGN-incremental-compile.md](DESIGN-incremental-compile.md)——WeKnora 对照收敛的最后一块未落机制(文档级 op 队列)单独立项:badger 持久 op(ingest/retract,DedupKey=doc_id)替换 KB 级脏标记,消费 lane 只 MAP op 文档(P2 贡献倒排 coco_wiki_contrib 后 REDUCE/PLAN 限定受影响页),启动重建触发器,死信进治理横幅。三期验收口径已写;**明确不做**:Redis/Asynq、LLM 直写页面、taxonomy LLM 批量规划(定档理由见设计文档第五节——coco 目录规则驱动处处有锚点,LLM 规划是"无锚点自由生长"场景的方案)
+> **增量编译 P1 落地(2026-10-23,已提交 eeb073ad)**:compileops.go——kv bucket `wiki-compileops`(`__index__` 键维护待处理 KB 集,包级 API 无前缀扫描的现实约束)+逐 KB op 数组(doc_id 折叠,空 doc_id=全库语义);消费 lane 30s tick 单飞:settle 窗口 5min(持久化 trailing-edge,语义同旧 debounce)→失败冷却 10min→手动任务在跑则跳过→租约(TTL 15min,崩溃过期重取)→runCompilePipeline→成功删 op/失败 FailCount++,≥5 进死信 bucket `wiki-opdead`(上限 100 条)。生产者四处:联络器实变→ingest、文档删除→retract、KB 文件上传→ingest、手动 _compile 成功后清队列(全量跑吸纳);旧 MarkKBForCompile/内存脏表/AfterFunc 整体移除。端点 GET/DELETE /wiki/kb/:id/_opdead + KB 概览告警横幅(计数+最近错误+清空)。单测四组(内存 KVStore 假实现):折叠/消费、settle 纯函数、租约互斥与过期、死信往返。**教训**:framework kv 包级 API 只有 Get/Add/Delete 无扫描,队列结构从"bucket 即队列"改成"索引键+值数组";httprouter 要用 framework 的 router 封装别名
+> **增量编译 P2 落地(2026-10-23,已提交 93d3a280)**:WikiContribution(`coco_wiki-contribution-v2`,ID=md5(kb|doc|page) 幂等)doc→page 倒排;写点=crud 三钩子+snapshotPipelineWrite 咽喉(13 处管道写全盖)+启动对账(live 实测 500 篇重建一遍);runIncrementalCompile——MAP 集合=op 文档∪受影响页引用文档(未变文档走指纹缓存零 LLM,**主张池完整性**:主题页引 A+B 只改 A 时 B 的主张从缓存回放,不会只带 A 的半池重写),topic 管道与全量共用(匹配/世代不变),clusterTopics 的 docCount 基数用全库计数;lane 按 op 形态选择(全带 doc_id=增量,含全库 op=回落全量)。**live E2E(Books KB,~500 篇)**:上传探针文件→op 入队→settle 5min→lane 增量跑→`1 ops consumed (wholeCorpus=false), 3 extracts, 3 reduced, 1 proposals`+cluster debug `docs=1`(只有探针进 MAP)→auto-approve 建页;清理探针时发现两点:①直接 HTTP DELETE /document/:id 不触发文档管道的删除钩子(retract 路径要同步删除才走到,该路径仅单测覆盖);②crud 文章 DELETE 的 401"invalid user"报错发生在行删除**之后**(PostDelete 钩子报的)——curl 收到 401 但删除已生效。**教训**:全局 orm handler 后注册者胜出,共享 setupFlow 的惰性注册点不能被测试文件序提前——contributions_test 自带独立 sqlite store 解决
+> **KB 验证集+回放落地(2026-10-23,已提交 b5eb22b6;LLM-wiki P3 最后一项)**:D9 检索评估集模式下沉到单 KB——`WikiEvalCase`(kb_id+归一化 query 为 upsert 键,期望=wiki 文章 ID 集)+`WikiEvalRun`(hit@4/MRR/逐用例结果/trigger);回放走与 chat 知识腿 wikiRoute 直连分支同款的 KB 内检索(同字段加权 title^20/…、只已发布、confidence low 噪声门);技能提案(skill_create/skill_patch)落地成功后 ScheduleSkillEvalReplay 异步跑一次(trigger=skill_applied)并写 evolution eval_run 条目——分数趋势贴着它门控的技能。KB 页新增"验证集"tab(用例表+添加表单[页面选择器仅已发布可选]+回放按钮+趋势表)。**明确渐进**(设计 §4.2/§239 原文):回答级(LLM)评分与回归自动回滚后置,当前分数只量检索;wiki_projection 开启时的投影路差分后置。**顺带修 framework 真 bug(18633cc2)**:sqlite 的 must_not 对缺失字段编译成 `NOT (NULL)` 三值逻辑丢行(ES 语义应放行)——`NOT (IFNULL(pred,0))` 修复;单测撞出的路径:先疑模糊查询,探针二分定位到 must_not(wiki_route 直连分支同款噪声门在 sqlite 上会清空全部结果)。**live E2E(Books KB)**:2 条黄金用例(soql/neo4j 主题页)+3 次回放 rate=1.0——注意 ES fuzziness 宽松到"故意 miss"的控制用例都能命中期望页(已删),黄金用例要有区分度,满分不代表检索健康只代表该组太容易。**教训**:sqlite match=精确相等(无分析器),单测钉管道时标题=查询;ES 与 sqlite 的语义差(三值逻辑/分析器)要在写跨后端测试时先探边界
+> **LLM-wiki P3 三笔落地(2026-10-23,eeb073ad/a926c7c9/7d4cdb80+ffa8658d)**:①**技能索引接入主聊天路径**(eeb073ad)——SkillIndexForAssistant 注入 simple-chat 与 langchain 两条生成路径的 `InputValues["skills"]`(渐进披露 tier-1:索引行只带标题/适用条件/触发词,正文不加载;tier-2 检索、tier-3 Loads 附件不变);②**外部技能包导入**(a926c7c9)——POST /wiki/kb/:id/_import_skill_pack(multipart zip,20MB zip/2MB 每文件/20 文件上限;SKILL.md 根或一层深,多份=歧义报错,dotfile/__MACOSX 排除;references/+scripts/ 落文章附件+Skill.Loads,附件 ID=md5(skillref|article|relpath) 幂等重导入);③**技能跨 KB/跨助手共享**(7d4cdb80)——WikiSkill.Scope(""=KB 私有|"tenant"=租户共享),技能文章页 Switch 开关;SkillIndexForAssistant 加第二段查询(page_type=skill+published,skill 对象 enabled:false 故内存过滤 scope),非本助手绑定 KB 的共享技能行尾带 `[共享自 KB名]`,去重防双计;单测 skill_share_test(自有 sqlite store,第五次撞全局 orm handler 后的固定姿势)。**live E2E 抓出真 bug(ffa8658d)**:关共享发 `scope:""`,但 orm 更新按部分文档持久化,struct omitempty 把空串丢掉→存储残留 "tenant"→开关重载回弹——去掉 Scope 的 omitempty 后双向往返 live 验证通过(on→tenant 持久、off→"" 持久)。**教训**:部分更新持久化语义下,**可清空的开关字段不能带 omitempty**——"空值=不写"在 toggle 类 UI 是正确性 bug 而非风格问题;另:crud `_search` 端点不识别的 filter 参数静默忽略返回全量,E2E 选靶先核响应里的 page_type 再写(本次误把 entity 页当技能页 PUT 了一个 stray scope,ES scripted remove 清掉)
 > **WeKnora 自动 Wiki 收尾三笔落地(2026-10-12,6c722e14/6a46089a/041209f6)**:①**版本治理**(6c722e14)——编译 apply(建+append)/治理重建/草稿回填四条管道写入路径此前绕过版本历史不可回滚,统一接 snapshotPipelineWrite(ai-generated 摘要带提案 ID),200 版硬剪枝收敛在 writeVersionSnapshot 单咽喉;append 分支补来源/别名合并+persistLinkedPages(此前图谱新孤岛+来源面板缺行);e2e:真实 apply 产出 `v1·AI 生成·知识编译追加 N 条来源主张(提案 id)`。②**同步跳过**(6a46089a,遗留清单清账)——重采集每文件全量重跑 LLM 链(实测单篇 summarization 66s):local_fs 采集打来源指纹(size+纳秒 mtime),BatchCollect 推队前按确定性 ID 查引擎副本,指纹一致且上次富化成功即丢消息(一次 ES GET 了事);失败文档照常重试、删除照常重采、手动 _reprocess 直推队列天然绕门;顺手:local_fs 跳 .DS_Store/Thumbs.db/desktop.ini/AppleDouble,process_documents 文件夹文档直通。**e2e**(1s 间隔压测):62 轮同步推 1000+ 消息,拿到指纹的 3 文档后续轮次停止出现在采集日志;**教训**:已有两道防重闸(alreadyEnriched/入库去重)都依赖 content_hash,而 fs 连接器采集时内容为空(Tika 后才有)→hash 永空门槛虚设——**闸门依赖下游才填的字段=摆设,门槛要建在写入源自己拥有的信号上**。③**每部门维度名**(041209f6)——toc_layout 每部门 dimensions 数组按槽位(组织/产品/专题)覆盖默认维度目录名,贯通树规划/编译放置(planTargetFolder)/两个 KB 编辑器;顺手修维度节点 ID 跨部门撞车。另:重启 must 等 badger 锁完全释放(kill 后 sleep 14 而非 3——优雅关闭比预期慢,抢锁 panic 一次)
 > **批 0/W0 落地(2026-10-08,未提交待评审)**:编辑闭环(PUT /document 预读旧档按指纹比对,内容实变才重入 indexing_documents,元数据编辑零成本)+ 入口闭环(POST /document 与 /datasource/:id/_doc 两变体,带内容即入队)+ 纯文本直通切块(document_text_attachment_extraction 对非 file 文档按 content 重切,改内容绝不留旧块)+ 共享入队助手 modules/common/indexing_queue.go;单测:document handler 级(独立 sqlite+hook 替换)+ 处理器直测;gofmt/构建绿。
 > **实体类型大小写规范化修复(2026-10-09,已提交 5565cd4b)**:live 测试抓到——知识库自动处理报 `entity type "Organization" is not declared in the ontology schema`。根因链:extract_entities 的 LLM 输出大写类型名("Organization"),词表匹配用 lowerAll 双侧小写**检查通过**,但**存储的是 LLM 原始大小写**;后续另一条验证路径(关系目标检查/relation lookup)用精确匹配对照 schema 声明的小写 "organization" → 炸。**三层修复**:①extract_entities 增 canonicalizeEntityType(大小写不敏感匹配→**返回声明大小写**,"Organization"→"organization";未知降级 concept);②ontology_schema 的 typeDef 与 findRelationDef 增大小写不敏感回退匹配(历史已入库的漂移记录仍可验证);③连同 live 走查的三个启动 bug 一并提交。测试:规范化四情形(大写/全大写/未知/空)。**教训**:大小写不敏感的**检查**配上大小写敏感的**存储**是最常见的半吊子修复——要么存声明形式,要么查改双兼容,二者都做才算闭环
@@ -574,3 +578,135 @@ search pipeline 顶层键为 Easysearch 自有 schema:`description/version/rewri
 **留档 medcl 决策(11 项,不盲动)**:⑴TOCTOU 幂等——纠正/实体提案"查重再创建"两步间无锁,并发双写可重复。**已修(2026-10-05,锚定 ID)**:ID 即锁——core/anchor.go 纯函数 `AnchoredProposalID(anchor,type,generation)`=md5("proposal|type|anchor[|#N]")、`AnchoredEntityID(name)`=md5("entity|name 归一化(trim+lower)");并发双写者落在同一 ID,输家覆盖字节相同内容而非产重复行(orm.Create 尊重预设 ID,空才生成 uuid)。**代数后缀**是关键决策:同锚点重开(纠正 resolve 后再报/扫描器重探)吃 #2/#3 新行,resolved 行保留为审计历史——单纯锚定会覆盖掉历史。覆盖四条写路径:createCorrection、fileProposal(治理扫描器)、maybeFileKnowledgeGap(缺口回流)、FileEntityGovernanceProposal(实体冲突);实体抽取 resolveOrCreateEntity 创建前 SetID(AnchoredEntityID)——**只锚管线创建,手动建实体不锚**(保持生成 ID 与自己的评审流,防同名异义手动实体被管线覆盖,输家覆盖只损 provenance 且下轮抽取会补回 sources)。proposalAnchorState 助手按扫描而非排序位置找 open 行(同 tick 创建的行排序并列,hits[0] 不稳,fold-or-refile 判断不能赌店端返回顺序);knowledge-gap 的语义刻意保守:已有任何行(含 dismissed)即不重报,防止被驳回的缺口每次搜索重新刷屏。测试:core/anchor_test.go 纯函数(确定性/代数区分/类型区分/实体名归一化)+ TestCorrectionReopenAfterResolve handler 级(gen1 锚定 ID→resolve→重报产 gen2 新行且 resolved 行保留→第三次并入 open 行 report_count 递增仍 2 行);⑵**connector 摄取绕过指纹钩子(已实证,2026-10-04 深挖)**:链路=connector 插件 BatchCollect→queue.Push(indexing_documents)→pipeline process_documents→queue(documents_processed)→pipeline merge_documents 的框架处理器 indexing_merge(直连 elasticsearch "prod" 写 coco_document-v2,key_field id)→queue(merged_documents)→pipeline ingest_documents 的 bulk_indexing——**全程不过 orm,指纹钩子永远不触发**;datasource API 三处 orm.Create/Update 则正常盖章。后果:connector 来源文档无 content_hash/simhash→检索折叠不生效、查重报告扫不到。**修复已落地(2026-10-04,源侧盖章)**:比新处理器插件更优的落点——所有 connector 都经 plugins/connectors/common 的 BatchCollect 入队,webhook 亦直推同一队列,故在**入队前就地盖章**(纯代码修复,零配置变更,覆盖全部 connector+webhook);指纹数学原样迁到 modules/common/fingerprint 共享包(纯函数,无依赖),modules/document 的钩子与 document 侧函数全部委托同一实现——两前端永远产出相同值。**本地 E2E 三重证明**:①重置栈 Hugo 摄取后 70/70 文档 content_hash 全有(修复前 0/70);②API 路径(orm 钩子)与 connector 路径(源侧盖章)对同一内容产出逐字节相同的 hash(622f8cde...);③检索折叠生效:同内容 API 副本被折进原件,metadata.fingerprint_duplicates 带 count+ids。**遗留:存量回填**(2026-10-04 前摄取的文档仍无指纹,需一次性 scroll+计算+bulk 脚本,待 medcl 定时机;只读统计口径已交:对生产 ES `GET coco_document-v2/_count {"query":{"bool":{"must_not":{"exists":{"field":"content_hash"}}}}}` 先看规模再定跑法与时机);另注意 indexing_merge 按字段合并,短内容时显式写空串/0 以冲掉旧值(已按此实现)。**活数据复核**:本地隔离栈 Hugo 连接器摄取后,coco_document-v2 里 70/70 文档(两个 connector 数据源:54+16)content_hash 全空——绕过端到端坐实,非理论推演。fingerprint_persist.go 头注释已同步改口;⑶引擎探测在全局锁下串行化(singleflight 可改观,非正确性);⑷loadDedupDismissals Size(10000) 无排序无溢出信号(超过即静默失效)——**已做最小诚实修(2026-10-05)**:按 created DESC 排序(咬到上限时丢最旧)+ 命中 dedupDismissalCap 打 warn 日志(被驳回对重现会被误读成 dedup bug,实为加载上限);规模化正解=查询期过滤(不进内存 map),与 ⑸ 合并成"dedup 扫描规模化"一个事项,等真上大库再排;⑸dedup 扫描 from/max ≤50000 逼近 index.max_result_window(大库需 search_after);⑹⑦**已修(2026-10-05,28c43a4a,含同族通知)**:共同根因=DirectWrite 写入无主 + orm 搜索钩子对非管理员强制 owner_id should 子句 → 恰好对该看见的人不可见。修法三分:①治理队列读挂 crud CtxDecorate 的 DirectRead(队列是全租户审查面,可见性由路由 wiki_governance 权限决定——扫描器/缺口回流提案天然无属主);②AI 草稿(aiGenerate 流与 _from_chat)盖请求者为 owner;③wiki 通知盖收件人为 owner(通知不能 DirectRead——那会让持通知读权限者看到所有人的通知,泄露)。**E2E 实证**(本地栈建 wiki_reviewer 角色+非管理员用户):持权限非管理员投稿纠正后队列 total:1(修复前恒 0);无权限用户 403;管理员视角不变;评审员 _from_chat 存的草稿带 owner 落位、自己列表可见;ai-draft 通知 _system.owner_id=收件人。设计注记:knowledge-gap/纠正提案保持无属主(系统件),队列按权限全租户可见是刻意语义;**顺带发现本机磁盘 99%(剩 17Gi)触发 ES flood-stage 只读锁**——测试集群已用绝对空闲量水位(8gb/4gb/2gb)解除,真实清理留 medcl 决策;⑻WikiEntity 数据模型无 kb_id → entityNeighbors 只能解析 tenant schema(per-KB schema 对实体邻域失效,数据模型决策);⑨D5 缺口闭环失活(前条,系于分析器决策)——**演示级标注已落地(2026-10-05,方案 B)**:/search/ops/overview 响应加 signals_caveat 常量字段(handler 设置,aggregateSearchLogs 保持纯函数),web 检索运营页按其存在渲染中英警示横幅(零命中率/低召回榜/缺口回流三信号勿作运营依据);根治(分析器收紧)仍独立立项,评估集护栏已就位(zhifu/zf 黄金用例锁 CI);⑩引擎 SemanticQueryBuilder.doRewrite NPE 转告引擎同学;⑪eval run 取最老 200(ASC)而列表最新优先(DESC)——窗口与方向双不一致,超 200 时两界面看的不是同一批(本批已把不一致显式化,方向统一留产品定)——**已修(2026-10-05,medcl 拍板同向)**:run 改 DESC 取最新 200,与列表同向;溢出探测(evalCaseCap+1 多取 1 条报 truncated)语义不变,只是截的是最旧一批;现存场景断言 4 用例不超窗不受影响。
 
 **误报撤销(1 项,教训入册)**:审查代理称"DBQ body 里 size:2 会让每天静默删零"——Easysearch 实测**忽略体里的 size**(3 条匹配全删),不报错不欠删。验证代理结论必须实证,尤其"静默失败"类断言。
+
+**外链文档预览回退链(2026-10-23,ac92a7f3)**:medcl 报"RSS/Hugo 采集内容预览看不到东西",诊断出**三层叠加**:①预览页 inspectRawContent 的裸 fetch 只带 APP-INTEGRATION-ID 不带 Authorization,而 /document/:id/raw_content 挂 RequirePermission → 网页端预览任何文档都 401 落到失败卡(token 只进 axios 封装,裸 fetch 拿不到——git 史上从未带过,非回归);②预览页只消费 metadata.raw_content(读时由 RefineRawContentURL 生成),**从不渲染 content 字段**;RSS/Hugo 不设 raw_content_returns_file(全库仅 34 个文件型文档设),raw_content 端点只回 X-Document-Redirect+{"url":外链}——即便修好 401 也只有跳转卡;③RSS 源头就空:HN 风 feed 每条 description 只有一个 `<a>Comments</a>` 锚(全库 RSS summary 恒 68 字符之谜),item.Content 空。**修法(ac92a7f3)**:预览按"文件流 > content > summary > 外链卡 > 错误卡"依次尝试——新 CapturedContent 组件(content 优先,summary 兜底,Markdown 渲染含 RehypeRaw 所以 RSS 的 Comments 锚能出链接;外链仅在 http(s) 时示"查看原文",wiki 文档 redirect url 是内部路径自动隐藏);inspectRawContent 补 getAuthorization()(嵌入模式仍优先带 APP-INTEGRATION-ID,二者可叠加);raw_content 探测失败但 content/summary 在时也回退渲染而非只报错;DocumentDrawer 内容页 content||summary 一行兜底。**live 三路验证**:RSS→摘要+Comments 链接+原文按钮;Hugo→2451 字正文+来源栏;README.md 文件流路径回归无损。教训:①RefineURL 读时把 url 改写成 /#/preview/document/<id>,**外链真值只能从 raw_content redirect payload 拿**,前端别信 GET /document/:id 的 url 字段;②嵌入 widget 的鉴权通道是 APP-INTEGRATION-ID→guest run-as(core/validate.go priority 50),网页端则是 Bearer——同一 fetch 两环境鉴权来源不同,裸 fetch 必须显式带全。
+
+**搜索结果抽屉同链条补齐(2026-10-23,6aa4b650)**:medcl 追报"知识库的也展示不出来"——定位到**第三条预览路径**:搜索结果抽屉(widget ui-search 的 DocDetail)与预览页/DocumentDrawer 是三套独立渲染。抽屉判定 `hasPreviewSource=metadata.content_type&&raw_content`,而 wiki/RSS/Hugo 文档无 content_type、raw_content_returns_file 仅文件型有 → 一律落"该文档暂无预览"空态;但 /query/_search 命中里 content 是全量带回的(wiki 1646 字符),数据在手只是不渲染。修法同链条:DocDetail 在无文件预览路径时渲染 capturedBody(content>summary,widget 自带 @infinilabs/markdown),summary-only 加"仅采集到以下摘要内容"标签(widget i18n.ts 双语新 key capturedSummary,ResultDetail 接线);DocDetailProps.data 补 content/summary 类型(summary 原已存在,新增时撞 duplicate identifier——类型里 118 行已有)。live 验证:SOQL wiki 抽屉全正文渲染、maxims 文件抽屉文件流路径回归无损。附记:①抽屉的 raw_content 文件流鉴权靠 apiConfig.headers(搜索页带 APP-INTEGRATION-ID=full-screen-widget-default,走 guest run-as),与预览页 Bearer 是两条不同鉴权通道;②hybrid_rrf 搜索页"全部"标签的结果列表要等 AI Overview 流结束才挂载,新开标签页验证时别误判成列表坏了(切"文档"标签立即可见);③RSS 数据源似乎不在当前用户 keyword/hybrid 检索域(搜 DeepSeek 只回 wiki/file),抽屉 RSS 分支未在浏览器实测,但代码路径与已实测的 standalone 预览页 summary 分支同构。
+
+**memory-settings 页面排查与权限前缀修复(2026-10-23,9d18dfe5)**:medcl 问"/#/memory-settings 这个怎么样了"——W6 长期记忆后端/前端其实 10-09 已全链建成(蒸馏→pending→确认→注入提示词+search_memory,会话关闭自动蒸馏 f26e1033),但**页面从未显示过任何数据**。排查链:API 手测一切正常(distill 一次产出 3 条 pending,_mine 正常返回)→ 页面 performance 资源记录里**根本没有 _mine 请求** → 插桩 fetch/XHR 点筛选器依然零请求 → hasAuth('coco#memory/read') 运行时恒 false。根因:**modules/memory 的 Category 常量写成了 "memory"**,权限键渲染成 `memory#memory/read`,而前端(以及 document 等模块的惯例)是 `coco#` 前缀——/account/profile 返回的 153 个权限里是 `memory#memory/*`,前端要 `coco#memory/*`,永不匹配→load() 从不执行。修复:Category="coco"(带注释钉住)+ 顺手修 `_mine?status=all` 字面过滤返回空的边界(视同无过滤)。**重启后 live 全通**:profile 返回 coco#memory/*(路由守卫每次启动会刷 profile+localStorage,老会话无需重登),页面渲染 3 条 pending 带 确认/拒绝/删除。教训:①权限前缀是模块级约定,Category 常量写错不报错、测试全绿,只有 UI 的 hasAuth 会静默躺平——排查信号就是"performance 里没有该请求";②误诊一次:request 封装是 createFlatRequest(返回 {data,error}),`res?.data?.items` 本来就对,别按裸 axios 习惯"修"它;③profile 权限分布里还有个可疑的 `cancel_session` 前缀(1 个权限),同型隐患,待查。
+
+**Wiki TOC 语义分组(2026-10-23,7feb22bf)**:medcl 问"wiki 左侧的目录不会自动整理么"——现状盘点(ES 实数):Books KB 295 篇文章里 250 篇散落根级,目录树是纯手动拖拽(WikiToc 单对象,自动行为只有新文章追加到根/改名同步/删除清理/reconcileToc 自愈),WikiArticle 无 category 字段。四个方案(排序开关/一键整理/新文章自动归档/语义分组)medcl 选**语义分组**。实现(两阶段 LLM,后台跑):①80 条标题采样→提案 4-10 个类目;②250 篇按 120/批分类(只准用已准类目,JSON 数组返回);③buildOrganizedToc 纯函数合并——**手动文件夹原序原样保留**(含嵌套 children),AI 文件夹 id=folder-ai-<slug>-<md5(kbID|类目)[:8]> 跨次稳定,类目内按标题字母序,漏分/乱造类目落"其他"兜底夹,空类目不建夹;④tocMutate 持久化+AppendEvolutionEntry(toc_organize)+server log 完成行。**关键坑×3**:①本机模型 ~60s/调用,首版同步 handler 300s 超时(6 调用),改后台 goroutine+per-KB TryReserve 防重入(二次点击 429 {already_running})+立即返回 {started:true,loose:N},前端轮询 getWikiToc 每 6s 比对根级散落数、12 分钟兜底;②**Go 不能给匿名结构体 var 挂方法**(organizeRuns 编译炸)——named type organizeRunGuard;③**toc 树是嵌套模型**(WikiTocNode.Children json:"children",文章在夹内不在平铺 parent_id)——live 验证脚本先按平铺算出"250 篇全丢"的假警报,递归重数才确认实际 250→8 夹(Connectors 80/Processors 37/API & Auth 33/Deployment 32/Coco AI 30/Documents 14/Search 11/Account 13 恰好 250),手动夹 45 篇原封不动,295 唯一 article_id 无丢失无重复,evolution log 落账"250 loose pages filed into 8 categories (2 manual folders kept)"。单测 4 个(解析/合并纯函数:手动夹原样/空类目丢弃/乱造类目兜底/字母序/id 确定性)。门禁全绿(go test wiki 模块/typecheck 598/locale)。前端:WikiShell 刷新按钮旁 ApartmentOutlined 按钮,Modal.confirm 提示后台运行+手动夹不动,i18n 双语 7 键。
+
+**TOC 语义分组二期:合并复用 + 真实后台状态 + 小库自适应(2026-10-24,df0e311a)**:一期(7feb22bf)留下三个毛刺,本批逐一闭环:①**重复运行会造同义文件夹**——提案阶段不知道树里已有的 AI 文件夹,可能把第二次运行的新散落页归进"数据连接器"而与已有"Connectors"并列 → 提案 prompt 喂入已有顶层文件夹名("Existing folders: … Reuse these names where they fit"),buildOrganizedToc 按标题精确匹配合并进已有文件夹(**AI 夹 id 前缀 folder-ai- 触发子级重排序,手动夹保持手工顺序只追加**),stats 增 merged 字段( Moved=总归档数,Merged=其中并入已有夹的);②**前端靠 12 分钟倒计时猜进度,页面刷新即丢状态**(正是 medcl 报"左侧没整理"的体验根源之一)→ organizeRunGuard 升级为状态机(TryReserve 带 StartLoose/Finish 记录 Last+LastErr+LastAt),新增 GET /wiki/kb/:id/toc/_organize 状态端点(read 权限,返回 running/loose/last/last_error/last_at),前端轮询真实状态、挂载时检查一次以恢复 mid-run 转圈、30 分钟软上限到点只提示"仍在后台进行"不算失败,结果按 last_at 时间戳防串场(只认本次触发之后落账的结果);③**小库被"4-10 类"下限过度拆分** → buildProposalPrompt(页数,已有夹):<24 页时下限放宽到 2。**live 验证(美心 KB,6 篇散落)**:POST {started:true} → 3s 后 GET {running:true} → 二次 POST 429 → ~30s 完成,last={moved:6,merged:1,categories:[企業概況與沿革,財務與股權,禮券與兌換,訂購與會員服務,专题与概念]}——**模型在提案里直接复用了已有夹名"专题与概念"(简体)并精确合并 1 篇进去(原夹 193→194,id/位置不变),另建 4 个繁体中文新夹跟库的语言一致**;199 篇 unique article_id 无丢失,根级散落 0,evolution 落账含 merged。单测 +3(合并进 AI 夹重排序/合并进手动夹保序/提案 prompt 小库下限+已有夹行),共 7 个全绿;门禁 go test 全模块 + typecheck 598 + locale 全过。剩余已知边界:状态是进程内存态,服务器重启后 running 状态清零(运行中进程被杀的场景前端会静默 resync 不误报);"新文章自动归档"(每篇一次 LLM 调用)仍未做,属当初四选项里未选的方向,待 medcl 需要再排。
+
+**TOC 语义分组三期:自动归档 + 摘要辅助分类 + mid-pass 正确性(2026-10-24,d4dd3157)**:medcl"继续完善语义分组"——补齐当初四选项里未选的"新文章自动归档",顺带两个质量/正确性改进。①**自动归档(KB 级开关 AutoOrganizeToc)**:WikiKnowledgeBase 新布尔字段(沿用 auto_approve 的 no-omitempty 惯例,可清零),设置页 Switch(双语 tooltip 说明耗时);触发点收口在 addArticleToToc——7 个创建路径(crud/generate/distill/governance/skills×3)全经过它,文章真正落到根部(added)且 KB 开关开启时 fire maybeAutoOrganizeToc → 复用 startOrganizeRun(与手动按钮同一后台通道:同一 per-KB guard、状态端点、evolution、合并复用逻辑);连发创建靠 guard 收敛(一 Pass 赢,其余 TryReserve 直接 false,只多一次 toc 读),**刻意不做按篇单文章分类**——全量 Pass 天然复用提案+合并机制,不新增竞态面。②**摘要辅助分类**:fetchArticleSummaries 一次 TermsQuery 批量取散落文章 Summary,titlesBlock 升级 entriesBlock("id. title — 摘要一行"),excerptLine 压平多行+120 rune 截断(防摘要里伪造"id. title"行注入 prompt);提案与归类两个阶段都带摘要,"Division"/"Case"这类模棱标题靠摘要定夺。③**mid-pass 正确性**:buildOrganizedToc 增 classified 集合——Pass 快照之后新建的文章(无 assignment)留在根级等下一轮,不再误落"其他"夹。**live E2E(美心)**:开开关 → POST /wiki/article/ 建测试文章"月餅訂購與配送政策"(带摘要)→ 3 秒后状态端点 running:true(loose:1)→ ~20 秒完成 last={moved:1,**merged:1**,categories:[訂購與會員服務]}——模型读 Existing folders 行复用已有夹名精确合并,文章落进"訂購與會員服務",evolution actor=auto-organize;删除测试文章收尾(API+ES 均 found:false,目录回 199 篇 0 散落,开关复位 off)。单测 9 个(新增 mid-pass 根级保留 + entriesBlock 摘录/截断/无摘要;既有 6 个随 classified 参数迁移,allClassified 测试助手);门禁全绿(go test 全模块/typecheck 598/locale)。附记:①文章删除接口 DELETE /wiki/article/:id 响应体偶现 401"invalid user"(删除本身成功——本例文档与 ES 皆已删,toc 节点亦清),疑似删除后置流程(通知/活动日志)的用户上下文问题,与本次改动无关,待查;②测试开关已复位,美心保持"手动点按钮"模式,要常开在 KB 设置页打开即可。
+
+**TOC 语义分组四期:收尾打磨(2026-10-24,1929493e)**:medcl"继续完善,全部改完"——把剩余毛刺一次清完,七项:①**兜底夹名跟随语言**:organizeFallbackName 按散落标题的 Han 占比选"其他"/"Other"(≥半数 Han→其他),英文库不再长出中文兜底夹;②**提案采样改步进**:sampleForProposal 均匀跨取(300 篇取 80 → 覆盖到 296),修掉"只给模型看字母序前 80 条(A–D 段)"的类目偏斜;③**类目上限随已有夹扩展**:parseCategoryList 收 maxCats 参数,调用侧传 organizeMaxCats+len(existing)——Books 已有 10 个夹时模型仍有名额提真正的新主题;④**AI 空夹清除**:buildOrganizedToc 尾部过滤——被搬空的 folder-ai-* 夹删除(自动建的空夹无意义),手动空夹保留;KeptFolders 重定义为"幸存的既有夹数";⑤**LLM 单次重试**:generateWithRetry 包两个阶段调用,瞬时 provider 错误不再一枪毙死整个 Pass;⑥**MCP 工具暴露**:POST 挂 wiki_organize_toc(返回 {started,loose}+轮询指引)、GET 挂 wiki_toc_organize_status,智能体可自主整理;⑦**按钮 tooltip 显示散落数**:挂载/完成时从状态端点取 loose,悬停提示"当前 N 篇未归类"。单测 13 个(新增语言兜底三语料/步进采样尾部可达/空夹清除/上限弹性;stride 测试教训:断言"尾部可达"要按 step 数学算边界——int(79*3.75)=296,写死 298/299 会假红)。**live 冒烟(美心)**:开自动归档 → 建拉丁标题测试文章"Test Page: Gift Voucher Redemption Flow"(带摘要)→ 自动 Pass ~20s 完成 merged=1——**靠摘要跨语言语义匹配进已有繁体中文夹"禮券與兌換"**(标题纯英文、夹名纯中文,标题-only 分类不可能做到);清理后 199 篇 0 散落开关复位。门禁全绿(go test 全模块/typecheck 598/locale)。DELETE /wiki/article/:id 响应体 401"invalid user"再次复现(删除本身成功),确认为既有问题非本次引入,仍待查。
+
+## 2026-10-23 助手过滤一致性（完善）
+
+**提交** `de3a8e3c`
+
+聊天选择器（ui-search，上一切提交 45efbf7e）过滤 `type:data_processing` 后，关联策展面同步对齐：
+
+- `web/src/service/request/es.ts` — `formatSearchFilter` 支持 `!`/`-` 前缀键：`{'!type': ['data_processing']}` → `filter=!type:any(data_processing)`，走框架 query parser 的 MustNot（server 端无改动）。
+- 集成 SearchBox 编辑表单 `ai_chat.assistants` 多选与起始页 `display_assistants` 选择器（`ChatStartPage`，两处共用 `AIAssistantSelect`）加该 filter —— 策展来源即排除管线助手。webhook 触发器与 ai_overview/deep_think 选择器不动（语义不同：管线完成也可触发 webhook；overview 本就允许任意助手）。
+- AI 助手管理列表类型列：`data_processing` 渲染紫色 Tag「数据加工」，`external_workflow` 映射「外部工作流」，未知类型回退原值（原先一律 `-`）。
+
+验证：API `GET /assistant/_search?filter=!type:any(data_processing)` total=15（16-1）；浏览器内集成编辑表单助手下拉「找到 15 结果」且知识管理助手不在其中；列表页知识管理助手行显示「数据加工」。typecheck 598 基线通过，locale:check 通过。
+
+## 2026-10-24 接入中心 P0（Logpilot 复用第一段落）
+
+**提交** coco `a7cf69dc`；framework `95576ccc`（access_token native 路径补 orm.WithModel，修 ES 后端铸造 manager token 必 panic 的框架 bug —— logpilot 走 sqlite 从未暴露）
+
+P0 范围：Coco 作为 managed-config 管理端（协议层零改动复用 framework configs server）。
+
+- **协议面**（实例调用，静态 token/enrollment 认证）：`configs_server.Setup()` 于 modules/gateway 的 RegisterFuncBeforeSetup 启用；/instance/_register、/configs/_sync、/instance/:id/_exchange_token、反向通道 /ws（web 端口默认已挂）。coco.yml 增 `configs.server` 段（dev 开放模式带告警；生产须配 auth.tokens）。
+- **管理面**（登录会话 + `gateway_instance` 权限键）：GET /gateway/instances（status/online<90s 心跳窗/reverse_connected/alias 优先展示）、:id/detail（注册信息+已下发配置 含分组定向行）、:id/_approve（翻状态+MintPublicManagerToken）、:id/_meta（alias/note/groups，服务端自有字段心跳不覆盖）、DELETE :id（注销=记录+凭证+定向配置）、:id/proxy?path=（只读白名单 /_info /health /stats /pipeline/tasks/ /config/，P1 再扩队列/日志）。
+- **前端**：知识加工分组新增「接入中心」（/gateway-instances），筛选/审批/注销/详情抽屉（标签、下发配置、反代实时信息）。MCP 工具 6 个。
+- **E2E**：注册→pending→审批(铸 token)→带凭证 sync→online→meta/forget/detail 全链路通过；修复 sync 心跳极简 payload 将 Host 覆盖为 nil 导致列表 panic 的问题（hostNameOf/hostOSOf 防护+单测）。
+- 遗留：真实 gateway 二进制对连（本地 curl 已模拟同协议）；P1 = Fleet API 部署下发 UI（modules/pipeline/deployment.go 已在 coco PipeModule 激活）；P2 = 日志/指标查看（logpilot 采样器+白名单可搬）。
+
+## 2026-10-24 接入中心 P1（管道部署下发）
+
+**提交** `53c58c5c`（纯前端，后端 Fleet API 零改动 —— framework PipeModule 自带部署 CRUD/15s reconciler/级联回收，coco 侧早已激活）
+
+- 接入中心页改 Tabs：实例 | 管道部署。部署表格：管道/策略(全实例|单实例)/目标(别名解析)/下发状态(ready/desired，点击看每实例上报态：running/pending/failed/stale+原因)/版本/启用开关/编辑/删除。
+- 新建/编辑弹窗：管道下拉（服务端编译门禁）、目标实例多选（仅已准入）、策略、启用。UI 按钮权限用 generic#pipeline/*（用户 profile 实际持有的键族；服务端仍校验 system:pipeline 键，admin 双满足）。
+- 20 秒轮询跟踪 reconciler 的 15 秒收敛节奏。
+- E2E（浏览器实测）：UI 创建「附件增强-边缘下发」→ reconciler 15s 内产出 pipeline-deploy-enrich_attachments.yml 并出现在实例详情；双管道并存下发（documents v3 575B + attachments v1 159B）；带凭证 sync 拉到完整管道配置 diff（8 处理器链）；编辑改名版本 v1→v2；删除后级联回收 attachments 配置行（实例下次 sync 收 Deleted diff 停任务）。
+- 环境怪癖记录：IAB 自动化下 antd Select 单选的合成 option-click 不触发 rc-select onSelect（multiple 正常），需要 detail=1 的 mousedown 开下拉 + 键盘/多次尝试；产品代码无问题。
+- 现存演示数据：部署「文档增强-边缘下发」(enrich_documents→gateway-e2e-test) + 实例 gateway-e2e-test（别名 测试网关-01）。
+- P2 候选：实例日志/指标查看（反代白名单扩 /queue/ /logging/ + logpilot 采样器）、部署 selector 标签定向表单化、真实 gateway 二进制对连。
+
+## 2026-10-24 接入中心 P2（实例可观测性）
+
+**提交** `6da1a914`
+
+- **反代白名单**（modules/gateway/api.go）：exact+prefix 双规则（对齐 Logpilot 接入中心的只读集合）——/queue/stats、/queue/<id>/_scroll（实例侧 debug-consumer，不动真实位点）、/logging/files、/logging/tail（实例侧仅 .log/.json 可尾取）、/pipeline/tasks/、/pipeline/task/<id>/stages、/pipelines/<id>/versions、/tasks/、/debug/goroutines、/_whoami、/pipeline/{processors,codecs,lanes}。仅 GET；逃逸路径（/keystore、/instance/_register 等）403。matchProxyRead 单测覆盖 query 剥离与逃逸拒绝。
+- **实例详情抽屉改 Tabs**：概览（原信息+标签+下发配置+实时 /_info）｜队列（后端/名称/深度/大小/消费者+原始展开）｜日志（文件下拉+200 行尾取+刷新）｜运行任务（任务+运行态+原始展开）。
+- 面板全部经反向通道实时读取；实例离线（无 websocket 会话）时优雅降级为提示文案，不发起请求。
+- 验证：白名单放行观测路径（无反代会话时 503=通道不可达，符合预期）、拒绝逃逸路径 403；浏览器内 4 Tab 渲染 + 离线降级提示确认。
+- 后续：真实 gateway 二进制对连后面板将有真数据（模拟 sync 客户端无 websocket）；队列消息浏览（_scroll 翻页 UI）与日志 keyword 过滤是下一步增强。
+
+## 2026-10-24 接入中心 P3（真实 gateway 二进制对连 + 两个 framework 深层 bug 修复）
+
+**提交** framework `b6a3f0a2` + `f1ace01d`；coco `a57290d3`（仅 modules/gateway/api.go 一行）
+
+**真实对连验证**（/tmp/gw-e2e 隔离工作目录，节点 gateway-e2e-live，web 2910/api 2911）：
+- register→approve(铸 token 经 sync 下发)→ws 反向通道建立→四类观测端点反代全部真数据：/_info（Apple M2/arm64/build 信息）、/logging/files+tail（真实日志行经 websocket 回流）、/pipeline/tasks/、/queue/stats（空 disk 队列正确渲染空态）。
+- 浏览器四 Tab 验证：概览(实时 /_info JSON)、日志(gateway.log 真实内容)、运行任务(边缘心跳 keep_running 任务)、队列(空态)。截图 gui-test-screenshots/gateway-live-observability-queues.png。
+- 部署 edge_heartbeat（node_stamp+echo，core processors）到真实实例,reconciler→sync→写盘→pipeline 启动全链路真实运行。
+
+**framework bug #1（b6a3f0a2）**: go-ucfg 空 dict `{}` reify 成 nil,`reflect.ValueOf(nil)` 为 invalid → reifyMap 跳过 SetMapIndex → **key 整个丢失**。所有 `processor: [{echo: {}}]`（最常见形态）经配置文件加载的 pipeline 报 "each processor must have exactly one action, but found 0 actions"。修复:空 dict reify 成空 map（与空数组行为对齐）;go-ucfg 全量测试 + core/config 加载路径回归测试。这是 managed 实例永远无法启动下发 pipeline 的根因。
+
+**framework bug #2（f1ace01d）**: 无版本 ldflags 的二进制上报 `build_date: "N/A"`,老索引动态 mapping 为 date → ES document_parsing_exception → **心跳 upsert 静默失败（Debug 级日志）而 sync 照样 200** → 实例永远"离线"。三层修复:env.Version 字段钉 keyword mapping（新索引）、upsertInstance 清洗非 RFC3339 占位日期（护现有索引）、心跳失败日志 Debug→Warn。
+
+**coco 修复（a57290d3）**: /gateway/instances/:id/detail 漏了 online 字段,抽屉在线状态 Badge 恒显"离线"。补 90s 窗口计算。
+
+**环境备注**: 测试 gateway 必须 own workdir 启动（从 coco cwd 启动会自动加载 coco 的 config 目录）;表格 15s 自动刷新使 Playwright actionability 点击超时,用原生 dispatchEvent(detail:1) 点击;Playwright 偶发 timeout 后换 evaluate 直查 DOM。文档增强 pipeline 在 stock gateway 上报 "processor file_type_detection does not exist" 属预期跨二进制行为（coco 专属 processor），错误信息现已包含完整候选列表。
+
+## 2026-10-24 接入中心 P4（观测深化：队列消息浏览 + 日志关键字过滤）
+
+**提交** coco `0d1d8cc2`（纯前端 + i18n；后端零改动 —— 反代白名单已覆盖 /queue/ 前缀与 logging/tail 查询参数透传）
+
+**队列消息浏览**：队列行新增「查看消息」→ 模态框走 `/queue/:name/_scroll`：
+- 游标分页：`context.next_offset`（segment,position,version 三元组回传）+ 已访问偏移栈实现上一页回放；边界验证 12 条消息 × size=5 翻页无重叠无遗漏（#A-E / #F-J / #K-L+下一页禁用）
+- 消息卡片：offset Tag + size + truncation 标记 + JSON 自动美化
+- 队列名优先显示 metadata.name（stats key 是内部 ID）
+
+**日志关键字过滤**：LogPanel 文件选择 + 关键字输入（Space.Compact）→ `/logging/tail?...&keyword=` 服务端匹配；truncated 时提示收紧关键字。浏览器验证 'otlp' 过滤 8/8 行命中、无匹配空态。
+
+**真实队列流量**：测试实例启用 OTLP intake（127.0.0.1:4317 → log_processing 队列），用 framework intake 包内一次性 seeder 测试（OTLP_TARGET env）发送 12 条真实 OTLP 日志记录 —— 生产级入口路径，队列深度/消息全真数据。截图 gateway-log-keyword-filter.png。
+
+## 2026-10-23 fix: 内置「知识管理助手」不能查看/修改 (2b52f20e)
+
+**现象**: AI 助手列表中内置的知识管理助手名称不可点、开关禁用、无编辑/克隆入口;强行进入编辑页后保存被「保持连接不能为空」拦截。
+
+**根因(两层叠加)**:
+1. 种子 (`modules/wiki/km_assistant.go` seedBuiltinKmAssistant) 未设 owner → `_system.owner_id` 为空 → 前端 useResource 的 `isEditorOwner/hasEdit` 恒 false → 所有关联入口被隐藏(该助手是 ES 中唯一无 owner 的记录)。
+2. 种子未设 `keepalive` → 编辑表单该字段必填 (`EditForm.tsx` rules) → 校验永远失败,无法保存。其余内置助手 (Coco AI/AI Overview/Gitlab CI Robot) 均有 keepalive=30m。
+
+**修复**:
+- `list/index.tsx`: 名称链接/开关/编辑/克隆对 `record.builtin === true` 放行(仍需相应权限);删除保持禁止(后端本就 403)。
+- `EditForm.tsx`: `setFieldsValue` 时 `keepalive: initialValues.keepalive || '30m'`(与 icon 兜底同模式)。
+- `km_assistant.go`: 种子补 `Keepalive: "30m"`(存量数据已直接在 ES 补齐)。
+
+**验证**: 浏览器实测 UI 修改问候语→保存「更新成功」;ES updated 03:29:31→03:33:08、greeting 持久化、builtin/name/keepalive 保留(后端 builtin 保护生效)。typecheck 598=baseline。
+
+## 2026-10-24 学习 WeKnora + LLM Wiki 两文 → P0: KB 体检报告 (5ed762bb)
+
+**来源**: 微信文章《腾讯微信团队开源 WeKnora》《LLM Wiki 开源版与桌面版全拆解》。
+
+**两文核心可借鉴点盘点**（对照 Coco 现状）:
+- WeKnora: 切片可编辑带版本回滚、引用直达段落、RAG 管道可视化、会话级沙箱+产物库、MCP 人审 —— 大多在 Coco 已有对应物（文章版本/引用链/MCP/治理队列）或属并行会话技能层方向。
+- LLM Wiki: **Lint 体检（KB 级）**、图谱洞察（孤儿页/桥节点/跨社区意外连接）、红链=知识缺口是特性、purpose.md、两步摄入 —— KB 级体检与洞察是明确缺口：我们的 lint 是逐页保存时计算，graph 只做可视化，没有"下一页值得写什么/哪些页需要关注"的全局答案。
+
+**P0 落地**（避开并行会话 compile/skills/distill/eval WIP 文件）:
+- `GET /wiki/kb/:id/_health`（+MCP 工具 kb_health，modules/wiki/health.go）: 每次请求实时扫描（永不与存量告警漂移），产出:
+  - 孤儿页: 入度=0（标题/别名/实体页/KeyEntities 均算入链锚点，归档页退役不算）
+  - 知识缺口: 红链按名字聚合 + 需求热度（被引次数）+ 引用页面样本
+  - 单薄页/无引用概念专题页/无出处技能页: 与 computeLintWarnings 同规则（报告永不与逐页 lint 矛盾）
+  - 枢纽页: 入度 Top10（≥3）
+- 前端「体检」Tab（KbHealth.tsx，图谱后）: 统计卡 + 缺口表（引用页跳转）+ 问题页表（发现 Tag + 排序）+ 枢纽表，全部深链进文章页。
+- 单测: sqlite store 全链路（hub 回链/gap 聚合/orphan/thin/归档剔除/404）。
+
+**验证**: Books KB 295 页(275 归档)→20 孤儿/1 单薄、美心 KB 199 页(188 归档)→11 孤儿，浏览器体检 Tab 数字与 API 完全一致，截图 gui-test-screenshots/wiki-kb-health-report.png。typecheck 598=基线、locale:check 通过。
+
+**后续候选**（本次未做）: 缺口行一键"创建草稿"（红链→新页草稿+反向链接）、枢纽页保护提示、跨社区意外连接洞察（需社区发现）、purpose.md 等价物（KB 使命/关键问题注入生成与检索 prompt）。
+
+### 增量 (d3356b08): 缺口一键创建草稿，出生即接入图谱
+
+- 缺口表新增「创建草稿」: 以缺口名为题建 concept 草稿，模板把 cited_by 页面写成真实 `[[双链]]`（linked_pages 随保存解析）→ 新页出生即有入链（不会沦为孤儿），维护者直接落进编辑器。
+- 第一版模板里的示例 `[[页面名]]` 自己变成新红链（E2E 当场暴露），改为代码拼接真实引用页双链后消除。
+- E2E（Books KB 真数据）: 造红链探针 → 体检出现缺口(×1, cited_by 可跳转) → 点创建 → 落进草稿页、content 尾部含 `[[ZZ Gap Probe]]`、linked_pages 已解析 → 复扫缺口清零 → 探针+草稿删除后基线恢复（295 页/0 缺口/20 孤儿）。DELETE /wiki/article 401-with-success 怪癖再现（删成功但报 401，遗留清单已有）。
