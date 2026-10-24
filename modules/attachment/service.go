@@ -14,6 +14,7 @@ import (
 	"infini.sh/coco/modules/common/fingerprint"
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 )
@@ -85,6 +86,24 @@ func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, hea
 	// path. 0 means "not an image / undecodable" and is left as-is.
 	if strings.HasPrefix(mimeType, "image/") {
 		attachment.ImagePhash = int64(fingerprint.ImagePhash(data))
+	}
+
+	// Dry-run guard: pipeline replays (dry-run capture mode) must not
+	// persist attachments — the cover/chunk processors reach this choke
+	// during dry-runs and used to write real rows + blobs. Capture the
+	// write as a side effect instead and hand back the ID so downstream
+	// record fields (document.cover, attachment refs) stay meaningful.
+	// The dry-run state rides the Go context chain, so it survives the
+	// derived contexts processors hand down.
+	if sink := pipeline.DryRunCaptureCtx(ctx); sink != nil {
+		*sink = append(*sink, pipeline.DryRunWrite{
+			Kind:    "attachment",
+			Target:  fileID,
+			Records: 1,
+			Preview: fmt.Sprintf("%s (%d bytes, %s)", fileName, fileSize, mimeType),
+		})
+		log.Debugf("dry-run: attachment [%s/%s] capture-only, not persisted", fileName, fileID)
+		return fileID, nil
 	}
 
 	//save attachment metadata
