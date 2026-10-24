@@ -35,7 +35,9 @@
   },
   "scripts": {
     "build": "vite build --mode prod",
+    "postbuild": "node scripts/copy-widgets.mjs",
     "build:test": "vite build --mode test",
+    "postbuild:test": "node scripts/copy-widgets.mjs",
     "cleanup": "sa cleanup",
     "commit": "sa git-commit",
     "commit:zh": "sa git-commit -l=zh-cn",
@@ -46,14 +48,19 @@
     "preview": "vite preview",
     "release": "sa release",
     "typecheck": "tsc --noEmit --skipLibCheck",
-    "update-pkg": "sa update-pkg"
+    "locale:check": "node scripts/check-locales.mjs",
+    "update-pkg": "sa update-pkg",
+    "typecheck:gate": "node scripts/typecheck-gate.mjs",
+    "typecheck:update-baseline": "node scripts/update-typecheck-baseline.mjs"
   },
   "dependencies": {
+    "3d-force-graph": "^1.80.1",
     "@ant-design/icons": "~5.6.1",
     "@ant-design/pro-components": "^2.8.10",
     "@better-scroll/core": "2.5.1",
     "@iconify/react": "5.0.2",
     "@infinilabs/entity-ui": "^0.0.5",
+    "@oxc-parser/binding-darwin-arm64": "0.124.0",
     "@reduxjs/toolkit": "2.3.0",
     "@sa/axios": "workspace:*",
     "@sa/color": "workspace:*",
@@ -99,7 +106,8 @@
     "remark-math": "6.0.0",
     "typeit": "8.8.7",
     "ui-search": "workspace:*",
-    "use-debounce": "10.0.4"
+    "use-debounce": "10.0.4",
+    "vditor": "^4.0.0"
   },
   "devDependencies": {
     "@iconify/json": "2.2.266",

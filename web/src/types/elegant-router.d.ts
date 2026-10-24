@@ -11,7 +11,7 @@ declare module "@elegant-router/types" {
   /**
    * route layout
    */
-  export type RouteLayout = "base" | "blank";
+  export type RouteLayout = "app" | "base" | "blank";
 
   /**
    * route map
@@ -44,15 +44,22 @@ declare module "@elegant-router/types" {
     "auth": "/auth";
     "auth_edit": "edit/:id";
     "auth_new": "new";
+    "chat": "/chat";
     "connector": "/connector";
     "connector_edit": "edit/:id";
     "connector_new": "new";
+    "connector-settings": "/connector-settings";
+    "content-dedup": "/content-dedup";
+    "data-security": "/data-security";
     "data-source": "/data-source";
     "data-source_detail": "detail/:id";
+    "data-source_doc": "doc/:id";
     "data-source_edit": "edit/:id";
     "data-source_list": "list";
     "data-source_new": "new";
     "data-source_new-first": "new-first";
+    "engine-ai": "/engine-ai";
+    "gateway-instances": "/gateway-instances";
     "guide": "/guide";
     "home": "/home";
     "integration": "/integration";
@@ -64,24 +71,42 @@ declare module "@elegant-router/types" {
     "mcp-server_edit": "edit/:id";
     "mcp-server_list": "list";
     "mcp-server_new": "new";
+    "memory-settings": "/memory-settings";
     "model-provider": "/model-provider";
     "model-provider_edit": "edit/:id";
     "model-provider_list": "list";
     "model-provider_new": "new";
+    "ontology": "/ontology";
+    "pipeline": "/pipeline";
+    "pipeline_edit": "edit/:id";
+    "pipeline_list": "list";
+    "pipeline_new": "new";
     "preview": "/preview";
     "preview_document": "document/:id";
     "role": "/role";
     "role_edit": "edit/:id";
     "role_new": "new";
     "search": "/search";
+    "search-ops": "/search-ops";
+    "search-settings": "/search-settings";
+    "search-studio": "/search-studio";
     "security": "/security";
     "settings": "/settings";
+    "skill": "/skill";
+    "skill_list": "list";
     "user": "/user";
     "user_edit": "edit/:id";
     "user_new": "new";
     "webhook": "/webhook";
     "webhook_edit": "edit/:id";
     "webhook_new": "new";
+    "wiki": "/wiki";
+    "wiki_article": "article/:id";
+    "wiki_governance": "governance";
+    "wiki_kb": "kb/:id";
+    "wiki_list": "list";
+    "wiki_notifications": "notifications";
+    "wiki-settings": "/wiki-settings";
   };
 
   /**
@@ -132,21 +157,36 @@ declare module "@elegant-router/types" {
     | "ai-assistant"
     | "api-token"
     | "auth"
+    | "chat"
     | "connector"
+    | "connector-settings"
+    | "content-dedup"
+    | "data-security"
     | "data-source"
+    | "engine-ai"
+    | "gateway-instances"
     | "guide"
     | "home"
     | "integration"
     | "login"
     | "mcp-server"
+    | "memory-settings"
     | "model-provider"
+    | "ontology"
+    | "pipeline"
     | "preview"
     | "role"
     | "search"
+    | "search-ops"
+    | "search-settings"
+    | "search-studio"
     | "security"
     | "settings"
+    | "skill"
     | "user"
     | "webhook"
+    | "wiki"
+    | "wiki-settings"
   >;
 
   /**
@@ -175,13 +215,20 @@ declare module "@elegant-router/types" {
     | "api-token_list"
     | "auth_edit"
     | "auth_new"
+    | "chat"
+    | "connector-settings"
     | "connector_edit"
     | "connector_new"
+    | "content-dedup"
+    | "data-security"
     | "data-source_detail"
+    | "data-source_doc"
     | "data-source_edit"
     | "data-source_list"
     | "data-source_new-first"
     | "data-source_new"
+    | "engine-ai"
+    | "gateway-instances"
     | "guide"
     | "home"
     | "integration_edit"
@@ -191,19 +238,34 @@ declare module "@elegant-router/types" {
     | "mcp-server_edit"
     | "mcp-server_list"
     | "mcp-server_new"
+    | "memory-settings"
     | "model-provider_edit"
     | "model-provider_list"
     | "model-provider_new"
+    | "ontology"
+    | "pipeline_edit"
+    | "pipeline_list"
+    | "pipeline_new"
     | "preview_document"
     | "role_edit"
     | "role_new"
+    | "search-ops"
+    | "search-settings"
+    | "search-studio"
     | "search"
     | "security"
     | "settings"
+    | "skill_list"
     | "user_edit"
     | "user_new"
     | "webhook_edit"
     | "webhook_new"
+    | "wiki-settings"
+    | "wiki_article"
+    | "wiki_governance"
+    | "wiki_kb"
+    | "wiki_list"
+    | "wiki_notifications"
   >;
 
   /**
@@ -274,7 +336,7 @@ declare module "@elegant-router/types" {
         path: RouteMap[K];
         component: `layout.${RouteLayout}$view.${K}`| `view.${LastLevelRouteKey}`|`layout.${RouteLayout}`;
         children?:ElegantConstRoute[] ;
-        layout?:"base" | "blank"
+        layout?:"app" | "base" | "blank"
       }
     : never;
 
@@ -309,7 +371,7 @@ declare module "@elegant-router/types" {
         path: RouteMap[K];
         component: `layout.${RouteLayout}`| `view.${LastLevelRouteKey}`;
         children: (CenterLevelRoute<GetChildRouteKey<K>> | LastLevelRoute<GetChildRouteKey<K>>)[];
-        layout?:"base" | "blank"
+        layout?:"app" | "base" | "blank"
       }
     : never;
   
@@ -321,7 +383,7 @@ declare module "@elegant-router/types" {
         name: K;
         path: RouteMap[K];
         component?: `layout.${RouteLayout}$view.${LastLevelRouteKey}`| `view.${LastLevelRouteKey}`| `$view.${LastLevelRouteKey}`;
-        layout?:"base" | "blank"
+        layout?:"app" | "base" | "blank"
       }
     : never;
 
@@ -333,7 +395,7 @@ declare module "@elegant-router/types" {
         name: K;
         path: RouteMap[K];
         component?: `view.${LastLevelRouteKey}`;
-        layout?:"base" | "blank"
+        layout?:"app" | "base" | "blank"
       }
     : never;
 
@@ -358,7 +420,7 @@ declare module "@elegant-router/types" {
           path: RouteMap[K];
           component: `layout.${RouteLayout}`| `view.${LastLevelRouteKey}`;
           children: (CustomCenterLevelRoute<GetChildRouteKey<K>> | CustomLastLevelRoute<GetChildRouteKey<K>>)[];
-          layout?:"base" | "blank"
+          layout?:"app" | "base" | "blank"
         }
       : never;
 

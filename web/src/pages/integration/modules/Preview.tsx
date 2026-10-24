@@ -45,7 +45,7 @@ export const Preview = memo(props => {
         <div id="${widgetType}" style="margin: ${mode === 'page' ? '0' : '10px'} 0; outline: none; ${widgetType === 'fullscreen' ? 'height: 100%;' : ''}"></div>
         <script type="module" >
             import { ${widgetType} } from "${normalizeUrl(`${server}/integration/${params.id}/widget`)}";
-            ${widgetType}({container: "#${widgetType}", enableQueryParams: false });
+            ${widgetType}({container: "#${widgetType}", enableQueryParams: false, endpoint: ${JSON.stringify(normalizeUrl(`${server}`))} });
         </script>
       </body>
       </html>

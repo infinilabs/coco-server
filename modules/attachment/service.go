@@ -1,14 +1,17 @@
 package attachment
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"mime/multipart"
+	"strings"
 	"time"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/common/fingerprint"
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
@@ -48,7 +51,11 @@ func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, hea
 		fileID = util.GetUUID()
 	}
 	fileSize := int64(len(data))
-	mimeType, err := DetectMimeType(fileName, file, header)
+	// the reader was fully consumed above — pass a fresh seekable reader over
+	// the same bytes, otherwise the sniff inside DetectMimeType reads from EOF
+	// and every internally generated file (covers, thumbnails) ends up as
+	// "text/plain" (http.DetectContentType of an empty buffer)
+	mimeType, err := DetectMimeType(fileName, bytes.NewReader(data), header)
 
 	attachment := core.Attachment{}
 	attachment.ID = fileID
@@ -71,6 +78,13 @@ func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, hea
 				attachment.Metadata[k] = v
 			}
 		}
+	}
+
+	// Image attachments get their perceptual hash at the single creation
+	// choke (W12): the bytes are in hand here and nowhere else on the write
+	// path. 0 means "not an image / undecodable" and is left as-is.
+	if strings.HasPrefix(mimeType, "image/") {
+		attachment.ImagePhash = int64(fingerprint.ImagePhash(data))
 	}
 
 	//save attachment metadata

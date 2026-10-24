@@ -1,3 +1,5 @@
+import { SafetyCertificateOutlined } from '@ant-design/icons';
+import PageHeaderTitle from '@/components/stateless/common/PageHeaderTitle';
 import { Tabs } from "antd";
 
 import Auth from "./modules/Auth";
@@ -51,16 +53,23 @@ export function Component() {
     });
   }
 
-  const activeKey = useMemo(() => {
-    return searchParams.get("tab") || items?.[0]?.key;
-  }, []);
-
-  const activeItem = useMemo(() => {
-    return items.find((item) => item.key === activeKey);
-  }, [activeKey]);
+  // no useMemo: the component is kept alive across navigations, so the
+  // tab must re-derive from searchParams on every render or a later
+  // #/security?tab=role deep link stays on the first-render tab
+  const activeKey = searchParams.get("tab") || items?.[0]?.key;
+  const activeItem = items.find((item) => item.key === activeKey);
 
   return (
-    <ACard styles={{ body: { padding: 0 } }}>
+    <ACard
+      styles={{ body: { padding: 0 } }}
+      title={
+        <PageHeaderTitle
+          description={t('page.security.subtitle')}
+          icon={<SafetyCertificateOutlined />}
+          title={t('page.security.title')}
+        />
+      }
+    >
       <Tabs
         className="settings-tabs"
         activeKey={activeKey}

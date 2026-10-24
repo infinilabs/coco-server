@@ -161,8 +161,12 @@ func NewLark(c *config.Config) (pipeline.Processor, error) {
 
 func init() {
 	// Register pipeline processors
-	pipeline.RegisterProcessorPlugin(ConnectorFeishu, NewFeishu)
-	pipeline.RegisterProcessorPlugin(ConnectorLark, NewLark)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(ConnectorFeishu, NewFeishu, nil)
+	// chain-root driver (batch scope): fetches from its datasource and
+	// emits into the indexing queue — no record contract beyond scope
+	pipeline.RegisterProcessorContract(ConnectorFeishu, pipeline.RecordContract{Scope: pipeline.ScopeBatch})
+	pipeline.RegisterProcessorPluginWithConfigMetadata(ConnectorLark, NewLark, nil)
+	pipeline.RegisterProcessorContract(ConnectorLark, pipeline.RecordContract{Scope: pipeline.ScopeBatch})
 
 	// Register OAuth routes for Feishu
 	api.HandleUIMethod(api.GET, "/connector/:id/feishu/connect", handleOAuthConnect(PluginTypeFeishu), api.RequireLogin())

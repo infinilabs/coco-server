@@ -6,15 +6,22 @@ import { normalizeCoverIconUrl } from "./utils/utils";
 import { debounce, isEmpty } from 'lodash';
 import Home from "./pages/Home";
 import Search from "./pages/Search";
-import { ACTION_TYPE_SEARCH_KEYWORD, DEFAULT_SEARCH_SORT, normalizeSearchFuzziness, normalizeSearchSort } from "./SearchBox/ActionBar/SearchActions";
+import { DEFAULT_SEARCH_SORT, DEFAULT_SEARCH_TYPE, normalizeSearchFuzziness, normalizeSearchSort, normalizeSearchType } from "./SearchBox/ActionBar/SearchActions";
 import Chat from "./pages/Chat";
 import { calcFixedBucketCount } from "./utils/date";
+import { pushRecentSearch } from "./utils/recentSearches";
 
 const formatDateRangeParam = (value: number | string, endOfDay = false) => {
   const timestamp = typeof value === 'number' ? value : Number(value);
   const date = Number.isFinite(timestamp) ? dayjs(timestamp) : dayjs(value);
 
   if (!date.isValid()) return value;
+  // Values carrying a time part (the histogram brush passes minute-precision
+  // bucket keys) must keep their exact instant — snapping to day boundaries
+  // silently widens every within-day selection to the whole day, making the
+  // brush appear to do nothing. Day-boundary semantics stay for bare dates.
+  const hasTime = typeof value === 'number' || /\d:\d/.test(String(value));
+  if (hasTime) return date.valueOf();
   return endOfDay ? date.endOf('day').valueOf() : date.startOf('day').valueOf();
 };
 
@@ -46,13 +53,38 @@ const getDateRangeParams = (dateRange?: string) => {
 };
 
 interface FullscreenProps {
-  logo?: Record<string, any>;
+  /** pass null to hide the widget's own logo (host app already shows its brand) */
+  logo?: Record<string, any> | null;
+  /** overrides `logo` for the chat sidebar brand strip — hosts whose shell
+   * already brands the chat page pass null to remove it entirely */
+  chatLogo?: Record<string, any> | null;
+  /** overrides `logo` for the search results header — hosts whose shell
+   * already brands the results page pass null */
+  searchLogo?: Record<string, any> | null;
+  /** search-home background image per theme: { light, dark } */
+  background?: Record<string, any>;
+  /** banner slot max height in px (width stays adaptive) */
+  logoMaxHeight?: number;
+  /** welcome text font size in px (default 30) */
+  welcomeFontSize?: number;
+  /** brand-gradient welcome text (default on) */
+  welcomeGradient?: boolean;
   placeholder?: string;
   welcome?: string;
   aiOverview?: { enabled?: boolean };
+  /** seed the chat mode with a pending conversation (query / attachments /
+   * assistant) — how a host's global search box hands off an AI-mode search
+   * across the route boundary into this page */
+  initialChatParams?: Record<string, any>;
   onSearch?: (...args: any[]) => void;
   onAggregation?: (...args: any[]) => void;
   onAsk?: (...args: any[]) => void;
+  /** host hook: leave chat mode and go back to search — hosts whose shell
+   * already offers search/chat navigation (e.g. a persistent header) omit it,
+   * which hides the chat header's back-to-search button entirely */
+  onBackToSearch?: () => void;
+  /** host hook: report an assistant answer as wrong/outdated (correction loop) */
+  onCorrectAnswer?: (payload: { content: string; question: string; id: string }) => void;
   config?: Record<string, any>;
   isHome?: boolean;
   rightMenuWidth?: number;
@@ -63,6 +95,8 @@ interface FullscreenProps {
   language?: string;
   onSuggestion?: (...args: any[]) => void;
   onRecommend?: (...args: any[]) => void;
+  onHotSearches?: (callback: (res: { items?: { query: string; count: number }[] }) => void) => void;
+  onRelatedSearches?: (query: string, callback: (res: { items?: { query: string; count: number }[] }) => void) => void;
   apiConfig?: Record<string, any>;
   getFieldsMeta?: (...args: any[]) => any;
   onUpload?: (...args: any[]) => void;
@@ -74,12 +108,23 @@ interface FullscreenProps {
 const Fullscreen = (props: FullscreenProps) => {
   const {
     logo = {},
+    chatLogo,
+    searchLogo,
+    background,
+    logoMaxHeight,
+    welcomeFontSize,
+    welcomeGradient,
+    onSaveToWiki,
+    onVoteAnswer,
+    onCorrectAnswer,
     placeholder,
     welcome,
     aiOverview,
+    initialChatParams,
     onSearch,
     onAggregation,
     onAsk,
+    onBackToSearch,
     config = {},
     isHome = false,
     rightMenuWidth,
@@ -90,19 +135,35 @@ const Fullscreen = (props: FullscreenProps) => {
     language = 'en-US',
     onSuggestion,
     onRecommend,
+    onHotSearches,
+    onRelatedSearches,
     apiConfig,
     getFieldsMeta,
     onUpload,
     getUserEntities,
-    settings
+    settings,
+    defaultSearchType
   } = props;
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const getContainer = useCallback(() => containerRef.current, []);
   const [result, setResult] = useState(formatESResult());
   const [aggregationResult, setAggregationResult] = useState<ReturnType<typeof formatESResult>['aggregations']>([]);
+  // per-category availability for the result tabs: image count comes from the
+  // content_category aggregation, non-image from the aggregation query's total
+  // minus that — null when the host doesn't request the aggregation (legacy
+  // host: all tabs stay visible)
+  const [categoryCounts, setCategoryCounts] = useState<{ image: number; nonImage: number } | null>(null);
   const [askBody, setAskBody] = useState<any>();
-  const [loading, setLoading] = useState(false);
+  // a mount with search params runs a search in the first effect — start in
+  // loading so the very first paint already carries the list/facet skeletons
+  // (otherwise one frame renders the empty layout at its no-sider width and
+  // the columns settle 100ms+ later); attachments count too: an image-only
+  // multimodal search has no typed query
+  const willSearchOnMount =
+    queryParams.mode !== 'chat' &&
+    (Boolean(queryParams?.query) || !isEmpty(queryParams?.filter) || !isEmpty(queryParams?.aggfilter) || Boolean(queryParams?.attachments));
+  const [loading, setLoading] = useState(willSearchOnMount);
   const [isMobile, setIsMobile] = useState(false);
   const shouldAskRef = useRef(true);
   const shouldAggRef = useRef(true);
@@ -112,8 +173,8 @@ const Fullscreen = (props: FullscreenProps) => {
   const isHomeSearchRef = useRef(true);
   const scrollRef = useRef(0)
 
-  const [chatParams, setChatParams] = useState<Record<string, any>>({});
-  const [attachments, setAttachments] = useState<any[]>([]);
+  const [chatParams, setChatParams] = useState<Record<string, any>>(initialChatParams || {});
+  const [attachments, setAttachments] = useState<any[]>(initialChatParams?.attachments || []);
 
   const onChat = (params: Record<string, any>) => {
     setChatParams(params);
@@ -121,6 +182,50 @@ const Fullscreen = (props: FullscreenProps) => {
       mode: 'chat',
     })
   }
+
+  // Multimodal search handed in from another surface (e.g. the app-shell
+  // header) arrives as `attachments=<ids>` in the URL. The chips live in
+  // component state, so fetch their metadata once to keep the search box
+  // honest about what is being searched; failures leave the search itself
+  // untouched (the server enriches from the IDs regardless of chip state).
+  useEffect(() => {
+    const idsParam = queryParams.attachments;
+    if (queryParams.mode === 'chat' || attachments.length > 0 || typeof idsParam !== 'string' || !idsParam) return;
+
+    let cancelled = false;
+    const baseUrl = String(apiConfig?.BaseUrl || '').replace(/\/+$/, '');
+    const headers: Record<string, string> = { ...(apiConfig?.headers || {}) };
+    if (apiConfig?.Token) headers['X-API-TOKEN'] = String(apiConfig.Token);
+
+    fetch(`${baseUrl}/attachment/_search?from=0&size=50`, {
+      method: 'POST',
+      headers: { ...headers, 'content-type': 'application/json' },
+      body: JSON.stringify({ attachments: idsParam.split(',').map((id: string) => id.trim()).filter(Boolean) }),
+      credentials: 'include'
+    })
+      .then(res => (res.ok ? res.json() : null))
+      .then(res => {
+        if (cancelled || !res) return;
+        const hits = res?.hits?.hits || [];
+        setAttachments(hits.map((hit: any) => {
+          const src = hit?._source || {};
+          const name = src.name || hit?._id || '';
+          return {
+            id: hit?._id,
+            filename: name,
+            extname: name.includes('.') ? name.split('.').pop() : '',
+            type: src.mime_type || '',
+            size: src.size || 0,
+            status: 'uploaded'
+          };
+        }));
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [queryParams.attachments, queryParams.mode, attachments.length, apiConfig]);
 
   const resetScroll = () => {
     scrollRef.current = 0;
@@ -152,6 +257,11 @@ const Fullscreen = (props: FullscreenProps) => {
       ...(shouldAgg ? { aggfilter: {} } : {}),
       t: new Date().valueOf()
     };
+    // empty attachments (chips removed) must not linger in the URL as
+    // attachments= and re-trigger multimodal enrichment server-side
+    if (!nextQueryParams.attachments) {
+      delete nextQueryParams.attachments;
+    }
     delete nextQueryParams.dateRange;
     if (!nextQueryParams.date_range || nextQueryParams.date_range === 'all-time') {
       delete nextQueryParams.date_range;
@@ -189,12 +299,25 @@ const Fullscreen = (props: FullscreenProps) => {
     setHasMore(false);
     setResult(formatESResult());
     setAggregationResult([]);
+    setCategoryCounts(null);
   }, []);
 
   useEffect(() => {
-    if (queryParams.mode === 'chat' || !queryParams?.query && isEmpty(queryParams?.filter) && isEmpty(queryParams?.aggfilter)) return;
+    if (queryParams.mode === 'chat' || !queryParams?.query && isEmpty(queryParams?.filter) && isEmpty(queryParams?.aggfilter) && !queryParams.attachments) {
+      // nothing to search — release any mount-time loading so a skeleton
+      // never lingers on a static view
+      setLoading(false);
+      return;
+    }
 
     const isScroll = Number.isInteger(scrollRef.current) && scrollRef.current > 0;
+
+    // record the executed query for the recent-searches dropdown; scrolling
+    // deeper re-enters with the same query, and re-recording is a no-op
+    // anyway thanks to move-to-front dedupe, but skipping keeps intent clear
+    if (!isScroll && (queryParams.query || '').trim()) {
+      pushRecentSearch(queryParams.query);
+    }
 
     loadLock.current = true;
     setLoading(true);
@@ -207,6 +330,11 @@ const Fullscreen = (props: FullscreenProps) => {
       ...filter,
       'metadata.content_category': queryParams['metadata.content_category'] && queryParams['metadata.content_category'] !== 'all' ? [queryParams['metadata.content_category']] : undefined,
     }
+
+    // highlight only marks something when there is a query term; pure-filter
+    // browsing sends none, and the server's empty text clauses would light
+    // whole fragments up instead
+    const hasQuery = Boolean((queryParams.query || '').trim());
 
     const doSearch = (validatedAggfilter: Record<string, any>) => {
       const newFilter = { ...filterWithoutAgg };
@@ -224,10 +352,15 @@ const Fullscreen = (props: FullscreenProps) => {
           ...rest,
           ...dateRangeParams,
           filter: newFilter,
-          search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD,
+          search_type: normalizeSearchType(queryParams?.search_type || defaultSearchType || DEFAULT_SEARCH_TYPE),
           fuzziness,
           sort,
           from: isScroll ? scrollRef.current : queryParams.from,
+          // pagination continuations (from>0, e.g. the eager next-page fetch
+          // when the first page doesn't fill the viewport) are the SAME user
+          // search — logging them would double-count every search in the
+          // ops telemetry
+          ...(Number(isScroll ? scrollRef.current : queryParams.from) > 0 ? { skip_log: 'true' } : {}),
           'metadata.content_category': undefined
         },
         {
@@ -239,7 +372,22 @@ const Fullscreen = (props: FullscreenProps) => {
                 "time_zone": "Asia/Shanghai"
               }
             }
-          }
+          },
+          // mark matched terms so the result list can highlight the query —
+          // fragments come back as plain text with literal <em> wrappers,
+          // rendered by splitting the string (never as raw HTML)
+          ...(hasQuery ? {
+            "highlight": {
+              "pre_tags": ["<em>"],
+              "post_tags": ["</em>"],
+              "require_field_match": false,
+              "fields": {
+                "title": { "number_of_fragments": 0 },
+                "summary": { "fragment_size": 200, "number_of_fragments": 1 },
+                "content": { "fragment_size": 200, "number_of_fragments": 1 }
+              }
+            }
+          } : {})
         },
         (res: any) => {
           loadLock.current = false;
@@ -286,15 +434,29 @@ const Fullscreen = (props: FullscreenProps) => {
       // Fetch aggregations first, validate aggfilter, then search
       onAggregation({
         query: queryParams.query,
-        search_type: queryParams?.search_type || ACTION_TYPE_SEARCH_KEYWORD,
+        search_type: normalizeSearchType(queryParams?.search_type || defaultSearchType || DEFAULT_SEARCH_TYPE),
         fuzziness,
+        // multimodal attachments must shape the facet counts the same way
+        // they shape the result list
+        ...(queryParams.attachments ? { attachments: queryParams.attachments } : {}),
         ...dateRangeParams,
         filter: filterWithoutAgg
       }, (res: any) => {
         let validatedAggfilter: Record<string, any> = {};
         if (res && !res.error) {
           const rs = formatESResult(res);
-          setAggregationResult(rs.aggregations || []);
+          // the content_category aggregation feeds the tab visibility, not the
+          // facet rail — strip it from the rail list
+          const contentCategoryAgg = rs.aggregations.find((agg: any) => agg?.key === 'content_category');
+          if (contentCategoryAgg) {
+            const imageCount = Number(
+              (contentCategoryAgg.list || []).find((item: any) => String(item?.key) === 'image')?.count || 0
+            );
+            setCategoryCounts({ image: imageCount, nonImage: Math.max(0, Number(rs.hits?.total || 0) - imageCount) });
+          } else {
+            setCategoryCounts(null);
+          }
+          setAggregationResult(rs.aggregations.filter((agg: any) => agg?.key !== 'content_category'));
           // Validate aggfilter values against actual aggregation results
           if (!isEmpty(aggfilter)) {
             const aggKeys = new Map<string, Set<string>>();
@@ -311,6 +473,10 @@ const Fullscreen = (props: FullscreenProps) => {
                 if (filtered.length > 0) {
                   validatedAggfilter[key] = filtered;
                 }
+              } else {
+                // no aggregation behind this field (e.g. a filter carried in
+                // from an external view) — nothing to validate against, keep as-is
+                validatedAggfilter[key] = aggfilter[key];
               }
             });
             // If aggfilter changed after validation, update URL and re-trigger
@@ -322,6 +488,7 @@ const Fullscreen = (props: FullscreenProps) => {
           }
         } else {
           setAggregationResult([]);
+          setCategoryCounts(null);
         }
         doSearch(validatedAggfilter);
       });
@@ -362,6 +529,7 @@ const Fullscreen = (props: FullscreenProps) => {
     setData([]);
     setHasMore(false);
     setAggregationResult([]);
+    setCategoryCounts(null);
     resetScroll();
     isHomeSearchRef.current = true;
     if (onLogoClick) onLogoClick();
@@ -387,13 +555,14 @@ const Fullscreen = (props: FullscreenProps) => {
     return (
       <Chat
         commonProps={commonProps}
-        logo={logo}
+        logo={chatLogo === undefined ? logo : chatLogo}
         handleLogoClick={handleLogoClick}
+        onSaveToWiki={onSaveToWiki}
+        onVoteAnswer={onVoteAnswer}
+        onCorrectAnswer={onCorrectAnswer}
         apiConfig={apiConfig}
         queryParams={queryParams}
-        onBackToSearch={() => {
-          handleLogoClick();
-        }}
+        onBackToSearch={onBackToSearch}
         setQueryParams={setQueryParams}
         defaultParams={chatParams}
         setDefaultParams={setChatParams}
@@ -412,7 +581,12 @@ const Fullscreen = (props: FullscreenProps) => {
       <Home
         commonProps={commonProps}
         loading={showFullScreenSpin}
+        defaultSearchType={defaultSearchType}
         logo={logo}
+        background={background}
+        logoMaxHeight={logoMaxHeight}
+        welcomeFontSize={welcomeFontSize}
+        welcomeGradient={welcomeGradient}
         settings={settings}
         onSearch={(params: Record<string, any>, shouldAsk: boolean, shouldAgg: boolean) => {
           if (params.mode === 'chat') {
@@ -439,6 +613,7 @@ const Fullscreen = (props: FullscreenProps) => {
         setQueryParams={setQueryParams}
         onSuggestion={debouncedSuggestion}
         onRecommend={onRecommend}
+        onHotSearches={onHotSearches}
         onUpload={onUpload}
         attachments={attachments}
         setAttachments={setAttachments}
@@ -449,6 +624,8 @@ const Fullscreen = (props: FullscreenProps) => {
   return (
     <Search
       aggregations={aggregationResult}
+      categoryCounts={categoryCounts}
+      defaultSearchType={defaultSearchType}
       aiOverview={aiOverview}
       askBody={askBody}
       commonProps={commonProps}
@@ -465,7 +642,7 @@ const Fullscreen = (props: FullscreenProps) => {
         containerRef.current = ref;
       }}
       loading={loading}
-      logo={logo}
+      logo={searchLogo === undefined ? logo : searchLogo}
       placeholder={placeholder}
       rightMenuWidth={rightMenuWidth}
       theme={theme}
@@ -499,6 +676,7 @@ const Fullscreen = (props: FullscreenProps) => {
       onAsk={onAsk}
       onSuggestion={debouncedSuggestion}
       onRecommend={onRecommend}
+      onRelatedSearches={onRelatedSearches}
       onChatContinue={(session_id) => {
         onChat({
           query: queryParams.query || '',

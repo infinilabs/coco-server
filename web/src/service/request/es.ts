@@ -46,5 +46,10 @@ export function formatSearchFilter(filter: any) {
   if (!filter) return ''
   const keys = Object.keys(filter);
   if (keys.length === 0) return ''
-  return Object.keys(filter).filter((key) => Array.isArray(filter[key])).map((key) => `filter=${key}:any(${encodeURIComponent(filter[key].join(','))})`).join('&')
+  // a key prefixed with '!' or '-' (e.g. '!type') negates the term: filter=!type:any(...)
+  return keys.filter((key) => Array.isArray(filter[key])).map((key) => {
+    const negate = key.startsWith('!') || key.startsWith('-');
+    const field = negate ? key.slice(1) : key;
+    return `filter=${negate ? '!' : ''}${field}:any(${encodeURIComponent(filter[key].join(','))})`;
+  }).join('&')
 }

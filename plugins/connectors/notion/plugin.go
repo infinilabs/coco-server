@@ -30,7 +30,10 @@ type Plugin struct {
 const Name = "notion"
 
 func init() {
-	pipeline.RegisterProcessorPlugin(Name, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(Name, New, nil)
+	// chain-root driver (batch scope): fetches from its datasource and
+	// emits into the indexing queue — no record contract beyond scope
+	pipeline.RegisterProcessorContract(Name, pipeline.RecordContract{Scope: pipeline.ScopeBatch})
 }
 
 func New(c *config3.Config) (pipeline.Processor, error) {
