@@ -505,6 +505,9 @@ func findDuplicateByFingerprint(doc *core.Document) (string, bool) {
 func bumpExistingUpdated(id string) {
 	ormCtx := orm.NewContext()
 	ormCtx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	// the background pipeline has no request user; the get/search security
+	// hooks bypass on the READ flag and panic without it
+	ormCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	ormCtx.Refresh = orm.WaitForRefresh
 
 	doc := core.Document{}

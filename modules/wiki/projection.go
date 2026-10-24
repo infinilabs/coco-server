@@ -126,6 +126,11 @@ func projectionDocument(article *core.WikiArticle, kbName string) *core.Document
 func removeArticleProjection(articleID string) error {
 	ctx := orm.NewContext()
 	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	// orm.Delete first loads the previous row via GetV2 — an OpGet, whose
+	// security pre-hook bypasses on the READ flag; without it a user-less
+	// context panics 401 mid-delete (the article row dies, this cleanup
+	// never runs)
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	ctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(ctx, &core.Document{})
 

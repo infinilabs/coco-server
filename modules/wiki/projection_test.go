@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/modules/sqlite"
 )
 
@@ -159,4 +160,62 @@ func TestProjectionBackfillIdempotent(t *testing.T) {
 	require.NoError(t, err)
 	assert.Zero(t, projected2, "backfill is idempotent — existing projections are skipped")
 	_ = skipped
+}
+
+// projHookArmed gates the security-hook replica below to the delete test
+// only: production registers the real pre-hook after full app setup (which
+// unit tests never run), and an always-on replica would demand flags or a
+// user on every other test's plain-context store access.
+var projHookArmed bool
+
+var projHookOnce sync.Once
+
+func armProjectionSecurityHook() {
+	projHookOnce.Do(func() {
+		orm.RegisterDataOperationPreHook(10, func(ctx *orm.Context, op orm.Operation, o interface{}) (*orm.Context, interface{}, error) {
+			if !projHookArmed {
+				return ctx, o, nil
+			}
+			switch op {
+			case orm.OpGet:
+				if ctx.GetBool(orm.DirectReadWithoutPermissionCheck, false) {
+					return ctx, o, nil
+				}
+			case orm.OpDelete:
+				if ctx.GetBool(orm.DirectWriteWithoutPermissionCheck, false) {
+					return ctx, o, nil
+				}
+			default:
+				return ctx, o, nil
+			}
+			security.MustGetUserFromContext(ctx.Context)
+			return ctx, o, nil
+		}, orm.OpGet, orm.OpDelete)
+	})
+	projHookArmed = true
+}
+
+// TestRemoveArticleProjectionSurvivesSecurityHooks regression: DELETE
+// /wiki/article/:id used to return 401 while the article row was already
+// gone — removeArticleProjection's ctx carried only the write flag, but
+// orm.Delete first loads the previous row via GetV2 (an OpGet, which the
+// security pre-hook bypasses on the READ flag), so the hook panicked on
+// the user-less context and every later cleanup (contributions, versions,
+// comments, toc, KB count) was skipped.
+func TestRemoveArticleProjectionSurvivesSecurityHooks(t *testing.T) {
+	projectionSetup(t)
+
+	articleID := "art-401"
+	doc := &core.Document{Title: "行将删除的投影"}
+	doc.ID = ProjectionDocID(articleID)
+	projectionWrite(t, doc)
+
+	armProjectionSecurityHook()
+	defer func() { projHookArmed = false }()
+
+	var err error
+	require.NotPanics(t, func() { err = removeArticleProjection(articleID) })
+	require.NoError(t, err)
+	_, exists := loadProjectionRow(t, articleID)
+	assert.False(t, exists, "projection row must be gone")
 }
