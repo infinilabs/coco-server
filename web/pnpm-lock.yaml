@@ -28,7 +28,7 @@ importers:
         version: 0.0.5(antd@6.1.3(date-fns@4.3.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@infinilabs/pipeline-ui':
         specifier: file:../../ui-common/packages/Pipeline
-        version: file:../../ui-common/packages/Pipeline(@xyflow/react@12.12.0(@types/react-dom@18.3.1)(@types/react@18.3.12)(immer@11.1.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(lucide-react@0.546.0(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: file:../../ui-common/packages/Pipeline(@xyflow/react@12.11.3(@types/react-dom@18.3.1)(@types/react@18.3.12)(immer@11.1.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(lucide-react@0.546.0(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@oxc-parser/binding-darwin-arm64':
         specifier: 0.124.0
         version: 0.124.0
@@ -54,8 +54,8 @@ importers:
         specifier: workspace:*
         version: link:packages/utils
       '@xyflow/react':
-        specifier: ^12.11.3
-        version: 12.12.0(@types/react-dom@18.3.1)(@types/react@18.3.12)(immer@11.1.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 12.11.3
+        version: 12.11.3(@types/react-dom@18.3.1)(@types/react@18.3.12)(immer@11.1.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       ahooks:
         specifier: 3.8.1
         version: 3.8.1(react@18.3.1)
@@ -3097,8 +3097,8 @@ packages:
   '@vue/shared@3.5.34':
     resolution: {integrity: sha512-24uqU4OIiX29ryC3MeWid/Xf2fa2EFRUVLb77nRhk+UrTVrh/XiGtFAFmJBAtBRbjwNdsPRP+jj/OL27Eg1NDA==}
 
-  '@xyflow/react@12.12.0':
-    resolution: {integrity: sha512-74oXI0Rgm1Eu33cHQAd74J6oVgCH9mbFyTVQbsGgp2kmWwh0HdtBr2VP04z8mbPD+M/xO69nqG5dDEt7/EN2rQ==}
+  '@xyflow/react@12.11.3':
+    resolution: {integrity: sha512-G3jogHz2GWUtIOkhavUGno2YzY9u6fILIJBttfsBendb0/HWB90JG+sOTAvlIMEwyvq9zgy9V9ZQSwyQjR5QzQ==}
     peerDependencies:
       '@types/react': '>=17'
       '@types/react-dom': '>=17'
@@ -3110,8 +3110,8 @@ packages:
       '@types/react-dom':
         optional: true
 
-  '@xyflow/system@0.0.83':
-    resolution: {integrity: sha512-a//eDjez3WZF47aaPTfVUDD0OINOq+WVwBZCRTqG+m0a5euX8EwlJ4jMY1Wxz0Ocj4xOeekJ70V22Pq0ll8RJw==}
+  '@xyflow/system@0.0.80':
+    resolution: {integrity: sha512-ywc3ZqG91brzWrH1WlwMdIX4goOfrpBy6AbLdVSaof/Xx9l138ijIKRExM6EkMro2F+OImGmSiA/WKcXvKVcfA==}
 
   accessor-fn@1.5.3:
     resolution: {integrity: sha512-rkAofCwe/FvYFUlMB0v0gWmhqtfAtV1IUkdPbfhTUyYniu5LrC0A0UJkTH0Jv3S8SvwkmfuAlY+mQIJATdocMA==}
@@ -8903,9 +8903,9 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  '@infinilabs/pipeline-ui@file:../../ui-common/packages/Pipeline(@xyflow/react@12.12.0(@types/react-dom@18.3.1)(@types/react@18.3.12)(immer@11.1.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(lucide-react@0.546.0(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@infinilabs/pipeline-ui@file:../../ui-common/packages/Pipeline(@xyflow/react@12.11.3(@types/react-dom@18.3.1)(@types/react@18.3.12)(immer@11.1.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(lucide-react@0.546.0(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@xyflow/react': 12.12.0(@types/react-dom@18.3.1)(@types/react@18.3.12)(immer@11.1.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@xyflow/react': 12.11.3(@types/react-dom@18.3.1)(@types/react@18.3.12)(immer@11.1.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       lucide-react: 0.546.0(react@18.3.1)
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
@@ -10761,9 +10761,9 @@ snapshots:
 
   '@vue/shared@3.5.34': {}
 
-  '@xyflow/react@12.12.0(@types/react-dom@18.3.1)(@types/react@18.3.12)(immer@11.1.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@xyflow/react@12.11.3(@types/react-dom@18.3.1)(@types/react@18.3.12)(immer@11.1.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@xyflow/system': 0.0.83
+      '@xyflow/system': 0.0.80
       classcat: 5.0.5
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
@@ -10774,7 +10774,7 @@ snapshots:
     transitivePeerDependencies:
       - immer
 
-  '@xyflow/system@0.0.83':
+  '@xyflow/system@0.0.80':
     dependencies:
       '@types/d3-drag': 3.0.7
       '@types/d3-interpolate': 3.0.4

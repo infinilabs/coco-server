@@ -94,6 +94,61 @@ function entrySummary(entry: Record<string, any>): string {
   return String(cfg ?? '');
 }
 
+// ── 内嵌引擎测量急救 (#112) ──────────────────────────────────────────
+// 规范要求 ResizeObserver.observe() 立即派发一次初始回调; ZCode 内置
+// 浏览器等内嵌引擎只派发后续 resize 回调。React Flow 的节点测量完全
+// 依赖该初始回调, 缺失则节点永远 visibility:hidden(不可拖、坐标不
+// 持久化)。特性检测中招时以 0.5px 宽度扰动触发一次真实回调完成测
+// 量; 真实 Chrome/Safari 检测通过, 本逻辑零开销。
+let roInitialCheck: Promise<boolean> | null = null;
+function roDeliversInitial(): Promise<boolean> {
+  roInitialCheck ??= new Promise((resolve) => {
+    if (typeof ResizeObserver === 'undefined') return resolve(false);
+    const probe = document.createElement('div');
+    probe.style.cssText = 'width:16px;height:16px;position:fixed;top:-9999px;left:-9999px';
+    document.body.appendChild(probe);
+    const ro = new ResizeObserver(() => {
+      ro.disconnect();
+      probe.remove();
+      resolve(true);
+    });
+    ro.observe(probe);
+    setTimeout(() => {
+      ro.disconnect();
+      probe.remove();
+      resolve(false);
+    }, 400);
+  });
+  return roInitialCheck;
+}
+
+function useFlowMeasureFirstAid(active: boolean, signal: unknown) {
+  useEffect(() => {
+    if (!active) return;
+    let cancelled = false;
+    (async () => {
+      if (await roDeliversInitial()) return;
+      if (cancelled) return;
+      // 新挂载(视图切换/加节点)后的节点未被测量 — 宽度扰动两帧触发
+      // ResizeObserver 的 resize 回调, React Flow 由此完成测量。
+      const nodes = document.querySelectorAll<HTMLElement>('.react-flow__node');
+      nodes.forEach((el) => {
+        el.style.width = `${el.offsetWidth + 0.5}px`;
+      });
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          nodes.forEach((el) => {
+            el.style.width = '';
+          });
+        })
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [active, signal]);
+}
+
 // ── chain card editor ────────────────────────────────────────────────
 
 function ChainEditor({
@@ -367,6 +422,8 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
     return null;
   });
   const [graphicalKey, setGraphicalKey] = useState(0);
+  // 内嵌引擎 RO 初始回调缺失时强制完成节点测量 (见函数处注释)
+  useFlowMeasureFirstAid(!graphicalSource && view === 'canvas', chain.length);
 
   const [catalog, setCatalog] = useState<ProcessorEntry[]>([]);
   const templates = useMemo(() => {
