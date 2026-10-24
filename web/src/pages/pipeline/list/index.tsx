@@ -1,16 +1,20 @@
 import { PlusOutlined } from '@ant-design/icons';
 import PageHeaderTitle from '@/components/stateless/common/PageHeaderTitle';
 import { Boxes, Pencil, Trash } from 'lucide-react';
-import { Button, Card, Dropdown, Modal, Space, Switch, Table, Tag, Tooltip, message } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { Button, Card, Dropdown, Modal, Space, Switch, Table, Tabs, Tag, Tooltip, message } from 'antd';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { MoreOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import useQueryParams from '@/hooks/common/queryParams';
-import { deletePipeline, fetchPipelineList, updatePipeline } from '@/service/api/pipeline';
+import { deletePipeline, fetchClusterOverview, fetchClusterStages, fetchPipelineList, updatePipeline } from '@/service/api/pipeline';
 import { fetchDataSourceList } from '@/service/api/data-source';
 import { formatESSearchResult } from '@/service/request/es';
+// shared fleet view (ui-common package); the prebuilt stylesheet carries
+// the tailwind utilities it uses — coco has no tailwind toolchain
+import { ClusterOverview, identityTranslate } from '@infinilabs/pipeline-ui';
+import '@infinilabs/pipeline-ui/styles.css';
 
 interface PipelineRow {
   id: string;
@@ -90,8 +94,22 @@ export function Component() {
   const [data, setData] = useState<PipelineRow[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('list');
   // 数据源按所引用的管道分组：pipeline id/name -> 数据源名列表
   const [dsUsage, setDsUsage] = useState<Record<string, string[]>>({});
+
+  // flat request -> 共享组件契约：成功取 .data，失败抛错（组件内展示）
+  const fetchOverview = useCallback(async () => {
+    const res: any = await fetchClusterOverview();
+    if (res?.error) throw res.error;
+    return res?.data ?? { deployments: [] };
+  }, []);
+
+  const fetchStages = useCallback(async (pipeline?: string) => {
+    const res: any = await fetchClusterStages(pipeline);
+    if (res?.error) throw res.error;
+    return res?.data ?? { stages: [] };
+  }, []);
 
   const fetchData = async () => {
     setLoading(true);
@@ -243,7 +261,28 @@ export function Component() {
         </Space>
       }
     >
-      <Table rowKey="id" loading={loading} columns={columns} dataSource={data} pagination={false} />
+      {/* 集群部署页签不做前端权限过滤：后端 /pipeline/cluster/* 需要
+          system:pipeline 读权限，admin 角色服务端直通但权限列表不含该
+          键，前端无法可靠预判 —— 无权限用户在页签内看到内联报错 */}
+      <Tabs
+        activeKey={activeTab}
+        className="mb-16px"
+        items={[
+          { key: 'list', label: t('page.pipeline.tabs.list') },
+          { key: 'cluster', label: t('page.pipeline.tabs.cluster') }
+        ]}
+        onChange={setActiveTab}
+      />
+      {activeTab === 'cluster' ? (
+        <ClusterOverview
+          fetchOverview={fetchOverview}
+          fetchStages={fetchStages}
+          onPipelineClick={(id: string) => navigate(`/pipeline/edit/${id}`)}
+          t={identityTranslate}
+        />
+      ) : (
+        <Table rowKey="id" loading={loading} columns={columns} dataSource={data} pagination={false} />
+      )}
     </Card>
   );
 }

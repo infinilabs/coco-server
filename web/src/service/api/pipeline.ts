@@ -54,6 +54,23 @@ export function getPipelineProcessors() {
   });
 }
 
+/** fleet view: deployments × instances matrix (framework pipeline module) */
+export function fetchClusterOverview() {
+  return request({
+    method: 'get',
+    url: '/pipeline/cluster/overview'
+  });
+}
+
+/** cluster-wide per-stage totals; optional pipeline filter */
+export function fetchClusterStages(pipeline?: string) {
+  return request({
+    method: 'get',
+    params: pipeline ? { pipeline } : undefined,
+    url: '/pipeline/cluster/stages'
+  });
+}
+
 // shared types + client from the ui-common package (source reference);
 // the product binds its own axios-backed request instance
 import { createPipelineClient, type DryRunReport, type StepResult } from '@infinilabs/pipeline-ui/api';

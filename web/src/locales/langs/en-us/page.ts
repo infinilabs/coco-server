@@ -2053,6 +2053,10 @@ const page: App.I18n.Schema['translation']['page'] = {
       description: 'Description'
     },
     manageLink: 'Manage pipelines',
+    tabs: {
+      list: 'Pipelines',
+      cluster: 'Cluster Deployments'
+    },
     editor: {
       newTitle: 'New Pipeline',
       editTitle: 'Edit Pipeline — {{name}}',

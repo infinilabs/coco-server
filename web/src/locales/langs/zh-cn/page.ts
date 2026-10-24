@@ -2574,6 +2574,10 @@ const page: App.I18n.Schema['translation']['page'] = {
       description: '描述'
     },
     manageLink: '管理管道',
+    tabs: {
+      list: '管道列表',
+      cluster: '集群部署'
+    },
     editor: {
       newTitle: '新建管道',
       editTitle: '编辑管道 — {{name}}',
