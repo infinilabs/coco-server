@@ -2107,6 +2107,84 @@ const page: App.I18n.Schema['translation']['page'] = {
     default_params: {
       title: '默认参数'
     },
+    processing: {
+      title: '解析管道',
+      desc: '产品内置两条固定解析管道，处理器顺序由产品定义。此处可启停链上的处理器并调整其参数，保存后对后续处理的文档立即生效。',
+      doc_section: '文档增强',
+      doc_section_desc: '数据源采集的文档（网页、文件正文）依次经过：类型检测 → 元数据 → 封面生成 → 正文与附件解析 → 人脸识别 → 摘要 → 标签 → 向量化。',
+      attach_section: '附件增强',
+      attach_section_desc: '文档内嵌附件（图片、Office 文件等）的独立解析管道。',
+      disabled_hint: '处理器已停用，重新开启后参数保留',
+      processors: {
+        file_type_detection: { name: '文件类型检测', desc: '识别并标记文件的 MIME 类型' },
+        file_metadata: { name: '文件元数据', desc: '提取文件大小、创建/修改时间等元信息' },
+        generate_document_cover: { name: '封面生成', desc: '为文档生成封面缩略图' },
+        document_text_attachment_extraction: { name: '正文与附件解析', desc: 'Tika 解析文档正文，可选抽取内嵌附件与图片内容' },
+        face_extraction: { name: '人脸识别', desc: '检测并提取图片中的人脸' },
+        document_summarization: { name: '智能摘要', desc: 'LLM 生成文档摘要与要点' },
+        extract_tags: { name: '标签提取', desc: 'LLM 从文档中提取主题标签' },
+        extract_entities: { name: '实体抽取', desc: 'LLM 从文档中提取命名实体' },
+        document_embedding: { name: '向量化', desc: '生成语义向量用于混合检索' },
+        attachment_text_extraction: { name: '附件文本解析', desc: 'Tika 解析附件文本与图片内容' }
+      },
+      fields: {
+        tika_endpoint: 'Tika 服务地址',
+        tika_timeout_in_seconds: 'Tika 超时（秒）',
+        chunk_size: '附件抽取分块大小',
+        extract_attachments: '抽取内嵌附件',
+        xlsx_first_row_as_header: 'Excel 首行作为表头',
+        image_content_format: '图片内容格式',
+        remote_parse_url: '远程解析服务地址',
+        remote_parse_exts: '远程解析的文件扩展名',
+        remote_parse_timeout_in_seconds: '远程解析超时（秒）',
+        ai_insights_max_length: '摘要最大长度',
+        max_input_document_length: '输入文档最大长度',
+        min_input_document_length: '输入文档最小长度',
+        llm_generation_lang: 'LLM 生成语言',
+        model: '语言模型',
+        embedding_model: 'Embedding 模型',
+        model_provider: '模型提供方',
+        model_context_length: '模型上下文长度',
+        vision_model: '视觉模型',
+        vision_model_provider: '视觉模型提供方',
+        pigo_facefinder_path: '人脸识别模型路径',
+        max_entities: '最大实体数',
+        wiki_kb_id: '兜底知识库 ID'
+      },
+      field_descs: {
+        max_entities: '单篇文档最多抽取的实体数量',
+        wiki_kb_id: '抽取的实体写入的目标知识库；文档所属数据源未绑定知识库时回落使用该 ID，建议留空以按数据源绑定自动解析',
+        tika_endpoint: 'Tika 文档解析服务地址（含端口），仅 PDF、Office 等需要 Tika 的文件类型使用；留空时使用系统环境设置中的全局地址',
+        chunk_size: '解析出的正文按该字符数切分成块（chunk），是向量检索与摘要的基本单元，默认 7000',
+        image_content_format: '图片送入视觉模型的方式：data_uri（Base64 内嵌，默认）或 binary（二进制），一般保持默认',
+        remote_parse_url: '远程解析服务地址。配置后，命中下方扩展名的文件优先交给该服务解析，解析成功优先采用，失败自动回落内置 Tika',
+        remote_parse_exts: '优先交给远程解析服务处理的文件扩展名，如 pdf、docx',
+        ai_insights_max_length: '生成的摘要与分析内容的最大长度（约字符数），默认 500',
+        min_input_document_length: '正文短于该长度（字符数）的文档跳过摘要生成，默认 100',
+        max_input_document_length: '文档长度上限（字符数），当前版本为预留参数，实际分段行为由模型上下文长度决定',
+        llm_generation_lang: 'LLM 生成内容的目标语言（BCP 47 格式，如 zh-CN、en-US），留空时使用系统默认',
+        model_context_length: '模型上下文窗口大小（tokens），用于计算长文档分批摘要的容量预算，最小 4000，需与所选模型能力匹配',
+        pigo_facefinder_path: 'pigo 人脸检测模型文件路径（相对 coco 服务工作目录），默认 ./config/ai/facefinder'
+      },
+      placeholders: {
+        tika_endpoint: 'http://127.0.0.1:9998',
+        tika_timeout_in_seconds: '360',
+        chunk_size: '7000',
+        llm_generation_lang: 'zh-CN',
+        default_model: '使用默认模型',
+        model: '模型 ID',
+        model_provider: '提供方名称',
+        model_context_length: '128000',
+        ai_insights_max_length: '500',
+        image_content_format: '如 markdown',
+        remote_parse_url: 'http://',
+        remote_parse_exts: '输入后回车，如 pdf',
+        remote_parse_timeout_in_seconds: '360',
+        vision_model: '视觉模型 ID',
+        vision_model_provider: '提供方名称',
+        pigo_facefinder_path: './config/ai/facefinder'
+      }
+    },
     default_model: {
       labels: {
         default_model: '默认模型',
@@ -2479,6 +2557,10 @@ const page: App.I18n.Schema['translation']['page'] = {
           attachment: {
             title: '附件处理(2 节)',
             description: '附件通道的全文抽取与封面生成'
+          },
+          advanced: {
+            title: '高级模式(完全自定义)',
+            description: '不预设处理器链,保留自由编排能力:插入任意处理器、条件分支、排序与 JSON 编辑'
           }
         },
 
@@ -2488,7 +2570,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     columns: {
       name: '名称',
       enabled: '启用',
-      processors: '处理器',
+      datasources: '应用数据源',
       description: '描述'
     },
     manageLink: '管理管道',
@@ -2503,9 +2585,13 @@ const page: App.I18n.Schema['translation']['page'] = {
       advanced: '高级设置',
       enabled: '启用',
       singleton: '单例',
+      singletonTip: '开启后整个集群最多只有一个该管道实例在运行（通过分布式锁保证，锁时长由 max_running_in_ms 控制）',
       autoStart: '自动启动',
+      autoStartTip: '开启后管道加载完成即自动开始执行；关闭则保持空闲，需手动启动',
       keepRunning: '持续运行',
+      keepRunningTip: '长驻模式：处理器链每跑完一轮就循环再跑；关闭则只执行一轮即退出',
       retryDelay: '重试间隔 (ms)',
+      retryDelayTip: '持续运行模式下两轮执行之间的等待时间（毫秒），无论上一轮成功或失败都生效；填 0 或留空时默认 1000ms',
       chainTitle: '处理器链',
       catalog: '处理器目录',
       cardsView: '卡片',

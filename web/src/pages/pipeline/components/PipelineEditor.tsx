@@ -1,11 +1,17 @@
-import { BookOpen, Boxes, Braces, Check, ChevronDown, ChevronUp, File, FileText, FlaskConical, Image, Paperclip, Pencil, Rocket, Sparkles, Trash, Video } from 'lucide-react';
-import { Button, Card, Col, Collapse, Drawer, Form, Input, InputNumber, Popconfirm, Row, Select, Space, Switch, Tag, Typography, message } from 'antd';
-import { useEffect, useMemo, useState } from 'react';
+import { BookOpen, Boxes, Braces, Check, ChevronDown, ChevronUp, File, FileText, FlaskConical, Image, Paperclip, Pencil, Rocket, SlidersHorizontal, Sparkles, Trash, Video } from 'lucide-react';
+import { RightOutlined } from '@ant-design/icons';
+import { Button, Card, Collapse, Drawer, Form, Input, InputNumber, Popconfirm, Select, Space, Switch, Tag, Typography, message } from 'antd';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { aiGeneratePipelineChain, createPipeline, getPipelineProcessors, testPipelineChain, updatePipeline } from '@/service/api/pipeline';
-import { availableTemplates, templateEntryNames, type PipelineTemplate } from './pipelineTemplates';
+// reuses the settings pages' .settings-form layout (fixed left label column,
+// capped control width) for the name/description + advanced settings section
+import '@/pages/settings/index.scss';
+import '@/pages/pipeline/index.scss';
+import { availableTemplates, type PipelineTemplate } from './pipelineTemplates';
+import { GraphicalChainEditor } from './GraphicalChainEditor';
 
 export interface PipelineDoc {
   id?: string;
@@ -17,7 +23,13 @@ export interface PipelineDoc {
   keep_running?: boolean;
   retry_delay_in_ms?: number;
   processor?: Record<string, any>[];
+  labels?: Record<string, any>;
 }
+
+// 创建模式持久化：编辑时按此标签还原各自的编辑模式（模板创建→图形化，
+// 高级模式/AI 生成→自由编排）。无标签的存量管道按链形态推断。
+const EDITOR_MODE_LABEL = 'editor_mode';
+type EditorMode = 'graphical' | 'free';
 
 interface ProcessorEntry {
   name: string;
@@ -58,6 +70,11 @@ export const ATTACHMENT_TEMPLATE = [
 function entryName(entry: Record<string, any>): string {
   if ('if' in entry) return 'if / then / else';
   return Object.keys(entry)[0] ?? '?';
+}
+
+/** 链上全部是单键处理器条目（无 if 分支、无空条目）才能渲染为图形化行。 */
+function isGraphableChain(entries: Record<string, any>[]): boolean {
+  return entries.length > 0 && entries.every(e => !('if' in e) && Object.keys(e).length === 1);
 }
 
 function entrySummary(entry: Record<string, any>): string {
@@ -348,11 +365,20 @@ const TEMPLATE_ICONS: Record<PipelineTemplate['icon'], React.ReactNode> = {
   file: <File size={18} />,
   image: <Image size={18} />,
   video: <Video size={18} />,
-  paperclip: <Paperclip size={18} />
+  paperclip: <Paperclip size={18} />,
+  sliders: <SlidersHorizontal size={18} />
 };
 
 /** One-click starter chains for common document tasks; shown when creating. */
-function TemplateGallery({ templates, onPick }: { templates: PipelineTemplate[]; onPick: (t: PipelineTemplate) => void }) {
+function TemplateGallery({
+  templates,
+  selectedId,
+  onPick
+}: {
+  templates: PipelineTemplate[];
+  selectedId: string | null;
+  onPick: (t: PipelineTemplate) => void;
+}) {
   const { t } = useTranslation();
   if (templates.length === 0) return null;
   return (
@@ -360,22 +386,18 @@ function TemplateGallery({ templates, onPick }: { templates: PipelineTemplate[];
       {templates.map(tpl => (
         <div
           key={tpl.id}
-          className="w-220px rounded-8px border border-solid border-[var(--ant-color-border-secondary)] p-12px flex flex-col gap-8px hover:border-[var(--ant-color-primary)] transition-colors"
+          className={`w-220px rounded-8px border border-solid p-12px flex flex-col gap-8px transition-colors ${
+            selectedId === tpl.id
+              ? 'border-[var(--ant-color-primary)] bg-[var(--ant-color-primary-bg)]'
+              : 'border-[var(--ant-color-border-secondary)] hover:border-[var(--ant-color-primary)]'
+          }`}
         >
           <div className="flex items-center gap-8px text-[var(--ant-color-primary)]">
             {TEMPLATE_ICONS[tpl.icon]}
             <span className="text-13px font-medium text-[var(--ant-color-text)]">{t(`page.pipeline.templates.${tpl.id}.title`)}</span>
           </div>
-          <span className="text-12px text-[var(--ant-color-text-tertiary)] leading-snug min-h-32px">{t(`page.pipeline.templates.${tpl.id}.description`)}</span>
-          <div className="flex flex-wrap gap-4px">
-            {templateEntryNames(tpl).slice(0, 4).map(n => (
-              <span key={n} className="font-mono text-10px px-4px py-1px rounded-4px bg-[var(--ant-color-fill-tertiary)]">
-                {n}
-              </span>
-            ))}
-            {templateEntryNames(tpl).length > 4 && <span className="text-10px text-[var(--ant-color-text-tertiary)]">+{templateEntryNames(tpl).length - 4}</span>}
-          </div>
-          <Button size="small" block onClick={() => onPick(tpl)}>
+          <span className="text-12px text-[var(--ant-color-text-tertiary)] leading-snug">{t(`page.pipeline.templates.${tpl.id}.description`)}</span>
+          <Button size="small" block className="mt-auto!" onClick={() => onPick(tpl)}>
             {t('page.pipeline.templates.use')}
           </Button>
         </div>
@@ -391,6 +413,7 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
   const navigate = useNavigate();
   const [form] = Form.useForm();
 
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [advanced, setAdvanced] = useState({
     enabled: initial?.enabled ?? true,
     singleton: initial?.singleton ?? false,
@@ -404,11 +427,42 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
   const [chainJSON, setChainJSON] = useState(() => JSON.stringify(initial?.processor ?? [], null, 2));
   const [jsonError, setJsonError] = useState<string | null>(null);
 
+  // 处理器链的编辑模式由创建来源决定、不互切，编辑时按 labels.editor_mode
+  // 还原各自的模式：
+  // - 内置模板创建 → 图形化配置（行来源=模板链）
+  // - 高级模式模板创建 / AI 生成 → 自由编排（ChainEditor，完全自定义）
+  // - 编辑既有管道 → 按 labels.editor_mode；无标签的存量管道按链形态推断
+  //   （可图形化→图形化，含 if 分支/空链→自由编排）
+  const [graphicalSource, setGraphicalSource] = useState<Record<string, any>[] | null>(() => {
+    const labeled = initial?.labels?.[EDITOR_MODE_LABEL];
+    if (labeled === 'free') return null;
+    if (labeled === 'graphical' && isGraphableChain(initial?.processor ?? [])) return initial!.processor!;
+    // 无标签：按链形态推断
+    if (initial?.id && isGraphableChain(initial.processor ?? [])) return initial.processor!;
+    return null;
+  });
+  const [graphicalKey, setGraphicalKey] = useState(0);
+
   const [catalog, setCatalog] = useState<ProcessorEntry[]>([]);
   const templates = useMemo(() => {
     const installed = new Set(catalog.map(p => p.name));
     return availableTemplates(installed);
   }, [catalog]);
+  // 当前选中的模板（新建页默认选中知识加工全链路）
+  const [selectedTplId, setSelectedTplId] = useState<string | null>(null);
+  const defaultAppliedRef = useRef(false);
+  // 新建页：处理器目录加载完成后自动应用默认模板（知识加工全链路 8 节）
+  useEffect(() => {
+    if (initial || defaultAppliedRef.current) return;
+    const tpl = templates.find(t => t.id === 'general-enrich');
+    if (tpl) {
+      defaultAppliedRef.current = true;
+      applyTemplate(tpl);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templates]);
+  // GraphicalChainEditor 需要按名索引的注册表形态
+  const registryMeta = useMemo(() => Object.fromEntries(catalog.map(p => [p.name, { properties: p.config || {} }])), [catalog]);
   const [catalogOpen, setCatalogOpen] = useState(false);
 
   const [documentsJSON, setDocumentsJSON] = useState(() => JSON.stringify(DOCUMENT_TEMPLATE, null, 2));
@@ -456,6 +510,15 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
     setChainJSON(JSON.stringify(tpl.processor, null, 2));
     form.setFieldsValue({ name: tpl.suggestedName, description: t(`page.pipeline.templates.${tpl.id}.description`) });
     setView('cards');
+    setSelectedTplId(tpl.id);
+    if (tpl.id === 'advanced') {
+      // 高级模式：不预设处理器，保留自由编排（完全自定义）
+      setGraphicalSource(null);
+    } else {
+      // 内置模板：处理器链以常规设置项 UI 呈现
+      setGraphicalSource(tpl.processor);
+      setGraphicalKey(k => k + 1);
+    }
   };
 
   const parseDocuments = (): Record<string, any>[] | null => {
@@ -514,6 +577,8 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
       const nextChain = Array.isArray(data.chain) ? data.chain : [];
       setChain(nextChain);
       setChainJSON(JSON.stringify(nextChain, null, 2));
+      // AI 整链替换后切回自由编排
+      setGraphicalSource(null);
       if (data.test) applyTestResult(data.test);
       message.success(t('page.pipeline.editor.aiDone'));
     } catch (e: any) {
@@ -529,10 +594,13 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
     if (view === 'json') switchView('cards');
     setSaving(true);
     try {
+      // 持久化当前编辑模式：编辑时按此进入各自的模式
+      const mode: EditorMode = graphicalSource ? 'graphical' : 'free';
       const payload = {
         name: values.name,
         description: values.description ?? '',
         ...advanced,
+        labels: { ...(initial?.labels || {}), [EDITOR_MODE_LABEL]: mode },
         processor: chain
       };
       if (initial?.id) {
@@ -563,63 +631,59 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
           </Button>
         </Space>
       }>
-        <Form form={form} labelAlign="left" colon={false} initialValues={{ name: initial?.name, description: initial?.description }}>
-          <Row gutter={24}>
-            <Col span={12}>
-              <Form.Item name="name" label={t('page.pipeline.editor.name')} rules={[{ required: true }]} extra={initial?.id ? undefined : t('page.pipeline.editor.nameAsId')}>
-                <Input disabled={!!initial?.id} placeholder="my-enrichment-pipeline" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="description" label={t('page.pipeline.editor.description')}>
-                <Input />
-              </Form.Item>
-            </Col>
-          </Row>
-        </Form>
-        <Collapse
+        <Form
+          form={form}
+          className="settings-form pt-8px pb-24px"
+          colon={false}
+          labelAlign="left"
+          initialValues={{ name: initial?.name, description: initial?.description }}
+        >
+          <Form.Item name="name" label={t('page.pipeline.editor.name')} rules={[{ required: true }]} extra={initial?.id ? undefined : t('page.pipeline.editor.nameAsId')}>
+            <Input disabled={!!initial?.id} placeholder="my-enrichment-pipeline" style={{ width: 500 }} />
+          </Form.Item>
+          <Form.Item name="description" label={t('page.pipeline.editor.description')}>
+            <Input style={{ width: 500 }} />
+          </Form.Item>
+          <Collapse
           ghost
+          activeKey={advancedOpen ? ['advanced'] : []}
+          onChange={(keys) => setAdvancedOpen(keys.includes('advanced'))}
+          expandIcon={() => null}
           items={[
             {
               key: 'advanced',
-              label: <span className="text-13px">{t('page.pipeline.editor.advanced')}</span>,
+              label: (
+                <span className="text-13px inline-flex items-center gap-6px">
+                  {t('page.pipeline.editor.advanced')}
+                  <RightOutlined
+                    rotate={advancedOpen ? 90 : 0}
+                    style={{ fontSize: 11, color: 'var(--ant-color-text-tertiary)' }}
+                  />
+                </span>
+              ),
               children: (
-                <Row gutter={24}>
-                  <Col span={4}>
-                    <div className="flex items-center gap-8px">
-                      <Switch size="small" checked={advanced.enabled} onChange={(v) => setAdvanced((a) => ({ ...a, enabled: v }))} />
-                      <span className="text-13px">{t('page.pipeline.editor.enabled')}</span>
-                    </div>
-                  </Col>
-                  <Col span={4}>
-                    <div className="flex items-center gap-8px">
-                      <Switch size="small" checked={advanced.singleton} onChange={(v) => setAdvanced((a) => ({ ...a, singleton: v }))} />
-                      <span className="text-13px">{t('page.pipeline.editor.singleton')}</span>
-                    </div>
-                  </Col>
-                  <Col span={4}>
-                    <div className="flex items-center gap-8px">
-                      <Switch size="small" checked={advanced.auto_start} onChange={(v) => setAdvanced((a) => ({ ...a, auto_start: v }))} />
-                      <span className="text-13px">{t('page.pipeline.editor.autoStart')}</span>
-                    </div>
-                  </Col>
-                  <Col span={4}>
-                    <div className="flex items-center gap-8px">
-                      <Switch size="small" checked={advanced.keep_running} onChange={(v) => setAdvanced((a) => ({ ...a, keep_running: v }))} />
-                      <span className="text-13px">{t('page.pipeline.editor.keepRunning')}</span>
-                    </div>
-                  </Col>
-                  <Col span={6}>
-                    <div className="flex items-center gap-8px">
-                      <span className="text-13px">{t('page.pipeline.editor.retryDelay')}</span>
-                      <InputNumber size="small" min={0} value={advanced.retry_delay_in_ms} onChange={(v) => setAdvanced((a) => ({ ...a, retry_delay_in_ms: v ?? 1000 }))} />
-                    </div>
-                  </Col>
-                </Row>
+                <div className="pipeline-advanced-pane flex flex-col pt-4px">
+                  <Form.Item label={t('page.pipeline.editor.enabled')}>
+                    <Switch size="small" checked={advanced.enabled} onChange={(v) => setAdvanced((a) => ({ ...a, enabled: v }))} />
+                  </Form.Item>
+                  <Form.Item label={t('page.pipeline.editor.singleton')} tooltip={t('page.pipeline.editor.singletonTip')}>
+                    <Switch size="small" checked={advanced.singleton} onChange={(v) => setAdvanced((a) => ({ ...a, singleton: v }))} />
+                  </Form.Item>
+                  <Form.Item label={t('page.pipeline.editor.autoStart')} tooltip={t('page.pipeline.editor.autoStartTip')}>
+                    <Switch size="small" checked={advanced.auto_start} onChange={(v) => setAdvanced((a) => ({ ...a, auto_start: v }))} />
+                  </Form.Item>
+                  <Form.Item label={t('page.pipeline.editor.keepRunning')} tooltip={t('page.pipeline.editor.keepRunningTip')}>
+                    <Switch size="small" checked={advanced.keep_running} onChange={(v) => setAdvanced((a) => ({ ...a, keep_running: v }))} />
+                  </Form.Item>
+                  <Form.Item label={t('page.pipeline.editor.retryDelay')} tooltip={t('page.pipeline.editor.retryDelayTip')}>
+                    <InputNumber min={0} style={{ width: 500 }} value={advanced.retry_delay_in_ms} onChange={(v) => setAdvanced((a) => ({ ...a, retry_delay_in_ms: v ?? 1000 }))} />
+                  </Form.Item>
+                </div>
               )
             }
           ]}
         />
+        </Form>
       </Card>
 
       {!initial?.id && (
@@ -627,7 +691,7 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
           className="card-wrapper"
           title={<span className="flex items-center gap-8px"><Sparkles size={16} />{t('page.pipeline.templates.title')}</span>}
         >
-          <TemplateGallery templates={templates} onPick={applyTemplate} />
+          <TemplateGallery templates={templates} selectedId={selectedTplId} onPick={applyTemplate} />
         </Card>
       )}
 
@@ -640,22 +704,34 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
           </span>
         }
         extra={
-          <Space>
-            <Button size="small" onClick={() => setCatalogOpen(true)} icon={<BookOpen size={14} />}>
-              {t('page.pipeline.editor.catalog')} ({catalog.length})
-            </Button>
-            <div className="flex rounded-6px border border-solid border-[var(--ant-color-border)] overflow-hidden">
-              <Button size="small" type={view === 'cards' ? 'primary' : 'text'} onClick={() => switchView('cards')}>
-                {t('page.pipeline.editor.cardsView')}
+          graphicalSource ? undefined : (
+            <Space>
+              <Button size="small" onClick={() => setCatalogOpen(true)} icon={<BookOpen size={14} />}>
+                {t('page.pipeline.editor.catalog')} ({catalog.length})
               </Button>
-              <Button size="small" type={view === 'json' ? 'primary' : 'text'} icon={<Braces size={14} />} onClick={() => switchView('json')}>
-                JSON
-              </Button>
-            </div>
-          </Space>
+              <div className="flex rounded-6px border border-solid border-[var(--ant-color-border)] overflow-hidden">
+                <Button size="small" type={view === 'cards' ? 'primary' : 'text'} onClick={() => switchView('cards')}>
+                  {t('page.pipeline.editor.cardsView')}
+                </Button>
+                <Button size="small" type={view === 'json' ? 'primary' : 'text'} icon={<Braces size={14} />} onClick={() => switchView('json')}>
+                  JSON
+                </Button>
+              </div>
+            </Space>
+          )
         }
       >
-        {view === 'cards' ? (
+        {graphicalSource ? (
+          <GraphicalChainEditor
+            key={graphicalKey}
+            templateChain={graphicalSource}
+            registry={registryMeta}
+            onChange={(c) => {
+              setChain(c);
+              setChainJSON(JSON.stringify(c, null, 2));
+            }}
+          />
+        ) : view === 'cards' ? (
           <ChainEditor
             chain={chain}
             setChain={(c) => {
@@ -687,9 +763,9 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
           </span>
         }
       >
-        <Row gutter={16}>
-          <Col span={12} className="flex flex-col gap-8px">
-            <div className="flex items-center justify-between">
+        <div className="grid grid-cols-2 gap-16px items-start">
+          <div className="flex flex-col gap-8px min-w-0">
+            <div className="flex items-center justify-between h-24px">
               <span className="text-13px font-medium">{t('page.pipeline.editor.sampleDocuments')}</span>
               <Space size={4}>
                 <Button size="small" type="text" onClick={() => setDocumentsJSON(JSON.stringify(DOCUMENT_TEMPLATE, null, 2))}>
@@ -701,38 +777,45 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
               </Space>
             </div>
             <Input.TextArea className="font-mono text-12px" rows={10} value={documentsJSON} onChange={(e) => setDocumentsJSON(e.target.value)} />
-            <Input.TextArea
-              rows={2}
-              placeholder={t('page.pipeline.editor.aiRequirementPlaceholder')}
-              value={aiRequirement}
-              onChange={(e) => setAiRequirement(e.target.value)}
-            />
-            <div className="flex gap-8px">
-              <Button
-                className="flex-1"
-                type="primary"
-                icon={<Sparkles size={14} className={aiRunning === 'generate' ? 'animate-pulse' : ''} />}
-                loading={aiRunning === 'generate'}
-                onClick={() => runAI('generate')}
-              >
-                {t('page.pipeline.editor.aiGenerate')}
-              </Button>
-              <Button
-                className="flex-1"
-                icon={<Sparkles size={14} className={aiRunning === 'refine' ? 'animate-pulse' : ''} />}
-                loading={aiRunning === 'refine'}
-                disabled={chainEmpty}
-                onClick={() => runAI('refine')}
-              >
-                {t('page.pipeline.editor.aiRefine')}
-              </Button>
-            </div>
+            {/* AI 生成/改进是自由编排能力：结果整链替换并切回自由编排，图形化模式下不提供（方案：图形化只留测试） */}
+            {!graphicalSource && (
+              <>
+                <Input.TextArea
+                  rows={2}
+                  placeholder={t('page.pipeline.editor.aiRequirementPlaceholder')}
+                  value={aiRequirement}
+                  onChange={(e) => setAiRequirement(e.target.value)}
+                />
+                <div className="flex gap-8px">
+                  <Button
+                    className="flex-1"
+                    type="primary"
+                    icon={<Sparkles size={14} className={aiRunning === 'generate' ? 'animate-pulse' : ''} />}
+                    loading={aiRunning === 'generate'}
+                    onClick={() => runAI('generate')}
+                  >
+                    {t('page.pipeline.editor.aiGenerate')}
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    icon={<Sparkles size={14} className={aiRunning === 'refine' ? 'animate-pulse' : ''} />}
+                    loading={aiRunning === 'refine'}
+                    disabled={chainEmpty}
+                    onClick={() => runAI('refine')}
+                  >
+                    {t('page.pipeline.editor.aiRefine')}
+                  </Button>
+                </div>
+              </>
+            )}
             <Button icon={<FlaskConical size={14} />} loading={testing} disabled={chainEmpty} onClick={runTest}>
               {t('page.pipeline.editor.runTest')}
             </Button>
-          </Col>
-          <Col span={12}>
-            <span className="text-13px font-medium">{t('page.pipeline.editor.stepDebug')}</span>
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center h-24px">
+              <span className="text-13px font-medium">{t('page.pipeline.editor.stepDebug')}</span>
+            </div>
             <div className="mt-8px">
               {testResult?.steps ? (
                 <StepDebugger steps={testResult.steps} />
@@ -742,8 +825,8 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
                 </div>
               )}
             </div>
-          </Col>
-        </Row>
+          </div>
+        </div>
       </Card>
 
       <Drawer

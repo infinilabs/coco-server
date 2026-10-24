@@ -7,7 +7,7 @@
 
 export interface PipelineTemplate {
   id: string;
-  icon: 'file-text' | 'file' | 'image' | 'video' | 'paperclip';
+  icon: 'file-text' | 'file' | 'image' | 'video' | 'paperclip' | 'sliders';
   suggestedName: string;
   processor: Record<string, any>[];
 }
@@ -92,6 +92,15 @@ export const PIPELINE_TEMPLATES: PipelineTemplate[] = [
       { attachment_text_extraction: {} },
       { generate_attachment_cover: {} }
     ]
+  },
+  {
+    id: 'advanced',
+    icon: 'sliders',
+    suggestedName: 'custom-pipeline',
+    // advanced mode: no preset processors — picking it keeps the free-form
+    // chain editor (insert any processor, reorder, conditional branches, JSON
+    // editing) for full customization, instead of the graphical setup UI
+    processor: []
   }
 ];
 
@@ -103,8 +112,4 @@ export function availableTemplates(installedNames: Set<string>): PipelineTemplat
       return installedNames.has(name);
     })
   );
-}
-
-export function templateEntryNames(t: PipelineTemplate): string[] {
-  return t.processor.map(entry => Object.keys(entry)[0]);
 }

@@ -2036,6 +2036,10 @@ const page: App.I18n.Schema['translation']['page'] = {
           attachment: {
             title: 'Attachment Processing (2 stages)',
             description: 'Full-text extraction and cover generation for the attachment pipeline channel'
+          },
+          advanced: {
+            title: 'Advanced (fully custom)',
+            description: 'No preset chain — keep the free-form editor: insert any processor, reorder, conditional branches and JSON editing'
           }
         },
 
@@ -2045,7 +2049,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     columns: {
       name: 'Name',
       enabled: 'Enabled',
-      processors: 'Processors',
+      datasources: 'Applied Data Sources',
       description: 'Description'
     },
     manageLink: 'Manage pipelines',
@@ -2060,9 +2064,13 @@ const page: App.I18n.Schema['translation']['page'] = {
       advanced: 'Advanced',
       enabled: 'Enabled',
       singleton: 'Singleton',
+      singletonTip: 'When enabled, at most one instance of this pipeline runs across the whole cluster (enforced by a distributed lock whose TTL is max_running_in_ms)',
       autoStart: 'Auto start',
+      autoStartTip: 'When enabled, the pipeline starts executing as soon as it is loaded; otherwise it stays idle until started manually',
       keepRunning: 'Keep running',
+      keepRunningTip: 'Long-lived mode: the processor chain loops and runs again after each pass; when off, it executes once and exits',
       retryDelay: 'Retry delay (ms)',
+      retryDelayTip: 'Pause between successive runs in keep-running mode (ms), applied whether the previous run succeeded or failed; 0 or empty defaults to 1000ms',
       chainTitle: 'Processor Chain',
       catalog: 'Processor Catalog',
       cardsView: 'Cards',
@@ -2438,6 +2446,84 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     default_params: {
       title: 'Default Parameters'
+    },
+    processing: {
+      title: 'Processing Pipelines',
+      desc: 'Two fixed processing pipelines ship with the product; the processor order is product-defined. Toggle processors on the chain and adjust their parameters here — changes apply to documents processed afterwards.',
+      doc_section: 'Document Enrichment',
+      doc_section_desc: 'Documents collected from data sources pass through: type detection → metadata → cover → text/attachment parsing → face detection → summarization → tags → embedding.',
+      attach_section: 'Attachment Enrichment',
+      attach_section_desc: 'Standalone pipeline for attachments embedded in documents (images, office files, etc.).',
+      disabled_hint: 'Processor is disabled; parameters are kept for re-enabling',
+      processors: {
+        file_type_detection: { name: 'File Type Detection', desc: 'Detect and tag the MIME type of files' },
+        file_metadata: { name: 'File Metadata', desc: 'Extract size, timestamps and other file meta' },
+        generate_document_cover: { name: 'Cover Generation', desc: 'Generate a cover thumbnail for documents' },
+        document_text_attachment_extraction: { name: 'Text & Attachment Parsing', desc: 'Tika extracts document text, with optional embedded-attachment and image parsing' },
+        face_extraction: { name: 'Face Detection', desc: 'Detect and extract faces in images' },
+        document_summarization: { name: 'Smart Summarization', desc: 'LLM-generated summary and insights' },
+        extract_tags: { name: 'Tag Extraction', desc: 'LLM extracts topic tags from documents' },
+        extract_entities: { name: 'Entity Extraction', desc: 'LLM extracts named entities from documents' },
+        document_embedding: { name: 'Embedding', desc: 'Generate semantic vectors for hybrid retrieval' },
+        attachment_text_extraction: { name: 'Attachment Text Parsing', desc: 'Tika parses attachment text and image content' }
+      },
+      fields: {
+        tika_endpoint: 'Tika Endpoint',
+        tika_timeout_in_seconds: 'Tika Timeout (s)',
+        chunk_size: 'Attachment Chunk Size',
+        extract_attachments: 'Extract Embedded Attachments',
+        xlsx_first_row_as_header: 'Excel First Row as Header',
+        image_content_format: 'Image Content Format',
+        remote_parse_url: 'Remote Parse URL',
+        remote_parse_exts: 'Remote Parse Extensions',
+        remote_parse_timeout_in_seconds: 'Remote Parse Timeout (s)',
+        ai_insights_max_length: 'Max Summary Length',
+        max_input_document_length: 'Max Input Length',
+        min_input_document_length: 'Min Input Length',
+        llm_generation_lang: 'LLM Generation Language',
+        model: 'Language Model',
+        embedding_model: 'Embedding Model',
+        model_provider: 'Model Provider',
+        model_context_length: 'Model Context Length',
+        vision_model: 'Vision Model',
+        vision_model_provider: 'Vision Model Provider',
+        pigo_facefinder_path: 'Face Finder Model Path',
+        max_entities: 'Max Entities',
+        wiki_kb_id: 'Fallback KB ID'
+      },
+      field_descs: {
+        max_entities: 'Maximum number of entities extracted per document',
+        wiki_kb_id: 'Knowledge base that extracted entities are written to; used as fallback when the document datasource is not bound to a KB. Leave empty to resolve by datasource binding',
+        tika_endpoint: 'Address of the Tika document parsing service (with port), used only for file types that require Tika (PDF, Office, etc.); leave empty to use the global address from system environment settings',
+        chunk_size: 'Extracted text is split into chunks of this many characters — the basic unit for retrieval and summarization. Default: 7000',
+        image_content_format: 'How images are passed to the vision model: data_uri (Base64 inline, default) or binary. Keep the default in most cases',
+        remote_parse_url: 'Remote parsing service URL. When set, files matching the extensions below are parsed by this service first — a successful answer wins, failures fall back to the built-in Tika',
+        remote_parse_exts: 'File extensions parsed by the remote service first, e.g. pdf, docx',
+        ai_insights_max_length: 'Maximum length (approx. characters) of the generated summary and insights. Default: 500',
+        min_input_document_length: 'Documents whose text is shorter than this (characters) skip summarization. Default: 100',
+        max_input_document_length: 'Upper limit of document length (characters). Reserved in the current version — actual chunking is decided by model context length',
+        llm_generation_lang: 'Target language for LLM-generated content in BCP 47 format, e.g. zh-CN, en-US; leave empty to use the system default',
+        model_context_length: 'Model context window (tokens), used to budget multi-pass summarization of long documents; minimum 4000, should match the selected model',
+        pigo_facefinder_path: 'Path to the pigo facefinder model file, relative to the coco working directory. Default: ./config/ai/facefinder'
+      },
+      placeholders: {
+        tika_endpoint: 'http://127.0.0.1:9998',
+        tika_timeout_in_seconds: '360',
+        chunk_size: '7000',
+        llm_generation_lang: 'en-US',
+        default_model: 'Use default model',
+        model: 'Model ID',
+        model_provider: 'Provider name',
+        model_context_length: '128000',
+        ai_insights_max_length: '500',
+        image_content_format: 'e.g. markdown',
+        remote_parse_url: 'http://',
+        remote_parse_exts: 'type and press enter, e.g. pdf',
+        remote_parse_timeout_in_seconds: '360',
+        vision_model: 'Vision model ID',
+        vision_model_provider: 'Provider name',
+        pigo_facefinder_path: './config/ai/facefinder'
+      }
     },
     default_model: {
       labels: {
