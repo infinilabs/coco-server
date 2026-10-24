@@ -54,6 +54,18 @@ export function getPipelineProcessors() {
   });
 }
 
+// shared types + client from the ui-common package (source reference);
+// the product binds its own axios-backed request instance
+import { createPipelineClient, type DryRunReport, type StepResult } from '@infinilabs/pipeline-ui/api';
+
+const pipelineClient = createPipelineClient({
+  // the product adapter boundary: coco's request returns FlatResponseData
+  // (data + response); the shared client only consumes .data
+  post: <T,>(url: string, data: unknown) =>
+    request({ method: 'post', data, url }) as unknown as Promise<{ data: T }>,
+  get: <T,>(url: string) => request({ method: 'get', url }) as unknown as Promise<{ data: T }>
+});
+
 /**
  * Step-by-step dry run of a processor chain over sample documents via the
  * unified framework endpoint. Documents travel through the coco_document
@@ -61,25 +73,21 @@ export function getPipelineProcessors() {
  * is mapped back into the studio's steps/finals shape.
  */
 export async function testPipelineChain(data: { processor: Record<string, any>[]; documents: Record<string, any>[] }) {
-  const res = await request({
-    method: 'post',
-    data: {
-      processor: data.processor,
-      samples: data.documents.map((doc) => ({ raw: JSON.stringify(doc), codec: 'coco_document' }))
-    },
-    url: '/pipeline/dry-run'
-  });
-  return { data: mapDryRunReport(res?.data) };
+  const report = await pipelineClient.dryRun(
+    data.processor,
+    data.documents.map((doc) => ({ raw: JSON.stringify(doc), codec: 'coco_document' }))
+  );
+  return { data: mapDryRunReport(report) };
 }
 
 /** map the unified dry-run report onto the studio's steps/finals shape */
-function mapDryRunReport(report: any) {
+function mapDryRunReport(report: DryRunReport | undefined) {
   if (!report) return { steps: undefined, finals: undefined };
-  const badCompile = (report.compiled || []).find((c: any) => c && c.ok === false);
+  const badCompile = (report.compiled || []).find((c) => c && c.ok === false);
   if (badCompile) {
     throw new Error(`chain invalid: ${badCompile.note ?? badCompile.processor}`);
   }
-  const steps = (report.steps || []).map((perDoc: any[]) =>
+  const steps = (report.steps || []).map((perDoc: StepResult[]) =>
     (perDoc || []).map((step) => ({
       name: step?.processor,
       fields: step?.after,
@@ -87,7 +95,7 @@ function mapDryRunReport(report: any) {
       error: step?.err || (step?.outcome === 'error' ? 'error' : undefined)
     }))
   );
-  const finals = (report.steps || []).map((perDoc: any[]) => {
+  const finals = (report.steps || []).map((perDoc: StepResult[]) => {
     const last = (perDoc || [])[perDoc?.length - 1];
     return last?.after;
   });

@@ -107,7 +107,8 @@
     "typeit": "8.8.7",
     "ui-search": "workspace:*",
     "use-debounce": "10.0.4",
-    "vditor": "^4.0.0"
+    "vditor": "^4.0.0",
+    "@infinilabs/pipeline-ui": "file:../../ui-common/packages/Pipeline"
   },
   "devDependencies": {
     "@iconify/json": "2.2.266",
