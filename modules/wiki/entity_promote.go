@@ -6,6 +6,7 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/log"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/security"
 )
 
 /* entity promotion: the compile pipeline carries key entities as plain
@@ -58,8 +59,20 @@ func promoteTopicEntities(ctx *orm.Context, kbID string, names []string, types m
 			}
 		}
 		cctx := orm.NewContextWithParent(ctx)
-		cctx.Set(orm.SharingEnabled, true)
-		cctx.Set(orm.SharingResourceType, entityResource)
+		// apply often runs from the background auto-approve sweep with no
+		// session user: sharing hooks then reject the create ("invalid
+		// user info"). Fall back to a direct write owned by the KB owner
+		// so promoted entities stay visible to sharing-scoped reads.
+		if sessionUser, uerr := security.GetUserFromContext(cctx.Context); uerr != nil || sessionUser == nil {
+			cctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+			cctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+			if ownerID := kbOwnerID(ctx, kbID); ownerID != "" {
+				e.SetSystemValue(orm.OwnerIDKey, ownerID)
+			}
+		} else {
+			cctx.Set(orm.SharingEnabled, true)
+			cctx.Set(orm.SharingResourceType, entityResource)
+		}
 		cctx.Refresh = orm.WaitForRefresh
 		if err := orm.Create(cctx, e); err != nil {
 			log.Warnf("wiki entity promotion: create [%s/%s]: %v", name, e.Type, err)
@@ -71,4 +84,24 @@ func promoteTopicEntities(ctx *orm.Context, kbID string, names []string, types m
 		log.Infof("wiki entity promotion: %d entity(ies) promoted into kb %s", created, kbID)
 	}
 	return created
+}
+
+// kbOwnerID reads the KB's system owner so background-promoted entities
+// inherit it: sharing-scoped entity reads filter by owner, and an
+// ownerless row would be invisible outside admin.
+func kbOwnerID(ctx *orm.Context, kbID string) string {
+	var kb core.WikiKnowledgeBase
+	kb.SetID(kbID)
+	rctx := orm.NewContextWithParent(ctx)
+	rctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(rctx, &core.WikiKnowledgeBase{})
+	if exists, err := orm.GetV2(rctx, &kb); err != nil || !exists {
+		return ""
+	}
+	if v, ok := kb.GetSystemValue(orm.OwnerIDKey); ok {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+	return ""
 }
