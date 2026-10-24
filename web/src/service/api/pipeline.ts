@@ -77,7 +77,9 @@ export async function testPipelineChain(data: { processor: Record<string, any>[]
     data.processor,
     data.documents.map((doc) => ({ raw: JSON.stringify(doc), codec: 'coco_document' }))
   );
-  return { data: mapDryRunReport(report) };
+  // report = the raw unified payload (the shared DryRunDrawer renders it
+  // directly); steps/finals remain as the mapped legacy shape.
+  return { data: { report, ...mapDryRunReport(report) } };
 }
 
 /** map the unified dry-run report onto the studio's steps/finals shape */

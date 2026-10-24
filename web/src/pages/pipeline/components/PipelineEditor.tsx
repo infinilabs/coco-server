@@ -6,6 +6,10 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { aiGeneratePipelineChain, createPipeline, getPipelineProcessors, testPipelineChain, updatePipeline } from '@/service/api/pipeline';
+// shared studio components (ui-common package); the prebuilt stylesheet
+// carries the tailwind utilities they use — coco has no tailwind toolchain
+import { AiGeneratePanel, DryRunDrawer, identityTranslate, type DryRunReport } from '@infinilabs/pipeline-ui';
+import '@infinilabs/pipeline-ui/styles.css';
 // reuses the settings pages' .settings-form layout (fixed left label column,
 // capped control width) for the name/description + advanced settings section
 import '@/pages/settings/index.scss';
@@ -35,13 +39,6 @@ interface ProcessorEntry {
   name: string;
   category?: string;
   config?: Record<string, any>;
-}
-
-interface StepSnapshot {
-  name: string;
-  fields?: Record<string, any>;
-  count?: number;
-  error?: string;
 }
 
 export const DOCUMENT_TEMPLATE = [
@@ -88,31 +85,6 @@ function entrySummary(entry: Record<string, any>): string {
   }
   return String(cfg ?? '');
 }
-
-interface DiffItem {
-  key: string;
-  val: any;
-  kind: 'add' | 'chg' | 'del';
-}
-
-function fieldDiff(prev: Record<string, any> | undefined, curr: Record<string, any>): DiffItem[] {
-  const out: DiffItem[] = [];
-  const keys = new Set([...Object.keys(prev ?? {}), ...Object.keys(curr)]);
-  for (const k of keys) {
-    const inP = prev != null && k in prev;
-    const inC = k in curr;
-    if (inC && !inP) out.push({ key: k, val: curr[k], kind: 'add' });
-    else if (!inC && inP) out.push({ key: k, val: undefined, kind: 'del' });
-    else if (JSON.stringify(prev?.[k]) !== JSON.stringify(curr[k])) out.push({ key: k, val: curr[k], kind: 'chg' });
-  }
-  return out.sort((a, b) => a.key.localeCompare(b.key));
-}
-
-const DIFF_COLOR: Record<DiffItem['kind'], string> = {
-  add: 'text-green-600',
-  chg: 'text-blue-600',
-  del: 'text-red-500 line-through'
-};
 
 // ── chain card editor ────────────────────────────────────────────────
 
@@ -303,63 +275,6 @@ function ProcessorCatalog({
   );
 }
 
-// ── step debugger ────────────────────────────────────────────────────
-
-function StepDebugger({ steps }: { steps: StepSnapshot[][] }) {
-  const { t } = useTranslation();
-  const [sampleIdx, setSampleIdx] = useState(0);
-  if (steps.length === 0) return null;
-  const idx = Math.min(sampleIdx, steps.length - 1);
-  const sampleSteps = steps[idx] ?? [];
-
-  return (
-    <div className="flex flex-col gap-8px">
-      {steps.length > 1 && (
-        <div className="flex items-center gap-4px flex-wrap">
-          <span className="text-12px text-[var(--ant-color-text-secondary)]">{t('page.pipeline.editor.sample')}:</span>
-          {steps.map((_, i) => (
-            <Button key={i} size="small" type={i === idx ? 'primary' : 'default'} onClick={() => setSampleIdx(i)}>
-              #{i + 1}
-            </Button>
-          ))}
-        </div>
-      )}
-      <div className="flex flex-col gap-4px max-h-360px overflow-auto">
-        {sampleSteps.map((s, si) => {
-          const prev = si === 0 ? undefined : sampleSteps[si - 1]?.fields;
-          const diff = s.fields ? fieldDiff(prev, s.fields) : [];
-          return (
-            <div
-              key={si}
-              className={`border border-solid rounded-8px px-8px py-4px ${
-                s.error ? 'border-[var(--ant-color-error)] bg-[var(--ant-color-error-bg)]' : 'border-[var(--ant-color-border-secondary)]'
-              }`}
-            >
-              <div className="flex items-center gap-8px">
-                <span className="text-11px text-[var(--ant-color-text-tertiary)]">{si + 1}</span>
-                <span className="font-mono text-12px font-medium">{s.name}</span>
-                {s.count != null && s.count !== 1 && <Tag className="m-0">{t('page.pipeline.editor.messages', { count: s.count })}</Tag>}
-                {s.error && <span className="text-11px text-[var(--ant-color-error)]">{s.error}</span>}
-              </div>
-              {diff.length > 0 ? (
-                <div className="pl-24px flex flex-wrap gap-x-16px gap-y-2px">
-                  {diff.map((d) => (
-                    <span key={d.key} className={`font-mono text-11px ${DIFF_COLOR[d.kind]}`}>
-                      {d.key}: {JSON.stringify(d.val)}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <span className="pl-24px text-11px text-[var(--ant-color-text-tertiary)]">{t('page.pipeline.editor.noChanges')}</span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 const TEMPLATE_ICONS: Record<PipelineTemplate['icon'], React.ReactNode> = {
   'file-text': <FileText size={18} />,
   file: <File size={18} />,
@@ -466,7 +381,9 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
   const [catalogOpen, setCatalogOpen] = useState(false);
 
   const [documentsJSON, setDocumentsJSON] = useState(() => JSON.stringify(DOCUMENT_TEMPLATE, null, 2));
-  const [testResult, setTestResult] = useState<{ steps?: StepSnapshot[][]; finals?: Record<string, any>[] } | null>(null);
+  const [testReport, setTestReport] = useState<DryRunReport | null>(null);
+  const [aiMode, setAiMode] = useState<'generate' | 'refine'>('generate');
+  const [aiError, setAiError] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
   const [aiRequirement, setAiRequirement] = useState('');
   const [aiRunning, setAiRunning] = useState<'generate' | 'refine' | null>(null);
@@ -533,10 +450,6 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
     }
   };
 
-  const applyTestResult = (result: any) => {
-    setTestResult({ steps: result?.steps, finals: result?.finals });
-  };
-
   const runTest = async (chainOverride?: Record<string, any>[]) => {
     const docs = parseDocuments();
     if (!docs) return;
@@ -544,7 +457,7 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
     setTesting(true);
     try {
       const res = await testPipelineChain({ processor: chainOverride ?? chain, documents: docs });
-      applyTestResult(res?.data);
+      setTestReport(res?.data?.report ?? null);
       message.success(t('page.pipeline.editor.testDone'));
     } catch (e: any) {
       message.error(e?.response?.data?.message ?? e?.message ?? t('page.pipeline.editor.testFailed'));
@@ -561,7 +474,8 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
       return;
     }
     setAiRunning(mode);
-    setTestResult(null);
+    setTestReport(null);
+    setAiError(null);
     try {
       const res = await aiGeneratePipelineChain({
         documents: docs.map((d) => JSON.stringify(d)),
@@ -581,6 +495,7 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
       if (nextChain.length > 0) await runTest(nextChain);
     } catch (e: any) {
       const msg = e?.response?.data?.message ?? e?.message ?? t('page.pipeline.editor.aiFailed');
+      setAiError(msg);
       message.error(msg);
     } finally {
       setAiRunning(null);
@@ -775,36 +690,20 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
               </Space>
             </div>
             <Input.TextArea className="font-mono text-12px" rows={10} value={documentsJSON} onChange={(e) => setDocumentsJSON(e.target.value)} />
-            {/* AI 生成/改进是自由编排能力：结果整链替换并切回自由编排，图形化模式下不提供（方案：图形化只留测试） */}
+            {/* AI 生成/改进是自由编排能力：结果整链替换并切回自由编排，图形化模式下不提供（方案：图形化只留测试）。
+                共享 AiGeneratePanel (#110)：哑交互壳，产品绑定统一 ai-generate 端点并自行串联 dry-run。 */}
             {!graphicalSource && (
-              <>
-                <Input.TextArea
-                  rows={2}
-                  placeholder={t('page.pipeline.editor.aiRequirementPlaceholder')}
-                  value={aiRequirement}
-                  onChange={(e) => setAiRequirement(e.target.value)}
-                />
-                <div className="flex gap-8px">
-                  <Button
-                    className="flex-1"
-                    type="primary"
-                    icon={<Sparkles size={14} className={aiRunning === 'generate' ? 'animate-pulse' : ''} />}
-                    loading={aiRunning === 'generate'}
-                    onClick={() => runAI('generate')}
-                  >
-                    {t('page.pipeline.editor.aiGenerate')}
-                  </Button>
-                  <Button
-                    className="flex-1"
-                    icon={<Sparkles size={14} className={aiRunning === 'refine' ? 'animate-pulse' : ''} />}
-                    loading={aiRunning === 'refine'}
-                    disabled={chainEmpty}
-                    onClick={() => runAI('refine')}
-                  >
-                    {t('page.pipeline.editor.aiRefine')}
-                  </Button>
-                </div>
-              </>
+              <AiGeneratePanel
+                value={aiRequirement}
+                onChange={setAiRequirement}
+                mode={aiMode}
+                onModeChange={setAiMode}
+                onRun={() => runAI(aiMode)}
+                busy={aiRunning != null}
+                error={aiError}
+                canRefine={!chainEmpty}
+                t={identityTranslate}
+              />
             )}
             <Button icon={<FlaskConical size={14} />} loading={testing} disabled={chainEmpty} onClick={() => runTest()}>
               {t('page.pipeline.editor.runTest')}
@@ -815,8 +714,10 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
               <span className="text-13px font-medium">{t('page.pipeline.editor.stepDebug')}</span>
             </div>
             <div className="mt-8px">
-              {testResult?.steps ? (
-                <StepDebugger steps={testResult.steps} />
+              {/* 统一 dry-run 报告单源渲染 (#110)：编译判定/样本切换/逐步
+                  outcome+耗时+字段 diff — 与 logpilot 画布试跑同款。 */}
+              {testReport ? (
+                <DryRunDrawer report={testReport} t={identityTranslate} />
               ) : (
                 <div className="border-dashed border border-[var(--ant-color-border)] rounded-8px py-24px text-center text-13px text-[var(--ant-color-text-tertiary)]">
                   {t('page.pipeline.editor.noTestYet')}
