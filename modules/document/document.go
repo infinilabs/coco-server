@@ -542,6 +542,12 @@ func (h *APIHandler) reprocessDatasourceDocs(w http.ResponseWriter, req *http.Re
 			doc.Chunks = nil
 			doc.Summary = ""
 			doc.AiInsights = core.AiInsights{}
+			// Clear Processed for the same reason the single-doc endpoint
+			// does: the consumer's alreadyEnriched gate drops any queued
+			// message whose stored copy is Processed with the same content
+			// hash. Observed live: a force batch on a datasource left all
+			// ten of its documents parked in `indexing` forever.
+			doc.Processed = false
 			doc.Status = core.DocumentStatusIndexing
 			doc.ErrorMessage = ""
 			ctx.Refresh = orm.WaitForRefresh

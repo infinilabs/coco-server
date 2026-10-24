@@ -76,6 +76,7 @@ func TestReprocessForceClearsAndEnqueues(t *testing.T) {
 	h := w0Setup(t)
 	id := w1SeedDoc(t, h, func(d *core.Document) {
 		d.Status = core.DocumentStatusCompleted
+		d.Processed = true
 		d.Chunks = []core.DocumentChunk{{Text: "stale chunk"}}
 		d.Summary = "stale summary"
 		d.ErrorMessage = "old failure"
@@ -94,6 +95,7 @@ func TestReprocessForceClearsAndEnqueues(t *testing.T) {
 	assert.Empty(t, enq.Chunks, "stale chunks must be cleared before re-entering the pipeline")
 	assert.Empty(t, enq.Summary)
 	assert.Empty(t, enq.ErrorMessage)
+	assert.False(t, enq.Processed, "leaving Processed set makes the consumer's alreadyEnriched gate drop the requeued message")
 }
 
 func TestReprocessFailedDocWithoutForce(t *testing.T) {
@@ -113,6 +115,40 @@ func TestReprocessMissingDoc404(t *testing.T) {
 	h := w0Setup(t)
 	w := w1Call(t, h, http.MethodPost, "/document/ghost/_reprocess", httprouter.Params{{Key: "doc_id", Value: "ghost"}})
 	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+// Regression: the batch endpoint used to reset status/chunks/summary but
+// leave Processed set — the consumer's alreadyEnriched gate then dropped
+// every requeued message and the whole datasource parked in `indexing`
+// forever (observed live: 10 documents stuck 28+ minutes, zero errors).
+func TestReprocessDatasourceForceClearsProcessed(t *testing.T) {
+	h := w0Setup(t)
+	_ = w1SeedDoc(t, h, func(d *core.Document) {
+		d.Source = core.DataSourceReference{ID: "ds-w1-batch", Type: "connector", Name: "w1 batch ds"}
+		d.Status = core.DocumentStatusCompleted
+		d.Processed = true
+		d.ContentHash = "frozen-hash"
+		d.Summary = "stale summary"
+	})
+
+	got := w0Capture(t)
+	w := w1Call(t, h, http.MethodPost, "/datasource/ds-w1-batch/_reprocess?force=true", httprouter.Params{{Key: "id", Value: "ds-w1-batch"}})
+	require.Equal(t, http.StatusOK, w.Code)
+	require.NotEmpty(t, *got, "the seeded doc must be requeued")
+
+	// the sqlite-backed store resolves the datasource filter loosely in
+	// tests (every doc of the shared w0 store matches) — assert on the
+	// seeded doc itself, and that every enqueued copy got the same reset
+	var enq *core.Document
+	for _, d := range *got {
+		assert.False(t, d.Processed, "batch force must clear Processed or the consumer gate drops every message")
+		assert.Equal(t, core.DocumentStatusIndexing, d.Status)
+		if d.Source.ID == "ds-w1-batch" {
+			enq = d
+		}
+	}
+	require.NotNil(t, enq, "seeded ds-w1-batch doc must be in the batch")
+	assert.Empty(t, enq.Summary)
 }
 
 func TestTimelineReturnsLifecycle(t *testing.T) {
