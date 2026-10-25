@@ -706,8 +706,13 @@ export function Component() {
   // `> 来源：` lines become data — provenance lives on the interactive [n]
   // chips, the reading body stays clean
   const citationInfo = useMemo(
-    () => (article ? splitCitationBlock(article.content) : { body: '', claims: [] as CitationRef[] }),
-    [article?.content]
+    () =>
+      article
+        ? // sources feed the agent-compiled `[Doc: <file>]` markers — without
+          // them those markers render as plain text instead of cite chips
+          splitCitationBlock(article.content, article.sources)
+        : { body: '', claims: [] as CitationRef[] },
+    [article?.content, article?.sources]
   );
   const structured = useMemo(
     () => (article ? parseStructuredContent(linkifyCitations(citationInfo.body)) : null),

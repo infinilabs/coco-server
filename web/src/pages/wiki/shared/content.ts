@@ -177,7 +177,10 @@ const SOURCE_LINK_BARE = /\[源\]\(#\/preview\/document\/([A-Za-z0-9_-]+)/;
  * AI status on the header badge) and the 来源主张 section becomes data
  * for the hover popovers instead of layout bulk.
  */
-export function splitCitationBlock(content: string): { body: string; claims: CitationRef[] } {
+export function splitCitationBlock(
+  content: string,
+  sources?: Array<{ doc_id?: string; title?: string; excerpt?: string }>
+): { body: string; claims: CitationRef[] } {
   if (!content) return { body: '', claims: [] };
   let body = content.replace(BOILERPLATE_LEAD, '').replace(SOURCE_LINE, '');
   const claims: CitationRef[] = [];
@@ -198,6 +201,27 @@ export function splitCitationBlock(content: string): { body: string; claims: Cit
         excerpt: src?.[3]
       });
     }
+  }
+  // agent-compiled pages reference sources inline as `[Doc: <file>]` instead
+  // of the numbered claims tail — turn each distinct marker into a numbered
+  // cite anchored to the matching source entry (doc_id + excerpt feed the
+  // hover chip); names without a matching source stay as written. Numbering
+  // continues after the claims tail so hybrid pages never collide.
+  if (sources?.length && body.includes('[Doc:')) {
+    const byTitle = new Map(sources.map((s, i) => [s.title ?? '', s]));
+    const docNum = new Map<string, number>();
+    body = body.replace(/\[Doc:\s*([^\]]+)\]/g, (m, nameRaw: string) => {
+      const name = nameRaw.trim();
+      const src = byTitle.get(name);
+      if (!src) return m;
+      let n = docNum.get(name);
+      if (n == null) {
+        n = claims.length + docNum.size + 1;
+        docNum.set(name, n);
+        claims.push({ n, claim: name, docId: src.doc_id, excerpt: src.excerpt });
+      }
+      return `[${n}](#cite-${n})`;
+    });
   }
   return { body: body.trim(), claims };
 }
