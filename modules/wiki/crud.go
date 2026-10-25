@@ -277,7 +277,16 @@ func registerEntityCRUD() {
 		Permission:         simplePermissionFn(entityResource),
 		DefaultQueryFields: []string{"name", "name.pinyin", "aliases", "combined_fulltext"},
 		SharingResource:    entityResource,
-		MCP:                true,
+		// retired entities are archived working data: hidden from the
+		// working list unless the caller explicitly filters for them
+		// (an explicit status filter wins over this default)
+		PrepareSearch: func(req *http.Request, builder *orm.QueryBuilder, ctx *orm.Context) error {
+			if !strings.Contains(req.URL.Query().Get("filter"), "status:") {
+				builder.Not(orm.TermQuery("status", "retired"))
+			}
+			return nil
+		},
+		MCP: true,
 		MCPDescs: map[string]string{
 			crud.ActionSearch: "Search ontology entities by name, alias or type",
 			crud.ActionRead:   "Get an entity by id, includes relations",
