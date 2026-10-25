@@ -36,7 +36,7 @@ export default defineConfig(configEnv => {
             if (pkg === 'mermaid' || pkg.startsWith('@mermaid-js/') || pkg === 'cytoscape' || pkg.startsWith('cytoscape-') || pkg === 'dagre' || pkg === 'dagre-d3-es' || pkg === 'graphlib' || pkg === 'khroma') {
               return 'vendor-mermaid';
             }
-            if (pkg === 'pdfjs-dist' || pkg === 'react-pdf' || pkg === 'pdfast' || pkg === 'docx-preview') {
+            if (pkg === 'pdfjs-dist' || pkg === 'react-pdf' || pkg === 'docx-preview') {
               return 'vendor-doc';
             }
             if (pkg === 'katex') {
@@ -56,9 +56,22 @@ export default defineConfig(configEnv => {
             if (pkg === 'react-syntax-highlighter') {
               return 'vendor-highlight';
             }
-            // @antv/g2 depends on pdfast (vendor-doc), which would otherwise
-            // re-create the core <-> doc cycle from the chart stack
-            if (pkg.startsWith('@antv/') || pkg === 'd3' || pkg.startsWith('d3-')) {
+            // pdfast's ONLY consumer is @antv/g2 — grouping it with the chart
+            // stack (not vendor-doc) keeps vendor-antv self-contained. With
+            // pdfast in vendor-doc the graph was core(@xyflow's d3-*) → antv
+            // → doc(pdfast) → core(react), and chunk-init order let vendor-doc
+            // read react before vendor-core finished exporting it — the app
+            // died at eval time with "Cannot read properties of undefined
+            // (reading 'createContext')" in vendor-doc.
+            //
+            // d3/d3-* MUST stay in the catch-all core chunk: their consumers
+            // span vendor-antv (@antv/layout, @antv/vendor), vendor-core
+            // (@xyflow/system, three-forcegraph) and vendor-mermaid. Sending
+            // them to vendor-antv created core → antv → core, and the cycle
+            // let chart code run before core finished exporting react — same
+            // undefined-'createContext' class of crash, surfacing as
+            // "X is not a constructor" during chunk init.
+            if (pkg.startsWith('@antv/') || pkg === 'pdfast') {
               return 'vendor-antv';
             }
             if (pkg === 'antd' || pkg.startsWith('@ant-design/') || pkg.startsWith('@rc-component/') || pkg.startsWith('rc-')) {
