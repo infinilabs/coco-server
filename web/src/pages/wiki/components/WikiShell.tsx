@@ -70,6 +70,8 @@ const wikiNav = {
   tocsAt: {} as Record<string, number>,
   /** kbId → (articleId → page_type), served alongside the toc for tree icons */
   pageTypes: {} as Record<string, Record<string, string>>,
+  /** kbId → (articleId → status), parked-node rendering (dim + tag + tail sort) */
+  statuses: {} as Record<string, Record<string, string>>,
   expandedKeys: [] as React.Key[],
   // workspace selection survives route changes: each wiki page mounts its own
   // WikiShell, so component state would reset to 'all' on every navigation
@@ -161,6 +163,7 @@ export function WikiShell({ kbId, articleId, children }: Props) {
   const [kbs, setKbs] = useState(wikiNav.kbs);
   const [tocs, setTocs] = useState(wikiNav.tocs);
   const [pageTypes, setPageTypes] = useState(wikiNav.pageTypes);
+  const [statuses, setStatuses] = useState(wikiNav.statuses);
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>(wikiNav.expandedKeys);
   const [unread, setUnread] = useState(0);
   const [openGovernance, setOpenGovernance] = useState(0);
@@ -200,21 +203,23 @@ export function WikiShell({ kbId, articleId, children }: Props) {
     });
   };
 
-  const storeToc = (id: string, nodes: Api.Wiki.TocNode[], types: Record<string, string>) => {
+  const storeToc = (id: string, nodes: Api.Wiki.TocNode[], types: Record<string, string>, stats: Record<string, string>) => {
     // final guard: an empty result must never blank a tree already on screen
     if ((!nodes || nodes.length === 0) && (wikiNav.tocs[id] || []).length > 0) return;
     wikiNav.tocs = { ...wikiNav.tocs, [id]: nodes };
     wikiNav.pageTypes = { ...wikiNav.pageTypes, [id]: types };
+    wikiNav.statuses = { ...wikiNav.statuses, [id]: stats };
     wikiNav.tocsAt = { ...wikiNav.tocsAt, [id]: Date.now() };
     setTocs(wikiNav.tocs);
     setPageTypes(wikiNav.pageTypes);
+    setStatuses(wikiNav.statuses);
   };
 
   const fetchToc = (id: string) => {
     if (Date.now() - (wikiNav.tocsAt[id] || 0) < CACHE_TTL && wikiNav.tocs[id]) return;
-    getWikiToc(id).then(({ nodes, pageTypes: types }) => {
+    getWikiToc(id).then(({ nodes, pageTypes: types, statuses: stats }) => {
       if (nodes == null) return; // transient failure — keep the tree on screen
-      storeToc(id, nodes, types);
+      storeToc(id, nodes, types, stats ?? {});
     });
   };
 
@@ -354,9 +359,9 @@ export function WikiShell({ kbId, articleId, children }: Props) {
           className: 'wiki-toc-kb',
           // custom kb emoji lives in the icon slot next to the folder/article icons
           icon: kb.icon ? <span className='wiki-toc-kb-icon'>{kb.icon}</span> : <BookOutlined />,
-          children: tocs[kb.id] ? toAntdTreeData(tocs[kb.id], pageTypes[kb.id]) : undefined
+          children: tocs[kb.id] ? toAntdTreeData(tocs[kb.id], pageTypes[kb.id], statuses[kb.id]) : undefined
         })),
-    [kbs, tocs, pageTypes, workspaceId]
+    [kbs, tocs, pageTypes, statuses, workspaceId]
   );
 
   // sidebar search filters the tree in place: keep self-matching rows (a
@@ -512,7 +517,7 @@ export function WikiShell({ kbId, articleId, children }: Props) {
     if (!key.startsWith('kb:')) return Promise.resolve();
     const id = key.slice(3);
     if (tocs[id]) return Promise.resolve();
-    return getWikiToc(id).then(({ nodes, pageTypes: types }) => storeToc(id, nodes ?? [], types));
+    return getWikiToc(id).then(({ nodes, pageTypes: types, statuses: stats }) => storeToc(id, nodes ?? [], types, stats ?? {}));
   };
 
   const onExpand = (keys: React.Key[]) => {

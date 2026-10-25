@@ -89,19 +89,53 @@ function articleIcon(pageType?: string) {
   }
 }
 
-export function toAntdTreeData(nodes: Api.Wiki.TocNode[], pageTypes?: Record<string, string>): DataNode[] {
-  return nodes.map(node => ({
-    key: node.id,
-    title: node.title,
-    // only folders expand (lazy children); articles are leaves with no caret —
-    // without isLeaf every node shows an expand arrow because loadData is set
-    isLeaf: node.type !== 'folder',
-    icon:
-      node.type === 'folder'
-        ? ({ expanded }: { expanded?: boolean }) => (expanded ? <FolderOpenOutlined /> : <FolderOutlined />)
-        : articleIcon(pageTypes?.[node.article_id || '']),
-    children: node.children ? toAntdTreeData(node.children, pageTypes) : undefined
-  }));
+const STATUS_TAG: Record<string, string> = {
+  draft: '草稿',
+  archived: '已归档'
+};
+
+/** 成熟度排序权重: 阅读面 (published/未标状态的旧数据) 在前, 草稿次之, 已归档垫底 —
+ * 用户手排的顺序在各自桶内保持稳定。 */
+function maturity(status?: string): number {
+  if (status === 'archived') return 2;
+  if (status === 'draft') return 1;
+  return 0;
+}
+
+export function toAntdTreeData(
+  nodes: Api.Wiki.TocNode[],
+  pageTypes?: Record<string, string>,
+  statuses?: Record<string, string>
+): DataNode[] {
+  // 稳定排序: 文件夹与正式内容留在用户排的位置, 未成熟内容统一沉到组尾
+  const sorted = nodes
+    .map((node, i) => ({ node, i, rank: maturity(node.type === 'article' ? statuses?.[node.article_id || ''] : undefined) }))
+    .sort((a, b) => a.rank - b.rank || a.i - b.i)
+    .map(x => x.node);
+
+  return sorted.map(node => {
+    const status = node.type === 'article' ? statuses?.[node.article_id || ''] : undefined;
+    const parked = maturity(status) > 0;
+    return {
+      key: node.id,
+      title: parked ? (
+        <span className='opacity-55'>
+          {node.title}
+          <span className='ml-1 text-[10px] text-muted-foreground/70'>{STATUS_TAG[status || ''] || status}</span>
+        </span>
+      ) : (
+        node.title
+      ),
+      // only folders expand (lazy children); articles are leaves with no caret —
+      // without isLeaf every node shows an expand arrow because loadData is set
+      isLeaf: node.type !== 'folder',
+      icon:
+        node.type === 'folder'
+          ? ({ expanded }: { expanded?: boolean }) => (expanded ? <FolderOpenOutlined /> : <FolderOutlined />)
+          : articleIcon(pageTypes?.[node.article_id || '']),
+      children: node.children ? toAntdTreeData(node.children, pageTypes, statuses) : undefined
+    };
+  });
 }
 
 /** find a TocNode (and its parent chain) by node id */

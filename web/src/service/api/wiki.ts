@@ -195,7 +195,13 @@ export function getWikiArticleVersions(articleId: string) {
 
 /** toc nodes plus the server-derived article_id→page_type map used for tree icons */
 export function getWikiToc(kbId: string) {
-  return request<{ _source?: { nodes?: Api.Wiki.TocNode[]; page_types?: Record<string, string> } }>({
+  return request<{
+    _source?: {
+      nodes?: Api.Wiki.TocNode[]
+      page_types?: Record<string, string>
+      statuses?: Record<string, string>
+    }
+  }>({
     method: 'get',
     url: `/wiki/kb/${kbId}/toc`
   }).then(res => {
@@ -208,7 +214,8 @@ export function getWikiToc(kbId: string) {
     const usable = Array.isArray(nodes) && nodes.length > 0;
     return {
       nodes: (usable ? nodes : null) as Api.Wiki.TocNode[] | null,
-      pageTypes: res?.data?._source?.page_types ?? {}
+      pageTypes: res?.data?._source?.page_types ?? {},
+      statuses: res?.data?._source?.statuses ?? {}
     };
   });
 }

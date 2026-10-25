@@ -71,7 +71,15 @@ func (h *APIHandler) getToc(w http.ResponseWriter, req *http.Request, ps httprou
 			pageTypes = m
 		}
 	}
-	h.WriteGetOKJSON(w, toc.ID, util.MapStr{"kb_id": kbID, "nodes": toc.Nodes, "page_types": pageTypes})
+	// statuses ride alongside (same read-derived pattern as page_types): the
+	// client tree parks archived/draft pages behind the published ones
+	statuses := map[string]string{}
+	if ids := tocArticleIDs(toc.Nodes); len(ids) > 0 {
+		if m, err := articleStatuses(ctx, ids); err == nil {
+			statuses = m
+		}
+	}
+	h.WriteGetOKJSON(w, toc.ID, util.MapStr{"kb_id": kbID, "nodes": toc.Nodes, "page_types": pageTypes, "statuses": statuses})
 }
 
 // tocArticleIDs flattens every article node id of a toc tree.
@@ -115,6 +123,36 @@ func articlePageTypes(ctx *orm.Context, ids []string) (map[string]string, error)
 		for i := range hits {
 			if hits[i].PageType != "" {
 				out[hits[i].ID] = hits[i].PageType
+			}
+		}
+	}
+	return out, nil
+}
+
+// articleStatuses loads id→lifecycle status for the toc's article nodes, in
+// the same chunked shape as articlePageTypes (include keeps the payload to
+// two tiny fields).
+func articleStatuses(ctx *orm.Context, ids []string) (map[string]string, error) {
+	orm.WithModel(ctx, &core.WikiArticle{})
+	out := make(map[string]string, len(ids))
+	for start := 0; start < len(ids); start += graphEntityChunkSize {
+		end := start + graphEntityChunkSize
+		if end > len(ids) {
+			end = len(ids)
+		}
+		res, err := orm.SearchV2(ctx, orm.NewQuery().Size(end-start).
+			Filter(orm.TermsQuery("id", ids[start:end])).
+			Include("id", "status"))
+		if err != nil {
+			return nil, err
+		}
+		hits, _, err := elastic.DecodeHits[core.WikiArticle](res)
+		if err != nil {
+			return nil, err
+		}
+		for i := range hits {
+			if hits[i].Status != "" {
+				out[hits[i].ID] = hits[i].Status
 			}
 		}
 	}
