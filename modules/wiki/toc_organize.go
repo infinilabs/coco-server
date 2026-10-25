@@ -18,8 +18,8 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/assistant/langchain"
 	llmmodule "infini.sh/coco/modules/llm"
-	"infini.sh/framework/core/elastic"
 	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 
@@ -380,7 +380,7 @@ func organizeFolderID(category, kbID string) string {
 	if s == "" {
 		s = "cat"
 	}
-	return fmt.Sprintf("folder-ai-%s-%s", s, util.MD5digest(kbID+"|"+category)[:8])
+	return fmt.Sprintf("folder-ai-%s-%s", s, util.MD5digest(kbID + "|" + category)[:8])
 }
 
 // OrganizeTocSemantically is the whole pass: LLM classification plus the

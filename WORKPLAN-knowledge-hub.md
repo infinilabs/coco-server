@@ -710,3 +710,11 @@ P0 范围：Coco 作为 managed-config 管理端（协议层零改动复用 fram
 - 缺口表新增「创建草稿」: 以缺口名为题建 concept 草稿，模板把 cited_by 页面写成真实 `[[双链]]`（linked_pages 随保存解析）→ 新页出生即有入链（不会沦为孤儿），维护者直接落进编辑器。
 - 第一版模板里的示例 `[[页面名]]` 自己变成新红链（E2E 当场暴露），改为代码拼接真实引用页双链后消除。
 - E2E（Books KB 真数据）: 造红链探针 → 体检出现缺口(×1, cited_by 可跳转) → 点创建 → 落进草稿页、content 尾部含 `[[ZZ Gap Probe]]`、linked_pages 已解析 → 复扫缺口清零 → 探针+草稿删除后基线恢复（295 页/0 缺口/20 孤儿）。DELETE /wiki/article 401-with-success 怪癖再现（删成功但报 401，遗留清单已有）。
+
+### 增量 (cf6a7183): 修复 DELETE /wiki/article/:id 401-with-success
+
+- **根因**（`api.verbose_error_root_cause` 临时开启拿到的 panic 栈）: crud delete 主流程 `orm.Delete` 带请求用户成功；随后 PostDelete 里 `removeArticleProjection` 的 ctx 只设 `DirectWriteWithoutPermissionCheck`，而 `orm.Delete` 内部先经 `GetPrevObject→GetV2` 发起 **OpGet**，OpGet 安全预钩子只认 **READ** flag，`MustGetUserFromContext` 在无用户 ctx 上 panic 401 → recovery 中间件写 401。panic 同时跳过其后全部清理（projection 行/贡献/版本/评论/目录节点/KB 计数）→ 删除"成功但报错"且泄漏。
+- **修复**: `removeArticleProjection` 补 READ flag（与 `projectArticleToDocument` 既有模式一致——upsert 路径早有同样注释）；顺带修掉同类潜在雷 `process_documents/bumpExistingUpdated`（裸 ctx + GetV2 只带 write flag，后台管道路径会同样 panic）。其余 write-flag-only 站点逐一排查均安全（请求父 ctx 带用户 / 双 flag / DeleteByQuery 只认 write flag）。
+- **回归测试**: projection_test.go 新增 armed 式安全钩子副本（生产钩子在 app setup 后才注册，单测永不运行），先在未修复代码上验证红、修复后全绿。
+- **现场清理**: 探针遗留泄漏已清（probe4 版本行、目录树上 3 个死节点含昨日 Probe2）。活体验证 DELETE 返回 200 且无任何泄漏子行。
+- 后台日志里 `projection.go:147 article projection skipped (subsystem unavailable): invalid user` 的 WRN 属同类历史问题（upsert 路径此前已修复），未再复现。

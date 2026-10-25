@@ -28,12 +28,12 @@ const instanceOfflineAfter = 90 * time.Second
 // set Logpilot's ingestion center proxies — the framework's standard
 // observability surface every managed instance serves.
 var proxyReadExact = map[string]string{
-	"/_info":               "version",  // version, build, host, cpu, memory summary
+	"/_info":               "version", // version, build, host, cpu, memory summary
 	"/_whoami":             "whoami",
 	"/health":              "health",
 	"/stats":               "stats",
-	"/queue/stats":         "queues", // queue overview: depth/size/consumers
-	"/tasks/":              "tasks",  // scheduled tasks
+	"/queue/stats":         "queues",    // queue overview: depth/size/consumers
+	"/tasks/":              "tasks",     // scheduled tasks
 	"/pipeline/tasks/":     "pipelines", // running pipeline tasks
 	"/pipeline/processors": "processors",
 	"/pipeline/codecs":     "codecs",
@@ -111,22 +111,22 @@ func (h *APIHandler) listInstances(w http.ResponseWriter, req *http.Request, _ h
 		}
 		online := lastSync > 0 && now.Sub(time.UnixMilli(lastSync)) < instanceOfflineAfter
 		out = append(out, util.MapStr{
-			"id":       inst.ID,
-			"name":     inst.Name,
-			"type":     inst.Application.Name,
-			"status":   inst.Status, // pending | approved
-			"online":   online,
-			"version":  inst.Application.Version.VersionNumber,
-			"endpoint": inst.Endpoint,
-			"ip":       inst.Network.MajorIP,
-			"hostname": hostNameOf(&inst),
-			"os":       hostOSOf(&inst),
-			"labels":   inst.Labels,
-			"tags":     inst.Tags,
-			"groups":   inst.Groups,
-			"alias":    inst.Alias,
-			"note":     inst.Description,
-			"last_sync": lastSync,
+			"id":                inst.ID,
+			"name":              inst.Name,
+			"type":              inst.Application.Name,
+			"status":            inst.Status, // pending | approved
+			"online":            online,
+			"version":           inst.Application.Version.VersionNumber,
+			"endpoint":          inst.Endpoint,
+			"ip":                inst.Network.MajorIP,
+			"hostname":          hostNameOf(&inst),
+			"os":                hostOSOf(&inst),
+			"labels":            inst.Labels,
+			"tags":              inst.Tags,
+			"groups":            inst.Groups,
+			"alias":             inst.Alias,
+			"note":              inst.Description,
+			"last_sync":         lastSync,
 			"reverse_connected": configs_server.ReverseIsConnected(inst.ID),
 			"created":           inst.Created,
 		})
