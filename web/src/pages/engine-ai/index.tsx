@@ -3,8 +3,8 @@ import ModuleShell from '../settings/ModuleShell';
 import EngineAI from '../settings/modules/EngineAI';
 
 /**
- * 引擎 AI — promoted from 系统管理-设置 to a first-class data-ingestion entry
- * (grouped under 知识加工 in the sider; see MenuUtil ADMIN_MENU_GROUPS).
+ * 引擎 AI (语义检索) — promoted from 系统管理-设置 to a first-class entry,
+ * sider-grouped under 应用-检索 (see MenuUtil ADMIN_MENU_GROUPS).
  */
 export function Component() {
   const { t } = useTranslation();
