@@ -51,6 +51,7 @@ export function Deployments({ onRefreshTargets }: { onRefreshTargets?: () => voi
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<PipelineDeployment>();
   const [saving, setSaving] = useState(false);
+  const [targetMode, setTargetMode] = useState<'instances' | 'groups'>('instances');
   const [form] = Form.useForm();
 
   const [detailStatus, setDetailStatus] = useState<DeploymentStatus>();
@@ -106,20 +107,34 @@ export function Deployments({ onRefreshTargets }: { onRefreshTargets?: () => voi
 
   const openCreate = () => {
     setEditing(undefined);
+    setTargetMode('instances');
     form.resetFields();
-    form.setFieldsValue({ strategy: 'all', enabled: true, instances: [] });
+    form.setFieldsValue({ strategy: 'all', enabled: true, instances: [], groups: [] });
     setModalOpen(true);
   };
 
   const openEdit = (dep: PipelineDeployment) => {
     setEditing(dep);
-    form.setFieldsValue({
-      name: dep.name,
-      pipeline_id: dep.pipeline_id,
-      strategy: dep.placement?.strategy ?? 'all',
-      instances: dep.placement?.instances ?? [],
-      enabled: dep.enabled
-    });
+    const groupSelector = dep.placement?.selector?.group;
+    if (groupSelector) {
+      setTargetMode('groups');
+      form.setFieldsValue({
+        name: dep.name,
+        pipeline_id: dep.pipeline_id,
+        strategy: dep.placement?.strategy ?? 'all',
+        groups: groupSelector.split(',').map(v => v.trim()).filter(Boolean),
+        enabled: dep.enabled
+      });
+    } else {
+      setTargetMode('instances');
+      form.setFieldsValue({
+        name: dep.name,
+        pipeline_id: dep.pipeline_id,
+        strategy: dep.placement?.strategy ?? 'all',
+        instances: dep.placement?.instances ?? [],
+        enabled: dep.enabled
+      });
+    }
     setModalOpen(true);
   };
 
@@ -127,14 +142,23 @@ export function Deployments({ onRefreshTargets }: { onRefreshTargets?: () => voi
     const values = await form.validateFields();
     setSaving(true);
     try {
+      const placement: any = { strategy: values.strategy };
+      if (targetMode === 'groups') {
+        // 分组目标走 placement.selector 的保留键 `group` (逗号分隔任一命中),
+        // 成员变化在 reconciler 每轮重估 — 新入组实例自动获得部署
+        placement.selector = { ...(editing?.placement?.selector ?? {}) };
+        delete placement.selector.group;
+        placement.selector.group = (values.groups ?? []).join(',');
+        placement.instances = [];
+      } else {
+        placement.instances = values.instances ?? [];
+        placement.selector = editing?.placement?.selector; // 非 group 的自定义标签选择器原样保留
+      }
       const body = {
         name: values.name,
         pipeline_id: values.pipeline_id,
         enabled: !!values.enabled,
-        placement: {
-          instances: values.instances ?? [],
-          strategy: values.strategy
-        }
+        placement
       };
       const res: any = editing ? await updatePipelineDeployment(editing.id, body) : await createPipelineDeployment(body);
       if (res?.data) {
@@ -182,6 +206,12 @@ export function Deployments({ onRefreshTargets }: { onRefreshTargets?: () => voi
     () => pipelines.map(p => ({ value: p.id, label: p.name })),
     [pipelines]
   );
+
+  const groupOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const i of instances) for (const g of i.groups ?? []) if (g) set.add(g);
+    return [...set].sort().map(g => ({ value: g, label: g }));
+  }, [instances]);
 
   const columns: any[] = [
     {
@@ -319,15 +349,47 @@ export function Deployments({ onRefreshTargets }: { onRefreshTargets?: () => voi
           <Form.Item label={t('page.gateway.deploy.columns.pipeline')} name="pipeline_id" rules={[{ required: true }]}>
             <Select showSearch optionFilterProp="label" options={pipelineOptions} placeholder={t('page.gateway.deploy.pipelinePlaceholder')} />
           </Form.Item>
-          <Form.Item label={t('page.gateway.deploy.targetLabel')} name="instances" rules={[{ required: true }]}>
-            <Select
-              mode="multiple"
-              showSearch
-              optionFilterProp="label"
-              options={instanceOptions}
-              placeholder={t('page.gateway.deploy.targetPlaceholder')}
-            />
+          <Form.Item label={t('page.gateway.deploy.targetLabel')}>
+            <Radio.Group
+              value={targetMode}
+              onChange={e => setTargetMode(e.target.value)}
+              optionType="button"
+              buttonStyle="solid"
+            >
+              <Radio.Button value="instances">{t('page.gateway.deploy.byInstances', '按实例')}</Radio.Button>
+              <Radio.Button value="groups">{t('page.gateway.deploy.byGroups', '按分组')}</Radio.Button>
+            </Radio.Group>
           </Form.Item>
+          {targetMode === 'instances' ? (
+            <Form.Item
+              label={t('page.gateway.deploy.targetLabel')}
+              name="instances"
+              rules={[{ required: targetMode === 'instances', message: t('page.gateway.deploy.targetPlaceholder') }]}
+            >
+              <Select
+                mode="multiple"
+                showSearch
+                optionFilterProp="label"
+                options={instanceOptions}
+                placeholder={t('page.gateway.deploy.targetPlaceholder')}
+              />
+            </Form.Item>
+          ) : (
+            <Form.Item
+              label={t('page.gateway.deploy.byGroups', '按分组')}
+              name="groups"
+              rules={[{ required: targetMode === 'groups', message: t('page.gateway.deploy.groupsPlaceholder', '选择要部署到哪些分组') }]}
+              extra={t('page.gateway.deploy.groupsExtra', '分组内的实例变化会自动跟随部署 (reconciler 每轮重估成员)')}
+            >
+              <Select
+                mode="multiple"
+                showSearch
+                optionFilterProp="label"
+                options={groupOptions}
+                placeholder={t('page.gateway.deploy.groupsPlaceholder', '选择要部署到哪些分组')}
+              />
+            </Form.Item>
+          )}
           <Form.Item label={t('page.gateway.deploy.columns.strategy')} name="strategy">
             <Radio.Group>
               <Radio.Button value="all">{t('page.gateway.deploy.allInstances')}</Radio.Button>
