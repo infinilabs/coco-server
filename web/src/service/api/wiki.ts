@@ -51,6 +51,7 @@ const normalizeKb = (src: any): Api.Wiki.Kb => ({
   // without this mapping the KB settings switch resets to off after every
   // save+refetch (the payload persists, the normalized view just drops it)
   experience_capture: !!src?.experience_capture,
+  auto_organize_toc: !!src?.auto_organize_toc,
   toc_layout: src?.toc_layout ?? []
 });
 
