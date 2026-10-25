@@ -1,4 +1,4 @@
-import { BookOpen, Boxes, Braces, Check, ChevronDown, ChevronUp, File, FileText, FlaskConical, Image, Paperclip, Pencil, Rocket, SlidersHorizontal, Sparkles, Trash, Video, Workflow } from 'lucide-react';
+import { BookOpen, Boxes, Braces, Check, ChevronDown, ChevronUp, File, FileText, FlaskConical, Image, Paperclip, Pencil, SlidersHorizontal, Sparkles, Trash, Video, Workflow } from 'lucide-react';
 import { RightOutlined } from '@ant-design/icons';
 import { Button, Card, Collapse, Drawer, Form, Input, InputNumber, Popconfirm, Select, Space, Switch, Tag, Typography, message } from 'antd';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { aiGeneratePipelineChain, createPipeline, getPipelineProcessors, testPipelineChain, updatePipeline } from '@/service/api/pipeline';
+import SaveBar from '@/pages/settings/modules/SaveBar';
 // shared studio components (ui-common package); the prebuilt stylesheet
 // carries the tailwind utilities they use — coco has no tailwind toolchain
 import {
@@ -441,6 +442,45 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
   // 当前选中的模板（新建页默认选中知识加工全链路）
   const [selectedTplId, setSelectedTplId] = useState<string | null>(null);
   const defaultAppliedRef = useRef(false);
+
+  // 底部 SaveBar 基线快照：新建页默认模板应用后重定基线（模板预填不算改动）
+  const [baseline, setBaseline] = useState(() => ({
+    name: initial?.name,
+    description: initial?.description,
+    advanced: {
+      enabled: initial?.enabled ?? true,
+      singleton: initial?.singleton ?? false,
+      auto_start: initial?.auto_start ?? false,
+      keep_running: initial?.keep_running ?? false,
+      retry_delay_in_ms: initial?.retry_delay_in_ms ?? 1000
+    },
+    chain: Array.isArray(initial?.processor) ? initial!.processor! : [],
+    tplId: null as string | null
+  }));
+  const nameWatch = Form.useWatch('name', form);
+  const descWatch = Form.useWatch('description', form);
+  const dirty = useMemo(() => {
+    const formDirty = (nameWatch ?? '') !== (baseline.name ?? '') || (descWatch ?? '') !== (baseline.description ?? '');
+    const advDirty = JSON.stringify(advanced) !== JSON.stringify(baseline.advanced);
+    const norm = (v: any) => JSON.stringify(v);
+    const chainDirty =
+      view === 'json'
+        ? norm((() => { try { return JSON.parse(chainJSON); } catch { return chainJSON; } })()) !== norm(baseline.chain)
+        : norm(chain) !== norm(baseline.chain);
+    return formDirty || advDirty || chainDirty;
+  }, [nameWatch, descWatch, advanced, chain, chainJSON, view, baseline]);
+  const discard = () => {
+    form.setFieldsValue({ name: baseline.name, description: baseline.description });
+    setAdvanced({ ...baseline.advanced });
+    setChain(baseline.chain);
+    setChainJSON(JSON.stringify(baseline.chain, null, 2));
+    setJsonError(null);
+    setView('cards');
+    setGraphicalSource(baseline.chain.length && isGraphableChain(baseline.chain) ? baseline.chain : null);
+    setGraphicalKey(k => k + 1);
+    setSelectedTplId(baseline.tplId);
+  };
+
   // 新建页：处理器目录加载完成后自动应用默认模板（知识加工全链路 8 节）
   useEffect(() => {
     if (initial || defaultAppliedRef.current) return;
@@ -448,6 +488,8 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
     if (tpl) {
       defaultAppliedRef.current = true;
       applyTemplate(tpl);
+      // 模板预填不算改动：基线重定为模板应用后的状态
+      setBaseline(b => ({ ...b, name: tpl.suggestedName, description: t(`page.pipeline.templates.${tpl.id}.description`), chain: tpl.processor, tplId: tpl.id }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templates]);
@@ -634,14 +676,9 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
   const chainEmpty = view === 'cards' ? chain.length === 0 : !chainJSON.trim() || chainJSON.trim() === '[]';
 
   return (
-    <div className="flex flex-col gap-16px pb-24px">
+    <div className="flex flex-col gap-16px">
       <Card className="card-wrapper" title={initial?.id ? t('page.pipeline.editor.editTitle', { name: initial.id }) : t('page.pipeline.editor.newTitle')} extra={
-        <Space>
-          <Button onClick={() => navigate('/pipeline/list')}>{t('page.pipeline.editor.back')}</Button>
-          <Button type="primary" loading={saving} icon={<Rocket size={14} />} onClick={onSave}>
-            {t('common.save')}
-          </Button>
-        </Space>
+        <Button onClick={() => navigate('/pipeline/list')}>{t('page.pipeline.editor.back')}</Button>
       }>
         <Form
           form={form}
@@ -869,6 +906,8 @@ export function PipelineEditor({ initial }: { initial?: PipelineDoc }) {
           }}
         />
       </Drawer>
+
+      <SaveBar dirty={dirty} loading={saving} onDiscard={discard} onSave={onSave} />
     </div>
   );
 }
