@@ -2455,12 +2455,6 @@ const page: App.I18n.Schema['translation']['page'] = {
       title: 'Default Parameters'
     },
     processing: {
-      title: 'Processing Pipelines',
-      desc: 'Two fixed processing pipelines ship with the product; the processor order is product-defined. Toggle processors on the chain and adjust their parameters here — changes apply to documents processed afterwards.',
-      doc_section: 'Document Enrichment',
-      doc_section_desc: 'Documents collected from data sources pass through: type detection → metadata → cover → text/attachment parsing → face detection → summarization → tags → embedding.',
-      attach_section: 'Attachment Enrichment',
-      attach_section_desc: 'Standalone pipeline for attachments embedded in documents (images, office files, etc.).',
       disabled_hint: 'Processor is disabled; parameters are kept for re-enabling',
       processors: {
         file_type_detection: { name: 'File Type Detection', desc: 'Detect and tag the MIME type of files' },

@@ -2108,12 +2108,6 @@ const page: App.I18n.Schema['translation']['page'] = {
       title: '默认参数'
     },
     processing: {
-      title: '解析管道',
-      desc: '产品内置两条固定解析管道，处理器顺序由产品定义。此处可启停链上的处理器并调整其参数，保存后对后续处理的文档立即生效。',
-      doc_section: '文档增强',
-      doc_section_desc: '数据源采集的文档（网页、文件正文）依次经过：类型检测 → 元数据 → 封面生成 → 正文与附件解析 → 人脸识别 → 摘要 → 标签 → 向量化。',
-      attach_section: '附件增强',
-      attach_section_desc: '文档内嵌附件（图片、Office 文件等）的独立解析管道。',
       disabled_hint: '处理器已停用，重新开启后参数保留',
       processors: {
         file_type_detection: { name: '文件类型检测', desc: '识别并标记文件的 MIME 类型' },
