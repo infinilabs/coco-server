@@ -105,9 +105,30 @@ function maturity(status?: string): number {
 export function toAntdTreeData(
   nodes: Api.Wiki.TocNode[],
   pageTypes?: Record<string, string>,
-  statuses?: Record<string, string>
+  statuses?: Record<string, string>,
+  opts?: { includeAll?: boolean }
 ): DataNode[] {
+  const includeAll = opts?.includeAll ?? false;
+
+  // 默认只展示成熟内容: 未成熟节点直接剔除, 因此空了的文件夹也递归剪掉
+  if (statuses && !includeAll) {
+    const keep = (list: Api.Wiki.TocNode[]): Api.Wiki.TocNode[] => {
+      const out: Api.Wiki.TocNode[] = [];
+      for (const n of list) {
+        if (n.type === 'article') {
+          if (maturity(statuses[n.article_id || '']) === 0) out.push(n);
+          continue;
+        }
+        const children = n.children ? keep(n.children) : [];
+        if (children.length > 0) out.push({ ...n, children });
+      }
+      return out;
+    };
+    nodes = keep(nodes);
+  }
+
   // 稳定排序: 文件夹与正式内容留在用户排的位置, 未成熟内容统一沉到组尾
+  // (includeAll 时才可见; 排序对剩余的成熟内容是恒等的)
   const sorted = nodes
     .map((node, i) => ({ node, i, rank: maturity(node.type === 'article' ? statuses?.[node.article_id || ''] : undefined) }))
     .sort((a, b) => a.rank - b.rank || a.i - b.i)
@@ -133,9 +154,29 @@ export function toAntdTreeData(
         node.type === 'folder'
           ? ({ expanded }: { expanded?: boolean }) => (expanded ? <FolderOpenOutlined /> : <FolderOutlined />)
           : articleIcon(pageTypes?.[node.article_id || '']),
-      children: node.children ? toAntdTreeData(node.children, pageTypes, statuses) : undefined
+      children: node.children ? toAntdTreeData(node.children, pageTypes, statuses, opts) : undefined
     };
   });
+}
+
+/** 成熟度盘点: (正式内容, 未成熟) 文章数 — 侧边栏开关的提示文案用。 */
+export function countTocMaturity(
+  tocs: Record<string, Api.Wiki.TocNode[]>,
+  statuses: Record<string, Record<string, string>>
+): { mature: number; parked: number } {
+  let mature = 0;
+  let parked = 0;
+  const walk = (list: Api.Wiki.TocNode[], stats?: Record<string, string>) => {
+    for (const n of list) {
+      if (n.type === 'article') {
+        if (maturity(stats?.[n.article_id || '']) > 0) parked++;
+        else mature++;
+      }
+      if (n.children) walk(n.children, stats);
+    }
+  };
+  for (const [kbId, nodes] of Object.entries(tocs)) walk(nodes, statuses[kbId]);
+  return { mature, parked };
 }
 
 /** find a TocNode (and its parent chain) by node id */

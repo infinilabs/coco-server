@@ -13,7 +13,7 @@ import {
   TeamOutlined
 } from '@ant-design/icons';
 import { Badge, Button, ConfigProvider, Drawer, Dropdown, Empty, Input, Modal, Tooltip, Tree } from 'antd';
-import { BookCheck, Check, ChevronDown, ChevronRight, createLucideIcon, Search } from 'lucide-react';
+import { BookCheck, Check, ChevronDown, ChevronRight, createLucideIcon, Eye, EyeOff, Search } from 'lucide-react';
 import type { DataNode } from 'antd/es/tree';
 import { type FC, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/business/auth';
@@ -21,7 +21,15 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useResponsive } from 'ahooks';
 import { getWikiToc, createWikiWorkspace, getWikiTocOrganizeStatus, organizeWikiToc, searchWikiGovernance, searchWikiKbs, searchWikiNotifications, searchWikiWorkspaces, updateWikiToc } from '@/service/api';
-import { dropPositionFromAntd, findNode, moveNode, removeNode, toAntdTreeData, tocIdForArticle } from '../shared/toc';
+import {
+  countTocMaturity,
+  dropPositionFromAntd,
+  findNode,
+  moveNode,
+  removeNode,
+  toAntdTreeData,
+  tocIdForArticle
+} from '../shared/toc';
 
 /**
  * Persistent shell for the wiki app, laid out like the AI-chat screen: a
@@ -72,6 +80,8 @@ const wikiNav = {
   pageTypes: {} as Record<string, Record<string, string>>,
   /** kbId → (articleId → status), parked-node rendering (dim + tag + tail sort) */
   statuses: {} as Record<string, Record<string, string>>,
+  /** 侧边栏默认只展示成熟内容; 打开后草稿/已归档也以置底淡色呈现 */
+  showAllToc: false,
   expandedKeys: [] as React.Key[],
   // workspace selection survives route changes: each wiki page mounts its own
   // WikiShell, so component state would reset to 'all' on every navigation
@@ -164,6 +174,7 @@ export function WikiShell({ kbId, articleId, children }: Props) {
   const [tocs, setTocs] = useState(wikiNav.tocs);
   const [pageTypes, setPageTypes] = useState(wikiNav.pageTypes);
   const [statuses, setStatuses] = useState(wikiNav.statuses);
+  const [showAllToc, setShowAllToc] = useState(wikiNav.showAllToc);
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>(wikiNav.expandedKeys);
   const [unread, setUnread] = useState(0);
   const [openGovernance, setOpenGovernance] = useState(0);
@@ -346,6 +357,11 @@ export function WikiShell({ kbId, articleId, children }: Props) {
     }
   });
 
+  const tocMaturity = useMemo(
+    () => countTocMaturity(tocs, statuses),
+    [tocs, statuses]
+  );
+
   const treeData: DataNode[] = useMemo(
     () =>
       // the topbar workspace switcher scopes the whole app: tree roots follow
@@ -359,9 +375,11 @@ export function WikiShell({ kbId, articleId, children }: Props) {
           className: 'wiki-toc-kb',
           // custom kb emoji lives in the icon slot next to the folder/article icons
           icon: kb.icon ? <span className='wiki-toc-kb-icon'>{kb.icon}</span> : <BookOutlined />,
-          children: tocs[kb.id] ? toAntdTreeData(tocs[kb.id], pageTypes[kb.id], statuses[kb.id]) : undefined
+          children: tocs[kb.id]
+            ? toAntdTreeData(tocs[kb.id], pageTypes[kb.id], statuses[kb.id], { includeAll: showAllToc })
+            : undefined
         })),
-    [kbs, tocs, pageTypes, statuses, workspaceId]
+    [kbs, tocs, pageTypes, statuses, showAllToc, workspaceId]
   );
 
   // sidebar search filters the tree in place: keep self-matching rows (a
@@ -685,6 +703,29 @@ export function WikiShell({ kbId, articleId, children }: Props) {
             onClick={onRefresh}
           >
             <RefreshIcon strokeWidth={2} className={`size-4 ${isRefresh ? 'animate-spin' : ''}`} />
+          </Button>
+        </Tooltip>
+        <Tooltip
+          title={
+            tocMaturity.parked > 0
+              ? showAllToc
+                ? `展示全部 ${tocMaturity.mature + tocMaturity.parked} 篇 (含草稿/已归档)`
+                : `仅展示成熟内容 ${tocMaturity.mature} 篇 — 另有 ${tocMaturity.parked} 篇草稿/已归档已收起`
+              : '没有草稿或已归档内容'
+          }
+        >
+          {/* 收纳开关: 未成熟内容默认不出现在阅读树里 */}
+          <Button
+            type='default'
+            className={`size-8 p-0 flex items-center justify-center rounded-12px ${
+              showAllToc
+                ? 'border-blue-200 bg-blue-50 text-blue-600 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300'
+                : 'border-[#F0F0F0] text-gray-500 dark:border-[#303030]'
+            }`}
+            onClick={() => setShowAllToc(v => !v)}
+            disabled={tocMaturity.parked === 0}
+          >
+            {showAllToc ? <Eye className='size-4' /> : <EyeOff className='size-4' />}
           </Button>
         </Tooltip>
         {kbId && canUpdateKb && (
