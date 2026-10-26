@@ -9,6 +9,19 @@ interface EsSearchResult {
   [key: string]: unknown;
 }
 
+/**
+ * The icon field on search records mixes real image URLs (connector assets,
+ * "/assets/…") with semantic names ("file", "font_robot") that only an
+ * iconfont/registry renderer understands — and chunk-level or wiki rows can
+ * carry none. An <img> fed a name (or nothing) renders blank, so img-based
+ * consumers must gate on this before treating the value as a src.
+ */
+export function isImageUrlLike(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const text = value.trim();
+  return text.length > 1 && /^(https?:|data:|\/)/i.test(text);
+}
+
 export function normalizeCoverIconUrl(data: EsSearchResult, baseUrl: string) {
   if (!data?.hits?.hits || !Array.isArray(data.hits.hits)) {
     return data;

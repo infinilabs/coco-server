@@ -26,7 +26,10 @@ import PreviewIcon from '../../../icons/PreviewIcon';
 import AIInsightIcon from '../../../icons/AIInsightIcon';
 import { OWNER_FILTER_FIELD } from '../../../Aggregations';
 import { AuthImage } from '../../../ResultList/AuthImage';
+import { TypeBadge } from '../../../ResultList/SearchResults/internal/TypeBadge';
+import { normalizeFileType } from '../../../ResultList/SearchResults/internal/normalizeFileType';
 import { isWikiHit, WikiBadge } from '../../../components/WikiBadge';
+import { isImageUrlLike } from '../../../utils/utils';
 import loadingFailedSvg from '../../../icons/file-loading-failed.svg';
 
 const { Text } = Typography;
@@ -51,7 +54,7 @@ const MetaEntityCard = (props: {
       )}
       onClick={onClick}
     >
-      {icon ? (
+      {isImageUrlLike(icon) ? (
         <AuthImage
           className='size-12px shrink-0 rounded-2px object-contain'
           requestHeaders={requestHeaders}
@@ -83,6 +86,8 @@ export interface DocDetailProps extends HTMLAttributes<HTMLDivElement> {
       colors?: string[];
       content_type?: MetadataContentType;
       file_extension?: string;
+      /** icon URL for the row (connector-provided); takes precedence over the bare `icon` field, same as the result list */
+      icon_link?: string;
       height?: number;
       mime_type?: string;
       raw_content_returns_file?: boolean;
@@ -173,6 +178,12 @@ const DocDetail: FC<DocDetailProps> = props => {
   const [expandMore, setExpandMore] = useState(false);
 
   const ownerName = data?.owner?.title ?? data?.owner?.username ?? data?.owner?.name;
+  // title icon: only URL-like values (connector assets, /assets/…) can go
+  // through an <img>; name-valued icons ("file", "font_robot") and icon-less
+  // rows (chunk-level hits) degrade to the file-type badge the result list
+  // shows, instead of a src-less <img> that renders as blank space
+  const rawTitleIcon = data?.metadata?.icon_link ?? data?.icon;
+  const titleIconSrc = isImageUrlLike(rawTitleIcon) ? rawTitleIcon : undefined;
   // the display label is localized (labels.value_image etc.) — filters need
   // the raw bucket value the aggregations rail matches on
   const typeFilterValue = data?.typeFilterValue ?? data?.type;
@@ -458,11 +469,17 @@ const DocDetail: FC<DocDetailProps> = props => {
           mode === 'embedded' ? 'pr-24px' : ''
         )}
       >
-        <AuthImage
-          className='mr-8px inline-block h-20px w-20px align-middle'
-          requestHeaders={requestHeaders}
-          src={data?.icon}
-        />
+        {titleIconSrc ? (
+          <AuthImage
+            className='mr-8px inline-block h-20px w-20px align-middle'
+            requestHeaders={requestHeaders}
+            src={titleIconSrc}
+          />
+        ) : (
+          <span className='mr-8px inline-flex items-center align-middle'>
+            <TypeBadge fileType={normalizeFileType(data?.metadata?.file_extension ?? data?.type ?? 'file')} />
+          </span>
+        )}
         <span className='align-middle'>{data?.title}</span>
         {isWikiHit(data) && <WikiBadge className='ml-8px align-middle' />}
       </div>

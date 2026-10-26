@@ -3,7 +3,7 @@ import { normalizeFileType } from "./normalizeFileType";
 import { isWikiHit } from "../../../components/WikiBadge";
 
 import type { SearchResultListItem, SearchResultsRecord } from "../types";
-import { cleanHighlightFragment, cleanSummary, decodeHtmlEntities } from "../../../utils/utils"
+import { cleanHighlightFragment, cleanSummary, decodeHtmlEntities, isImageUrlLike } from "../../../utils/utils"
 
 export function recordToListItem(
   record: SearchResultsRecord,
@@ -29,7 +29,11 @@ export function recordToListItem(
   // exact time on hover, so no pre-formatting here
   const date = record.last_updated_by?.timestamp ?? record.metadata?.last_reviewed ?? record.updated ?? record.created;
 
-  const typeIconUrl = record.metadata?.icon_link ?? record.icon;
+  // name-valued icons ("file", "font_robot") can't load in an <img> — leave
+  // typeIcon unset so ListItem falls back to the file-type badge
+  const typeIconUrl = isImageUrlLike(record.metadata?.icon_link ?? record.icon)
+    ? (record.metadata?.icon_link ?? record.icon)
+    : undefined;
   const typeIcon = typeIconUrl ? (
     <AuthImage src={typeIconUrl} alt="" className="h-5 w-5 rounded-sm object-contain" />
   ) : undefined;
