@@ -708,6 +708,14 @@ func FileEntityGovernanceProposal(kbID string, entity *core.WikiEntity, pType, r
 	if entity == nil || entity.ID == "" {
 		return false
 	}
+	if kbID == "" {
+		// a proposal without a KB can never be applied — the auto-approve
+		// sweep skips it (no KB to check) and it would clog the head of the
+		// open queue forever; extraction outside a KB context is a bug
+		// upstream of this call, not something governance can resolve
+		log.Warnf("wiki: drop entity governance proposal [%s] for %q — entity has no KB context", pType, entity.Name)
+		return false
+	}
 	ctx := context.Background()
 	open := openProposalKeys(ctx)
 	key := entity.ID + "|" + pType

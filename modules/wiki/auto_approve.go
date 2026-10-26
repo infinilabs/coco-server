@@ -75,9 +75,15 @@ func autoApproveSweep(ctx context.Context) {
 	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	orm.WithModel(octx, &core.WikiGovernanceProposal{})
 
-	// oldest first — the queue drains in filing order
-	res, err := orm.SearchV2(octx, orm.NewQuery().Size(autoApproveBatch).
+	// oldest first — the queue drains in filing order. The window is wider
+	// than the batch so orphaned / manual-KB proposals at the head of the
+	// queue are skipped over instead of starving auto-approve KBs behind
+	// them (head-of-line blocking used to be silent: nothing applied, no
+	// log, every tick).
+	const windowSize = autoApproveBatch * 10
+	res, err := orm.SearchV2(octx, orm.NewQuery().Size(windowSize).
 		Filter(orm.TermQuery("status", core.WikiGovernanceOpen)).
+		Filter(orm.ExistsQuery("kb_id")).
 		SortBy(orm.Sort{Field: "created", SortType: "asc"}))
 	if err != nil || res == nil {
 		return
@@ -98,6 +104,9 @@ func autoApproveSweep(ctx context.Context) {
 		if !KBAutoApprove(octx, p.KbID) {
 			skipped++
 			continue
+		}
+		if applied >= autoApproveBatch {
+			break // cap the work per tick, the rest waits for the next one
 		}
 		actx := orm.NewContextWithParent(ctx)
 		actx.Set(orm.DirectReadWithoutPermissionCheck, true)
