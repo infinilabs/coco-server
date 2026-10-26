@@ -21,7 +21,11 @@ export function fetchDedupReport(refresh = false) {
   return request({
     method: 'get',
     url: '/document/dedup/report',
-    params: refresh ? { refresh: 1 } : {}
+    params: refresh ? { refresh: 1 } : {},
+    // refresh=1 runs a synchronous full scan (fetches up to 5000 documents
+    // with content, then pairwise simhash) — 11s at ~1000 docs locally,
+    // far past the @sa/axios 10s default; give it a minute
+    timeout: 60 * 1000
   });
 }
 
