@@ -58,7 +58,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       unread: '未读',
       empty: '暂无消息'
     },
-    outline: { title: '本页目录' },
+    outline: { title: '本页目录', collapse: '收起目录', expand: '展开目录' },
     toc: {
       organize: 'AI 整理目录',
       organizeTooltip: 'AI 整理目录（当前 {{loose}} 篇未归类）',

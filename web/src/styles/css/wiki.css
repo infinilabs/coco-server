@@ -505,6 +505,29 @@
   width: 0;
   border-right-width: 0;
 }
+.wiki-outline-toggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--wiki-text-3);
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.wiki-outline-toggle:hover,
+.wiki-outline-toggle:focus-visible {
+  color: var(--wiki-text);
+  background: var(--wiki-panel-2);
+  outline: none;
+}
 .wiki-sider-home {
   padding: 2px 10px 0;
 }

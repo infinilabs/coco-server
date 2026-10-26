@@ -58,7 +58,7 @@ const page: App.I18n.Schema['translation']['page'] = {
       unread: 'Unread',
       empty: 'No notifications'
     },
-    outline: { title: 'On this page' },
+    outline: { title: 'On this page', collapse: 'Collapse outline', expand: 'Expand outline' },
     toc: {
       organize: 'Organize with AI',
       organizeTooltip: 'Organize with AI ({{loose}} pages unfiled)',

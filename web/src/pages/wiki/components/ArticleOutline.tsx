@@ -1,3 +1,4 @@
+import { RightOutlined } from '@ant-design/icons';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -11,7 +12,17 @@ import { useTranslation } from 'react-i18next';
  * the active item, like Yuque/GitHub docs. The optional footer renders under the outline in the same sticky column —
  * the article's metadata card (aliases/tags/entities/relations/time) lives there, out of the reading flow.
  */
-export function ArticleOutline({ content, footer }: { readonly content: string; readonly footer?: ReactNode }) {
+export function ArticleOutline({
+  collapsed = false,
+  content,
+  footer,
+  onToggle
+}: {
+  readonly collapsed?: boolean;
+  readonly content: string;
+  readonly footer?: ReactNode;
+  readonly onToggle?: () => void;
+}) {
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [active, setActive] = useState('');
@@ -54,6 +65,9 @@ export function ArticleOutline({ content, footer }: { readonly content: string; 
   }, [content, headings.length]);
 
   if (headings.length === 0) return null;
+  // the rail also carries the footer metadata card — collapsing hides both;
+  // the article header keeps a restore button
+  if (collapsed) return null;
 
   const scrollTo = (text: string) => {
     const els = Array.from(rootRef.current?.closest('.wiki-article-page')?.querySelectorAll('h1, h2, h3') || []);
@@ -68,8 +82,21 @@ export function ArticleOutline({ content, footer }: { readonly content: string; 
       ref={rootRef}
     >
       <div className='sticky top-12px max-h-[calc(100vh-120px)] overflow-y-auto pb-4 pr-2 pt-1'>
-        <div className='mb-6px pl-12px text-11px color-[var(--wiki-text-3)] font-600 tracking-0.08em uppercase'>
-          {t('page.wiki.outline.title')}
+        <div className='mb-6px flex items-center justify-between gap-4px pl-12px pr-4px'>
+          <span className='text-11px color-[var(--wiki-text-3)] font-600 tracking-0.08em uppercase'>
+            {t('page.wiki.outline.title')}
+          </span>
+          {onToggle && (
+            <button
+              aria-label={t('page.wiki.outline.collapse')}
+              className='wiki-outline-toggle'
+              title={t('page.wiki.outline.collapse')}
+              type='button'
+              onClick={onToggle}
+            >
+              <RightOutlined />
+            </button>
+          )}
         </div>
         {/* quiet outline: the active item is darker, accented and carries a tiny
             glowing marker, hierarchy carried by indent and weight */}

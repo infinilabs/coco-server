@@ -104,6 +104,10 @@ const CHANGE_TYPE_COLOR: Record<string, string> = {
   'auto-updated': 'orange'
 };
 
+// right-rail outline visibility, persisted per browser — the rail (outline +
+// metadata card) gives way to reading width when the reader wants it back
+const OUTLINE_COLLAPSED_KEY = 'wiki:outline-collapsed';
+
 /** allowed forward transitions of the article status machine */
 const NEXT_STATUS: Partial<Record<string, { to: string; labelKey: string }[]>> = {
   draft: [{ to: 'reviewed', labelKey: 'page.wiki.article.submitReview' }],
@@ -514,6 +518,13 @@ export function Component() {
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState(false);
   const [versionsOpen, setVersionsOpen] = useState(false);
+  const [outlineCollapsed, setOutlineCollapsed] = useState(() => localStorage.getItem(OUTLINE_COLLAPSED_KEY) === '1');
+  const toggleOutline = () => {
+    setOutlineCollapsed(v => {
+      localStorage.setItem(OUTLINE_COLLAPSED_KEY, v ? '0' : '1');
+      return !v;
+    });
+  };
   const [versions, setVersions] = useState<Api.Wiki.Version[]>([]);
   const [versionView, setVersionView] = useState<Api.Wiki.Version | null>(null);
   const [diffPair, setDiffPair] = useState<{ older: Api.Wiki.Version; newer: Api.Wiki.Version } | null>(null);
@@ -1018,6 +1029,18 @@ export function Component() {
               >
                 {t('page.wiki.article.versions')}
               </Button>
+              {/* the rail itself only exists at xl+, so the restore button
+                  matches that breakpoint; when expanded it shows the collapse
+                  affordance's tooltip for symmetry */}
+              <Tooltip title={outlineCollapsed ? t('page.wiki.outline.expand') : t('page.wiki.outline.collapse')}>
+                <Button
+                  aria-pressed={!outlineCollapsed}
+                  className='hidden xl:!inline-flex'
+                  icon={<UnorderedListOutlined style={outlineCollapsed ? undefined : { color: 'var(--wiki-accent)' }} />}
+                  type='text'
+                  onClick={toggleOutline}
+                />
+              </Tooltip>
               <Tooltip title={t('page.wiki.article.copyLink')}>
                 <Button
                   icon={<CopyOutlined />}
@@ -1556,10 +1579,12 @@ export function Component() {
                 </div>
               </article>
               <ArticleOutline
+                collapsed={outlineCollapsed}
                 // mirror the reading body (claims tail stripped) — raw stored
                 // content can carry ghost `### 1. …` lines from legacy wrapped
                 // excerpts and they'd pollute the rail
                 content={citationInfo.body}
+                onToggle={toggleOutline}
                 footer={(() => {
                   // the rail metadata card: aliases/tags/entities/relations
                   // and page times — attribute info away from the prose
