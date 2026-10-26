@@ -21,7 +21,15 @@ import (
 func (p *DocumentTextAttachmentExtractionProcessor) processPdf(ctx context.Context, doc *core.Document, localPath string) (fileproc.Extraction, error) {
 	htmlReader, err := fileproc.TikaGetTextHtml(ctx, resolveTikaEndpoint(p.config.TikaEndpoint), resolveTikaTimeout(p.config.TikaTimeoutInSeconds), localPath)
 	if err != nil {
-		return fileproc.Extraction{}, fmt.Errorf("failed to extract text for [%s] using tika: %w", localPath, err)
+		// Tika hard-fails on some valid PDFs (PDFBox NPEs while substituting
+		// non-embedded CID fonts); poppler reads those fine. Attachment
+		// unpacking stays Tika-only — the fallback salvages the text.
+		pages, fbErr := fileproc.PdftotextPages(ctx, resolveTikaTimeout(p.config.TikaTimeoutInSeconds), localPath)
+		if fbErr == nil {
+			log.Warnf("processor [%s] tika failed for [%s], recovered text with pdftotext (%d pages): %v", p.Name(), doc.Title, len(pages), err)
+			return fileproc.Extraction{Pages: pages}, nil
+		}
+		return fileproc.Extraction{}, fmt.Errorf("failed to extract text for [%s] using tika: %w (pdftotext fallback also failed: %v)", localPath, err, fbErr)
 	}
 	defer fileproc.DeferClose(htmlReader)
 

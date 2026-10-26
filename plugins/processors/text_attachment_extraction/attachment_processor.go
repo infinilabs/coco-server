@@ -231,6 +231,14 @@ func (p *AttachmentTextExtractionProcessor) extractText(ctx context.Context, att
 func (p *AttachmentTextExtractionProcessor) extractTextWithTika(ctx context.Context, localPath string) (string, error) {
 	htmlReader, err := fileproc.TikaGetTextHtml(ctx, resolveTikaEndpoint(p.config.TikaEndpoint), resolveTikaTimeout(p.config.TikaTimeoutInSeconds), localPath)
 	if err != nil {
+		// Same PDFBox substitution crash as the document path — recover with
+		// poppler when the file is a PDF.
+		if strings.EqualFold(filepath.Ext(localPath), ".pdf") {
+			if pages, fbErr := fileproc.PdftotextPages(ctx, resolveTikaTimeout(p.config.TikaTimeoutInSeconds), localPath); fbErr == nil {
+				log.Warnf("processor [%s] tika failed for [%s], recovered text with pdftotext (%d pages): %v", p.Name(), localPath, len(pages), err)
+				return strings.Join(pages, " "), nil
+			}
+		}
 		return "", fmt.Errorf("failed to extract text using tika: %w", err)
 	}
 	defer fileproc.DeferClose(htmlReader)

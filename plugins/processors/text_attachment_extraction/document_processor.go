@@ -146,6 +146,10 @@ func (p *DocumentTextAttachmentExtractionProcessor) processDocumentGated(gctx co
 	}
 	if err := p.processDocument(gctx, doc, connectorID); err != nil {
 		log.Errorf("processor [%s] failed to process [%s/%s]: %s", p.Name(), doc.Title, doc.ID, err)
+		// The pipeline keeps flowing after this processor, so without a
+		// marker the document indexes "completed" with no content and the
+		// failure is only visible in server logs.
+		doc.Metadata["extraction_error"] = truncateString(err.Error(), 300)
 		return false, nil
 	}
 	return true, nil
@@ -214,6 +218,14 @@ func (p *DocumentTextAttachmentExtractionProcessor) Process(ctx *pipeline.Contex
 		log.Infof("processor [%s] processing file [%s/%s] from connector [%s]", p.Name(), doc.Title, doc.ID, connectorID)
 		if err := p.processDocument(ctx.Context, &doc, connectorID); err != nil {
 			log.Errorf("processor [%s] failed to process [%s/%s]: %s", p.Name(), doc.Title, doc.ID, err)
+			// Stamp before continue: the un-enqueued message is pushed
+			// unmodified below, and without the marker the document would
+			// index "completed" with no content.
+			if doc.Metadata == nil {
+				doc.Metadata = util.MapStr{}
+			}
+			doc.Metadata["extraction_error"] = truncateString(err.Error(), 300)
+			messages[i].Data = util.MustToJSONBytes(doc)
 			continue
 		}
 
