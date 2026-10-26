@@ -924,17 +924,5 @@ export const generatedRoutes: GeneratedRoute[] = [
         }
       }
     ]
-  },
-  {
-    name: 'wiki-settings',
-    path: '/wiki-settings',
-    component: 'layout.base$view.wiki-settings',
-    meta: {
-      i18nKey: 'route.wiki-settings',
-      title: 'wiki-settings',
-      localIcon: 'wiki-settings',
-      order: 14,
-      roles: ['admin']
-    }
   }
 ];

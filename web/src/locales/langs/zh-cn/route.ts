@@ -89,7 +89,6 @@ const route: App.I18n.Schema['translation']['route'] = {
   'search-settings': '搜索设置',
   'content-dedup': '内容查重',
   'memory-settings': '长期记忆',
-  'wiki-settings': 'AI 知识库',
   'connector-settings': '连接器',
   'data-security': '数据安全',
   'engine-ai': '语义检索',

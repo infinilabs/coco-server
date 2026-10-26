@@ -419,7 +419,6 @@ declare namespace Api {
       visibility: Visibility;
       workspace_id: string;
       datasource_ids: string[];
-      assistant_id?: string;
       sync_strategy?: SyncStrategy;
       article_count: number;
       last_updated: string;
@@ -434,8 +433,10 @@ declare namespace Api {
       experience_capture?: boolean;
       /** 自动归档:新文章落入目录根部后自动触发后台语义整理(复用已有主题文件夹) */
       auto_organize_toc?: boolean;
-      /** AI 生成约束:该库 AI 生成/编辑的附加指引,非空时覆盖所绑助手的默认人设 */
+      /** AI 生成约束:该库 AI 生成/编辑的附加指引,非空时覆盖默认人设 */
       ai_guidance?: string;
+      /** 回答模型:该库 AI 生成/编辑用的模型覆盖,空则回落服务器默认语言模型 */
+      ai_model?: { provider_id?: string; name?: string; [k: string]: unknown };
     }
 
     interface SourceRef {

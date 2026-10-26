@@ -286,8 +286,7 @@ const routeMap: RouteMap = {
   "wiki_governance": "governance",
   "wiki_kb": "kb/:id",
   "wiki_list": "list",
-  "wiki_notifications": "notifications",
-  "wiki-settings": "/wiki-settings"
+  "wiki_notifications": "notifications"
 };
 
 /**

@@ -130,8 +130,14 @@ type WikiKnowledgeBase struct {
 	Visibility    string   `json:"visibility" elastic_mapping:"visibility:{type:keyword}"` // public | private | team
 	WorkspaceID   string   `json:"workspace_id,omitempty" elastic_mapping:"workspace_id:{type:keyword}"`
 	DatasourceIDs []string `json:"datasource_ids,omitempty" elastic_mapping:"datasource_ids:{type:keyword}"`
-	AssistantID   string   `json:"assistant_id,omitempty" elastic_mapping:"assistant_id:{type:keyword}"`
-	SyncStrategy  string   `json:"sync_strategy,omitempty" elastic_mapping:"sync_strategy:{type:keyword}"` // realtime | scheduled | manual
+	// AssistantID historically bound a processing assistant that supplied
+	// the generation model and persona. That indirection is gone: model and
+	// guidance are direct KB fields below. The field remains stored (and
+	// queried by KBsByAssistant) purely as the legacy experience-capture
+	// linkage — thumbs on a chat assistant's answers still file WikiExperience
+	// records into the KBs bound to it; no UI sets it anymore.
+	AssistantID  string   `json:"assistant_id,omitempty" elastic_mapping:"assistant_id:{type:keyword}"`
+	SyncStrategy string   `json:"sync_strategy,omitempty" elastic_mapping:"sync_strategy:{type:keyword}"` // realtime | scheduled | manual
 	ArticleCount  int      `json:"article_count" elastic_mapping:"article_count:{type:integer}"`
 	// 企业目录布局(可选):研发/销售/售前/市场等部门各成顶层目录,目录内
 	// 编译器按实体类型维度再分。部门归属按被引文档的 folder_path 前缀匹配;
@@ -159,13 +165,17 @@ type WikiKnowledgeBase struct {
 	// page sits at the root for a couple of minutes.
 	AutoOrganizeToc bool `json:"auto_organize_toc" elastic_mapping:"auto_organize_toc:{type:boolean}"`
 	// AIGuidance (AI 生成约束): per-KB prompt guidance injected into the
-	// wiki AI generation/editing pipeline. When set it replaces the bound
-	// assistant's persona for this KB — the most specific constraint wins;
-	// empty falls back to the assistant persona. Stored, never queried.
+	// wiki AI generation/editing pipeline. When set it replaces the default
+	// KM persona for this KB — the most specific constraint wins; empty
+	// falls back to the persona. Stored, never queried.
 	// no omitempty: an empty string would serialize away and clearing the
 	// guidance in settings could never overwrite a stored value (same
 	// partial-update semantics the bool flags above document)
 	AIGuidance string `json:"ai_guidance" elastic_mapping:"ai_guidance:{enabled:false}"`
+	// AIModel (回答模型): per-KB override of the answering model for wiki
+	// AI generation/editing. Empty provider/name falls back to the server
+	// default language model. Stored, never queried.
+	AIModel ModelConfig `json:"ai_model" elastic_mapping:"ai_model:{type:object,enabled:false}"`
 }
 
 // WikiTocLayoutFolder is one top-level department folder of the KB layout.

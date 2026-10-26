@@ -31,11 +31,12 @@ const page: App.I18n.Schema['translation']['page'] = {
       autoOrganizeToc: '目录自动归档',
       autoOrganizeTocHint: '开启后,新文章落入目录根部时自动触发后台语义整理:按主题归入已有文件夹(没有合适主题时新建),已手动整理的结构不受影响。整理依赖语言模型,每篇新文章约需一两分钟后台完成',
       basic: '基本信息',
-      agent: 'AI 智能体',
+      aiModel: '回答模型',
+      aiModelHint: '该知识库 AI 生成/编辑使用的模型;留空使用服务器默认语言模型',
+      aiModelPlaceholder: '默认(服务器默认语言模型)',
       aiGuidance: 'AI 生成约束',
       aiGuidanceHint: '作为附加指引注入该知识库的 AI 生成/编辑提示词(页面规划、大纲、起草、AI 编辑、整页重写)。填写后覆盖所绑助手的默认人设;引用 [n] 与 [[类型:名称]] 链接等硬性规则不受影响。留空则使用助手人设',
       aiGuidancePlaceholder: '例如: 本库面向食品行业,术语保留繁体中文;优先覆盖产品线与门店网络;每页保持 3-5 个小节…',
-      agentTooltip: '绑定后,该知识库的「AI 生成」与「AI 编辑」将使用此智能体配置的模型',
       danger: '危险操作',
       deleteKb: '删除知识库',
       saved: '设置已保存',
@@ -134,7 +135,6 @@ const page: App.I18n.Schema['translation']['page'] = {
       description: '描述',
       icon: '图标',
       visibility: '可见性',
-      assistant: 'AI 助手',
       datasources: '数据源',
       datasourcesPlaceholder: '选择要绑定的已同步数据源'
     },
@@ -1932,17 +1932,6 @@ const page: App.I18n.Schema['translation']['page'] = {
       top_p: '核采样',
       top_p_desc: '与随机性类似，但不要和随机性一起更改',
       type: '类型'
-    },
-    wiki_settings: {
-      title: 'AI 知识库',
-      subtitle: '配置 AI Wiki 的整理智能体与默认生成行为',
-      labels: {
-        assistant: '整理智能体',
-        assistant_desc: '「AI 生成」与「AI 编辑」默认使用的智能体；知识库单独绑定的智能体优先于此处',
-        assistant_placeholder: '选择默认智能体',
-        default_hint_title: '生效规则',
-        default_hint: '此处为全系统默认配置；某个知识库在「设置 → AI 智能体」单独绑定后，以该绑定为准。内置的「知识管理助手」开箱即用（引用溯源、只产草稿）。'
-      }
     },
     memory_settings: {
       title: '长期记忆'

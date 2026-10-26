@@ -106,7 +106,6 @@ declare module "@elegant-router/types" {
     "wiki_kb": "kb/:id";
     "wiki_list": "list";
     "wiki_notifications": "notifications";
-    "wiki-settings": "/wiki-settings";
   };
 
   /**
@@ -186,7 +185,6 @@ declare module "@elegant-router/types" {
     | "user"
     | "webhook"
     | "wiki"
-    | "wiki-settings"
   >;
 
   /**
@@ -260,7 +258,6 @@ declare module "@elegant-router/types" {
     | "user_new"
     | "webhook_edit"
     | "webhook_new"
-    | "wiki-settings"
     | "wiki_article"
     | "wiki_governance"
     | "wiki_kb"

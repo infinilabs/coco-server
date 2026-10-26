@@ -31,11 +31,12 @@ const page: App.I18n.Schema['translation']['page'] = {
       autoOrganizeToc: 'Auto-file new pages',
       autoOrganizeTocHint: 'When on, a new article landing at the tree root triggers a background semantic pass: it files into existing topic folders (creating one only when nothing fits); manually arranged structure is never touched. Runs on the language model — each new page settles within a minute or two',
       basic: 'Basic Info',
-      agent: 'AI Agent',
+      aiModel: 'Answering model',
+      aiModelHint: "Model used for this KB's AI generation/editing; leave empty for the server default language model",
+      aiModelPlaceholder: 'Default (server default language model)',
       aiGuidance: 'AI generation guidance',
       aiGuidanceHint: "Injected as additional guidance into this KB's AI generation/editing prompts (planning, outline, drafting, AI edit, full rewrite). When set it replaces the bound assistant's persona; hard rules like [n] citations and [[type:Name]] links stay enforced. Leave empty to use the assistant persona",
       aiGuidancePlaceholder: 'e.g. food-industry KB, keep traditional Chinese terms; prioritize product lines and store networks; 3-5 sections per page…',
-      agentTooltip: 'When bound, AI generation and AI editing for this KB use the model configured on this assistant',
       danger: 'Danger Zone',
       deleteKb: 'Delete Knowledge Base',
       saved: 'Settings saved',
@@ -134,7 +135,6 @@ const page: App.I18n.Schema['translation']['page'] = {
       description: 'Description',
       icon: 'Icon',
       visibility: 'Visibility',
-      assistant: 'AI Assistant',
       datasources: 'Datasources',
       datasourcesPlaceholder: 'Select synced datasources to bind'
     },
@@ -2279,17 +2279,6 @@ const page: App.I18n.Schema['translation']['page'] = {
       top_p: 'Top P',
       top_p_desc: `similar to temperature, don't change them simultaneously`,
       type: 'Type'
-    },
-    wiki_settings: {
-      title: 'AI Wiki',
-      subtitle: 'Configure the curation assistant and default behaviors of AI Wiki',
-      labels: {
-        assistant: 'Curation assistant',
-        assistant_desc: 'The assistant used by AI generation & AI editing by default; a knowledge-base-level binding takes precedence',
-        assistant_placeholder: 'Select the default assistant',
-        default_hint_title: 'How it resolves',
-        default_hint: 'This is the system-wide default; a KB that binds its own assistant (KB settings → AI 智能体) overrides it. The builtin 知识管理助手 works out of the box (citation-backed, drafts only).'
-      }
     },
     memory_settings: {
       title: 'Long-term Memory'

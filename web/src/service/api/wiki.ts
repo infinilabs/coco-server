@@ -39,7 +39,7 @@ const normalizeKb = (src: any): Api.Wiki.Kb => ({
   visibility: src?.visibility ?? 'team',
   workspace_id: src?.workspace_id ?? '',
   datasource_ids: src?.datasource_ids ?? [],
-  assistant_id: src?.assistant_id,
+  ai_model: src?.ai_model ?? undefined,
   sync_strategy: src?.sync_strategy,
   article_count: src?.article_count ?? 0,
   last_updated: fmtDate(src?.updated),

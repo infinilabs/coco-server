@@ -111,27 +111,16 @@ var resolveLanguageLLM = func(providerID, model string) (llms.Model, error) {
 	return langchain.GetLLM(provider.BaseURL, provider.APIType, modelId.ID, provider.APIKey, ""), nil
 }
 
-// assistantAnsweringModel resolves the answering model and persona prompt of
-// the AI assistant bound to a KB (KB settings → AI 智能体). When a KB has an
-// assistant attached, its configured model drives AI generation/editing and
-// its role prompt steers the pipeline, unless the request pins a model
-// explicitly.
-func (h *APIHandler) assistantAnsweringModel(ctx context.Context, assistantID string) (string, string, string, bool) {
-	readCtx := orm.NewContextWithParent(ctx)
-	readCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	orm.WithModel(readCtx, &core.Assistant{})
-	var assistant core.Assistant
-	assistant.SetID(assistantID)
-	exists, err := orm.GetV2(readCtx, &assistant)
-	if err != nil || !exists {
-		return "", "", "", false
-	}
-	providerID, model := assistant.AnsweringModel.ProviderID, assistant.AnsweringModel.Name
-	if providerID == "" || model == "" {
-		return "", "", "", false
-	}
-	return providerID, model, assistant.RolePrompt, true
-}
+// defaultKMPersona is the persona every KB's generation runs under when its
+// own AI guidance (设置 → AI 生成约束) is empty. It used to ride the builtin
+// KM assistant's role prompt; the assistant indirection is gone, the
+// pipeline carries the default itself.
+const defaultKMPersona = `You curate a team knowledge base from indexed source documents.
+- Structure pages as markdown: lead with a definition, then focused "##" sections; prefer concise lists over prose walls.
+- Ground every claim in the provided source documents and cite inline as [1], [2] — never present uncited material as fact and never invent sources.
+- Reuse existing [[type:Name]] wikilinks where the knowledge-base vocabulary has them.
+- Match the language of the source material; stay factual and concise, no marketing tone.
+- Everything you produce is a draft for human review — flag uncertainties explicitly instead of guessing.`
 
 func defaultGenerationLang() string {
 	// AppConfig reads settings from kv, whose handler is only registered
@@ -417,20 +406,20 @@ func rolePromptSuffix(rolePrompt string) string {
 	return "\n\nAdditional guidance from the knowledge-base owner (follow it unless it conflicts with the rules above):\n" + rp
 }
 
-// rolePromptForKB resolves the persona actually injected for a KB's
+// rolePromptForKB resolves the persona injected for a KB's
 // generation/editing: the KB's own AI guidance (设置 → AI 生成约束)
-// replaces the assistant persona — the most specific constraint wins, and
+// replaces the default KM persona — the most specific constraint wins, and
 // the pipeline's own citation/wikilink rules stay enforced regardless (they
 // live in the user prompts, not the persona). Empty or whitespace-only
 // guidance falls back to the persona; a nil KB (article without one loaded)
 // keeps the persona too.
-func rolePromptForKB(kb *core.WikiKnowledgeBase, assistantPrompt string) string {
+func rolePromptForKB(kb *core.WikiKnowledgeBase) string {
 	if kb != nil {
 		if g := strings.TrimSpace(kb.AIGuidance); g != "" {
 			return g
 		}
 	}
-	return assistantPrompt
+	return defaultKMPersona
 }
 
 func clusterHintLine(hint string) string {
@@ -774,28 +763,14 @@ func (h *APIHandler) aiGenerate(w http.ResponseWriter, req *http.Request, ps htt
 		return
 	}
 
-	// assistant resolution order: request-pinned model → the KB's bound AI
-	// assistant (settings → AI 智能体) → the system default (设置 → AI 知识库)
-	// → the server default language model. The bound/system assistant's role
-	// prompt steers the drafting pipeline.
+	// model resolution order: request-pinned model → the KB's own answering
+	// model (设置 → AI 生成约束 → 回答模型) → the server default language
+	// model. The persona is the KB's AI guidance, or the default KM persona.
 	modelProvider, model := body.ModelProvider, body.Model
-	rolePrompt := ""
-	if modelProvider == "" && model == "" && kb.AssistantID != "" {
-		if provider, name, rp, ok := h.assistantAnsweringModel(req.Context(), kb.AssistantID); ok {
-			modelProvider, model = provider, name
-			rolePrompt = rp
-		}
+	if modelProvider == "" && model == "" && kb.AIModel.ProviderID != "" && kb.AIModel.Name != "" {
+		modelProvider, model = kb.AIModel.ProviderID, kb.AIModel.Name
 	}
-	if modelProvider == "" && model == "" {
-		if assistantID := strings.TrimSpace(common.AppConfig().WikiSettings.GetAssistantID()); assistantID != "" {
-			if provider, name, rp, ok := h.assistantAnsweringModel(req.Context(), assistantID); ok {
-				modelProvider, model = provider, name
-				rolePrompt = rp
-			}
-		}
-	}
-	// per-KB AI guidance (设置 → AI 生成约束) beats the persona chain
-	opts.RolePrompt = rolePromptForKB(&kb, rolePrompt)
+	opts.RolePrompt = rolePromptForKB(&kb)
 
 	llm, err := resolveLanguageLLM(modelProvider, model)
 	if err != nil {
@@ -1025,11 +1000,9 @@ func (h *APIHandler) aiEdit(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 
-	// assistant resolution order mirrors aiGenerate: request-pinned model →
-	// the KB's bound AI assistant → the system default (设置 → AI 知识库) →
-	// the server default language model
+	// model resolution order mirrors aiGenerate: request-pinned model → the
+	// KB's own answering model → the server default language model
 	modelProvider, model := body.ModelProvider, body.Model
-	var rolePrompt string
 	var kbForPrompt *core.WikiKnowledgeBase
 	if modelProvider == "" && model == "" && article.KbID != "" {
 		kbCtx := orm.NewContextWithParent(req.Context())
@@ -1039,22 +1012,13 @@ func (h *APIHandler) aiEdit(w http.ResponseWriter, req *http.Request, ps httprou
 		kb.SetID(article.KbID)
 		if exists, kerr := orm.GetV2(kbCtx, &kb); kerr == nil && exists {
 			kbForPrompt = &kb
-			if kb.AssistantID != "" {
-				if provider, name, rp, ok := h.assistantAnsweringModel(req.Context(), kb.AssistantID); ok {
-					modelProvider, model, rolePrompt = provider, name, rp
-				}
+			if kb.AIModel.ProviderID != "" && kb.AIModel.Name != "" {
+				modelProvider, model = kb.AIModel.ProviderID, kb.AIModel.Name
 			}
 		}
 	}
-	if modelProvider == "" && model == "" {
-		if assistantID := strings.TrimSpace(common.AppConfig().WikiSettings.GetAssistantID()); assistantID != "" {
-			if provider, name, rp, ok := h.assistantAnsweringModel(req.Context(), assistantID); ok {
-				modelProvider, model, rolePrompt = provider, name, rp
-			}
-		}
-	}
-	// per-KB AI guidance (设置 → AI 生成约束) beats the persona chain
-	rolePrompt = rolePromptForKB(kbForPrompt, rolePrompt)
+	// persona: the KB's AI guidance, or the default KM persona
+	rolePrompt := rolePromptForKB(kbForPrompt)
 
 	llm, err := resolveLanguageLLM(modelProvider, model)
 	if err != nil {

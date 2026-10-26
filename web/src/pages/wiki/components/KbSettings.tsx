@@ -6,29 +6,26 @@ import { Button, Card, Form, Input, Modal, Select, Space, message,
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import ModelSelect from '@/pages/ai-assistant/modules/ModelSelect';
+import { getEnabledModelProviders } from '@/service/api';
+import { formatESSearchResult } from '@/service/request/es';
 import {
-  collectSearchBoundAssistantIds,
   deleteWikiKb,
-  fetchIntegrations,
-  groupKbAssistantOptions,
-  listWikiAssistants,
   listWikiDatasources,
   searchWikiWorkspaces,
-  updateWikiKb,
-  type KbAssistantOption
+  updateWikiKb
 } from '@/service/api';
 
-/** KB settings: basic info, AI agent, datasources and the danger zone. */
+/** KB settings: basic info, AI generation (guidance + answering model), datasources and the danger zone. */
 export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => void }) {
   const { t } = useTranslation();
   const nav = useNavigate();
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
-  const [assistants, setAssistants] = useState<KbAssistantOption[]>([]);
   const [datasources, setDatasources] = useState<Api.Wiki.DatasourceInfo[]>([]);
-  const [searchBoundIds, setSearchBoundIds] = useState<Set<string>>(new Set());
   const [workspaces, setWorkspaces] = useState<{ id: string; name: string }[]>([]);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [modelProviders, setModelProviders] = useState<any[]>([]);
   const { hasAuth } = useAuth();
   const canUpdate = hasAuth('coco#wiki_kb/update');
   const canDelete = hasAuth('coco#wiki_kb/delete');
@@ -47,6 +44,7 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
       experience_capture: !!kb.experience_capture,
       auto_organize_toc: !!kb.auto_organize_toc,
       ai_guidance: kb.ai_guidance || '',
+      ai_model: (kb as any).ai_model || undefined,
       toc_layout: (kb.toc_layout || []).map(f => ({
         title: f.title,
         prefixes: (f.path_prefixes || []).join(', '),
@@ -56,14 +54,19 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
   }, [kb, form]);
 
   useEffect(() => {
-    listWikiAssistants().then(list => setAssistants((list as KbAssistantOption[]) || []));
     listWikiDatasources().then(list => setDatasources(((list as any) || []) as Api.Wiki.DatasourceInfo[]));
     searchWikiWorkspaces().then(list => setWorkspaces(((list as any) || []) as { id: string; name: string }[]));
-    // assistants referenced by search integrations get their own AI 搜索 group
-    fetchIntegrations({})
+    getEnabledModelProviders()
       .then((res: any) => {
-        const sources = (res?.data?.hits?.hits || []).map((h: any) => h._source);
-        setSearchBoundIds(collectSearchBoundAssistantIds(sources));
+        // the flat request resolves to a {data, error, response} wrapper —
+        // the ES body lives in .data (same unwrap EditForm's useRequest does)
+        const es = formatESSearchResult(res?.data);
+        setModelProviders(
+          (((es.data || []) as any[]) || []).map(item => ({
+            ...item,
+            models: item.models?.filter((m: any) => m.type === 'language') || []
+          }))
+        );
       })
       .catch(() => {});
     // mount-only: without deps this refetches (and re-renders) forever
@@ -76,6 +79,9 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
       // the API wants the array form (dimensions slot order: 组织/产品/专题)
       const payload = {
         ...values,
+        // an undefined (cleared) model must serialize explicitly — a missing
+        // key would leave the stored value alive in the partial update
+        ai_model: values.ai_model || { provider_id: '', name: '' },
         toc_layout: ((values.toc_layout || []) as any[])
           .filter(row => row?.title?.trim())
           .map(row => ({
@@ -121,9 +127,9 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
           visibility: kb.visibility,
           auto_approve: !!kb.auto_approve,
           auto_organize_toc: !!kb.auto_organize_toc,
-          assistant_id: kb.assistant_id,
           datasource_ids: kb.datasource_ids,
           ai_guidance: kb.ai_guidance || '',
+          ai_model: (kb as any).ai_model || undefined,
           toc_layout: (kb.toc_layout || []).map(f => ({
             title: f.title,
             prefixes: (f.path_prefixes || []).join(', '),
@@ -187,13 +193,6 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
               options={workspaces.map(w => ({ value: w.id, label: w.name }))}
               placeholder={t('page.wiki.workspace.all')}
             />
-          </Form.Item>
-          <Form.Item
-            label={t('page.wiki.settings.agent')}
-            name="assistant_id"
-            tooltip={t('page.wiki.settings.agentTooltip')}
-          >
-            <Select allowClear options={groupKbAssistantOptions(assistants, t, searchBoundIds)} />
           </Form.Item>
           <Form.Item label={t('page.wiki.createKb.datasources')} name="datasource_ids">
             <Select
@@ -264,6 +263,21 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
             <Input.TextArea
               placeholder={t('page.wiki.settings.aiGuidancePlaceholder')}
               rows={6}
+            />
+          </Form.Item>
+          <Form.Item
+            label={t('page.wiki.settings.aiModel')}
+            name="ai_model"
+            tooltip={t('page.wiki.settings.aiModelHint')}
+          >
+            <ModelSelect
+              allowClear
+              modelType='answering_model'
+              namePrefix={['ai_model']}
+              placeholder={t('page.wiki.settings.aiModelPlaceholder')}
+              providers={modelProviders}
+              showSettings={false}
+              showTemplate={false}
             />
           </Form.Item>
           <Form.Item className="mb-0" wrapperCol={{ offset: 5 }}>

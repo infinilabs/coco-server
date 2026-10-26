@@ -3,13 +3,7 @@ import { Button, Form, Input, Modal, Select, Space, Switch } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  BUILTIN_KM_ASSISTANT_ID,
-  type KbAssistantOption,
-  collectSearchBoundAssistantIds,
   createWikiKb,
-  fetchIntegrations,
-  groupKbAssistantOptions,
-  listWikiAssistants,
   listWikiDatasources,
   searchWikiWorkspaces
 } from '@/service/api';
@@ -29,9 +23,7 @@ export function CreateKbModal({
   const { t } = useTranslation();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [assistants, setAssistants] = useState<KbAssistantOption[]>([]);
   const [datasources, setDatasources] = useState<Api.Wiki.DatasourceInfo[]>([]);
-  const [searchBoundIds, setSearchBoundIds] = useState<Set<string>>(new Set());
   const [workspaces, setWorkspaces] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
@@ -40,23 +32,7 @@ export function CreateKbModal({
     // workspace lands there without manual picking
     form.setFieldsValue({ workspace_id: defaultWorkspaceId || undefined });
     searchWikiWorkspaces().then(list => setWorkspaces(((list as any) || []) as { id: string; name: string }[]));
-    listWikiAssistants().then(list => {
-      const arr = (list as KbAssistantOption[]) || [];
-      // new KBs default to the builtin knowledge-management assistant —
-      // keep it selectable even when the seed hasn't landed yet
-      setAssistants(
-        arr.some(a => a.id === BUILTIN_KM_ASSISTANT_ID)
-          ? arr
-          : [{ id: BUILTIN_KM_ASSISTANT_ID, name: '知识管理助手', type: 'data_processing' }, ...arr]
-      );
-    });
     listWikiDatasources().then(list => setDatasources(((list as any) || []) as Api.Wiki.DatasourceInfo[]));
-    fetchIntegrations({})
-      .then((res: any) => {
-        const sources = (res?.data?.hits?.hits || []).map((h: any) => h._source);
-        setSearchBoundIds(collectSearchBoundAssistantIds(sources));
-      })
-      .catch(() => {});
   }, [open, defaultWorkspaceId, form]);
 
   const onOk = () => {
@@ -166,17 +142,6 @@ export function CreateKbModal({
             allowClear
             options={workspaces.map(w => ({ value: w.id, label: w.name }))}
             placeholder={t('page.wiki.workspace.all')}
-          />
-        </Form.Item>
-        <Form.Item
-          initialValue={BUILTIN_KM_ASSISTANT_ID}
-          label={t('page.wiki.createKb.assistant')}
-          name='assistant_id'
-          tooltip={t('page.wiki.settings.agentTooltip')}
-        >
-          <Select
-            allowClear
-            options={groupKbAssistantOptions(assistants, t, searchBoundIds)}
           />
         </Form.Item>
         <Form.Item

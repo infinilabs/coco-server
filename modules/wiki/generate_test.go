@@ -428,10 +428,9 @@ func TestSanitizeAIArtifactDebris(t *testing.T) {
 }
 
 func TestRolePromptForKB(t *testing.T) {
-	persona := "assistant persona"
 	guided := &core.WikiKnowledgeBase{AIGuidance: "  本库术语用繁体，面向食品行业  "}
-	assert.Equal(t, "本库术语用繁体，面向食品行业", rolePromptForKB(guided, persona), "KB guidance trims and replaces the persona")
-	assert.Equal(t, persona, rolePromptForKB(&core.WikiKnowledgeBase{}, persona), "empty guidance falls back to the persona")
-	assert.Equal(t, persona, rolePromptForKB(&core.WikiKnowledgeBase{AIGuidance: "   "}, persona), "whitespace-only guidance falls back")
-	assert.Equal(t, persona, rolePromptForKB(nil, persona), "no KB loaded keeps the persona")
+	assert.Equal(t, "本库术语用繁体，面向食品行业", rolePromptForKB(guided), "KB guidance trims and replaces the default persona")
+	assert.Equal(t, defaultKMPersona, rolePromptForKB(&core.WikiKnowledgeBase{}), "empty guidance falls back to the default persona")
+	assert.Equal(t, defaultKMPersona, rolePromptForKB(&core.WikiKnowledgeBase{AIGuidance: "   "}), "whitespace-only guidance falls back")
+	assert.Equal(t, defaultKMPersona, rolePromptForKB(nil), "no KB loaded keeps the default persona")
 }

@@ -23,9 +23,9 @@ export function Component() {
 
   // All tabs live behind `coco#system/read`.
   //
-  // App-related tabs (search/chat/KB settings) are NOT here anymore — they are
+  // App-related tabs (search/chat settings) are NOT here anymore — they are
   // first-class routes promoted under their application groups in the sider
-  // (search-settings / content-dedup / memory-settings / wiki-settings).
+  // (search-settings / content-dedup / memory-settings).
   //
   // Data-ingestion-related tabs (connector / engine AI / data security) were
   // promoted the same way under the 数据接入 group
