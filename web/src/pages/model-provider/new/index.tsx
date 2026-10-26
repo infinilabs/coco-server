@@ -237,14 +237,19 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
               <List.Item
                 actions={[
                   <span key='inference-mode'>
-                    {value?.settings?.reasoning ? t('page.modelprovider.labels.inferenceMode') : '-'}
+                    {value?.support_reasoning ? t('page.modelprovider.labels.inferenceMode') : '-'}
                   </span>,
                   <Settings
                     className='size-4 translate-y-[2px] cursor-pointer text-[#999]'
                     key='settings'
                     onClick={() => {
+                      // backend serializes support_reasoning with omitempty:
+                      // false never lands in ES, so the read-back value is
+                      // undefined — set it explicitly or the switch's
+                      // initialValue=true resurrects a disabled flag
                       form.setFieldsValue({
-                        ...value
+                        ...value,
+                        support_reasoning: value?.support_reasoning ?? false
                       });
 
                       setEditKey(key);
