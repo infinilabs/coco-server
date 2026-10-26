@@ -453,6 +453,7 @@
   width: 100%;
 }
 .wiki-sider {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -462,6 +463,43 @@
   border-right: 1px solid var(--wiki-border-soft);
   background: var(--wiki-panel);
   transition: width 0.22s ease;
+}
+/* drag-to-resize strip on the sider's right edge (WikiShell wires the
+   pointer handlers; width persists in localStorage) */
+.wiki-sider-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 5px;
+  cursor: col-resize;
+  outline: none;
+  touch-action: none;
+  z-index: 20;
+}
+.wiki-sider-resizer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 2px;
+  background: transparent;
+  transition: background-color 0.15s ease;
+}
+.wiki-sider-resizer:hover::after,
+.wiki-sider-resizer:focus-visible::after,
+.wiki-shell-resizing .wiki-sider-resizer::after {
+  background: var(--wiki-accent);
+}
+/* during a drag: no width transition (it would lag the pointer) and no
+   text selection anywhere in the shell */
+.wiki-shell-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+.wiki-shell-resizing .wiki-sider {
+  transition: none;
 }
 .wiki-sider-collapsed {
   width: 0;

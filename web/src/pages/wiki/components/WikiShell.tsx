@@ -164,6 +164,18 @@ interface Props {
   readonly children: React.ReactNode | ((ctx: WikiShellContext) => React.ReactNode);
 }
 
+// sider drag-resize bounds (px) — the width persists in localStorage so the
+// reader's preferred TOC width survives reloads and navigation
+const SIDER_WIDTH_KEY = 'wiki:sider-width';
+const SIDER_WIDTH_DEFAULT = 260;
+const SIDER_WIDTH_MIN = 200;
+const SIDER_WIDTH_MAX = 480;
+
+function loadSiderWidth(): number {
+  const saved = Number(localStorage.getItem(SIDER_WIDTH_KEY));
+  return saved >= SIDER_WIDTH_MIN && saved <= SIDER_WIDTH_MAX ? saved : SIDER_WIDTH_DEFAULT;
+}
+
 export function WikiShell({ kbId, articleId, children }: Props) {
   const { t } = useTranslation();
   const nav = useNavigate();
@@ -180,6 +192,11 @@ export function WikiShell({ kbId, articleId, children }: Props) {
   const [openGovernance, setOpenGovernance] = useState(0);
   const [renaming, setRenaming] = useState<{ key: string; value: string } | null>(null);
   const [collapsed, setCollapsed] = useState(isMobile);
+  // TOC sider width — drag the right-edge strip to change, double-click (or
+  // arrow keys with it focused) to adjust; persisted on release
+  const [siderWidth, setSiderWidth] = useState(loadSiderWidth);
+  const [resizing, setResizing] = useState(false);
+  const resizeSession = useRef<{ pointerId: number; left: number } | null>(null);
   // refresh icon spins for ~1s after a click, mirroring the chat sidebar
   const [isRefresh, setIsRefresh] = useState(false);
   const [treeFilter, setTreeFilter] = useState('');
@@ -201,6 +218,53 @@ export function WikiShell({ kbId, articleId, children }: Props) {
   const setWorkspaceId = (v: string) => {
     wikiNav.workspaceId = v;
     setWorkspaceIdState(v);
+  };
+
+  /* ---------------- sider drag-resize ---------------- */
+
+  // pointer capture keeps the drag on the strip even when the pointer moves
+  // over the tree; width = pointer distance from the sider's left edge
+  const onResizerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (collapsed || e.button !== 0) return;
+    const sider = (e.currentTarget as HTMLDivElement).parentElement;
+    if (!sider) return;
+    resizeSession.current = { pointerId: e.pointerId, left: sider.getBoundingClientRect().left };
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setResizing(true);
+  };
+  const onResizerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const session = resizeSession.current;
+    if (!session || session.pointerId !== e.pointerId) return;
+    const next = Math.min(SIDER_WIDTH_MAX, Math.max(SIDER_WIDTH_MIN, e.clientX - session.left));
+    setSiderWidth(next);
+  };
+  const onResizerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (resizeSession.current?.pointerId !== e.pointerId) return;
+    resizeSession.current = null;
+    setResizing(false);
+    // read the width through the updater so the very last move (possibly
+    // not yet committed when up fires) is what gets persisted
+    setSiderWidth(w => {
+      localStorage.setItem(SIDER_WIDTH_KEY, String(w));
+      return w;
+    });
+  };
+  // double-click on the strip restores the default width
+  const onResizerReset = () => {
+    if (collapsed) return;
+    setSiderWidth(SIDER_WIDTH_DEFAULT);
+    localStorage.setItem(SIDER_WIDTH_KEY, String(SIDER_WIDTH_DEFAULT));
+  };
+  // keyboard resize for the strip (focus + ←/→, 16px steps)
+  const onResizerKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    const next = Math.min(
+      SIDER_WIDTH_MAX,
+      Math.max(SIDER_WIDTH_MIN, siderWidth + (e.key === 'ArrowRight' ? 16 : -16))
+    );
+    setSiderWidth(next);
+    localStorage.setItem(SIDER_WIDTH_KEY, String(next));
   };
 
   const fetchKbs = (force = false) => {
@@ -813,9 +877,28 @@ export function WikiShell({ kbId, articleId, children }: Props) {
         }
       }}
     >
-      <div className='wiki-page wiki-shell h-full min-h-0'>
+      <div className={`wiki-page wiki-shell h-full min-h-0 ${resizing ? 'wiki-shell-resizing' : ''}`}>
         {!isMobile && (
-          <aside className={`wiki-sider ${collapsed ? 'wiki-sider-collapsed' : ''}`}>{siderBody}</aside>
+          <aside
+            className={`wiki-sider ${collapsed ? 'wiki-sider-collapsed' : ''}`}
+            style={collapsed ? undefined : { width: siderWidth }}
+          >
+            {siderBody}
+            {/* right-edge drag strip: resize the TOC sider, double-click to
+                reset — hidden along with the sider when collapsed */}
+            <div
+              aria-orientation='vertical'
+              className='wiki-sider-resizer'
+              role='separator'
+              tabIndex={collapsed ? -1 : 0}
+              onKeyDown={onResizerKeyDown}
+              onDoubleClick={onResizerReset}
+              onPointerCancel={onResizerUp}
+              onPointerDown={onResizerDown}
+              onPointerMove={onResizerMove}
+              onPointerUp={onResizerUp}
+            />
+          </aside>
         )}
         <div className='flex h-full min-w-0 flex-1 flex-col'>
           <header className='wiki-topbar'>
