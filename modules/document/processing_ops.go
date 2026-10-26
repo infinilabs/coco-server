@@ -309,7 +309,7 @@ func (h *APIHandler) syncStatusHandler(w http.ResponseWriter, req *http.Request,
 			"enabled":          ds.Enabled,
 			"sync_enabled":     ds.SyncConfig.Enabled,
 			"sync_interval":    ds.SyncConfig.Interval,
-			"last_dispatch":    kvString(dispatcherLastAccessKV, ds.ID),
+			"last_dispatch":    formatLastDispatch(kvString(dispatcherLastAccessKV, ds.ID)),
 			"increment_cursor": kvString(connectorCursorKV, ds.ID),
 		}
 		// sync run journal (W8): last run's state + progress; a running
@@ -354,4 +354,24 @@ func kvString(bucket, key string) string {
 		return ""
 	}
 	return string(v)
+}
+
+// formatLastDispatch re-tags the dispatcher's naive timestamp for the API.
+// The dispatcher stores "2006-01-02 15:04:05" in SERVER-local time (see
+// util.FormatTimeWithLocalTZ in the dispatcher tracker); returned verbatim,
+// browsers parse it as BROWSER-local — a UTC server and a GMT+8 client
+// disagreed by the whole offset on the "last dispatch" display. Re-emitting
+// it as RFC3339 carries the server's explicit offset; unparseable values
+// (legacy or foreign formats) pass through untouched. The KV value itself
+// is unchanged — the dispatcher's own interval math reads it back with the
+// same server-local parse.
+func formatLastDispatch(s string) string {
+	if s == "" {
+		return s
+	}
+	t, err := time.ParseInLocation("2006-01-02 15:04:05", s, time.Local)
+	if err != nil {
+		return s
+	}
+	return t.Format(time.RFC3339)
 }
