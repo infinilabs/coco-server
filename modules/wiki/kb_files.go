@@ -198,9 +198,15 @@ func (h *APIHandler) kbFiles(w http.ResponseWriter, req *http.Request, ps httpro
 	}
 	rows := make([]kbAttachmentRow, 0, len(atts))
 	for _, a := range atts {
+		// pipeline-generated attachments (covers, thumbnails) may lack the
+		// created field — Created is *time.Time, guard the dereference
+		created := ""
+		if a.Created != nil {
+			created = a.Created.Format("2006-01-02")
+		}
 		rows = append(rows, kbAttachmentRow{
 			ID: a.ID, Name: a.Name, Size: a.Size, MimeType: a.MimeType,
-			Created: a.Created.Format("2006-01-02"),
+			Created: created,
 			Owners:  owners[a.ID],
 		})
 	}

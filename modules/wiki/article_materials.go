@@ -136,12 +136,16 @@ func (h *APIHandler) articleMaterials(w http.ResponseWriter, req *http.Request, 
 				for i := range materials {
 					for _, aid := range docAttachmentIDs(materials[i].DocID, attachmentIDs) {
 						if a, ok := attByID[aid]; ok {
+							attCreated := ""
+							if a.Created != nil {
+								attCreated = a.Created.Format("2006-01-02")
+							}
 							materials[i].Attachments = append(materials[i].Attachments, AttachmentMaterial{
 								ID:       a.ID,
 								Name:     a.Name,
 								Size:     a.Size,
 								MimeType: a.MimeType,
-								Created:  a.Created.Format("2006-01-02"),
+								Created:  attCreated,
 							})
 						}
 					}
@@ -182,12 +186,16 @@ func resolveArticleAttachments(ctx *orm.Context, ids []string) []core.WikiArticl
 		Filter(orm.TermsQuery("id", ids))); err == nil && res != nil {
 		if atts, _, derr := elastic.DecodeHits[core.Attachment](res); derr == nil {
 			for _, a := range atts {
+				attCreated := ""
+				if a.Created != nil {
+					attCreated = a.Created.Format("2006-01-02")
+				}
 				out = append(out, core.WikiArticleAttachment{
 					ID:       a.ID,
 					Name:     a.Name,
 					Size:     a.Size,
 					MimeType: a.MimeType,
-					Created:  a.Created.Format("2006-01-02"),
+					Created:  attCreated,
 				})
 			}
 		}
