@@ -417,6 +417,22 @@ func rolePromptSuffix(rolePrompt string) string {
 	return "\n\nAdditional guidance from the knowledge-base owner (follow it unless it conflicts with the rules above):\n" + rp
 }
 
+// rolePromptForKB resolves the persona actually injected for a KB's
+// generation/editing: the KB's own AI guidance (设置 → AI 生成约束)
+// replaces the assistant persona — the most specific constraint wins, and
+// the pipeline's own citation/wikilink rules stay enforced regardless (they
+// live in the user prompts, not the persona). Empty or whitespace-only
+// guidance falls back to the persona; a nil KB (article without one loaded)
+// keeps the persona too.
+func rolePromptForKB(kb *core.WikiKnowledgeBase, assistantPrompt string) string {
+	if kb != nil {
+		if g := strings.TrimSpace(kb.AIGuidance); g != "" {
+			return g
+		}
+	}
+	return assistantPrompt
+}
+
 func clusterHintLine(hint string) string {
 	hint = strings.TrimSpace(hint)
 	if hint == "" {
@@ -778,7 +794,8 @@ func (h *APIHandler) aiGenerate(w http.ResponseWriter, req *http.Request, ps htt
 			}
 		}
 	}
-	opts.RolePrompt = rolePrompt
+	// per-KB AI guidance (设置 → AI 生成约束) beats the persona chain
+	opts.RolePrompt = rolePromptForKB(&kb, rolePrompt)
 
 	llm, err := resolveLanguageLLM(modelProvider, model)
 	if err != nil {
@@ -1013,15 +1030,19 @@ func (h *APIHandler) aiEdit(w http.ResponseWriter, req *http.Request, ps httprou
 	// the server default language model
 	modelProvider, model := body.ModelProvider, body.Model
 	var rolePrompt string
+	var kbForPrompt *core.WikiKnowledgeBase
 	if modelProvider == "" && model == "" && article.KbID != "" {
 		kbCtx := orm.NewContextWithParent(req.Context())
 		kbCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
 		orm.WithModel(kbCtx, &core.WikiKnowledgeBase{})
 		var kb core.WikiKnowledgeBase
 		kb.SetID(article.KbID)
-		if exists, kerr := orm.GetV2(kbCtx, &kb); kerr == nil && exists && kb.AssistantID != "" {
-			if provider, name, rp, ok := h.assistantAnsweringModel(req.Context(), kb.AssistantID); ok {
-				modelProvider, model, rolePrompt = provider, name, rp
+		if exists, kerr := orm.GetV2(kbCtx, &kb); kerr == nil && exists {
+			kbForPrompt = &kb
+			if kb.AssistantID != "" {
+				if provider, name, rp, ok := h.assistantAnsweringModel(req.Context(), kb.AssistantID); ok {
+					modelProvider, model, rolePrompt = provider, name, rp
+				}
 			}
 		}
 	}
@@ -1032,6 +1053,8 @@ func (h *APIHandler) aiEdit(w http.ResponseWriter, req *http.Request, ps httprou
 			}
 		}
 	}
+	// per-KB AI guidance (设置 → AI 生成约束) beats the persona chain
+	rolePrompt = rolePromptForKB(kbForPrompt, rolePrompt)
 
 	llm, err := resolveLanguageLLM(modelProvider, model)
 	if err != nil {

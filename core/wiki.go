@@ -158,6 +158,14 @@ type WikiKnowledgeBase struct {
 	// via merge). Never blocks the create path; a slow model just means the
 	// page sits at the root for a couple of minutes.
 	AutoOrganizeToc bool `json:"auto_organize_toc" elastic_mapping:"auto_organize_toc:{type:boolean}"`
+	// AIGuidance (AI 生成约束): per-KB prompt guidance injected into the
+	// wiki AI generation/editing pipeline. When set it replaces the bound
+	// assistant's persona for this KB — the most specific constraint wins;
+	// empty falls back to the assistant persona. Stored, never queried.
+	// no omitempty: an empty string would serialize away and clearing the
+	// guidance in settings could never overwrite a stored value (same
+	// partial-update semantics the bool flags above document)
+	AIGuidance string `json:"ai_guidance" elastic_mapping:"ai_guidance:{enabled:false}"`
 }
 
 // WikiTocLayoutFolder is one top-level department folder of the KB layout.

@@ -52,6 +52,7 @@ const normalizeKb = (src: any): Api.Wiki.Kb => ({
   // save+refetch (the payload persists, the normalized view just drops it)
   experience_capture: !!src?.experience_capture,
   auto_organize_toc: !!src?.auto_organize_toc,
+  ai_guidance: src?.ai_guidance ?? '',
   toc_layout: src?.toc_layout ?? []
 });
 

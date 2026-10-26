@@ -434,6 +434,8 @@ declare namespace Api {
       experience_capture?: boolean;
       /** 自动归档:新文章落入目录根部后自动触发后台语义整理(复用已有主题文件夹) */
       auto_organize_toc?: boolean;
+      /** AI 生成约束:该库 AI 生成/编辑的附加指引,非空时覆盖所绑助手的默认人设 */
+      ai_guidance?: string;
     }
 
     interface SourceRef {

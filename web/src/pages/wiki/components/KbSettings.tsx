@@ -46,6 +46,7 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
       auto_approve: !!kb.auto_approve,
       experience_capture: !!kb.experience_capture,
       auto_organize_toc: !!kb.auto_organize_toc,
+      ai_guidance: kb.ai_guidance || '',
       toc_layout: (kb.toc_layout || []).map(f => ({
         title: f.title,
         prefixes: (f.path_prefixes || []).join(', '),
@@ -108,29 +109,32 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
 
   return (
     <div className="w-full">
-      <Card bordered={false} className="wiki-panel mb-12px" title={t('page.wiki.settings.basic')}>
-        <Form
-          className="pt-12px"
-          form={form}
-          initialValues={{
-            name: kb.name,
-            description: kb.description,
-            icon: kb.icon,
-            visibility: kb.visibility,
-            auto_approve: !!kb.auto_approve,
-            auto_organize_toc: !!kb.auto_organize_toc,
-            assistant_id: kb.assistant_id,
-            datasource_ids: kb.datasource_ids,
-            toc_layout: (kb.toc_layout || []).map(f => ({
-              title: f.title,
-              prefixes: (f.path_prefixes || []).join(', '),
-              dimensions: (f.dimensions || []).join(', ')
-            }))
-          }}
-          labelCol={{ span: 5 }}
-          layout="horizontal"
-          wrapperCol={{ span: 17 }}
-        >
+      {/* one form spans both cards: the save button (end of the AI-guidance
+          card) persists everything below in a single PUT */}
+      <Form
+        className="pt-12px"
+        form={form}
+        initialValues={{
+          name: kb.name,
+          description: kb.description,
+          icon: kb.icon,
+          visibility: kb.visibility,
+          auto_approve: !!kb.auto_approve,
+          auto_organize_toc: !!kb.auto_organize_toc,
+          assistant_id: kb.assistant_id,
+          datasource_ids: kb.datasource_ids,
+          ai_guidance: kb.ai_guidance || '',
+          toc_layout: (kb.toc_layout || []).map(f => ({
+            title: f.title,
+            prefixes: (f.path_prefixes || []).join(', '),
+            dimensions: (f.dimensions || []).join(', ')
+          }))
+        }}
+        labelCol={{ span: 5 }}
+        layout="horizontal"
+        wrapperCol={{ span: 17 }}
+      >
+        <Card bordered={false} className="wiki-panel mb-12px" title={t('page.wiki.settings.basic')}>
           <Form.Item label={t('page.wiki.createKb.name')} name="name" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
@@ -249,6 +253,19 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
               )}
             </Form.List>
           </Form.Item>
+        </Card>
+
+        <Card bordered={false} className="wiki-panel mb-12px" title={t('page.wiki.settings.aiGuidance')}>
+          <Form.Item
+            label={t('page.wiki.settings.aiGuidance')}
+            name="ai_guidance"
+            tooltip={t('page.wiki.settings.aiGuidanceHint')}
+          >
+            <Input.TextArea
+              placeholder={t('page.wiki.settings.aiGuidancePlaceholder')}
+              rows={6}
+            />
+          </Form.Item>
           <Form.Item className="mb-0" wrapperCol={{ offset: 5 }}>
             {canUpdate && (
               <Button loading={saving} type="primary" onClick={onSave}>
@@ -256,8 +273,8 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
               </Button>
             )}
           </Form.Item>
-        </Form>
-      </Card>
+        </Card>
+      </Form>
 
       <Card bordered={false} className="wiki-panel" title={t('page.wiki.settings.danger')}>
         <Space>
