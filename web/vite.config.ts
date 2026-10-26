@@ -28,6 +28,14 @@ export default defineConfig(configEnv => {
           // rule works under pnpm's .pnpm/<pkg>@<ver>/node_modules/<pkg>/ paths.
           manualChunks: id => {
             if (!id.includes('node_modules')) return undefined;
+            // CSS must fall back to default chunking. Routing @infinilabs'
+            // standalone stylesheet (a full prebuilt utilities copy) into
+            // vendor-infini made it load AFTER this app's uno.css utilities;
+            // its unscoped `.grid-cols-1` then outranked same-specificity
+            // responsive variants like the home page's `md:grid-cols-3`
+            // (cascade = source order across stylesheets), collapsing the
+            // AI Search / AI Chat / Knowledge base cards into one column.
+            if (/\.(css|less|scss|sass)($|\?)/.test(id)) return undefined;
             if (id.includes('@ant-design/pro-components') || id.includes('@ant-design/pro-')) {
               return 'vendor-antd-pro';
             }

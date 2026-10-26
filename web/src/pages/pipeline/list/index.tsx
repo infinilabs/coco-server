@@ -14,7 +14,6 @@ import { formatESSearchResult } from '@/service/request/es';
 // shared fleet view (ui-common package); the prebuilt stylesheet carries
 // the tailwind utilities it uses — coco has no tailwind toolchain
 import { ClusterOverview, identityTranslate } from '@infinilabs/pipeline-ui';
-import '@infinilabs/pipeline-ui/styles.css';
 
 interface PipelineRow {
   id: string;

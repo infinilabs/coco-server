@@ -17,7 +17,6 @@ import {
   type CanvasRunState,
   type DryRunReport
 } from '@infinilabs/pipeline-ui';
-import '@infinilabs/pipeline-ui/styles.css';
 // reuses the settings pages' .settings-form layout (fixed left label column,
 // capped control width) for the name/description + advanced settings section
 import '@/pages/settings/index.scss';
