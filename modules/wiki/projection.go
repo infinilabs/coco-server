@@ -146,6 +146,12 @@ func removeArticleProjection(articleID string) error {
 // projection subsystem failure (missing config store in a test binary, a
 // hiccup) logs and gives way — the article write itself must never fail
 // because its projection could not be maintained.
+//
+// Direct-query mode: with search_settings.wiki_projection off the retrieval
+// leg reads the wiki_article index directly, so projection WRITES are
+// skipped — the second copy is never stored. Removals still run (cheap,
+// deterministic id) so a switch flipped off never leaves a growing stale
+// set; flipping the switch back on re-populates via the backfill.
 func SyncArticleProjection(article *core.WikiArticle) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -156,14 +162,31 @@ func SyncArticleProjection(article *core.WikiArticle) {
 		return
 	}
 	if article.Status == core.WikiArticlePublished && passesProjectionGate(article, projectionConceptMinSources()) {
-		if err := projectArticleToDocument(article); err != nil {
-			log.Warnf("wiki: projection upsert failed for article [%s]: %v", article.ID, err)
+		if projectionWritesEnabled() {
+			if err := projectArticleToDocument(article); err != nil {
+				log.Warnf("wiki: projection upsert failed for article [%s]: %v", article.ID, err)
+			}
 		}
 		return
 	}
 	if err := removeArticleProjection(article.ID); err != nil {
 		log.Debugf("wiki: projection removal failed for article [%s]: %v", article.ID, err)
 	}
+}
+
+// projectionWritesEnabled reads the gray switch; a config-store failure
+// (fresh dev binary, tests without kv) fails CLOSED — skip the write,
+// matching the leg's own fallback to direct wiki-index reads.
+func projectionWritesEnabled() bool {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Warnf("wiki: projection config unavailable, projection write skipped")
+		}
+	}()
+	if cfg := projectionConfigFn(); cfg.SearchSettings != nil {
+		return cfg.SearchSettings.WikiProjection
+	}
+	return false
 }
 
 // projectionConfigFn is swapped out in tests (AppConfig touches the kv store).

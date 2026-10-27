@@ -46,7 +46,10 @@ func projectionSetup(t *testing.T) {
 	restore := projectionConfigFn
 	t.Cleanup(func() { projectionConfigFn = restore })
 	projectionConfigFn = func() core.Config {
-		return core.Config{ServerInfo: &core.ServerInfo{Endpoint: "http://coco.test"}}
+		return core.Config{
+			ServerInfo:    &core.ServerInfo{Endpoint: "http://coco.test"},
+			SearchSettings: &core.SearchSettings{WikiProjection: true},
+		}
 	}
 }
 
@@ -218,4 +221,37 @@ func TestRemoveArticleProjectionSurvivesSecurityHooks(t *testing.T) {
 	require.NoError(t, err)
 	_, exists := loadProjectionRow(t, articleID)
 	assert.False(t, exists, "projection row must be gone")
+}
+
+// TestProjectionDirectQueryModeSkipsWrites: with the gray switch off
+// (direct wiki-index reads) publishing must NOT store the second copy;
+// removals still run so a flipped-off deployment never accumulates stale
+// rows.
+func TestProjectionDirectQueryModeSkipsWrites(t *testing.T) {
+	projectionSetup(t)
+	restore := projectionConfigFn
+	t.Cleanup(func() { projectionConfigFn = restore })
+	projectionConfigFn = func() core.Config {
+		return core.Config{ServerInfo: &core.ServerInfo{Endpoint: "http://coco.test"}}
+	}
+
+	article := &core.WikiArticle{}
+	article.ID = "art-direct"
+	article.KbID = "kb-proj2"
+	article.Title = "直查模式"
+	article.Status = core.WikiArticlePublished
+	article.Confidence = "high"
+
+	SyncArticleProjection(article)
+	_, exists := loadProjectionRow(t, article.ID)
+	assert.False(t, exists, "switch off: the projection copy must not be written")
+
+	// a pre-existing row (written while the switch was on) is still cleaned
+	stale := &core.Document{Title: "旧投影"}
+	stale.ID = ProjectionDocID("art-direct")
+	projectionWrite(t, stale)
+	article.Status = core.WikiArticleArchived
+	SyncArticleProjection(article)
+	_, exists = loadProjectionRow(t, article.ID)
+	assert.False(t, exists, "switch off: removals must still run")
 }
