@@ -365,7 +365,15 @@ export function Component() {
       width: 100,
       render: (v: boolean) => (v ? <Tag color="purple">{t('page.searchOps.logRewritten')}</Tag> : null)
     },
-    { title: t('page.searchOps.logUser'), dataIndex: 'user_id', width: 120, ellipsis: true, render: (v?: string) => v || '—' }
+    {
+      title: t('page.searchOps.logUser'),
+      dataIndex: 'user_id',
+      width: 120,
+      ellipsis: true,
+      // show the resolved account name; the raw id is the fallback (legacy rows
+      // whose user_id no longer matches an account)
+      render: (v: string | undefined, r: SearchLogEntry) => r.user_name || v || '—'
+    }
   ];
 
   const items: { component: any; key: string; label: string }[] = [

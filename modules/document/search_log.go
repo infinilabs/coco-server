@@ -18,6 +18,7 @@ import (
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 )
 
@@ -450,6 +451,41 @@ func (h *APIHandler) searchOpsLogs(w http.ResponseWriter, req *http.Request, _ h
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	// resolve user_id → display name against the account store; the UI shows
+	// names, falling back to the raw id for unresolvable rows (legacy "admin"
+	// literals, deleted accounts). Best-effort: resolution failure degrades to
+	// ids, never fails the request.
+	seen := map[string]bool{}
+	ids := []string{}
+	for _, l := range logs {
+		if l.UserID != "" && !seen[l.UserID] {
+			seen[l.UserID] = true
+			ids = append(ids, l.UserID)
+		}
+	}
+	if len(ids) > 0 {
+		uctx := orm.WithModel(orm.NewContextWithParent(req.Context()), &security.UserAccount{})
+		uctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+		ures, err := orm.SearchV2(uctx, orm.NewQuery().Size(len(ids)).Filter(orm.TermsQuery("id", ids)))
+		if err != nil {
+			log.Warnf("search ops: resolve user names failed: %v", err)
+		} else {
+			users, _, err := elastic.DecodeHits[security.UserAccount](ures)
+			if err != nil {
+				log.Warnf("search ops: decode user names failed: %v", err)
+			} else {
+				names := map[string]string{}
+				for _, u := range users {
+					names[u.ID] = u.Name
+				}
+				for i := range logs {
+					if n := names[logs[i].UserID]; n != "" {
+						logs[i].UserName = n
+					}
+				}
+			}
+		}
 	}
 	h.WriteJSON(w, util.MapStr{"items": logs, "total": total}, http.StatusOK)
 }

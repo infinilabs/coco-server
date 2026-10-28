@@ -48,6 +48,8 @@ export interface SearchLogEntry {
   zero_hit: boolean;
   rewritten: boolean;
   user_id?: string;
+  /** resolved account display name (backend projection); missing for legacy/unresolvable ids */
+  user_name?: string;
   created?: string;
   /** diagnostics: per-leg timings, engine-side took, top hit and failure text */
   leg_keyword_ms?: number;

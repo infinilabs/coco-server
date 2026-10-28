@@ -42,4 +42,9 @@ type SearchLog struct {
 	// Error is set when the search itself failed (engine down, leg error);
 	// failed searches previously never reached the log at all
 	Error string `json:"error,omitempty" elastic_mapping:"error:{type:keyword}"`
+	// UserName is a read-only projection filled by the ops log endpoint
+	// (user_id resolved against the account store) — never persisted; rows
+	// whose user_id no longer matches an account (legacy/anonymous) leave it
+	// empty and the UI falls back to the raw id.
+	UserName string `json:"user_name,omitempty"`
 }
