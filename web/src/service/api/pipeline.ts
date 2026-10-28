@@ -77,9 +77,11 @@ import { createPipelineClient, type DryRunReport, type StepResult } from '@infin
 
 const pipelineClient = createPipelineClient({
   // the product adapter boundary: coco's request returns FlatResponseData
-  // (data + response); the shared client only consumes .data
+  // (data + response); the shared client only consumes .data.
+  // Both POST endpoints can invoke LLM processors for real — far beyond the
+  // axios default 10s, so the studio lifts the ceiling explicitly.
   post: <T,>(url: string, data: unknown) =>
-    request({ method: 'post', data, url }) as unknown as Promise<{ data: T }>,
+    request({ method: 'post', data, url, timeout: 180 * 1000 }) as unknown as Promise<{ data: T }>,
   get: <T,>(url: string) => request({ method: 'get', url }) as unknown as Promise<{ data: T }>
 });
 
