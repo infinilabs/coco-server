@@ -7,6 +7,7 @@ package common
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -202,10 +203,30 @@ func ApplyEnginePipelines(ctx context.Context, plan *EngineAIPlan) error {
 		return err
 	}
 	endpoint := raw.GetEndpoint()
-	if _, err := raw.Request(ctx, util.Verb_PUT, endpoint+"/_ingest/pipeline/"+core.EngineIngestPipelineName, util.MustToJSONBytes(plan.IngestPipeline)); err != nil {
+	// Surface non-2xx responses: Request returns (resp, nil) even on 4xx, and
+	// swallowing them here bricked document writes — the ingest pipeline PUT
+	// failed (engine without the text_embedding processor) while the
+	// index.default_pipeline assignment below still landed, so every direct
+	// document write failed with "pipeline does not exist".
+	putPipeline := func(path string, body util.MapStr) error {
+		resp, err := raw.Request(ctx, util.Verb_PUT, endpoint+path, util.MustToJSONBytes(body))
+		if err != nil {
+			return err
+		}
+		if resp == nil || resp.StatusCode >= 300 {
+			status, body := 0, ""
+			if resp != nil {
+				status = resp.StatusCode
+				body = strings.TrimSpace(string(resp.Body))
+			}
+			return fmt.Errorf("engine pipeline push to %s failed: HTTP %d %s", path, status, body)
+		}
+		return nil
+	}
+	if err := putPipeline("/_ingest/pipeline/"+core.EngineIngestPipelineName, plan.IngestPipeline); err != nil {
 		return err
 	}
-	if _, err := raw.Request(ctx, util.Verb_PUT, endpoint+"/_search/pipeline/"+core.EngineSearchPipelineName, util.MustToJSONBytes(plan.SearchPipeline)); err != nil {
+	if err := putPipeline("/_search/pipeline/"+core.EngineSearchPipelineName, plan.SearchPipeline); err != nil {
 		return err
 	}
 	client := elastic.GetClientNoPanic(global.MustLookupString(elastic.GlobalSystemElasticsearchID))
