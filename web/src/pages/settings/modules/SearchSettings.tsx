@@ -8,6 +8,7 @@ import DataSourceSelect from '@/pages/data-source/modules/DataSourceSelect';
 import { DocTableSelect } from './DocPicker';
 import BlockedPatternsField from './BlockedPatternsField';
 import RecommendTopicsField from './RecommendTopicsField';
+import RsaSourcesSection from './RsaSourcesSection';
 import AggregationFieldsField, { AGG_DIMENSIONS } from './AggregationFieldsField';
 import { useLoading, useRequest } from '@sa/hooks';
 import { getApplicationSetting, setApplicationSetting, updateRootRouteIfSearch } from '@/store/slice/server';
@@ -46,9 +47,9 @@ const RESULT_FIELD_CANDIDATES: Record<string, string[]> = {
   ownership: ['owner', 'source', 'connector_name']
 };
 
-// the four panes — also the `?tab=` seeds accepted on this route
-type SearchSettingsTab = 'basics' | 'retrieval' | 'results' | 'security';
-const TAB_KEYS: SearchSettingsTab[] = ['basics', 'retrieval', 'results', 'security'];
+// the five panes — also the `?tab=` seeds accepted on this route
+type SearchSettingsTab = 'basics' | 'retrieval' | 'sources' | 'results' | 'security';
+const TAB_KEYS: SearchSettingsTab[] = ['basics', 'retrieval', 'sources', 'results', 'security'];
 
 // field → owning pane, used to jump to the failing tab when the save's
 // validateFields rejects (the bad field may live on a hidden pane)
@@ -68,6 +69,9 @@ const FIELD_TABS: Record<string, SearchSettingsTab> = {
   max_result_window: 'retrieval',
   fuzziness: 'retrieval',
   query_timeout_ms: 'retrieval',
+  rsa_enabled: 'sources',
+  rsa_max_sources_per_query: 'sources',
+  rsa_cache_size: 'sources',
   page_size: 'results',
   max_page_size: 'results',
   result_source_includes: 'results',
@@ -186,6 +190,10 @@ const SearchSettings = memo(() => {
       enabled,
       wiki_projection: form.getFieldValue('wiki_projection') ?? false,
       chunk_route: form.getFieldValue('chunk_route') ?? false,
+      // federated leg (RSA) — 0 keeps the backend defaults (8 sources / 256 entries)
+      rsa_enabled: form.getFieldValue('rsa_enabled') ?? false,
+      rsa_max_sources_per_query: Number(params.rsa_max_sources_per_query) || 0,
+      rsa_cache_size: Number(params.rsa_cache_size) || 0,
       search_type: search_type || 'hybrid_rrf',
       // retrieval strategy — empty strings keep the backend fallbacks in place
       default_sort: params.default_sort || 'relevance',
@@ -304,6 +312,11 @@ const SearchSettings = memo(() => {
         // semantic / AI + intervention + security
         semantic_min_score: payload.search_settings.semantic_min_score ?? 0,
         rrf_rank_constant: payload.search_settings.rrf_rank_constant ?? 0,
+        // RSA federated leg — defaults mirror the backend fallbacks so the
+        // pane shows the effective budget even before the first explicit save
+        rsa_enabled: !!payload.search_settings.rsa_enabled,
+        rsa_max_sources_per_query: payload.search_settings.rsa_max_sources_per_query || 8,
+        rsa_cache_size: payload.search_settings.rsa_cache_size || 256,
         rerank_enabled: !payload.search_settings.rerank_disabled,
         blocked_doc_ids: payload.search_settings.blocked_doc_ids || [],
         blocked_datasource_ids: payload.search_settings.blocked_datasource_ids || [],
@@ -341,6 +354,9 @@ const SearchSettings = memo(() => {
         related_searches_enabled: true,
         semantic_min_score: 0,
         rrf_rank_constant: 0,
+        rsa_enabled: false,
+        rsa_max_sources_per_query: 8,
+        rsa_cache_size: 256,
         rerank_enabled: true,
         blocked_doc_ids: [],
         blocked_datasource_ids: [],
@@ -636,6 +652,47 @@ const SearchSettings = memo(() => {
                     >
                       <InputNumber className="w-520px" max={60000} min={0} step={100} />
                     </Form.Item>
+                  </div>
+                )
+              },
+              {
+                key: 'sources',
+                label: t('page.settings.search_settings.tabs.sources'),
+                forceRender: true,
+                children: (
+                  <div className="search-tab-pane">
+                    <div className="color-[var(--ant-color-text)] font-medium mb-8px">
+                      {t('page.settings.search_settings.labels.rsa_global')}
+                    </div>
+                    <div className="mb-16px settings-form-help">
+                      {t('page.settings.search_settings.labels.rsa_global_hint')}
+                    </div>
+                    <Form.Item
+                      label={t('page.settings.search_settings.labels.rsa_enabled')}
+                      name={['rsa_enabled']}
+                      valuePropName="checked"
+                      tooltip={t('page.settings.search_settings.labels.rsa_enabled_desc')}
+                    >
+                      <Switch size="small" />
+                    </Form.Item>
+                    <Form.Item
+                      label={t('page.settings.search_settings.labels.rsa_max_sources')}
+                      name={['rsa_max_sources_per_query']}
+                      tooltip={t('page.settings.search_settings.labels.rsa_max_sources_desc')}
+                    >
+                      <InputNumber className="w-520px" max={64} min={1} />
+                    </Form.Item>
+                    <Form.Item
+                      label={t('page.settings.search_settings.labels.rsa_cache_size')}
+                      name={['rsa_cache_size']}
+                      tooltip={t('page.settings.search_settings.labels.rsa_cache_size_desc')}
+                    >
+                      <InputNumber className="w-520px" max={4096} min={0} />
+                    </Form.Item>
+
+                    <Divider />
+
+                    <RsaSourcesSection />
                   </div>
                 )
               },

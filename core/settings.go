@@ -124,6 +124,18 @@ type SearchSettings struct {
 	// cite its mom section. Off by default — the text/semantic document
 	// legs stay; flip after _reprocess has projected enough documents.
 	ChunkRoute bool `json:"chunk_route,omitempty"`
+	// RsaEnabled turns on the RSA federated leg (DESIGN-RSA.md): enabled
+	// remote sources are queried at search time, mapped into standard
+	// documents and fused via RRF — zero local copies. Off by default;
+	// every source carries its own timeout/QPS/cache budget so the leg
+	// degrades alone when a backend is slow.
+	RsaEnabled bool `json:"rsa_enabled,omitempty"`
+	// RsaMaxSourcesPerQuery caps the fan-out breadth of one search (the
+	// anti-flatten-the-backend knob, default 8).
+	RsaMaxSourcesPerQuery int `json:"rsa_max_sources_per_query,omitempty"`
+	// RsaCacheSize bounds the in-memory per-source result cache entries
+	// (default 256, shared across sources, FIFO eviction).
+	RsaCacheSize int `json:"rsa_cache_size,omitempty"`
 
 	// ---- retrieval strategy (搜索设置 · 检索策略) ----
 	// NOTE: none of these carry omitempty on purpose — the settings merge is

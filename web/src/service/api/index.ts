@@ -8,4 +8,5 @@ export * from './route';
 export * from './system-manage';
 export * from './model-provider';
 export * from './application';
+export * from './rsa';
 export * from './wiki';

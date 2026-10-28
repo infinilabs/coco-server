@@ -137,6 +137,7 @@ func (h *APIHandler) parseRRFParams(req *http.Request) RRFConfig {
 			rrfRouteEntity:   defaultRRFWeight,
 			rrfRouteChunk:    defaultRRFWeight,
 			rrfRouteRewrite:  defaultRRFWeight,
+			rrfRouteRSA:      defaultRRFWeight,
 		},
 	}
 	if v := h.GetParameterOrDefault(req, "rrf_k", ""); v != "" {
@@ -169,6 +170,7 @@ func (h *APIHandler) parseRRFParams(req *http.Request) RRFConfig {
 	setWeight(rrfRouteEntity, "entity_weight")
 	setWeight(rrfRouteChunk, "chunk_weight")
 	setWeight(rrfRouteRewrite, "rewrite_weight")
+	setWeight(rrfRouteRSA, "rsa_weight")
 	return cfg.normalized()
 }
 
@@ -296,6 +298,22 @@ func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrat
 			log.Warnf("hybrid_rrf: chunk route failed: %v", cerr)
 		} else if chunkResp != nil {
 			addRoute(rrfRouteChunk, chunkResp, nil)
+		}
+	}
+	// RSA federated leg (DESIGN-RSA.md): direct queries over enabled
+	// remote sources, mapped to standard documents. Failures degrade to
+	// fewer-route fusion like every other leg.
+	if cfg := appConfigFn(); cfg.SearchSettings != nil && cfg.SearchSettings.RsaEnabled {
+		rsaResp, rsaDiag, rerr := h.rsaRoute(req, query, window)
+		if rerr != nil {
+			log.Warnf("hybrid_rrf: rsa route failed: %v", rerr)
+		} else if rsaResp != nil {
+			addRoute(rrfRouteRSA, rsaResp, nil)
+			if diag != nil {
+				for _, sd := range rsaDiag {
+					diag.LegRsaMS += sd.TookMS
+				}
+			}
 		}
 	}
 	if rw.Applied {

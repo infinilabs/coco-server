@@ -62,6 +62,7 @@ type searchDiagnostics struct {
 	LegKeywordMS  int64
 	LegSemanticMS int64
 	LegRewriteMS  int64
+	LegRsaMS      int64 // federated remote-source leg, summed across sources
 	EngineTookMS  int64
 	TopHit        string
 	TopScore      float64

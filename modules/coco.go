@@ -20,6 +20,7 @@ import (
 	_ "infini.sh/coco/modules/llm"
 	_ "infini.sh/coco/modules/mcpep"
 	_ "infini.sh/coco/modules/memory"
+	_ "infini.sh/coco/modules/rsa"
 	_ "infini.sh/coco/modules/pipeline"
 	_ "infini.sh/coco/modules/skill"
 	_ "infini.sh/coco/modules/system"

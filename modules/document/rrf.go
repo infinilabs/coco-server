@@ -32,10 +32,16 @@ const (
 	// rrfRouteRewrite runs the model-rewritten query as one more keyword
 	// route (D8) — add-only, the original text route keeps running.
 	rrfRouteRewrite = "rewrite"
+	// rrfRouteRSA is the federated remote-source leg (DESIGN-RSA.md):
+	// enabled external sources are queried at search time, mapped into
+	// standard documents and fused here — zero local copies. Gray-switched
+	// (search_settings.rsa_enabled); per-source budgets live in the rsa
+	// module so a slow backend degrades this leg alone.
+	rrfRouteRSA = "rsa"
 )
 
 // rrfRouteNames is the canonical order routes are listed and rendered in.
-var rrfRouteNames = []string{rrfRouteText, rrfRouteSemantic, rrfRouteWiki, rrfRouteGraph, rrfRouteEntity, rrfRouteChunk, rrfRouteRewrite}
+var rrfRouteNames = []string{rrfRouteText, rrfRouteSemantic, rrfRouteWiki, rrfRouteGraph, rrfRouteEntity, rrfRouteChunk, rrfRouteRewrite, rrfRouteRSA}
 
 // RRFConfig controls how the recall routes are fused with Reciprocal Rank
 // Fusion:
