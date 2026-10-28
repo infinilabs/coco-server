@@ -62,6 +62,8 @@ func (this *Coco) Setup() {
 	// per-KB validation set + replay runs (LLM-wiki P3)
 	orm.MustRegisterSchemaWithIndexName(core.WikiEvalCase{}, "wiki-evalcase"+suffix)
 	orm.MustRegisterSchemaWithIndexName(core.WikiEvalRun{}, "wiki-evalrun"+suffix)
+	// fleet pipeline deployments (接入中心 · 管道部署 desired state)
+	orm.MustRegisterSchemaWithIndexName(core.PipelineDeployment{}, "pipeline-deployment"+suffix)
 }
 
 func (this *Coco) Start() error {

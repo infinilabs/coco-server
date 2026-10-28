@@ -114,7 +114,7 @@ export interface DeploymentStatus {
 export function fetchPipelineDeployments() {
   return request<{ total: number; items: PipelineDeployment[] }>({
     method: 'get',
-    url: '/pipeline/deployments/'
+    url: '/pipeline/deployments'
   });
 }
 
@@ -122,7 +122,7 @@ export function createPipelineDeployment(data: Partial<PipelineDeployment>) {
   return request<PipelineDeployment>({
     method: 'post',
     data,
-    url: '/pipeline/deployments/'
+    url: '/pipeline/deployments'
   });
 }
 
