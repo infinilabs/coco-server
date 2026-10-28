@@ -1730,21 +1730,17 @@ export function Component() {
                   ) : null
                 ]}
               >
-                <List.Item.Meta
-                  description={
-                    <Space wrap>
-                      <span className='text-xs text-gray-400'>{v.created_at}</span>
-                      <span className='text-xs text-gray-400'>{v.created_by}</span>
-                    </Space>
-                  }
-                  title={
-                    <Space>
-                      <Tag color={CHANGE_TYPE_COLOR[v.change_type]}>{t(`page.wiki.changeType.${v.change_type}`)}</Tag>
-                      <span>{`v${v.version}`}</span>
-                    </Space>
-                  }
-                />
-                {v.change_summary && <div className='text-xs text-gray-500'>{v.change_summary}</div>}
+                {/* explicit flex column — List.Item.Meta plus a trailing block
+                    sibling collapses into one overlapping box on antd v6 */}
+                <div className='min-w-0 flex-1'>
+                  <div className='flex flex-wrap items-center gap-2'>
+                    <Tag color={CHANGE_TYPE_COLOR[v.change_type]}>{t(`page.wiki.changeType.${v.change_type}`)}</Tag>
+                    <span className='text-sm font-medium'>{`v${v.version}`}</span>
+                    <span className='text-xs text-gray-400'>{v.created_at}</span>
+                    <span className='text-xs text-gray-400'>{v.created_by}</span>
+                  </div>
+                  {v.change_summary && <div className='mt-1 text-xs text-gray-500'>{v.change_summary}</div>}
+                </div>
               </List.Item>
             )}
           />
