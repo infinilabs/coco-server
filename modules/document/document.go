@@ -509,9 +509,11 @@ func (h *APIHandler) reprocessDatasourceDocs(w http.ResponseWriter, req *http.Re
 
 	reprocessed, skipped, total := 0, 0, 0
 	for from := 0; from < reprocessBatchCap; from += 100 {
-		q := orm.Query{}
-		var err error
-		q.RawQuery, err = core.RewriteQueryWithFilter(q.RawQuery, util.MapStr{
+		// Pagination must live inside the RawQuery DSL: the ORM's RawQuery
+		// path (elastic.Client.QueryDSL) sends the DSL as-is and ignores
+		// q.From/q.Size, so without an explicit "size" ES defaults to 10 and
+		// the `len(docs) < 100` break below ended the batch after one page.
+		page, err := core.RewriteQueryWithFilter(nil, util.MapStr{
 			"bool": util.MapStr{
 				"filter": []util.MapStr{
 					{"term": util.MapStr{"source.id": datasourceID}},
@@ -522,7 +524,15 @@ func (h *APIHandler) reprocessDatasourceDocs(w http.ResponseWriter, req *http.Re
 			h.WriteError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		q.From, q.Size = from, 100
+		pageObj := util.MapStr{}
+		if err := util.FromJSONBytes(page, &pageObj); err != nil {
+			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		pageObj["from"] = from
+		pageObj["size"] = 100
+		q := orm.Query{}
+		q.RawQuery = util.MustToJSONBytes(pageObj)
 
 		docs := []core.Document{}
 		if err, _ = orm.SearchWithJSONMapper(&docs, &q); err != nil {
