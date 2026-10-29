@@ -12,7 +12,7 @@ const PageHeaderTitle = ({ description, icon, title }: { description?: string; i
       <span className='text-16px font-500 leading-24px'>{title}</span>
     </div>
     {description ? (
-      <div className='mt-6px text-12px color-[var(--ant-color-text-tertiary)]'>{description}</div>
+      <div className='mt-6px text-12px color-[var(--ant-color-text-tertiary)] whitespace-normal break-words'>{description}</div>
     ) : null}
   </div>
 );

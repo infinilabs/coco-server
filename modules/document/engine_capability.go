@@ -274,13 +274,18 @@ func (h *APIHandler) engineAIStatusResponse(ctx context.Context) util.MapStr {
 		status["engine_errors"] = actual.Errors
 	}
 	if plan.Model != nil {
+		providerName := plan.Model.ProviderID
+		if plan.Provider != nil && plan.Provider.Name != "" {
+			providerName = plan.Provider.Name
+		}
 		status["model"] = util.MapStr{
-			"provider_id":  plan.Model.ProviderID,
-			"id":           plan.Model.ID,
-			"vendor":       plan.Vendor,
-			"url":          plan.EmbeddingURL,
-			"text_field":   plan.TextField,
-			"vector_field": plan.VectorField,
+			"provider_id":   plan.Model.ProviderID,
+			"provider_name": providerName,
+			"id":            plan.Model.ID,
+			"vendor":        plan.Vendor,
+			"url":           plan.EmbeddingURL,
+			"text_field":    plan.TextField,
+			"vector_field":  plan.VectorField,
 		}
 	}
 	return status

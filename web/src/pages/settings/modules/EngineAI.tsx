@@ -1,5 +1,5 @@
-import { CloudUploadOutlined, SyncOutlined } from '@ant-design/icons';
-import { Badge, Button, Collapse, Form, Input, InputNumber, Spin, Switch, Tag } from 'antd';
+import { CloudUploadOutlined, InfoCircleOutlined, SyncOutlined } from '@ant-design/icons';
+import { Badge, Button, Collapse, Form, Input, InputNumber, Spin, Switch, Tag, Tooltip } from 'antd';
 import { memo, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -175,10 +175,21 @@ const EngineAI = memo(() => {
   }, [permissions.fetchModelProviders]);
 
   return (
-    <div className="settings-form">
+    <div>
       <Spin spinning={settingsLoading || statusLoading || loading}>
-        <Form colon={false} form={form} labelAlign="left" onValuesChange={() => setDirty(true)}>
-          <Form.Item label={t('page.settings.engine_ai.labels.enabled')} name="enabled" valuePropName="checked">
+        <Form className="settings-form py-24px" colon={false} form={form} labelAlign="left" onValuesChange={() => setDirty(true)}>
+          <Form.Item
+            label={
+              <span className="flex items-center gap-4px">
+                {t('page.settings.engine_ai.labels.enabled')}
+                <Tooltip title={t('page.settings.engine_ai.labels.route_note')}>
+                  <InfoCircleOutlined className="color-[var(--ant-color-text-tertiary)]" />
+                </Tooltip>
+              </span>
+            }
+            name="enabled"
+            valuePropName="checked"
+          >
             <Switch />
           </Form.Item>
           <ModelSelectItem
@@ -194,20 +205,20 @@ const EngineAI = memo(() => {
             name="batch_size"
             tooltip={t('page.settings.engine_ai.labels.batch_size_desc')}
           >
-            <InputNumber min={1} max={100} className="w-160px" placeholder="10" />
+            <InputNumber min={1} max={100} className="w-520px" placeholder="10" />
           </Form.Item>
           <Form.Item
             label={t('page.settings.engine_ai.labels.rank_constant')}
             name="rank_constant"
             tooltip={t('page.settings.engine_ai.labels.rank_constant_desc')}
           >
-            <InputNumber min={1} max={1000} className="w-160px" placeholder="60" />
+            <InputNumber min={1} max={1000} className="w-520px" placeholder="60" />
           </Form.Item>
           <Form.Item label={t('page.settings.engine_ai.labels.text_field')} name="text_field">
-            <Input className="w-360px" placeholder="ai_insights.text" />
+            <Input className="w-520px" placeholder="ai_insights.text" />
           </Form.Item>
           <Form.Item label={t('page.settings.engine_ai.labels.vector_field')} name="vector_field">
-            <Input className="w-360px" placeholder="ai_insights.embedding.embedding1024" />
+            <Input className="w-520px" placeholder="ai_insights.embedding.embedding1024" />
           </Form.Item>
         </Form>
       </Spin>
@@ -219,41 +230,51 @@ const EngineAI = memo(() => {
             <span className="font-500">{t('page.settings.engine_ai.status.title')}</span>
             {status.model && (
               <Tag>
-                {status.model.provider_id}/{status.model.id}
+                {status.model.provider_name || status.model.provider_id}/{status.model.id}
               </Tag>
             )}
-            <Button icon={<CloudUploadOutlined />} loading={loading} onClick={() => handleSync()} size="small" type="link">
-              {t('page.settings.engine_ai.status.sync_now')}
-            </Button>
+            {status.enabled && (
+              <Button icon={<CloudUploadOutlined />} loading={loading} onClick={() => handleSync()} size="small" type="link">
+                {t('page.settings.engine_ai.status.sync_now')}
+              </Button>
+            )}
           </div>
-          {(status.warnings || []).map((w: string) => (
-            <div key={w} className="color-[var(--ant-color-text-warning)]">
-              {w}
+          {!status.enabled ? (
+            <div className="color-[var(--ant-color-text-tertiary)] text-12px">
+              {t('page.settings.engine_ai.status.disabled')}
             </div>
-          ))}
-          {(status.engine_errors || []).map((e: string) => (
-            <div key={e} className="color-[var(--ant-color-text-danger)]">
-              {e}
-            </div>
-          ))}
-          {status.model && (
-            <div className="m-b-8px color-[var(--ant-color-text-tertiary)] text-12px">
-              {t('page.settings.engine_ai.status.callout')}: {status.model.url} · {status.model.text_field} → {status.model.vector_field}
-            </div>
-          )}
-          <PipelineStatus pipeline={status.ingest_pipeline} t={t} title={t('page.settings.engine_ai.status.ingest_pipeline')} />
-          <PipelineStatus pipeline={status.search_pipeline} t={t} title={t('page.settings.engine_ai.status.search_pipeline')} />
-          {status.document_index && (
-            <div className="m-b-8px flex items-center gap-8px">
-              <span>{t('page.settings.engine_ai.status.document_index')}</span>
-              <Tag>{status.document_index.name}</Tag>
-              <span className="color-[var(--ant-color-text-tertiary)]">
-                default_pipeline: {status.document_index.default_pipeline || '-'} (expected: {status.document_index.expected})
-              </span>
-              {!status.document_index.in_sync && (
-                <Tag color="warning">{t('page.settings.engine_ai.status.out_of_sync')}</Tag>
+          ) : (
+            <>
+              {(status.warnings || []).map((w: string) => (
+                <div key={w} className="color-[var(--ant-color-text-warning)]">
+                  {w}
+                </div>
+              ))}
+              {(status.engine_errors || []).map((e: string) => (
+                <div key={e} className="color-[var(--ant-color-text-danger)]">
+                  {e}
+                </div>
+              ))}
+              {status.model && (
+                <div className="m-b-8px color-[var(--ant-color-text-tertiary)] text-12px">
+                  {t('page.settings.engine_ai.status.callout')}: {status.model.url} · {status.model.text_field} → {status.model.vector_field}
+                </div>
               )}
-            </div>
+              <PipelineStatus pipeline={status.ingest_pipeline} t={t} title={t('page.settings.engine_ai.status.ingest_pipeline')} />
+              <PipelineStatus pipeline={status.search_pipeline} t={t} title={t('page.settings.engine_ai.status.search_pipeline')} />
+              {status.document_index && (
+                <div className="m-b-8px flex items-center gap-8px">
+                  <span>{t('page.settings.engine_ai.status.document_index')}</span>
+                  <Tag>{status.document_index.name}</Tag>
+                  <span className="color-[var(--ant-color-text-tertiary)]">
+                    default_pipeline: {status.document_index.default_pipeline || '-'} (expected: {status.document_index.expected})
+                  </span>
+                  {!status.document_index.in_sync && (
+                    <Tag color="warning">{t('page.settings.engine_ai.status.out_of_sync')}</Tag>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
