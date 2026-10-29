@@ -491,9 +491,10 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {  const { has
         }}
       >
         {/* the fetch button sits right of the model-id control: the select is
-            narrowed and the button pinned to the wrapper's bottom edge — the
-            Form.Item's bottom margin collapses through the plain div, so the
-            wrapper bottom IS the select bottom */}
+            narrowed and the button pinned to the control's top edge — anchoring
+            bottom instead would slide the button down to the validation-error
+            text whenever "required" fires (label height 22px + 8px margin is
+            constant, so top offset tracks the input top) */}
         <div className='relative'>
           <ProFormSelect
             label={t('page.modelprovider.labels.modelID')}
@@ -527,7 +528,7 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {  const { has
             ]}
           />
           <Button
-            className='absolute right-0 bottom-0 w-120px'
+            className='absolute right-0 top-30px w-120px'
             loading={fetchingModels}
             onClick={handleFetchModels}
           >
