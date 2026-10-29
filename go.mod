@@ -24,7 +24,6 @@ require (
 	github.com/google/go-github/v74 v74.0.0
 	github.com/hirochachacha/go-smb2 v1.1.0
 	github.com/infinilabs/picoloom/v2 v2.0.0-20260617033303-f6890aaf7f88
-	github.com/json-iterator/go v1.1.12
 	github.com/lib/pq v1.10.9
 	github.com/lucasb-eyer/go-colorful v1.4.0
 	github.com/mark3labs/mcp-go v0.43.1
@@ -44,7 +43,9 @@ require (
 	golang.org/x/image v0.21.0
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sync v0.21.0
+	golang.org/x/sys v0.47.0
 	golang.org/x/text v0.38.0
+	golang.org/x/time v0.12.0
 	google.golang.org/api v0.239.0
 	infini.sh/framework v0.0.0-00010101000000-000000000000
 )
@@ -104,6 +105,7 @@ require (
 	github.com/cockroachdb/redact v1.1.3 // indirect
 	github.com/coder/websocket v1.8.12 // indirect
 	github.com/davidmz/go-pageant v1.0.2 // indirect
+	github.com/dgraph-io/badger/v4 v4.7.0 // indirect
 	github.com/dgraph-io/ristretto v0.2.0 // indirect
 	github.com/dgraph-io/ristretto/v2 v2.2.0 // indirect
 	github.com/dlclark/regexp2 v1.10.0 // indirect
@@ -165,6 +167,7 @@ require (
 	github.com/invopop/jsonschema v0.13.0 // indirect
 	github.com/jmoiron/jsonq v0.0.0-20150511023944-e874b168d07e // indirect
 	github.com/josharian/intern v1.0.0 // indirect
+	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/kardianos/service v1.2.2 // indirect
 	github.com/kennygrant/sanitize v1.2.4 // indirect
@@ -261,9 +264,7 @@ require (
 	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa // indirect
 	golang.org/x/mod v0.37.0 // indirect
 	golang.org/x/net v0.56.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/term v0.44.0 // indirect
-	golang.org/x/time v0.12.0 // indirect
 	golang.org/x/tools v0.47.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260414002931-afd174a4e478 // indirect

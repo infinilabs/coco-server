@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"sort"
 	"time"
 
 	httprouter "infini.sh/framework/core/api/router"
@@ -271,19 +272,44 @@ func (h *StudioAPIHandler) dryRun(w http.ResponseWriter, req *http.Request, _ ht
 	h.WriteJSON(w, dryRunReport{Compiled: compiled, Steps: steps, SideEffects: sideEffects}, http.StatusOK)
 }
 
+// lookupRecordCodec resolves a codec by name WITHOUT the default-codec
+// fallback GetRecordCodec applies — an unknown name must fall through to
+// the plain-JSON decode path, not silently decode as the default codec.
+// Local shim over the framework registry until upstream ships the helper.
+func lookupRecordCodec(name string) (fpipeline.RecordCodec, bool) {
+	for _, c := range fpipeline.ListRecordCodecs() {
+		if c.Name == name {
+			return fpipeline.GetRecordCodec(name), true
+		}
+	}
+	return nil, false
+}
+
+// recordCodecNames lists registered codec names for error messages and the
+// codec picker. Local shim over the framework registry.
+func recordCodecNames() []string {
+	infos := fpipeline.ListRecordCodecs()
+	names := make([]string, 0, len(infos))
+	for _, c := range infos {
+		names = append(names, c.Name)
+	}
+	sort.Strings(names)
+	return names
+}
+
 func decodeSample(s dryRunSampleIn) (*event.Event, error) {
 	codecName := s.Codec
 	if codecName == "" {
 		codecName = defaultRecordCodec
 	}
-	if codec, ok := fpipeline.LookupRecordCodec(codecName); ok {
+	if codec, ok := lookupRecordCodec(codecName); ok {
 		return codec.Decode([]byte(s.Raw))
 	}
 	// unknown codec: fall back to a plain JSON object payload
 	rec := &event.Event{Fields: util.MapStr{}}
 	if err := json.Unmarshal([]byte(s.Raw), &rec.Fields); err != nil {
 		return nil, fmt.Errorf("failed to decode sample with codec %q (registered: %v), plain JSON fallback also failed: %s",
-			codecName, fpipeline.RecordCodecNames(), err)
+			codecName, recordCodecNames(), err)
 	}
 	return rec, nil
 }
@@ -317,9 +343,9 @@ func (h *StudioAPIHandler) aiGenerate(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
-	docs := make([]map[string]interface{}, 0, len(body.Documents))
+	docs := make([]util.MapStr, 0, len(body.Documents))
 	for _, raw := range body.Documents {
-		var m map[string]interface{}
+		var m util.MapStr
 		if err := json.Unmarshal([]byte(raw), &m); err != nil {
 			h.Error400(w, fmt.Sprintf("sample document is not a JSON object: %s", err))
 			return
@@ -352,7 +378,7 @@ func (h *StudioAPIHandler) aiGenerate(w http.ResponseWriter, req *http.Request, 
 // ─── codecs ─────────────────────────────────────────────────────────────────
 
 func (h *StudioAPIHandler) listCodecs(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	names := fpipeline.RecordCodecNames()
+	names := recordCodecNames()
 	codecs := make([]util.MapStr, 0, len(names))
 	for _, n := range names {
 		codecs = append(codecs, util.MapStr{"name": n})
