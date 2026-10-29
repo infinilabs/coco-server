@@ -64,7 +64,9 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
         setModelProviders(
           (((es.data || []) as any[]) || []).map(item => ({
             ...item,
-            models: item.models?.filter((m: any) => m.type === 'language') || []
+            // language pool includes vision-capable models: legacy type=vision
+            // and the new support_vision flag both mark a vision-capable model
+            models: item.models?.filter((m: any) => m.type === 'language' || m.type === 'vision') || []
           }))
         );
       })

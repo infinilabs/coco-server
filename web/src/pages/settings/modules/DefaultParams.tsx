@@ -360,14 +360,21 @@ const DefaultParams = memo(() => {
 
 export default DefaultParams;
 
-export const ModelSelectItem = ({ label, desc, name, modelProviderList = [], type, onRefresh }: { label: string, desc?: string, name: string, modelProviderList?: any[], type?: string, onRefresh?: () => void }) => {
+export const ModelSelectItem = ({ label, desc, name, modelProviderList = [], type, onRefresh, width }: { label: string, desc?: string, name: string, modelProviderList?: any[], type?: string, onRefresh?: () => void, width?: string }) => {
 
   const providers = useMemo(() => {
     if (!type) return modelProviderList;
     return modelProviderList.map(item => {
       return {
         ...item,
-        models: item.models?.filter((model: any) => model.type === type)
+        // vision slot: legacy type=vision plus language models flagged
+        // support_vision; language slots likewise include vision-capable
+        // models so they can be picked for text workloads
+        models: item.models?.filter((model: any) =>
+          type === 'vision'
+            ? model.type === 'vision' || model.support_vision
+            : model.type === type || (type === 'language' && (model.type === 'vision' || model.support_vision))
+        )
       };
     });
   }, [modelProviderList, type]);
@@ -383,6 +390,7 @@ export const ModelSelectItem = ({ label, desc, name, modelProviderList = [], typ
           showTemplate={false}
           onRefresh={onRefresh}
           allowClear
+          width={width}
         />
       </Form.Item>
     </Form.Item>

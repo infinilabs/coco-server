@@ -571,6 +571,8 @@ const page: App.I18n.Schema['translation']['page'] = {
   searchStudio: {
     title: 'Search Lab',
     subtitle: 'Multi-branch recall with live-tunable RRF fusion',
+    tabPlayground: 'Playground',
+    tabEval: 'Evaluation set',
     queryPlaceholder: 'Enter a query to run text, semantic, wiki and graph recall',
     queryRequired: 'Please enter a query',
     run: 'Run',
@@ -582,6 +584,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     fuzziness: 'Fuzziness',
     textWeight: 'BM25 weight',
     semanticWeight: 'kNN weight',
+    weightsTitle: 'Branch weights (RRF)',
     formula: 'score = Σ weight_route/(k+rank_route); ranks are 1-based, a branch that missed the doc contributes nothing',
     docTitle: 'Title',
     docSource: 'Datasource',
@@ -603,6 +606,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     evalPickHint: 'Type keywords to search documents',
     evalNotePlaceholder: 'Note (optional)',
     evalAdd: 'Add case',
+    evalEdit: 'Edit case',
     evalSaved: 'Case saved (same query replaces its expectation)',
     evalSaveFailed: 'Failed to save the case',
     evalQueryRequired: 'A query is required',
@@ -2169,19 +2173,31 @@ const page: App.I18n.Schema['translation']['page'] = {
       modelID: 'Model ID',
       modelType: 'Model Type',
       inferenceMode: 'Inference Mode',
-      setAsDefaultModel: 'Set as Default Model'
+      setAsDefaultModel: 'Set as Default Model',
+      modelCapabilities: 'Model capabilities',
+      inputModalities: 'Input modalities'
     },
     options: {
       dialogModel: 'Chat Model',
       chatModel: 'Chat Model',
-      languageModel: 'Language Model',
-      visionModel: 'Vision Model',
-      embeddingModel: 'Embedding Model',
-      rerankModel: 'Rerank Model'
+      textModel: 'Text',
+      embedding: 'Embedding',
+      rerank: 'Rerank',
+      reasoning: 'Reasoning',
+      vision: 'Vision'
     },
     hints: {
       selectOrInputModel: 'Select or input a model',
-      inferenceMode: 'Whether this model supports inference mode'
+      inferenceMode: 'Whether this model supports inference mode',
+      testModel: 'Test availability',
+      testSuccess: 'Model is available',
+      testFailed: 'Model is not available',
+      duplicateModel: 'This model ID already exists and cannot be added twice',
+      fetchModels: 'Fetch models',
+      fetchedModels: 'Models fetched',
+      fetchModelsFailed: 'Failed to fetch models',
+      needsApiType: 'Select an API type first',
+      testNeedsBaseUrl: 'Fill in the Base URL first'
     }
   },
   security: {
@@ -2488,6 +2504,13 @@ const page: App.I18n.Schema['translation']['page'] = {
         semantic_min_score_desc: 'Semantic/hybrid recall hits scoring below the threshold are dropped, 0 disables',
         rrf_rank_constant: 'RRF rank constant K',
         rrf_rank_constant_desc: 'Rank constant of the hybrid-search (RRF) fusion, default 60; an explicit ?rrf_k= request parameter wins',
+        route_weights: 'Branch weights (RRF)',
+        route_weights_hint: 'Default fusion weights per recall branch of the hybrid search; the Search Lab playground or an explicit request weight wins. Empty or 0 keeps the built-in default (curated Wiki 2, the rest 1)',
+        route_weights_text: 'BM25 branch weight',
+        route_weights_semantic: 'kNN branch weight',
+        route_weights_wiki: 'Curated Wiki weight',
+        route_weights_graph: 'Graph branch weight',
+        route_weights_rewrite: 'Rewrite branch weight',
         rerank_enabled: 'Enable rerank',
         rerank_enabled_desc: 'When off, the fused result keeps the RRF order and no rerank model is called',
         intervention: 'Result Intervention',
@@ -2682,10 +2705,11 @@ const page: App.I18n.Schema['translation']['page'] = {
       title: 'Semantic Search',
       labels: {
         engine_ai: 'Semantic search capabilities',
-        engine_ai_desc: 'Enable semantic/hybrid search for your documents: pick the embedding model here and Coco compiles it into the engine\'s ingest-time vectorization and search-time fusion pipelines — one config, applied on both sides',
-        enabled: 'Enable semantic search',
+        engine_ai_desc: 'Deploys the selected embedding model to the engine as two pipelines: ingest-time vectorization and search-time RRF fusion',
+        enabled: 'Enable engine-side pipelines',
         embedding_model: 'Embedding model',
         embedding_model_desc: 'Used by both engine pipelines; falls back to the default embedding model when empty',
+        route_note: 'Requires the engine to support the AI processors. When it doesn\'t (or sync fails), semantic search falls back to Coco\'s client-side route using the default embedding model from Default Parameters — this page\'s config takes no part',
         batch_size: 'Ingest batch size',
         batch_size_desc: 'Inputs batched per embedding call at ingest time',
         rank_constant: 'RRF rank constant',
@@ -2694,7 +2718,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         vector_field: 'Vector field'
       },
       status: {
-        title: 'Engine sync status',
+        title: 'Engine-side pipeline status',
+        disabled: 'Engine-side pipelines are disabled; Coco picks the semantic route automatically based on engine capability',
         in_sync: 'in sync',
         out_of_sync: 'out of sync',
         desired: 'Desired (generated by Coco)',

@@ -571,6 +571,8 @@ const page: App.I18n.Schema['translation']['page'] = {
   searchStudio: {
     title: '检索实验室',
     subtitle: '多分支召回与 RRF 融合,参数现场可调',
+    tabPlayground: '试跑',
+    tabEval: '评估集',
     queryPlaceholder: '输入查询,同时跑文本、语义、Wiki、图谱多分支召回',
     queryRequired: '请输入查询词',
     run: '试跑',
@@ -582,6 +584,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     fuzziness: '模糊度',
     textWeight: 'BM25 权重',
     semanticWeight: 'kNN 权重',
+    weightsTitle: '分支权重（RRF）',
     formula: '融合公式:score = Σ weight_route/(k+rank_route),排名从 1 开始,未召回的分支不计分',
     docTitle: '标题',
     docSource: '数据源',
@@ -603,6 +606,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     evalPickHint: '输入关键词搜索文档',
     evalNotePlaceholder: '备注(可选)',
     evalAdd: '添加用例',
+    evalEdit: '编辑用例',
     evalSaved: '用例已保存(同一查询会覆盖更新)',
     evalSaveFailed: '保存用例失败',
     evalQueryRequired: '请输入查询',
@@ -2141,6 +2145,13 @@ const page: App.I18n.Schema['translation']['page'] = {
         semantic_min_score_desc: '低于该相似度分数的语义/混合召回结果会被过滤，0 为关闭',
         rrf_rank_constant: 'RRF 融合常数 K',
         rrf_rank_constant_desc: '混合搜索（RRF）融合的排名常数，默认 60；请求显式携带 rrf_k 时以请求为准',
+        route_weights: '分支权重（RRF）',
+        route_weights_hint: '混合搜索各召回分支的默认融合权重；检索实验室试跑或请求显式携带权重时以请求为准。留空或 0 使用内置默认（策展 Wiki 为 2，其余为 1）',
+        route_weights_text: 'BM25 分支权重',
+        route_weights_semantic: 'kNN 分支权重',
+        route_weights_wiki: '策展 Wiki 权重',
+        route_weights_graph: '图谱分支权重',
+        route_weights_rewrite: '改写分支权重',
         rerank_enabled: '启用重排序',
         rerank_enabled_desc: '关闭后融合结果保持 RRF 顺序，不再调用 rerank 模型',
         intervention: '结果干预',
@@ -2333,10 +2344,11 @@ const page: App.I18n.Schema['translation']['page'] = {
       title: '语义检索',
       labels: {
         engine_ai: '语义检索能力',
-        engine_ai_desc: '为文档开启语义/混合检索:在此选定 Embedding 模型,Coco 会把它编译成引擎的入库向量化与检索融合两条管道——模型配置一次,写入与查询两侧同时生效',
-        enabled: '启用语义检索',
+        engine_ai_desc: '将选定的 Embedding 模型下发为引擎侧的两条管道:入库向量化与检索 RRF 融合',
+        enabled: '启用引擎侧管道',
         embedding_model: 'Embedding 模型',
         embedding_model_desc: '两条引擎管道共用;留空时回落到默认 Embedding 模型',
+        route_note: '生效前提:引擎需支持相应 AI 处理器。引擎不支持或未同步成功时,语义检索自动走 Coco 客户端路线(使用「默认参数」中的 Embedding 模型),本页配置不参与实际检索',
         batch_size: '入库批量',
         batch_size_desc: '入库时每次嵌入调用合并的输入数',
         rank_constant: 'RRF 融合常数',
@@ -2345,7 +2357,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         vector_field: '向量字段'
       },
       status: {
-        title: '引擎同步状态',
+        title: '引擎侧管道状态',
+        disabled: '引擎侧管道未启用;语义检索由 Coco 按引擎能力自动选择路线',
         in_sync: '已同步',
         out_of_sync: '未同步',
         desired: '期望配置(Coco 生成)',
@@ -2771,7 +2784,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       modelID: '模型ID',
       modelType: '模型类型',
       inferenceMode: '推理模式',
-      setAsDefaultModel: '设为默认模型'
+      setAsDefaultModel: '设为默认模型',
+      modelCapabilities: '模型能力',
+      inputModalities: '输入模态'
     },
     delete: {
       confirm: '您确定要删除这个模型提供商吗?'
@@ -2779,15 +2794,25 @@ const page: App.I18n.Schema['translation']['page'] = {
     options: {
       dialogModel: '对话模型',
       chatModel: '对话模型',
-      languageModel: '语言模型',
-      visionModel: '视觉模型',
-      embeddingModel: 'Embedding 模型',
-      rerankModel: 'Rerank 模型'
+      textModel: '文本',
+      embedding: '嵌入',
+      rerank: '重排',
+      reasoning: '推理',
+      vision: '视觉'
     },
     hints: {
       selectOrInputModel: '选择或输入一个模型',
-      inferenceMode: '这个模型是否支持推理模式'
-    }
+      inferenceMode: '这个模型是否支持推理模式',
+      testModel: '检测可用性',
+      testSuccess: '模型可用',
+      testFailed: '模型不可用',
+      duplicateModel: '该模型 ID 已存在，不能重复添加',
+      fetchModels: '获取模型列表',
+      fetchedModels: '已获取模型',
+      fetchModelsFailed: '获取模型列表失败',
+      needsApiType: '请先选择 API 类型',
+      testNeedsBaseUrl: '请先填写上方的 Base URL'
+    },
   },
   role: {
     title: '角色',

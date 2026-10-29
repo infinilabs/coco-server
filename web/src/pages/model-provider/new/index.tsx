@@ -1,15 +1,15 @@
 import { Button, Form, Input, List, Select, Switch, message } from 'antd';
 import type { FormProps } from 'antd';
-import { createModelProvider, getLLMModels } from '@/service/api/model-provider';
+import { createModelProvider, fetchProviderModels, getLLMModels, testModelProvider } from '@/service/api/model-provider';
 import { getConnectorIcons } from '@/service/api/connector';
 import { MinusCircleOutlined } from '@ant-design/icons';
 import { formatESSearchResult } from '@/service/request/es';
 import { getUUID } from '@/utils/common';
-import { ModalForm, ProFormSelect, ProFormSwitch } from '@ant-design/pro-components';
+import { ModalForm, ProFormSelect } from '@ant-design/pro-components';
 import type { AnyObject } from 'antd/es/_util/type';
 // @ts-ignore
 import { IconSelector } from '../../connector/new/icon_selector';
-import { Settings } from 'lucide-react';
+import { ArrowUpDown, Boxes, Brain, Eye, Settings, Type } from 'lucide-react';
 import { isArray } from 'lodash';
 
 export function Component() {
@@ -143,8 +143,47 @@ export function Component() {
   );
 }
 
-export const ModelsComponent = ({ value = [], onChange }: any) => {
-  const { hasAuth } = useAuth();
+// chip-style option buttons (rounded pill + icon, neutral fill when selected)
+// used for the type / capability / modality groups in the model modal
+const chipCls = (active: boolean) =>
+  `flex h-32px cursor-pointer select-none items-center gap-6px rounded-6px border px-12px text-14px transition-colors ${
+    active
+      ? 'border-[var(--ant-color-border)] bg-[var(--ant-color-fill-secondary)] font-500'
+      : 'border-[var(--ant-color-border-secondary)] hover:border-[var(--ant-color-primary-border)]'
+  }`;
+
+const ChipSelect = ({ value, onChange, options }: any) => (
+  <div className='flex flex-wrap gap-8px'>
+    {options.map((o: any) => {
+      const Icon = o.icon;
+
+      return (
+        <div
+          className={chipCls(value === o.value)}
+          key={o.value}
+          onClick={() => onChange?.(o.value)}
+        >
+          {Icon && <Icon className='size-14px' />}
+          {o.label}
+        </div>
+      );
+    })}
+  </div>
+);
+
+const ChipToggle = ({ value, onChange, label, icon: Icon }: any) => (
+  <div className='flex flex-wrap gap-8px'>
+    <div
+      className={chipCls(!!value)}
+      onClick={() => onChange?.(!value)}
+    >
+      {Icon && <Icon className='size-14px' />}
+      {label}
+    </div>
+  </div>
+);
+
+export const ModelsComponent = ({ value = [], onChange }: any) => {  const { hasAuth } = useAuth();
 
   const permissions = {
     fetchModelProviders: hasAuth('coco#model_provider/search')
@@ -222,6 +261,112 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
   const [modelOpen, setModelOpen] = useState(false);
   const [editKey, setEditKey] = useState<string>();
 
+  // the provider connection fields live on the OUTER form (new & edit pages
+  // both name them api_type/base_url/api_key), so reach up through the
+  // FormInstance instead of threading props through every call site
+  const parentForm = Form.useFormInstance();
+
+  // remote model list is fetched on demand (user-triggered) and merged with
+  // the aggregated historical ids; manual entry stays available either way
+  const [fetchingModels, setFetchingModels] = useState(false);
+  const [remoteModels, setRemoteModels] = useState<string[] | null>(null);
+
+  // infer a model's nature from its id — advisory only: applied while the
+  // type field still holds the default, never overwrites an explicit choice.
+  // Vision markers (qwen-vl / GLM-4.5V trailing V / *vision*) map onto the
+  // language type + support_vision capability, per the compat taxonomy
+  const guessModelType = (id: string): { type: string; vision: boolean } => {
+    const n = (id || '').toLowerCase();
+    if (!n) return { type: 'language', vision: false };
+    if (n.includes('rerank')) return { type: 'rerank', vision: false };
+    if (n.includes('embed') || n.includes('bge-') || n.includes('gte-')) return { type: 'embedding', vision: false };
+    return { type: 'language', vision: n.includes('vision') || n.includes('vl') || /v$/.test(n) };
+  };
+
+  const modelOptions = useMemo(() => {
+    const seen = new Set<string>();
+    const existing = new Set(innerValue.map(v => v.value?.name));
+    const opts: { label: string; value: string; disabled: boolean }[] = [];
+    const push = (id: string) => {
+      if (!id || seen.has(id)) return;
+      seen.add(id);
+      opts.push({ label: id, value: id, disabled: existing.has(id) });
+    };
+    (remoteModels || []).forEach(push);
+    models.forEach(push);
+    return opts;
+  }, [remoteModels, models, innerValue]);
+
+  const handleFetchModels = async () => {
+    const conn = parentForm?.getFieldsValue(['api_type', 'base_url', 'api_key']) || {};
+    if (!conn?.api_type) {
+      message.warning(t('page.modelprovider.hints.needsApiType'));
+      return;
+    }
+    if (!conn?.base_url) {
+      message.warning(t('page.modelprovider.hints.testNeedsBaseUrl'));
+      return;
+    }
+    setFetchingModels(true);
+    try {
+      const res: any = await fetchProviderModels({
+        api_type: conn.api_type,
+        base_url: conn.base_url,
+        api_key: conn.api_key
+      });
+      const d = res?.data;
+      if (d?.ok) {
+        setRemoteModels(d.models || []);
+        message.success(`${t('page.modelprovider.hints.fetchedModels')} (${d.models?.length ?? 0})`);
+      } else {
+        message.error(`${t('page.modelprovider.hints.fetchModelsFailed')}: ${d?.error || `HTTP ${d?.status ?? '-'}`}`);
+      }
+    } catch (e: any) {
+      message.error(`${t('page.modelprovider.hints.fetchModelsFailed')}: ${e?.message || e}`);
+    } finally {
+      setFetchingModels(false);
+    }
+  };
+
+  // the provider connection fields live on the OUTER form (new & edit pages
+  // both name them api_type/base_url/api_key), so reach up through the
+  // FormInstance instead of threading props through every call site
+  const [testing, setTesting] = useState(false);
+  const handleTestModel = async () => {
+    try {
+      await form.validateFields(['name']);
+    } catch {
+      return;
+    }
+    const conn = parentForm?.getFieldsValue(['api_type', 'base_url', 'api_key']) || {};
+    if (!conn?.base_url) {
+      message.warning(t('page.modelprovider.hints.testNeedsBaseUrl'));
+      return;
+    }
+    const nameVal = form.getFieldValue('name');
+    const model = isArray(nameVal) ? nameVal[0] : nameVal;
+    setTesting(true);
+    try {
+      const res: any = await testModelProvider({
+        api_type: conn.api_type,
+        base_url: conn.base_url,
+        api_key: conn.api_key,
+        model,
+        type: form.getFieldValue('type')
+      });
+      const d = res?.data;
+      if (d?.ok) {
+        message.success(`${t('page.modelprovider.hints.testSuccess')} (${d.latency_ms ?? '-'}ms)`);
+      } else {
+        message.error(`${t('page.modelprovider.hints.testFailed')}: ${d?.error || `HTTP ${d?.status ?? '-'}`}`);
+      }
+    } catch (e: any) {
+      message.error(`${t('page.modelprovider.hints.testFailed')}: ${e?.message || e}`);
+    } finally {
+      setTesting(false);
+    }
+  };
+
   return (
     <>
       {innerValue.length > 0 && (
@@ -239,17 +384,23 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
                   <span key='inference-mode'>
                     {value?.support_reasoning ? t('page.modelprovider.labels.inferenceMode') : '-'}
                   </span>,
+                  <span key='vision-input'>
+                    {/* legacy type=vision counts as vision-capable too */}
+                    {value?.support_vision || value?.type === 'vision' ? t('page.modelprovider.options.vision') : '-'}
+                  </span>,
                   <Settings
                     className='size-4 translate-y-[2px] cursor-pointer text-[#999]'
                     key='settings'
                     onClick={() => {
-                      // backend serializes support_reasoning with omitempty:
-                      // false never lands in ES, so the read-back value is
-                      // undefined — set it explicitly or the switch's
-                      // initialValue=true resurrects a disabled flag
+                      // backend serializes support flags with omitempty:
+                      // false never lands in ES, so read-back is undefined —
+                      // set them explicitly or stale values resurrect.
+                      // Legacy type=vision stays as-is (the compat period
+                      // keeps the legacy type selectable, no data migration)
                       form.setFieldsValue({
                         ...value,
-                        support_reasoning: value?.support_reasoning ?? false
+                        support_reasoning: value?.support_reasoning ?? false,
+                        support_vision: value?.support_vision ?? false
                       });
 
                       setEditKey(key);
@@ -279,6 +430,20 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
         title={t('page.modelprovider.labels.addModel')}
         trigger={<Button type='primary'>{t('common.add')}</Button>}
         width={560}
+        submitter={{
+          // test button shares the footer row with Save/Cancel, aligned left
+          render: (_props, dom) => (
+            <div className='flex w-full items-center justify-between'>
+              <Button
+                loading={testing}
+                onClick={handleTestModel}
+              >
+                {t('page.modelprovider.hints.testModel')}
+              </Button>
+              <div className='flex items-center gap-8px'>{dom}</div>
+            </div>
+          )
+        }}
         modalProps={{
           centered: true,
           destroyOnClose: true,
@@ -291,6 +456,13 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
           const name = isArray(values.name) ? values.name[0] : values.name;
 
           const matched = innerValue.find(item => item.key === editKey);
+
+          // a model name must be unique within a provider — GetModel indexes
+          // by name, a duplicate would silently shadow the existing entry
+          if (!matched && innerValue.some(item => item.value?.name === name)) {
+            message.warning(t('page.modelprovider.hints.duplicateModel'));
+            return false;
+          }
 
           if (matched) {
             setInnerValue(prev => {
@@ -318,41 +490,75 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
           return true;
         }}
       >
-        <ProFormSelect
-          label={t('page.modelprovider.labels.modelID')}
-          name='name'
-          fieldProps={{
-            loading,
-            maxCount: 1,
-            mode: 'tags',
-            placeholder: t('page.modelprovider.hints.selectOrInputModel'),
-            options: models.map(model => ({
-              label: model,
-              value: model
-            }))
-          }}
-          rules={[
-            {
-              required: true
-            }
-          ]}
-        />
+        {/* the fetch button sits right of the model-id control: the select is
+            narrowed and the button pinned to the wrapper's bottom edge — the
+            Form.Item's bottom margin collapses through the plain div, so the
+            wrapper bottom IS the select bottom */}
+        <div className='relative'>
+          <ProFormSelect
+            label={t('page.modelprovider.labels.modelID')}
+            name='name'
+            fieldProps={{
+              loading,
+              maxCount: 1,
+              mode: 'tags',
+              placeholder: t('page.modelprovider.hints.selectOrInputModel'),
+              style: { width: 'calc(100% - 128px)' },
+              options: modelOptions,
+              onChange: (v: any) => {
+                const id = isArray(v) ? v[0] : v;
+                if (!id) return;
+                // only suggest while the type still holds its default; an
+                // explicit user choice is never overwritten
+                const cur = form.getFieldValue('type');
+                if (cur && cur !== 'language') return;
+                const guessed = guessModelType(String(id));
+                if (guessed.type !== 'language') {
+                  form.setFieldValue('type', guessed.type);
+                } else if (guessed.vision) {
+                  form.setFieldValue('support_vision', true);
+                }
+              }
+            }}
+            rules={[
+              {
+                required: true
+              }
+            ]}
+          />
+          <Button
+            className='absolute right-0 bottom-0 w-120px'
+            loading={fetchingModels}
+            onClick={handleFetchModels}
+          >
+            {t('page.modelprovider.hints.fetchModels')}
+          </Button>
+        </div>
 
-        <ProFormSelect
+        {/* 视觉 stays as a legacy type during the compat period (existing data
+            carries it); new vision-capable language models should prefer
+            Text + Vision-input modality instead */}
+        <Form.Item
+          colon={false}
           initialValue='language'
           label={t('page.modelprovider.labels.modelType')}
           name='type'
-          options={[
-            { label: t('page.modelprovider.options.languageModel'), value: 'language' },
-            { label: t('page.modelprovider.options.visionModel'), value: 'vision' },
-            { label: t('page.modelprovider.options.embeddingModel'), value: 'embedding' },
-            { label: t('page.modelprovider.options.rerankModel'), value: 'rerank' }
-          ]}
           rules={[{ required: true }]}
-        />
+        >
+          <ChipSelect
+            options={[
+              { label: t('page.modelprovider.options.textModel'), value: 'language', icon: Type },
+              { label: t('page.modelprovider.options.vision'), value: 'vision', icon: Eye },
+              { label: t('page.modelprovider.options.embedding'), value: 'embedding', icon: Boxes },
+              { label: t('page.modelprovider.options.rerank'), value: 'rerank', icon: ArrowUpDown }
+            ]}
+          />
+        </Form.Item>
 
-        {/* the backend rejects support_reasoning on non-language models; an
-            unset type counts as language, mirroring core.Model.Validate */}
+        {/* capabilities & input modalities only apply to language models (an
+            unset type counts as language, mirroring core.Model.Validate);
+            preserve:false drops the flags from the payload when the group
+            hides, so switching type never trips backend validation */}
         <Form.Item
           noStyle
           shouldUpdate={(prev, curr) => prev.type !== curr.type}
@@ -360,20 +566,30 @@ export const ModelsComponent = ({ value = [], onChange }: any) => {
           {({ getFieldValue }) =>
             getFieldValue('type') === 'language' || !getFieldValue('type') ? (
               <>
-                <ProFormSwitch
+                <Form.Item
+                  colon={false}
                   initialValue={true}
-                  label={t('page.modelprovider.labels.inferenceMode')}
-                  name={['support_reasoning']}
-                  formItemProps={{
-                    layout: 'horizontal',
-                    className: 'mb-0!',
-                    // drop the flag from the payload when the field hides,
-                    // so switching type never trips backend validation
-                    preserve: false
-                  }}
-                />
+                  label={t('page.modelprovider.labels.modelCapabilities')}
+                  name='support_reasoning'
+                  preserve={false}
+                >
+                  <ChipToggle
+                    icon={Brain}
+                    label={t('page.modelprovider.options.reasoning')}
+                  />
+                </Form.Item>
 
-                <span className='text-color-3'>{t('page.modelprovider.hints.inferenceMode')}</span>
+                <Form.Item
+                  colon={false}
+                  label={t('page.modelprovider.labels.inputModalities')}
+                  name='support_vision'
+                  preserve={false}
+                >
+                  <ChipToggle
+                    icon={Eye}
+                    label={t('page.modelprovider.options.vision')}
+                  />
+                </Form.Item>
               </>
             ) : null
           }

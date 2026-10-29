@@ -118,6 +118,9 @@ const filterProvidersByType = (providers: any[], type: string) =>
   providers.map(item => ({
     ...item,
     models: (item.models || []).filter((m: any) => {
+      // vision candidates: legacy type=vision or language models flagged
+      // support_vision (the compat taxonomy)
+      if (type === 'vision') return m.type === 'vision' || m.support_vision;
       if (m.type !== type) return false;
       if (type === 'language' && /rerank|embedding/i.test(m.name || '')) return false;
       return true;

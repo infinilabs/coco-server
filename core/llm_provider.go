@@ -22,6 +22,12 @@ type Model struct {
 	// SupportReasoning reports whether this model is capable of reasoning mode.
 	// Only meaningful for language models (Type == LLMTypeLanguage).
 	SupportReasoning bool `json:"support_reasoning,omitempty"`
+
+	// SupportVision reports whether this language model accepts image input
+	// (vision input). Only meaningful for language models; legacy data may
+	// instead carry Type == LLMTypeVision, which consumers must keep treating
+	// as vision-capable during the compatibility period.
+	SupportVision bool `json:"support_vision,omitempty"`
 }
 
 type ModelProvider struct {
@@ -83,23 +89,42 @@ func (provider *ModelProvider) GetModel(name string) *Model {
 	return provider.models[name]
 }
 
-// Validate rejects a model definition that sets SupportReasoning on a
-// non-language model type. When Type is unset the model is assumed to be a
-// language model and the flag is allowed.
+// Validate rejects a model definition that sets SupportReasoning or
+// SupportVision on a non-language model type. When Type is unset the model is
+// assumed to be a language model and the flags are allowed.
 func (m *Model) Validate() error {
-	if m.SupportReasoning && m.Type != "" && m.Type != LLMTypeLanguage {
-		return fmt.Errorf("model %q: support_reasoning is only valid for language models", m.Name)
+	if m.Type != "" && m.Type != LLMTypeLanguage {
+		if m.SupportReasoning {
+			return fmt.Errorf("model %q: support_reasoning is only valid for language models", m.Name)
+		}
+		if m.SupportVision {
+			return fmt.Errorf("model %q: support_vision is only valid for language models", m.Name)
+		}
 	}
 	return nil
 }
 
 // ValidateModels calls Validate on every entry in provider.Models and returns
-// the first error encountered.
+// the first error encountered. Model names must be unique within a provider:
+// GetModel indexes by name, so a duplicate name would silently shadow the
+// earlier entry and make the model's type ambiguous.
 func (provider *ModelProvider) ValidateModels() error {
+	seen := make(map[string]struct{}, len(provider.Models))
 	for i := range provider.Models {
 		if err := provider.Models[i].Validate(); err != nil {
 			return err
 		}
+
+		if provider.Models[i].Name == "" {
+			continue
+		}
+
+		if _, ok := seen[provider.Models[i].Name]; ok {
+			return fmt.Errorf("duplicate model %q in provider %q", provider.Models[i].Name, provider.Name)
+		}
+
+		seen[provider.Models[i].Name] = struct{}{}
 	}
+
 	return nil
 }

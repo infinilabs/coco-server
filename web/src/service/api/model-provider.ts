@@ -28,6 +28,39 @@ export function createModelProvider(body: any) {
   });
 }
 
+export function fetchProviderModels(body: { api_type: string; base_url: string; api_key?: string }) {
+  return request<{ ok: boolean; models?: string[]; status?: number; error?: string }>({
+    method: 'post',
+    data: body,
+    url: '/model_provider/_models'
+  });
+}
+
+/**
+ * Probe model availability before the provider is saved: the backend issues
+ * one minimal vendor call (chat/embeddings/rerank per model type) with the
+ * given url + key + model id and reports ok/status/latency.
+ */
+export function testModelProvider(body: {
+  api_type?: string;
+  base_url: string;
+  api_key?: string;
+  model: string;
+  type?: string;
+}) {
+  return request<{
+    ok: boolean;
+    status?: number;
+    latency_ms?: number;
+    detail?: string;
+    error?: string;
+  }>({
+    method: 'post',
+    data: body,
+    url: '/model_provider/_test'
+  });
+}
+
 export function deleteModelProvider(providerID: string) {
   return request({
     method: 'delete',

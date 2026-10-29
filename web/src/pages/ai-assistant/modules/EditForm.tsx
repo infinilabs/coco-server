@@ -137,7 +137,9 @@ export const EditForm = memo((props: AssistantFormProps) => {
     const res = formatESSearchResult(modelsResult);
     return res.data.map((item: any) => ({
       ...item,
-      models: item.models?.filter((model: any) => model.type === 'language') || []
+      // language pool includes vision-capable models: legacy type=vision and
+      // the new support_vision flag both mark a language model that can see
+      models: item.models?.filter((model: any) => model.type === 'language' || model.type === 'vision') || []
     }));
   }, [JSON.stringify(modelsResult)]);
 
