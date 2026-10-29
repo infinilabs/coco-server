@@ -7,6 +7,7 @@ package skill
 import (
 	"strings"
 
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/orm"
 )
@@ -42,6 +43,14 @@ func BuildSkillsSection() string {
 	return buildSkillsSection()
 }
 
+func skillTitles(skills []core.Skill) []string {
+	titles := make([]string, 0, len(skills))
+	for _, s := range skills {
+		titles = append(titles, s.Title)
+	}
+	return titles
+}
+
 func buildSkillsSection() (section string) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -51,11 +60,14 @@ func buildSkillsSection() (section string) {
 
 	skills, err := GetEnabledSkills()
 	if err != nil {
+		log.Errorf("skill: failed to load enabled skills, system prompt will have no skill section: %v", err)
 		return ""
 	}
 	if len(skills) == 0 {
+		log.Debug("skill: no enabled skills, skipping skill section")
 		return ""
 	}
+	log.Infof("skill: injecting %d enabled skill(s) into the system prompt: %v", len(skills), skillTitles(skills))
 
 	var sb strings.Builder
 	sb.WriteString("\n\n## 已激活的技能\n你同时具备以下专业能力，请在相关场景下主动运用：\n")
