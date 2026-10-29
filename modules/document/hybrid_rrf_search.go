@@ -140,6 +140,22 @@ func (h *APIHandler) parseRRFParams(req *http.Request) RRFConfig {
 			rrfRouteRSA:      defaultRRFWeight,
 		},
 	}
+	// 搜索设置 · 检索策略: the operator's per-route weight defaults fill in
+	// before the per-request overrides below — an explicit request weight
+	// still wins, a non-positive stored value keeps the built-in default
+	if ss := searchSettingsSnapshot(); ss != nil && ss.RouteWeights != nil {
+		sw := ss.RouteWeights
+		applyRouteWeight := func(route string, w float64) {
+			if w > 0 {
+				cfg.Weights[route] = w
+			}
+		}
+		applyRouteWeight(rrfRouteText, sw.Text)
+		applyRouteWeight(rrfRouteSemantic, sw.Semantic)
+		applyRouteWeight(rrfRouteWiki, sw.Wiki)
+		applyRouteWeight(rrfRouteGraph, sw.Graph)
+		applyRouteWeight(rrfRouteRewrite, sw.Rewrite)
+	}
 	if v := h.GetParameterOrDefault(req, "rrf_k", ""); v != "" {
 		if f, err := strconv.ParseFloat(strings.TrimSpace(v), 64); err == nil {
 			cfg.K = f

@@ -1,6 +1,6 @@
 import { ArrowRight, FlaskConical, RefreshCw, Search } from 'lucide-react';
 import PageHeaderTitle from '@/components/stateless/common/PageHeaderTitle';
-import { Button, Card, Col, Input, InputNumber, Row, Select, Slider, Space, Spin, Table, Tag, Tooltip, Typography, message } from 'antd';
+import { Button, Card, Col, Input, InputNumber, Row, Select, Slider, Space, Spin, Table, Tabs, Tag, Tooltip, Typography, message } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -14,6 +14,7 @@ import {
 } from '@/service/api/search-studio';
 
 import { EvalPanel } from './eval-panel';
+import '../settings/index.scss';
 const fmtScore = (v: number | undefined) => {
   if (v === undefined || v === null) return '-';
   if (v === 0) return '0';
@@ -48,6 +49,7 @@ export function Component() {
   const [weights, setWeights] = useState<Record<string, number>>({ text: 1, semantic: 1, wiki: 1, graph: 1, rewrite: 1 });
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<SearchStudioResult | null>(null);
+  const [activeTab, setActiveTab] = useState('playground');
 
   const [datasourceOptions, setDatasourceOptions] = useState<{ label: string; value: string }[]>([]);
 
@@ -200,19 +202,35 @@ export function Component() {
   );
 
   return (
-    <div className="flex flex-col gap-16px">
+    <div className="pb-16px">
+    <Card
+      styles={{ body: { padding: 0 } }}
+      title={
+        <PageHeaderTitle
+          description={t('page.searchStudio.subtitle')}
+          icon={<FlaskConical className="w-18px h-18px" />}
+          title={t('page.searchStudio.title')}
+        />
+      }
+    >
+      <Tabs
+        className="settings-tabs"
+        activeKey={activeTab}
+        items={[
+          { key: 'playground', label: t('page.searchStudio.tabPlayground') },
+          { key: 'eval', label: t('page.searchStudio.tabEval') }
+        ]}
+        onChange={setActiveTab}
+      />
+      <div className="settings-tabs-content">
+        {activeTab === 'eval' ? (
+          <EvalPanel datasourceOptions={datasourceOptions} />
+        ) : (
+          <div className="flex flex-col gap-16px">
       <Card
-        title={
-          <PageHeaderTitle
-            description={t('page.searchStudio.subtitle')}
-            icon={<FlaskConical className="w-18px h-18px" />}
-            title={t('page.searchStudio.title')}
-          />
-        }
       >
         <Space.Compact style={{ width: '100%' }} className="mb-16px">
           <Input
-            size="large"
             allowClear
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -220,13 +238,13 @@ export function Component() {
             placeholder={t('page.searchStudio.queryPlaceholder')}
             prefix={<Search className="w-16px h-16px text-gray-400" />}
           />
-          <Button size="large" type="primary" loading={running} disabled={!permissions.run} onClick={runTest}>
+          <Button type="primary" loading={running} disabled={!permissions.run} onClick={runTest}>
             {t('page.searchStudio.run')}
           </Button>
         </Space.Compact>
 
-        <Row gutter={[16, 8]}>
-          <Col span={10}>
+        <Row gutter={[16, 16]}>
+          <Col span={8}>
             <div className="text-13px mb-4px">{t('page.searchStudio.datasource')}</div>
             <Select
               mode="multiple"
@@ -243,14 +261,22 @@ export function Component() {
             <div className="text-13px mb-4px">{t('page.searchStudio.size')}</div>
             <InputNumber min={1} max={50} style={{ width: '100%' }} value={size} onChange={(v) => setSize(v ?? 10)} />
           </Col>
-          <Col span={5}>
-            <div className="text-13px mb-4px">{t('page.searchStudio.fuzziness')}</div>
+          <Col span={6}>
+            <div className="text-13px mb-4px">
+              {t('page.searchStudio.fuzziness')} <span className="text-[#1784FC]">{fuzziness}</span>
+            </div>
             <Slider min={0} max={5} value={fuzziness} onChange={(v) => setFuzziness(v)} />
           </Col>
-          <Col span={5}>
+          <Col span={6}>
             <div className="text-13px mb-4px">RRF k</div>
             <InputNumber min={1} max={1000} style={{ width: '100%' }} value={rrfK} onChange={(v) => setRrfK(v ?? 60)} />
           </Col>
+        </Row>
+
+        <Typography.Text type="secondary" className="text-13px mt-16px mb-12px block">
+          {t('page.searchStudio.weightsTitle')}
+        </Typography.Text>
+        <Row gutter={[16, 16]}>
           {ROUTE_META.map((meta) => (
             <Col span={8} key={meta.name}>
               <div className="text-13px mb-4px">
@@ -378,8 +404,10 @@ export function Component() {
           </Card>
         )}
       </Spin>
-
-      <EvalPanel datasourceOptions={datasourceOptions} />
+          </div>
+        )}
+      </div>
+    </Card>
     </div>
   );
 }

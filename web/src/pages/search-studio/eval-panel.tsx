@@ -1,5 +1,5 @@
-import { AuditOutlined, DeleteOutlined, PlayCircleOutlined, PlusOutlined } from '@ant-design/icons';
-import { Button, Card, Input, Popconfirm, Select, Space, Statistic, Table, Tag, Typography, message } from 'antd';
+import { AuditOutlined, DeleteOutlined, EditOutlined, PlayCircleOutlined, PlusOutlined } from '@ant-design/icons';
+import { Button, Card, Empty, Form, Input, Modal, Popconfirm, Select, Space, Statistic, Table, Tag, Typography, message } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -29,13 +29,13 @@ export function EvalPanel({ datasourceOptions }: { datasourceOptions: { label: s
   const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
 
-  // add-case form
-  const [newQuery, setNewQuery] = useState('');
-  const [newExpected, setNewExpected] = useState<string[]>([]);
+  // add/edit-case modal — createEvalCase upserts on the normalized query,
+  // so editing an existing case reuses the same endpoint
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<SearchEvalCase | null>(null);
+  const [form] = Form.useForm();
   const [docOptions, setDocOptions] = useState<{ label: string; value: string }[]>([]);
   const [picking, setPicking] = useState(false);
-  const [newDatasource, setNewDatasource] = useState<string | undefined>();
-  const [newNote, setNewNote] = useState('');
   const [saving, setSaving] = useState(false);
 
   const [lastRun, setLastRun] = useState<SearchEvalRun | null>(null);
@@ -78,38 +78,47 @@ export function EvalPanel({ datasourceOptions }: { datasourceOptions: { label: s
     }
   }, []);
 
-  const addCase = useCallback(async () => {
-    const q = newQuery.trim();
-    if (!q) {
-      message.warning(t('page.searchStudio.evalQueryRequired'));
-      return;
-    }
-    if (newExpected.length === 0) {
-      message.warning(t('page.searchStudio.evalExpectedRequired'));
-      return;
-    }
+  const openAdd = useCallback(() => {
+    setEditing(null);
+    setDocOptions([]);
+    form.resetFields();
+    setModalOpen(true);
+  }, [form]);
+
+  const openEdit = useCallback(
+    (r: SearchEvalCase) => {
+      setEditing(r);
+      // prefill options so the select renders the stored titles as labels
+      const ids = r.expected_ids ?? [];
+      const titles = r.expected_titles ?? [];
+      setDocOptions(ids.map((id, i) => ({ label: titles[i] || id, value: id })));
+      form.setFieldsValue({ query: r.query, expected_ids: ids, datasource: r.datasource, note: r.note });
+      setModalOpen(true);
+    },
+    [form]
+  );
+
+  const saveCase = useCallback(async () => {
+    const values = await form.validateFields();
     setSaving(true);
     try {
       const titleByID = new Map(docOptions.map((o) => [o.value, o.label]));
       await createEvalCase({
-        query: q,
-        expected_ids: newExpected,
-        expected_titles: newExpected.map((id) => titleByID.get(id) ?? ''),
-        datasource: newDatasource,
-        note: newNote.trim() || undefined
+        query: values.query.trim(),
+        expected_ids: values.expected_ids,
+        expected_titles: values.expected_ids.map((id: string) => titleByID.get(id) ?? ''),
+        datasource: values.datasource,
+        note: values.note?.trim() || undefined
       });
       message.success(t('page.searchStudio.evalSaved'));
-      setNewQuery('');
-      setNewExpected([]);
-      setNewNote('');
-      setDocOptions([]);
+      setModalOpen(false);
       load();
     } catch (e: any) {
       message.error(e?.response?.data?.message ?? e?.message ?? t('page.searchStudio.evalSaveFailed'));
     } finally {
       setSaving(false);
     }
-  }, [newQuery, newExpected, newDatasource, newNote, docOptions, load, t]);
+  }, [docOptions, form, load, t]);
 
   const removeCase = useCallback(
     async (id: string) => {
@@ -158,11 +167,14 @@ export function EvalPanel({ datasourceOptions }: { datasourceOptions: { label: s
     { title: t('page.searchStudio.evalNoteCol'), dataIndex: 'note', width: 160, ellipsis: true, render: (v: string) => v || '-' },
     {
       title: '',
-      width: 60,
+      width: 100,
       render: (_: any, r: SearchEvalCase) => (
-        <Popconfirm title={t('page.searchStudio.evalDeleteConfirm')} onConfirm={() => removeCase(r.id)}>
-          <Button size="small" type="text" danger icon={<DeleteOutlined />} />
-        </Popconfirm>
+        <Space size={0}>
+          <Button size="small" type="text" icon={<EditOutlined />} onClick={() => openEdit(r)} />
+          <Popconfirm title={t('page.searchStudio.evalDeleteConfirm')} onConfirm={() => removeCase(r.id)}>
+            <Button size="small" type="text" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
+        </Space>
       )
     }
   ];
@@ -237,56 +249,12 @@ export function EvalPanel({ datasourceOptions }: { datasourceOptions: { label: s
           <Button size="small" type="primary" icon={<PlayCircleOutlined />} loading={running} disabled={cases.length === 0} onClick={run}>
             {t('page.searchStudio.evalRun')}
           </Button>
+          <Button size="small" type="primary" icon={<PlusOutlined />} onClick={openAdd}>
+            {t('page.searchStudio.evalAdd')}
+          </Button>
         </Space>
       }
     >
-      {/* add-case form */}
-      <Space.Compact style={{ width: '100%' }} className="mb-8px">
-        <Input
-          size="large"
-          allowClear
-          value={newQuery}
-          onChange={(e) => setNewQuery(e.target.value)}
-          placeholder={t('page.searchStudio.evalQueryPlaceholder')}
-        />
-        <Button size="large" type="primary" icon={<PlusOutlined />} loading={saving} onClick={addCase}>
-          {t('page.searchStudio.evalAdd')}
-        </Button>
-      </Space.Compact>
-      <Space style={{ width: '100%' }} className="mb-8px" direction="vertical" size={8}>
-        <Select
-          mode="multiple"
-          allowClear
-          showSearch
-          filterOption={false}
-          style={{ width: '100%' }}
-          loading={picking}
-          value={newExpected}
-          onChange={setNewExpected}
-          onSearch={searchDocs}
-          notFoundContent={picking ? undefined : t('page.searchStudio.evalPickHint')}
-          placeholder={t('page.searchStudio.evalPickPlaceholder')}
-          options={docOptions}
-        />
-        <Space wrap>
-          <Select
-            allowClear
-            style={{ width: 260 }}
-            placeholder={t('page.searchStudio.datasourceAll')}
-            value={newDatasource}
-            onChange={setNewDatasource}
-            options={datasourceOptions}
-          />
-          <Input
-            style={{ width: 320 }}
-            allowClear
-            value={newNote}
-            onChange={(e) => setNewNote(e.target.value)}
-            placeholder={t('page.searchStudio.evalNotePlaceholder')}
-          />
-        </Space>
-      </Space>
-
       {lastRun && (
         <div className="mb-16px p-12px rounded-4px bg-gray-50">
           <Space size={32} wrap>
@@ -317,13 +285,46 @@ export function EvalPanel({ datasourceOptions }: { datasourceOptions: { label: s
         loading={loading}
         columns={caseColumns}
         dataSource={cases}
-        locale={{ emptyText: t('page.searchStudio.evalEmpty') }}
+        locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('page.searchStudio.evalEmpty')} /> }}
       />
 
       <Typography.Text type="secondary" className="text-12px block mb-8px mt-16px">
         {t('page.searchStudio.evalTrend')}
       </Typography.Text>
       <Table rowKey="id" size="small" pagination={false} columns={trendColumns} dataSource={runs} locale={{ emptyText: t('page.searchOps.noData') }} />
+
+      <Modal
+        open={modalOpen}
+        title={editing ? t('page.searchStudio.evalEdit') : t('page.searchStudio.evalAdd')}
+        confirmLoading={saving}
+        onOk={saveCase}
+        onCancel={() => setModalOpen(false)}
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item label={t('page.searchStudio.evalQueryCol')} name="query" rules={[{ required: true, message: t('page.searchStudio.evalQueryRequired') }]}>
+            <Input allowClear placeholder={t('page.searchStudio.evalQueryPlaceholder')} />
+          </Form.Item>
+          <Form.Item label={t('page.searchStudio.evalExpectedCol')} name="expected_ids" rules={[{ required: true, message: t('page.searchStudio.evalExpectedRequired') }]}>
+            <Select
+              mode="multiple"
+              allowClear
+              showSearch
+              filterOption={false}
+              loading={picking}
+              onSearch={searchDocs}
+              notFoundContent={picking ? undefined : t('page.searchStudio.evalPickHint')}
+              placeholder={t('page.searchStudio.evalPickPlaceholder')}
+              options={docOptions}
+            />
+          </Form.Item>
+          <Form.Item label={t('page.searchStudio.datasource')} name="datasource">
+            <Select allowClear placeholder={t('page.searchStudio.datasourceAll')} options={datasourceOptions} />
+          </Form.Item>
+          <Form.Item label={t('page.searchStudio.evalNoteCol')} name="note">
+            <Input allowClear placeholder={t('page.searchStudio.evalNotePlaceholder')} />
+          </Form.Item>
+        </Form>
+      </Modal>
     </Card>
   );
 }

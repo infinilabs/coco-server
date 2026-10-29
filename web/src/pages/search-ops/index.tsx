@@ -676,6 +676,7 @@ export function Component() {
   const activeItem = items.find(item => item.key === activeKey);
 
   return (
+    <div className="pb-16px">
     <Card
       styles={{ body: { padding: 0 } }}
       title={
@@ -703,5 +704,6 @@ export function Component() {
         {detailDoc ? <ProcessingPanel docId={detailDoc.id} /> : null}
       </Drawer>
     </Card>
+    </div>
   );
 }

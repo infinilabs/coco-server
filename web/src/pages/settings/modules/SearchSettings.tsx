@@ -65,6 +65,7 @@ const FIELD_TABS: Record<string, SearchSettingsTab> = {
   field_weights: 'retrieval',
   semantic_min_score: 'retrieval',
   rrf_rank_constant: 'retrieval',
+  route_weights: 'retrieval',
   rerank_enabled: 'retrieval',
   max_result_window: 'retrieval',
   fuzziness: 'retrieval',
@@ -228,6 +229,14 @@ const SearchSettings = memo(() => {
       // semantic / AI — rerank_disabled is the inverted rerank_enabled switch
       semantic_min_score: Number(params.semantic_min_score) || 0,
       rrf_rank_constant: Number(params.rrf_rank_constant) || 0,
+      // per-route RRF fusion weight defaults — 0 keeps the built-in default
+      route_weights: {
+        text: Number(params.route_weights?.text) || 0,
+        semantic: Number(params.route_weights?.semantic) || 0,
+        wiki: Number(params.route_weights?.wiki) || 0,
+        graph: Number(params.route_weights?.graph) || 0,
+        rewrite: Number(params.route_weights?.rewrite) || 0
+      },
       rerank_disabled: !params.rerank_enabled,
       // result intervention
       blocked_doc_ids: (params.blocked_doc_ids || []).map((v: string) => v.trim()).filter(Boolean),
@@ -317,6 +326,14 @@ const SearchSettings = memo(() => {
         rsa_enabled: !!payload.search_settings.rsa_enabled,
         rsa_max_sources_per_query: payload.search_settings.rsa_max_sources_per_query || 8,
         rsa_cache_size: payload.search_settings.rsa_cache_size || 256,
+        // 0 reads as "keep the built-in default" — show an empty input with
+        // the placeholder instead of a meaningless 0.0
+        route_weights: Object.fromEntries(
+          ['text', 'semantic', 'wiki', 'graph', 'rewrite'].map((k) => [
+            k,
+            payload.search_settings.route_weights?.[k] || undefined
+          ])
+        ),
         rerank_enabled: !payload.search_settings.rerank_disabled,
         blocked_doc_ids: payload.search_settings.blocked_doc_ids || [],
         blocked_datasource_ids: payload.search_settings.blocked_datasource_ids || [],
@@ -357,6 +374,7 @@ const SearchSettings = memo(() => {
         rsa_enabled: false,
         rsa_max_sources_per_query: 8,
         rsa_cache_size: 256,
+        route_weights: {},
         rerank_enabled: true,
         blocked_doc_ids: [],
         blocked_datasource_ids: [],
@@ -613,6 +631,42 @@ const SearchSettings = memo(() => {
                       tooltip={t('page.settings.search_settings.labels.rrf_rank_constant_desc')}
                     >
                       <InputNumber className="w-520px" max={1000} min={0} />
+                    </Form.Item>
+                    <div className="color-[var(--ant-color-text)] font-medium mb-8px">
+                      {t('page.settings.search_settings.labels.route_weights')}
+                    </div>
+                    <div className="mb-16px settings-form-help">
+                      {t('page.settings.search_settings.labels.route_weights_hint')}
+                    </div>
+                    <Form.Item
+                      label={t('page.settings.search_settings.labels.route_weights_text')}
+                      name={['route_weights', 'text']}
+                    >
+                      <InputNumber className="w-520px" max={10} min={0} step={0.1} placeholder="1" />
+                    </Form.Item>
+                    <Form.Item
+                      label={t('page.settings.search_settings.labels.route_weights_semantic')}
+                      name={['route_weights', 'semantic']}
+                    >
+                      <InputNumber className="w-520px" max={10} min={0} step={0.1} placeholder="1" />
+                    </Form.Item>
+                    <Form.Item
+                      label={t('page.settings.search_settings.labels.route_weights_wiki')}
+                      name={['route_weights', 'wiki']}
+                    >
+                      <InputNumber className="w-520px" max={10} min={0} step={0.1} placeholder="2" />
+                    </Form.Item>
+                    <Form.Item
+                      label={t('page.settings.search_settings.labels.route_weights_graph')}
+                      name={['route_weights', 'graph']}
+                    >
+                      <InputNumber className="w-520px" max={10} min={0} step={0.1} placeholder="1" />
+                    </Form.Item>
+                    <Form.Item
+                      label={t('page.settings.search_settings.labels.route_weights_rewrite')}
+                      name={['route_weights', 'rewrite']}
+                    >
+                      <InputNumber className="w-520px" max={10} min={0} step={0.1} placeholder="1" />
                     </Form.Item>
                     <Form.Item
                       label={t('page.settings.search_settings.labels.rerank_enabled')}

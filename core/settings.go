@@ -244,6 +244,13 @@ type SearchSettings struct {
 	// RRFRankConstant overrides the client-side fusion K of hybrid_rrf when
 	// the request carries no explicit ?rrf_k=. 0 keeps the built-in default.
 	RRFRankConstant int `json:"rrf_rank_constant"`
+	// RouteWeights are the operator's default per-route RRF fusion weights
+	// of hybrid_rrf, applied when the request carries no explicit weight
+	// params (the studio test panel and the eval runs are the two callers
+	// that differ here). Non-positive fields keep the built-in defaults
+	// (wiki 2, the rest 1); a per-request ?rewrite=off stays the way to
+	// mute a leg without touching the stored defaults.
+	RouteWeights *SearchRouteWeights `json:"route_weights"`
 	// RerankDisabled turns the post-fusion rerank leg off. Inverted so the
 	// zero value keeps the historic enabled behavior.
 	RerankDisabled bool `json:"rerank_disabled"`
@@ -274,6 +281,17 @@ type SearchSettings struct {
 type PinnedRule struct {
 	Query       string   `json:"query"`
 	DocumentIDs []string `json:"document_ids"`
+}
+
+// SearchRouteWeights mirrors the five studio-facing RRF routes (text /
+// semantic / wiki / graph / rewrite). The entity and chunk legs keep their
+// built-in neutral weight — the chunk leg is gray-switched by chunk_route.
+type SearchRouteWeights struct {
+	Text     float64 `json:"text"`
+	Semantic float64 `json:"semantic"`
+	Wiki     float64 `json:"wiki"`
+	Graph    float64 `json:"graph"`
+	Rewrite  float64 `json:"rewrite"`
 }
 
 // Historic defaults + hard ceilings for the pagination/facet knobs. The
