@@ -7,6 +7,7 @@ package document
 import (
 	"fmt"
 	"testing"
+	"time"
 )
 
 func dedupDoc(id, title, content string, updated int64) dedupDocMeta {
@@ -107,5 +108,73 @@ func TestDedupGroupKeyStable(t *testing.T) {
 	r2 := buildDedupReport([]dedupDocMeta{docs[2], docs[0], docs[1]}, nil) // shuffled input
 	if r1.Groups[0].Key != r2.Groups[0].Key {
 		t.Fatal("group key must be member-order independent")
+	}
+}
+
+func resetDedupCache(t *testing.T, r *dedupReport) {
+	t.Helper()
+	dedupMu.Lock()
+	oldCache, oldAt := dedupCache, dedupCacheAt
+	dedupCache, dedupCacheAt = r, time.UnixMilli(1000)
+	dedupMu.Unlock()
+	t.Cleanup(func() {
+		dedupMu.Lock()
+		dedupCache, dedupCacheAt = oldCache, oldAt
+		dedupMu.Unlock()
+	})
+}
+
+func TestPatchDedupCacheOnAction(t *testing.T) {
+	report := buildDedupReport([]dedupDocMeta{
+		dedupDoc("a", "title long enough", "identical body text lorem ipsum dolor sit amet consectetur adipiscing elit", 1000),
+		dedupDoc("b", "title long enough", "identical body text lorem ipsum dolor sit amet consectetur adipiscing elit", 2000),
+		dedupDoc("c", "title long enough", "identical body text lorem ipsum dolor sit amet consectetur adipiscing elit", 3000),
+	}, nil)
+	if report.GroupCount != 1 || report.Groups[0].KeepID != "c" {
+		t.Fatal("precondition: one group, newest doc is keeper")
+	}
+	resetDedupCache(t, report)
+
+	// delete the keeper: member leaves, a new keeper is elected
+	patchDedupCacheOnAction([]string{"c"}, "delete")
+	g := report.Groups[0]
+	if len(g.Members) != 2 || g.KeepID != "b" {
+		t.Fatalf("delete must drop the member and re-elect the keeper: %+v", g)
+	}
+
+	// exclude: member stays, flagged disabled
+	patchDedupCacheOnAction([]string{"a"}, "exclude")
+	g = report.Groups[0]
+	if len(g.Members) != 2 {
+		t.Fatalf("exclude must keep the member: %+v", g)
+	}
+	disabled := false
+	for _, m := range g.Members {
+		if m.ID == "a" {
+			disabled = m.Disabled
+		}
+	}
+	if !disabled {
+		t.Fatalf("excluded member must be flagged disabled: %+v", g.Members)
+	}
+
+	// delete down to a single member: the group dissolves
+	patchDedupCacheOnAction([]string{"a"}, "delete")
+	if report.GroupCount != 0 || len(report.Groups) != 0 {
+		t.Fatalf("a one-member group must dissolve: %+v", report.Groups)
+	}
+}
+
+func TestPatchDedupCacheOnDismiss(t *testing.T) {
+	report := buildDedupReport([]dedupDocMeta{
+		dedupDoc("a", "title long enough", "identical body text lorem ipsum dolor sit amet consectetur adipiscing elit", 1000),
+		dedupDoc("b", "title long enough", "identical body text lorem ipsum dolor sit amet consectetur adipiscing elit", 2000),
+	}, nil)
+	resetDedupCache(t, report)
+
+	// dismissing all member ids drops the group and bumps the counter
+	patchDedupCacheOnDismiss([]string{"a", "b"}, 1)
+	if report.GroupCount != 0 || report.Dismissed != 1 {
+		t.Fatalf("dismiss must drop the group: count=%d dismissed=%d", report.GroupCount, report.Dismissed)
 	}
 }

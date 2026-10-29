@@ -91,6 +91,25 @@ func dedupTierLabel(tier int) string {
 	return "unknown"
 }
 
+// dedupGroupKey is the stable identity of a group: md5 of its sorted ids.
+func dedupGroupKey(ids []string) string {
+	sorted := append([]string(nil), ids...)
+	sort.Strings(sorted)
+	return util.MD5digest(strings.Join(sorted, "|"))
+}
+
+// dedupKeeperLess orders duplicate members best-keeper-first: newest update,
+// then larger size, then stable id — shared by the scan and the cache patch.
+func dedupKeeperLess(a, b dedupMember) bool {
+	if a.Updated != b.Updated {
+		return a.Updated > b.Updated
+	}
+	if a.Size != b.Size {
+		return a.Size > b.Size
+	}
+	return a.ID < b.ID
+}
+
 // buildDedupReport is the pure grouping core: fingerprints every doc, builds
 // duplicate edges tier by tier, merges them with union-find and picks the
 // recommended keeper (newest update wins, then larger size, then stable id).
@@ -233,20 +252,10 @@ func buildDedupReport(docs []dedupDocMeta, dismissed map[string]bool) *dedupRepo
 		if len(metas) < 2 {
 			continue
 		}
-		sort.Slice(metas, func(a, b int) bool {
-			if metas[a].Updated != metas[b].Updated {
-				return metas[a].Updated > metas[b].Updated // newest first
-			}
-			if metas[a].Size != metas[b].Size {
-				return metas[a].Size > metas[b].Size
-			}
-			return metas[a].ID < metas[b].ID
-		})
 		g := dedupGroup{
 			Tier:       edgeTier[root],
 			TierLabel:  dedupTierLabel(edgeTier[root]),
 			Similarity: edgeSim[root],
-			KeepID:     metas[0].ID,
 			Members:    make([]dedupMember, 0, len(metas)),
 		}
 		ids := make([]string, 0, len(metas))
@@ -254,8 +263,9 @@ func buildDedupReport(docs []dedupDocMeta, dismissed map[string]bool) *dedupRepo
 			g.Members = append(g.Members, toDedupMember(m))
 			ids = append(ids, m.ID)
 		}
-		sort.Strings(ids)
-		g.Key = util.MD5digest(strings.Join(ids, "|"))
+		sort.Slice(g.Members, func(a, b int) bool { return dedupKeeperLess(g.Members[a], g.Members[b]) })
+		g.KeepID = g.Members[0].ID
+		g.Key = dedupGroupKey(ids)
 		report.Groups = append(report.Groups, g)
 	}
 	sort.Slice(report.Groups, func(a, b int) bool {
@@ -280,16 +290,41 @@ func toDedupMember(m dedupDocMeta) dedupMember {
 const (
 	dedupScanPageSize   = 500
 	dedupScanDefaultMax = 5000
+	dedupScanTimeout    = 10 * time.Minute
 	dedupReportTTL      = time.Minute
 	// one-shot load bound for the dismissal set; query-time filtering is
 	// the scaled fix, this cap keeps the in-memory map bounded until then
 	dedupDismissalCap = 10000
 )
 
+// dedupReportResponse is what the report endpoint returns: the cached report
+// (possibly stale, served while a refresh scans in the background) overlaid
+// with the live scan progress so the UI renders a progress bar, not a spinner.
+type dedupReportResponse struct {
+	Scanned       int          `json:"scanned"`
+	Fingerprinted int          `json:"fingerprinted"`
+	GroupCount    int          `json:"group_count"`
+	Dismissed     int          `json:"dismissed_pairs"`
+	GeneratedAt   int64        `json:"generated_at"`
+	Groups        []dedupGroup `json:"groups"`
+	Scanning      bool         `json:"scanning"`
+	Stage         string       `json:"stage,omitempty"` // fetch | group
+	ProgressDone  int          `json:"progress_scanned,omitempty"`
+	ProgressTotal int          `json:"total,omitempty"`
+	Error         string       `json:"error,omitempty"`
+}
+
+// dedupMu guards the report cache and the background-scan lifecycle together:
+// a scan writes the cache at its end, report reads consult both.
 var (
-	dedupReportMu    sync.Mutex
-	dedupReportCache *dedupReport
-	dedupReportAt    time.Time
+	dedupMu          sync.Mutex
+	dedupCache       *dedupReport
+	dedupCacheAt     time.Time
+	dedupScanRunning bool
+	dedupScanStage   string // fetch | group | ""
+	dedupScanDone    int
+	dedupScanTotal   int
+	dedupScanErr     string
 
 	// dismissal-set cache for retrieval-time folding (W12): the fold runs
 	// on every search, loading the dismissals per query would be absurd;
@@ -345,12 +380,15 @@ func loadDedupDismissals(ctx context.Context) (map[string]bool, error) {
 
 // scanDocuments walks the document index and returns the metadata the pure
 // grouping core needs. Only the fields fingerprints require are fetched.
-func scanDocuments(ctx context.Context, max int) ([]dedupDocMeta, error) {
+// onPage reports (fetched, total) after every page so a background scan can
+// publish progress; total comes from the first page's hit count, capped at max.
+func scanDocuments(ctx context.Context, max int, onPage func(fetched, total int)) ([]dedupDocMeta, error) {
 	octx := orm.NewContextWithParent(ctx)
 	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.Document{})
 
 	docs := make([]dedupDocMeta, 0, max)
+	total := 0
 	for from := 0; from < max; from += dedupScanPageSize {
 		size := dedupScanPageSize
 		if from+size > max {
@@ -360,9 +398,15 @@ func scanDocuments(ctx context.Context, max int) ([]dedupDocMeta, error) {
 		builder.SortBy(orm.Sort{Field: "updated", SortType: orm.DESC})
 		builder.Include("id", "title", "content", "source.id", "source.name", "type", "size", "updated", "disabled")
 		var page []core.Document
-		err, _ := elastic.SearchV2WithResultItemMapper(octx, &page, builder, nil)
+		err, res := elastic.SearchV2WithResultItemMapper(octx, &page, builder, nil)
 		if err != nil {
 			return nil, err
+		}
+		if res != nil && res.Total > 0 {
+			total = int(res.Total)
+			if total > max {
+				total = max
+			}
 		}
 		for _, d := range page {
 			docs = append(docs, dedupDocMeta{
@@ -371,6 +415,9 @@ func scanDocuments(ctx context.Context, max int) ([]dedupDocMeta, error) {
 				Type: d.Type, Size: d.Size,
 				Updated: updatedAtMillis(d.Updated), Disabled: d.Disabled,
 			})
+		}
+		if onPage != nil {
+			onPage(len(docs), total)
 		}
 		if len(page) < size {
 			break
@@ -386,8 +433,47 @@ func updatedAtMillis(t *time.Time) int64 {
 	return t.UnixMilli()
 }
 
-// runDedupScan executes a full scan and caches the report.
-func runDedupScan(ctx context.Context, max int) (*dedupReport, error) {
+// startDedupScan launches the scan in the background (single-flight: an
+// already-running scan wins) and returns immediately — the HTTP request
+// never blocks on it; clients poll the report endpoint for progress. The
+// goroutine owns its context: the triggering request may be long gone.
+func startDedupScan(max int) {
+	dedupMu.Lock()
+	if dedupScanRunning {
+		dedupMu.Unlock()
+		return
+	}
+	dedupScanRunning = true
+	dedupScanStage = "fetch"
+	dedupScanDone = 0
+	dedupScanTotal = 0
+	dedupScanErr = ""
+	dedupMu.Unlock()
+
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), dedupScanTimeout)
+		defer cancel()
+
+		report, err := runDedupScanTracked(ctx, max)
+
+		dedupMu.Lock()
+		dedupScanRunning = false
+		dedupScanStage = ""
+		if err != nil {
+			dedupScanErr = err.Error()
+			log.Warnf("dedup: background scan failed: %v", err)
+		} else {
+			dedupCache = report
+			dedupCacheAt = time.Now()
+			dedupScanErr = ""
+		}
+		dedupMu.Unlock()
+	}()
+}
+
+// runDedupScanTracked executes a full scan, publishing stage/progress into
+// the scan state as it goes, and returns the report for the caller to cache.
+func runDedupScanTracked(ctx context.Context, max int) (*dedupReport, error) {
 	if max <= 0 {
 		max = dedupScanDefaultMax
 	}
@@ -396,55 +482,157 @@ func runDedupScan(ctx context.Context, max int) (*dedupReport, error) {
 		log.Warnf("dedup: load dismissals failed: %v", err)
 		dismissed = map[string]bool{}
 	}
-	docs, err := scanDocuments(ctx, max)
+	onPage := func(fetched, total int) {
+		dedupMu.Lock()
+		dedupScanDone = fetched
+		if total > dedupScanTotal {
+			dedupScanTotal = total
+		}
+		dedupMu.Unlock()
+	}
+	docs, err := scanDocuments(ctx, max, onPage)
 	if err != nil {
 		return nil, err
 	}
-	report := buildDedupReport(docs, dismissed)
-
-	dedupReportMu.Lock()
-	dedupReportCache = report
-	dedupReportAt = time.Now()
-	dedupReportMu.Unlock()
-	return report, nil
+	dedupMu.Lock()
+	dedupScanStage = "group"
+	dedupMu.Unlock()
+	return buildDedupReport(docs, dismissed), nil
 }
 
-// cachedDedupReport returns the cached report, or scans if none exists yet.
-func cachedDedupReport(ctx context.Context, refresh bool, max int) (*dedupReport, error) {
-	dedupReportMu.Lock()
-	fresh := dedupReportCache != nil && time.Since(dedupReportAt) < dedupReportTTL
-	cache := dedupReportCache
-	dedupReportMu.Unlock()
-	if !refresh && fresh && cache != nil {
-		return cache, nil
+// patchDedupCache applies a review action to the cached report in place —
+// the UI sees the effect on the very next read, no full re-scan. The TTL
+// resets because the patch is the fresh truth; the next natural re-scan
+// reconciles anything the surgical patch cannot express.
+func patchDedupCache(patch func(r *dedupReport)) {
+	dedupMu.Lock()
+	defer dedupMu.Unlock()
+	if dedupCache == nil {
+		return
 	}
-	return runDedupScan(ctx, max)
+	patch(dedupCache)
+	dedupCacheAt = time.Now()
 }
 
-// invalidateDedupReport drops the cache after an action changed documents.
-func invalidateDedupReport() {
-	dedupReportMu.Lock()
-	dedupReportCache = nil
-	dedupReportAt = time.Time{}
-	dedupReportMu.Unlock()
+// reelectDedupKeeper re-picks the recommended keeper of a group after a
+// member was removed — same rule as the scan: newest update, then larger
+// size, then stable id.
+func reelectDedupKeeper(g *dedupGroup) {
+	if len(g.Members) == 0 {
+		return
+	}
+	sort.Slice(g.Members, func(a, b int) bool { return dedupKeeperLess(g.Members[a], g.Members[b]) })
+	g.KeepID = g.Members[0].ID
+}
+
+// patchDedupCacheOnAction folds exclude/delete decisions into the cached
+// report: deleted members leave their groups (a group under two members
+// dissolves), excluded members stay but read as disabled.
+func patchDedupCacheOnAction(ids []string, action string) {
+	gone := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		gone[id] = true
+	}
+	patchDedupCache(func(r *dedupReport) {
+		for gi := range r.Groups {
+			g := &r.Groups[gi]
+			kept := g.Members[:0]
+			for _, m := range g.Members {
+				if !gone[m.ID] {
+					kept = append(kept, m)
+					continue
+				}
+				if action == "delete" {
+					continue
+				}
+				m.Disabled = true
+				kept = append(kept, m)
+			}
+			g.Members = kept
+			if !memberIn(g, g.KeepID) {
+				reelectDedupKeeper(g)
+			}
+		}
+		groups := r.Groups[:0]
+		for _, g := range r.Groups {
+			if len(g.Members) >= 2 {
+				groups = append(groups, g)
+			}
+		}
+		r.Groups = groups
+		r.GroupCount = len(groups)
+	})
+}
+
+func memberIn(g *dedupGroup, id string) bool {
+	for _, m := range g.Members {
+		if m.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
+// patchDedupCacheOnDismiss drops the dismissed group from the cached report
+// (the UI dismisses whole groups — every pair among the ids is now dismissed,
+// so the group has no edges left).
+func patchDedupCacheOnDismiss(ids []string, pairs int) {
+	key := dedupGroupKey(ids)
+	patchDedupCache(func(r *dedupReport) {
+		groups := r.Groups[:0]
+		for _, g := range r.Groups {
+			if g.Key != key {
+				groups = append(groups, g)
+			}
+		}
+		r.Groups = groups
+		r.GroupCount = len(groups)
+		r.Dismissed += pairs
+	})
 }
 
 // ---- review API ----
 
-// dedupReportHandler runs (or returns the cached) dedup scan. The system
-// only reports; every removal happens through an explicit human action.
+// dedupReportHandler serves the cached report and kicks off a background
+// scan when none is fresh — stale results are served while it runs
+// (stale-while-revalidate), progress rides along in the response. The
+// system only reports; every removal happens through an explicit human action.
 func (h *APIHandler) dedupReportHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	refresh := h.GetParameterOrDefault(req, "refresh", "") != ""
 	max := h.GetIntOrDefault(req, "max", dedupScanDefaultMax)
 	if max <= 0 || max > 50000 {
 		max = dedupScanDefaultMax
 	}
-	report, err := cachedDedupReport(req.Context(), refresh, max)
-	if err != nil {
-		h.WriteError(w, err.Error(), http.StatusInternalServerError)
-		return
+
+	dedupMu.Lock()
+	fresh := dedupCache != nil && time.Since(dedupCacheAt) < dedupReportTTL
+	running := dedupScanRunning
+	cache := dedupCache
+	dedupMu.Unlock()
+	if refresh || (!fresh && !running) {
+		startDedupScan(max)
 	}
-	h.WriteJSON(w, report, http.StatusOK)
+
+	resp := dedupReportResponse{Groups: []dedupGroup{}}
+	if cache != nil {
+		resp.Scanned = cache.Scanned
+		resp.Fingerprinted = cache.Fingerprinted
+		resp.GroupCount = cache.GroupCount
+		resp.Dismissed = cache.Dismissed
+		resp.GeneratedAt = cache.GeneratedAt
+		resp.Groups = cache.Groups
+		if resp.Groups == nil {
+			resp.Groups = []dedupGroup{}
+		}
+	}
+	dedupMu.Lock()
+	resp.Scanning = dedupScanRunning
+	resp.Stage = dedupScanStage
+	resp.ProgressDone = dedupScanDone
+	resp.ProgressTotal = dedupScanTotal
+	resp.Error = dedupScanErr
+	dedupMu.Unlock()
+	h.WriteJSON(w, resp, http.StatusOK)
 }
 
 type dedupDismissBody struct {
@@ -480,7 +668,17 @@ func (h *APIHandler) dedupDismissHandler(w http.ResponseWriter, req *http.Reques
 			created++
 		}
 	}
-	invalidateDedupReport()
+	invalidate := false
+	if created > 0 {
+		patchDedupCacheOnDismiss(body.IDs, created)
+		invalidate = true
+	}
+	if invalidate {
+		// keep the retrieval-time fold in sync too
+		dismissedMu.Lock()
+		dismissedCache = nil
+		dismissedMu.Unlock()
+	}
 	h.WriteJSON(w, util.MapStr{"dismissed": created}, http.StatusOK)
 }
 
@@ -541,6 +739,9 @@ func (h *APIHandler) dedupActionHandler(w http.ResponseWriter, req *http.Request
 		}
 		acted++
 	}
-	invalidateDedupReport()
+	// patch the cached report so the UI reflects the decision instantly;
+	// the fold cache follows for excluded docs (their fingerprints fold
+	// differently once disabled)
+	patchDedupCacheOnAction(body.IDs, body.Action)
 	h.WriteJSON(w, util.MapStr{"action": body.Action, "acted": acted, "failed": failed}, http.StatusOK)
 }

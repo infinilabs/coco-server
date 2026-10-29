@@ -2301,6 +2301,12 @@ const page: App.I18n.Schema['translation']['page'] = {
       deleteConfirm: '确定永久删除该文档?',
       acted: '操作已执行',
       clean: '未发现疑似重复。',
+      scanning: '后台扫描中…',
+      scanError: '扫描失败，稍后可重试',
+      progress: {
+        fetch: '读取文档',
+        group: '指纹比对与分组'
+      },
       noDeletePermission: '需要文档删除权限',
       noUpdatePermission: '需要文档更新权限',
       stats: {

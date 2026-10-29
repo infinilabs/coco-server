@@ -1,6 +1,6 @@
 import { CheckOutlined, DeleteOutlined, EyeInvisibleOutlined, RedoOutlined, ScanOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Popconfirm, Row, Space, Spin, Statistic, Table, Tag, Tooltip, message } from 'antd';
-import { memo, useEffect, useState } from 'react';
+import { Alert, Button, Card, Col, Popconfirm, Progress, Row, Space, Spin, Statistic, Table, Tag, Tooltip, message } from 'antd';
+import { memo, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import '../index.scss';
@@ -40,6 +40,12 @@ interface DedupReport {
   dismissed_pairs: number;
   generated_at: number;
   groups: DedupGroup[];
+  /** live scan overlay — the report itself may be stale while scanning */
+  scanning?: boolean;
+  stage?: string; // fetch | group
+  progress_scanned?: number;
+  total?: number;
+  error?: string;
 }
 
 const tierColor: Record<number, string> = { 1: 'red', 2: 'volcano', 3: 'orange', 4: 'gold' };
@@ -61,12 +67,30 @@ const Dedup = memo(() => {
   const [loading, setLoading] = useState(false);
   const [acting, setActing] = useState<string | null>(null);
   const [confirmedKeys, setConfirmedKeys] = useState<Set<string>>(new Set());
+  const [scan, setScan] = useState<{ running: boolean; done: number; total: number; stage?: string }>({
+    running: false,
+    done: 0,
+    total: 0
+  });
+  const pollRef = useRef<number>();
 
   const load = async (refresh = false) => {
-    setLoading(true);
+    // the Spin only blankets the very first load; afterwards the progress
+    // row narrates background scans and polls keep the page interactive
+    setLoading((prev) => prev || refresh);
     const res: any = await fetchDedupReport(refresh);
     if (res?.data && !res.error) {
-      setReport(res.data as DedupReport);
+      const data = res.data as DedupReport;
+      setReport(data);
+      if (data.scanning) {
+        setScan({ running: true, done: data.progress_scanned ?? 0, total: data.total ?? 0, stage: data.stage });
+        window.clearTimeout(pollRef.current);
+        pollRef.current = window.setTimeout(() => load(false), 900);
+      } else {
+        setScan({ running: false, done: 0, total: 0 });
+      }
+    } else {
+      setScan((s) => ({ ...s, running: false }));
     }
     setLoading(false);
   };
@@ -75,6 +99,7 @@ const Dedup = memo(() => {
     if (permissions.view) {
       load();
     }
+    return () => window.clearTimeout(pollRef.current);
   }, []);
 
   const confirmGroup = async (group: DedupGroup) => {
@@ -118,7 +143,8 @@ const Dedup = memo(() => {
       const res: any = await actDedupGroup([member.id], action);
       if (res?.data && !res.error) {
         message.success(t('page.settings.dedup.acted'));
-        load(true);
+        // the backend patches its cached report — re-read, no forced re-scan
+        load(false);
       }
       setActing(null);
     };
@@ -129,7 +155,8 @@ const Dedup = memo(() => {
     const res: any = await dismissDedupGroup(group.members.map((m) => m.id));
     if (res?.data && !res.error) {
       message.success(t('page.settings.dedup.dismissed'));
-      load(true);
+      // the backend patches its cached report — re-read, no forced re-scan
+      load(false);
     }
     setActing(null);
   };
@@ -165,7 +192,7 @@ const Dedup = memo(() => {
               <Space direction="vertical" size={4}>
                 <Button
                   icon={<ScanOutlined />}
-                  loading={loading}
+                  loading={loading || scan.running}
                   onClick={() => load(true)}
                   size="small"
                   type="primary"
@@ -173,12 +200,38 @@ const Dedup = memo(() => {
                   {t('page.settings.dedup.scan')}
                 </Button>
                 <span className="text-12px color-[var(--ant-color-text-tertiary)]">
-                  {report ? formatTime(report.generated_at) : ''}
+                  {scan.running
+                    ? t('page.settings.dedup.scanning')
+                    : report
+                      ? formatTime(report.generated_at)
+                      : ''}
                 </span>
               </Space>
             </Card>
           </Col>
         </Row>
+
+        {scan.running && (
+          <Card className="m-b-16px" size="small">
+            <div className="flex items-center gap-12px">
+              <Progress
+                className="m-b-0 flex-1"
+                percent={scan.total > 0 ? Math.min(100, Math.round((scan.done / scan.total) * 100)) : 0}
+                showInfo={scan.total > 0}
+                size="small"
+                status="active"
+              />
+              <span className="text-12px whitespace-nowrap color-[var(--ant-color-text-tertiary)]">
+                {t(`page.settings.dedup.progress.${scan.stage || 'fetch'}`)}
+                {scan.total > 0 ? ` ${scan.done}/${scan.total}` : ''}
+              </span>
+            </div>
+          </Card>
+        )}
+
+        {!scan.running && report?.error && (
+          <Alert className="m-b-16px" message={t('page.settings.dedup.scanError')} showIcon type="error" />
+        )}
 
         {(report?.groups ?? []).map((g) => (
           <Card

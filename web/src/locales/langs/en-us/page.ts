@@ -2650,6 +2650,12 @@ const page: App.I18n.Schema['translation']['page'] = {
       deleteConfirm: 'Delete this document permanently?',
       acted: 'Action applied',
       clean: 'No suspected duplicates found.',
+      scanning: 'Scanning in the background…',
+      scanError: 'Scan failed, retry later',
+      progress: {
+        fetch: 'Fetching documents',
+        group: 'Fingerprinting & grouping'
+      },
       noDeletePermission: 'Document delete permission required',
       noUpdatePermission: 'Document update permission required',
       stats: {
