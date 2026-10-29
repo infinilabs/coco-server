@@ -226,13 +226,41 @@ func buildDedupReport(docs []dedupDocMeta, dismissed map[string]bool) *dedupRepo
 		}
 	}
 
-	// apply unions, then aggregate edges and members per final root
+	// union strong edges (tiers 1-3, content-based) first; a tier-4
+	// same-title edge is a weak signal (sim 0.5) and must never chain
+	// documents into a group whose members are already duplicates by
+	// content. A mixed group wears its best edge's tier/similarity — two
+	// identical pairs of different data sharing a filename would read as
+	// "identical_content 100%" (the products.json case). Weak edges only
+	// gather documents that no strong edge claimed.
+	var strongEdges, weakEdges []dedupEdge
 	for _, e := range edges {
+		if e.tier == dedupTierVersion {
+			weakEdges = append(weakEdges, e)
+		} else {
+			strongEdges = append(strongEdges, e)
+		}
+	}
+	for _, e := range strongEdges {
 		union(e.a, e.b)
 	}
+	strongRoot := make(map[int]bool, len(strongEdges))
+	for _, e := range strongEdges {
+		strongRoot[find(e.a)] = true
+	}
+	joined := strongEdges
+	for _, e := range weakEdges {
+		if strongRoot[find(e.a)] || strongRoot[find(e.b)] {
+			continue
+		}
+		union(e.a, e.b)
+		joined = append(joined, e)
+	}
+
+	// aggregate edges and members per final root (roots no longer change)
 	edgeTier := map[int]int{}
 	edgeSim := map[int]float64{}
-	for _, e := range edges {
+	for _, e := range joined {
 		root := find(e.a)
 		if t, ok := edgeTier[root]; !ok || e.tier < t {
 			edgeTier[root] = e.tier

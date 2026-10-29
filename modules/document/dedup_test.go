@@ -6,6 +6,7 @@ package document
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 )
@@ -176,5 +177,38 @@ func TestPatchDedupCacheOnDismiss(t *testing.T) {
 	patchDedupCacheOnDismiss([]string{"a", "b"}, 1)
 	if report.GroupCount != 0 || report.Dismissed != 1 {
 		t.Fatalf("dismiss must drop the group: count=%d dismissed=%d", report.GroupCount, report.Dismissed)
+	}
+}
+
+func TestDedupVersionEdgeDoesNotChainStrongGroups(t *testing.T) {
+	// the products.json shape: two identical pairs of DIFFERENT data sharing
+	// one filename — the same-title weak edge must not fuse them into a
+	// mixed group that reads "identical_content 100%"
+	small := "a small json catalog with only a handful of product entries inside"
+	large := "a much larger json catalog holding the full product catalog with hundreds of entries, extended descriptions, prices, categories and stock levels"
+	docs := []dedupDocMeta{
+		dedupDoc("s1", "products.json", small, 1000),
+		dedupDoc("s2", "products.json", strings.ToUpper(small), 1001),   // same text, formatting noise
+		dedupDoc("l1", "products.json", large, 2000),
+		dedupDoc("l2", "products.json", large+"\n", 2001),               // trailing newline
+	}
+	r := buildDedupReport(docs, nil)
+	if r.GroupCount != 2 {
+		t.Fatalf("the two identical pairs must stay separate groups, got %d: %+v", r.GroupCount, r.Groups)
+	}
+	for _, g := range r.Groups {
+		if g.Tier != dedupTierExact || len(g.Members) != 2 {
+			t.Fatalf("each group must be a pure identical pair: %+v", g)
+		}
+	}
+	// one isolated doc next to an identical pair: same title must NOT pull
+	// it into the pair either
+	r = buildDedupReport([]dedupDocMeta{
+		dedupDoc("s1", "products.json", small, 1000),
+		dedupDoc("s2", "products.json", strings.ToUpper(small), 1001),
+		dedupDoc("x1", "products.json", "unrelated payload with entirely different words and meaning altogether", 3000),
+	}, nil)
+	if r.GroupCount != 1 || len(r.Groups[0].Members) != 2 || r.Groups[0].Tier != dedupTierExact {
+		t.Fatalf("isolated same-title doc must not join the identical pair: %+v", r.Groups)
 	}
 }
