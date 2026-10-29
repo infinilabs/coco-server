@@ -4,6 +4,8 @@ import { useMemo } from 'react';
 
 import { useTranslation } from 'react-i18next';
 
+import { parseWikilinkInner } from './content';
+
 // Same palette and hash as KbGraph so a type keeps its color everywhere —
 // capsule in an article, node on the canvas.
 const TYPE_PALETTE = ['#722ed1', '#13c2c2', '#fa8c16', '#52c41a', '#eb2f96', '#2f54eb', '#faad14', '#a0d911'];
@@ -81,14 +83,17 @@ export function renderInlineWikiLinks(
   onOpen: (type: string, name: string) => void
 ): ReactNode[] {
   const out: ReactNode[] = [];
-  const re = /\[\[([^:\[\]]+):([^\[\]]+)]]/g;
+  const re = /\[\[([^\[\]]+)]]/g;
   let last = 0;
   let m: RegExpExecArray | null;
   let key = 0;
   while ((m = re.exec(text)) !== null) {
+    const link = parseWikilinkInner(m[1]);
+    // an inner that doesn't parse (e.g. "[:x]") stays literal: skip without
+    // updating `last` so the raw text rides the next segment
+    if (!link) continue;
     if (m.index > last) renderMarkdownLinks(text.slice(last, m.index), `md-${key++}`, out);
-    const type = m[1].trim();
-    const label = m[2].trim();
+    const { type, label } = link;
     out.push(
       <WikiLinkTag
         key={`wl-${key++}`}

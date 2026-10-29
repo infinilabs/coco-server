@@ -1,6 +1,7 @@
 /* TOC tree manipulation — ported from the coco-wiki prototype toc-utils.
  * Antd Tree drop events map onto moveNode via gap (before=-1/inside=0/after=1). */
 import type { DataNode } from 'antd/es/tree';
+import type { ReactNode } from 'react';
 import { CompassOutlined, FileTextOutlined, FolderOpenOutlined, FolderOutlined, IdcardOutlined, LinkOutlined } from '@ant-design/icons';
 
 export type DropPosition = 'before' | 'inside' | 'after';
@@ -136,17 +137,12 @@ export function toAntdTreeData(
 
   return sorted.map(node => {
     const status = node.type === 'article' ? statuses?.[node.article_id || ''] : undefined;
-    const parked = maturity(status) > 0;
     return {
       key: node.id,
-      title: parked ? (
-        <span className='opacity-55'>
-          {node.title}
-          <span className='ml-1 text-[10px] text-muted-foreground/70'>{STATUS_TAG[status || ''] || status}</span>
-        </span>
-      ) : (
-        node.title
-      ),
+      // plain string always — titleRender adds the parked dimming/tag from
+      // the TocNode (a JSX title here stringifies to "[object Object]" in
+      // titleRender and defeats sidebar search)
+      title: node.title,
       // only folders expand (lazy children); articles are leaves with no caret —
       // without isLeaf every node shows an expand arrow because loadData is set
       isLeaf: node.type !== 'folder',
@@ -157,6 +153,19 @@ export function toAntdTreeData(
       children: node.children ? toAntdTreeData(node.children, pageTypes, statuses, opts) : undefined
     };
   });
+}
+
+/** sidebar row title: parked pages (draft/archived) render dimmed with a
+ * status suffix — titleRender renders this from the TocNode so treeData
+ * titles stay plain strings. */
+export function tocNodeTitle(node: Api.Wiki.TocNode, status?: string): ReactNode {
+  if (maturity(status) === 0) return node.title;
+  return (
+    <span className='opacity-55'>
+      {node.title}
+      <span className='ml-1 text-[10px] text-muted-foreground/70'>{STATUS_TAG[status || ''] || status}</span>
+    </span>
+  );
 }
 
 /** 成熟度盘点: (正式内容, 未成熟) 文章数 — 侧边栏开关的提示文案用。 */

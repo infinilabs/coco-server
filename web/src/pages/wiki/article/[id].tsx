@@ -77,6 +77,7 @@ import {
 import {
   parseStructuredContent,
   parseWikiLink,
+  parseWikilinkInner,
   splitCitationBlock,
   linkifyCitations,
   shortUrlLabel,
@@ -784,12 +785,14 @@ export function Component() {
   );
 
   // rewrite wikilinks into #wikilink anchors so they survive the markdown
-  // pipeline; renderLink turns them back into capsules at render time
+  // pipeline; renderLink turns them back into capsules at render time.
+  // Bare `[[name]]` links rewrite with an empty type — resolution is by
+  // name (linked_pages stores them with type ""), same as the backend parser
   const rewriteWikiLinks = useCallback((raw: string) => {
-    return raw.replace(/\[\[([^:\[\]]+):([^\[\]]+)]]/g, (_m, t: string, n: string) => {
-      const type = String(t).trim();
-      const label = String(n).trim();
-      return `[${label}](#wikilink?t=${encodeURIComponent(type)}&n=${encodeURIComponent(label)})`;
+    return raw.replace(/\[\[([^\[\]]+)]]/g, (match, inner: string) => {
+      const link = parseWikilinkInner(inner);
+      if (!link) return match;
+      return `[${link.label}](#wikilink?t=${encodeURIComponent(link.type)}&n=${encodeURIComponent(link.label)})`;
     });
   }, []);
   const mainContent = useMemo(() => rewriteWikiLinks(structured?.mainContent ?? ''), [structured?.mainContent, rewriteWikiLinks]);

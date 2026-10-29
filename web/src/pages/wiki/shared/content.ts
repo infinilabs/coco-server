@@ -110,11 +110,27 @@ export function parseStructuredContent(content: string): StructuredContent {
   return result;
 }
 
-/** parse `[[type:label]]` wiki links out of a related-list entry */
+/**
+ * Inner text of a `[[...]]` wikilink → {type, label}. A bare `[[name]]`
+ * (no type prefix) is legal and resolves by name — mirrors the backend
+ * parser in modules/wiki/ontology.go (design §3.3: the type routes
+ * rendering, resolution is by name/alias regardless of type).
+ */
+export function parseWikilinkInner(inner: string): WikiLink | null {
+  const s = inner.trim();
+  if (!s || s.startsWith(':')) return null;
+  const idx = s.indexOf(':');
+  if (idx <= 0) return { type: '', label: s };
+  const label = s.slice(idx + 1).trim();
+  if (!label) return null;
+  return { type: s.slice(0, idx).trim(), label };
+}
+
+/** parse a whole-entry `[[type:label]]` / `[[label]]` wiki link out of a related-list entry */
 export function parseWikiLink(entry: string): WikiLink | null {
-  const m = entry.match(/^\[\[([^:]+):(.+)]]$/);
+  const m = entry.match(/^\[\[([^\[\]]+)]]$/);
   if (!m) return null;
-  return { type: m[1].trim(), label: m[2].trim() };
+  return parseWikilinkInner(m[1]);
 }
 
 /* ---------------- compiled-topic citations ---------------- */

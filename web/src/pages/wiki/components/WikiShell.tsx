@@ -15,7 +15,7 @@ import {
 import { Badge, Button, ConfigProvider, Drawer, Dropdown, Empty, Input, Modal, Tooltip, Tree } from 'antd';
 import { BookCheck, Check, ChevronDown, ChevronRight, createLucideIcon, Eye, EyeOff, Search } from 'lucide-react';
 import type { DataNode } from 'antd/es/tree';
-import { type FC, useEffect, useMemo, useRef, useState } from 'react';
+import { type FC, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useAuth } from '@/hooks/business/auth';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -28,7 +28,8 @@ import {
   moveNode,
   removeNode,
   toAntdTreeData,
-  tocIdForArticle
+  tocIdForArticle,
+  tocNodeTitle
 } from '../shared/toc';
 
 /**
@@ -483,9 +484,13 @@ export function WikiShell({ kbId, articleId, children }: Props) {
 
   const titleRender = (node: DataNode) => {
     const key = String(node.key);
-    const title = String(node.title ?? '');
     const owner = key.startsWith('kb:') ? null : kbIdOfTocNode(key);
     const nodeObj = owner ? findNode(wikiNav.tocs[owner], key) : null;
+    // parked rows (draft/archived) render dimmed with a status tag; the rest
+    // keep the plain treeData title (kb.name for roots, TocNode.title else)
+    const title: ReactNode = nodeObj
+      ? tocNodeTitle(nodeObj, nodeObj.type === 'article' && owner ? statuses[owner]?.[nodeObj.article_id || ''] : undefined)
+      : String(node.title ?? '');
     if (!nodeObj) {
       // KB root row: no toc node behind it — offer "new root folder" via
       // right-click or the "..." affordance (replaces the old sider toolbar
