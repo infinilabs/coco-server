@@ -1,4 +1,5 @@
-import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
+import { DatabaseOutlined, EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
+import PageHeaderTitle from '@/components/stateless/common/PageHeaderTitle';
 import { Avatar, Button, Dropdown, Switch, Table, message } from 'antd';
 import type { MenuProps, TableColumnsType, TableProps } from 'antd';
 import Search from 'antd/es/input/Search';
@@ -159,7 +160,7 @@ export function Component() {
   const columns: TableColumnsType<Datasource> = [
     {
       dataIndex: 'name',
-      minWidth: 150,
+      minWidth: 220,
       ellipsis: true,
       render: (value: string, record: Datasource) => {
         let iconSrc = record.icon;
@@ -195,7 +196,7 @@ export function Component() {
             )}
             {permissions.read && permissions.readConnector ? (
               <a
-                className='ant-table-cell-ellipsis max-w-150px cursor-pointer text-[var(--ant-color-link)]'
+                className='ant-table-cell-ellipsis max-w-240px cursor-pointer text-[var(--ant-color-link)]'
                 onClick={() =>
                   nav(`/data-source/detail/${record.id}${isEditorOwner(record) ? '' : '?view=list'}`, {
                     state: { connector_id: record.connector?.id || '', datasource_name: record.name }
@@ -205,7 +206,7 @@ export function Component() {
                 {value}
               </a>
             ) : (
-              <span className='ant-table-cell-ellipsis max-w-150px'>{value}</span>
+              <span className='ant-table-cell-ellipsis max-w-240px'>{value}</span>
             )}
             {shareIcon}
           </div>
@@ -215,6 +216,7 @@ export function Component() {
     },
     {
       dataIndex: 'owner',
+      minWidth: 110,
       title: t('page.datasource.labels.owner'),
       render: (value, record) => {
         if (!value) return '-';
@@ -235,6 +237,7 @@ export function Component() {
     },
     {
       dataIndex: 'shares',
+      minWidth: 110,
       title: t('page.datasource.labels.shares'),
       render: (value, record) => {
         if (!value) return '-';
@@ -256,7 +259,7 @@ export function Component() {
       }
     },
     {
-      minWidth: 100,
+      minWidth: 120,
       render: (text: string, record: Datasource) => {
         const type = TYPES[record?.connector?.id];
         if (!type) return data.connectors[record.connector.id]?.name || record.connector.id;
@@ -277,6 +280,7 @@ export function Component() {
     // },
     {
       dataIndex: 'updated',
+      minWidth: 150,
       title: t('page.datasource.labels.updated'),
       render: (value: number) => <DateTime value={value} />
     },
@@ -296,8 +300,9 @@ export function Component() {
           />
         );
       },
+      align: 'center',
       title: t('page.datasource.new.labels.sync_enabled'),
-      width: 200
+      width: 100
     },
     {
       dataIndex: 'enabled',
@@ -311,8 +316,9 @@ export function Component() {
           />
         );
       },
+      align: 'center',
       title: t('page.datasource.new.labels.enabled'),
-      width: 200
+      width: 100
     },
     {
       fixed: 'right',
@@ -339,16 +345,9 @@ export function Component() {
         );
       },
       title: t('common.operation'),
-      width: '90px'
+      width: 60
     }
   ].filter(item => Boolean(item));
-  // rowSelection object indicates the need for row selection
-  const rowSelection: TableProps<Datasource>['rowSelection'] = {
-    getCheckboxProps: (record: Datasource) => ({
-      name: record.name
-    }),
-    onChange: (selectedRowKeys: React.Key[], selectedRows: Datasource[]) => {}
-  };
 
   const initialData = {
     connectors: {},
@@ -429,14 +428,20 @@ export function Component() {
   return (
     <ListContainer>
       <ACard
-        bordered={false}
         className='flex-col-stretch sm:flex-1-hidden card-wrapper'
         ref={tableWrapperRef}
+        title={(
+          <PageHeaderTitle
+            description={t('page.datasource.subtitle')}
+            icon={<DatabaseOutlined />}
+            title={t('page.datasource.title')}
+          />
+        )}
       >
-        <div className='mb-4 mt-4 flex items-center justify-between'>
+        <div className='mb-4 flex flex-wrap items-center justify-between gap-12px'>
           <Search
             addonBefore={<FilterOutlined />}
-            className='max-w-500px'
+            className='w-full max-w-360px sm:!w-300px'
             enterButton={t('common.refresh')}
             value={keyword}
             onChange={e => setKeyword(e.target.value)}
@@ -457,12 +462,13 @@ export function Component() {
           dataSource={data.data}
           loading={loading}
           rowKey='id'
-          rowSelection={{ ...rowSelection }}
+          scroll={{ ...scrollConfig, x: 'max-content' }}
           size='middle'
           pagination={{
             current: Math.floor(queryParams.from / queryParams.size) + 1,
             total: data.total?.value || data?.total,
-            showSizeChanger: true
+            showSizeChanger: true,
+            showTotal: total => t('common.totalItems', { total: String(total) })
           }}
           onChange={handleTableChange}
         />

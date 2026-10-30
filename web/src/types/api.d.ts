@@ -266,6 +266,7 @@ declare namespace Api {
       search_settings?: {
         enabled?: boolean;
         integration?: string;
+        search_type?: string;
       };
       security?: {
         managed?: boolean;
@@ -274,6 +275,34 @@ declare namespace Api {
           oauth?: Record<string, OAuthProvider>;
         };
       };
+    };
+  }
+  namespace Environment {
+    type CheckStatus = 'ok' | 'warning' | 'error';
+
+    type Check = {
+      key: string;
+      name: string;
+      status: CheckStatus;
+      version?: string;
+      detail?: string;
+      hint?: string;
+    };
+
+    type PipelineOverride = {
+      id: string;
+      name: string;
+    };
+
+    type EffectiveTika = {
+      endpoint: string;
+      timeout_in_seconds: number;
+      overridden_by_pipelines?: PipelineOverride[];
+    };
+
+    type CheckResult = {
+      checks: Check[];
+      effective_tika: EffectiveTika;
     };
   }
   namespace Datasource {
@@ -352,6 +381,408 @@ declare namespace Api {
       description: string;
     }
   }
+
+  namespace Wiki {
+    type Visibility = 'public' | 'private' | 'team';
+    type SyncStrategy = 'realtime' | 'scheduled' | 'manual';
+    type AiStatus = 'ready' | 'processing' | 'queued' | 'updating';
+    type PageType = 'entity' | 'concept' | 'source' | 'topic' | 'pattern' | 'skill' | 'map';
+    type ArticleStatus = 'draft' | 'reviewed' | 'published' | 'archived';
+    type Confidence = 'high' | 'medium' | 'low';
+    type MemberRole = 'owner' | 'editor' | 'viewer' | 'agent';
+    type ChangeType = 'ai-generated' | 'human-edited' | 'auto-updated';
+
+    interface Member {
+      id: string;
+      name: string;
+      avatar: string;
+      role: MemberRole;
+      email?: string;
+    }
+
+    interface DatasourceInfo {
+      id: string;
+      type: string;
+      name: string;
+      status: 'connected' | 'syncing' | 'error' | 'disconnected';
+      last_synced: string;
+      document_count: number;
+    }
+
+    interface Kb {
+      /** raw ES system fields passthrough (owner_id powers the share popover) */
+      _system?: { owner_id?: string };
+      id: string;
+      name: string;
+      description: string;
+      icon: string;
+      visibility: Visibility;
+      workspace_id: string;
+      datasource_ids: string[];
+      sync_strategy?: SyncStrategy;
+      article_count: number;
+      last_updated: string;
+      members: Member[];
+      datasources: DatasourceInfo[];
+      ai_status?: AiStatus;
+      /** 企业目录布局:部门顶层目录 + 被引文档 folder_path 前缀归属;dimensions 按槽位(组织/产品/专题)覆盖部门内维度目录名 */
+      toc_layout?: { title: string; path_prefixes?: string[]; dimensions?: string[] }[];
+      /** 自动审批:实体直接发布、治理提案自动应用,知识库免人工审核更新 */
+      auto_approve?: boolean;
+      /** 经验捕获(LLM-wiki P1): 绑定智能体的纠错/反馈留存为经验记录供蒸馏 */
+      experience_capture?: boolean;
+      /** 自动归档:新文章落入目录根部后自动触发后台语义整理(复用已有主题文件夹) */
+      auto_organize_toc?: boolean;
+      /** AI 生成约束:该库 AI 生成/编辑的附加指引,非空时覆盖默认人设 */
+      ai_guidance?: string;
+      /** 回答模型:该库 AI 生成/编辑用的模型覆盖,空则回落服务器默认语言模型 */
+      ai_model?: { provider_id?: string; name?: string; [k: string]: unknown };
+    }
+
+    interface SourceRef {
+      doc_id: string;
+      source_type: string;
+      source_name: string;
+      title: string;
+      url?: string;
+      excerpt: string;
+      locator?: string;
+    }
+
+    interface Article {
+      id: string;
+      kb_id: string;
+      toc_node_id?: string;
+      title: string;
+      summary: string;
+      /** structured markdown (Obsidian wiki format), see pages/wiki/shared/content.ts */
+      content: string;
+      page_type?: PageType;
+      subtype?: string;
+      aliases?: string[];
+      tags: string[];
+      status: ArticleStatus;
+      ai_generated: boolean;
+      confidence?: Confidence;
+      sources: SourceRef[];
+      entity_id?: string;
+      /** wikilinks [[type:name]] parsed out of the content at save time */
+      linked_pages?: LinkedPage[];
+      /** topic-page structure (outline-driven compilation): planned sections
+       *  with per-section provenance; content is their rendered markdown */
+      outline?: ArticleSection[];
+      /** headline entities of a topic page (ontology chips) */
+      key_entities?: string[];
+      /** coverage of a compiled topic page: sources, filled/planned sections, 0-1 score */
+      maturity?: PageMaturity;
+      /** structured pattern payload of a page_type=pattern page */
+      pattern?: PatternData;
+      /** structured skill payload of a page_type=skill page */
+      skill?: SkillData;
+      /** advisory save-time findings (dead links / thin body / missing citations) */
+      lint?: LintWarning[];
+      /** usage telemetry: how often the answer pipeline pulled this page into context */
+      impact?: PageImpact;
+      created_by: Member;
+      contributors: Member[];
+      created_at: string;
+      updated_at: string;
+    }
+
+    interface Version {
+      id: string;
+      article_id: string;
+      version: number;
+      change_type: ChangeType;
+      change_summary?: string;
+      content: string;
+      created_by: string;
+      created_at: string;
+    }
+
+    interface LinkedPage {
+      type: string;
+      name: string;
+      entity_id?: string;
+    }
+
+    /** one planned section of a topic page (mirror of core.WikiSection) */
+    interface ArticleSection {
+      id: string;
+      heading: string;
+      body?: string;
+      doc_ids?: string[];
+      updated_at?: number;
+    }
+
+    /** coverage of a compiled topic page (mirror of core.WikiPageMaturity) */
+    interface PageMaturity {
+      sources?: number;
+      sections?: number;
+      planned?: number;
+      score?: number;
+    }
+
+    /** mirror of core.WikiLintWarning — advisory, never blocks a save */
+    interface LintWarning {
+      code: 'dead_link' | 'thin_content' | 'no_sources' | string;
+      field?: string;
+      message: string;
+      detail?: string;
+    }
+
+    /** mirror of core.WikiPattern — distilled failure pattern (问题+根因+解法) */
+    interface PatternData {
+      symptom?: string;
+      root_cause?: string;
+      fix?: string;
+      evidence?: SourceRef[];
+    }
+
+    /** mirror of core.WikiSkill — distilled procedural knowledge */
+    interface SkillData {
+      applicability?: string;
+      steps?: string[];
+      anti_patterns?: string[];
+      when_not_to_apply?: string[];
+      reach_for?: { phrases?: string[]; globs?: string[] };
+      loads?: { path: string; when?: string }[];
+      rationale?: string;
+      /** '' = KB-private, 'tenant' = every assistant's tier-1 index (LLM-wiki P3) */
+      scope?: string;
+    }
+
+    /** mirror of core.WikiImpact — programmatic usage telemetry */
+    interface PageImpact {
+      answer_hits?: number;
+      last_used_at?: string;
+    }
+
+    /** cited source doc behind a wiki page, with its enrichment attachments */
+    interface ArticleMaterial {
+      doc_id: string;
+      title: string;
+      source_name?: string;
+      source_type?: string;
+      excerpt?: string;
+      locator?: string;
+      updated?: string;
+      created?: string;
+      missing?: boolean;
+      attachments?: {
+        id: string;
+        name: string;
+        size?: number;
+        mime_type?: string;
+        created?: string;
+      }[];
+    }
+
+    /** page-level attachment: a file hung on the wiki page itself */
+    interface WikiArticleAttachment {
+      id: string;
+      name: string;
+      size?: number;
+      mime_type?: string;
+      created?: string;
+    }
+
+    interface Comment {
+      id: string;
+      article_id: string;
+      user_id: string;
+      user_name: string;
+      content: string;
+      created_at?: string;
+      /** client-side: whether the current user may delete */
+      own?: boolean;
+    }
+
+    interface GraphNode {
+      id: string;
+      kind: 'article' | 'entity' | 'unresolved';
+      label: string;
+      type?: string;
+      type_label?: string;
+      status?: string;
+      page_type?: string;
+      article_id?: string;
+      aliases?: string[];
+      properties?: Record<string, unknown>;
+      confidence?: number;
+      via_relation?: boolean;
+    }
+
+    interface GraphEdge {
+      source: string;
+      target: string;
+      kind: 'wikilink' | 'relation';
+      relation?: string;
+      label?: string;
+      inverse?: string;
+      inverse_label?: string;
+    }
+
+    interface EntityInfo {
+      id: string;
+      type: string;
+      subtype?: string;
+      name: string;
+      aliases?: string[];
+      status?: string;
+      article_id?: string;
+      properties?: Record<string, unknown>;
+      relations?: { target_id: string; relation: string }[];
+      updated?: string;
+    }
+
+    interface TocNode {
+      id: string;
+      title: string;
+      type: 'folder' | 'article';
+      article_id?: string;
+      icon?: string;
+      children?: TocNode[];
+    }
+
+    interface Bookmark {
+      id: string;
+      article_id: string;
+      created_at?: string;
+    }
+
+    interface Notification {
+      id: string;
+      user_id: string;
+      target_type: 'article' | 'kb' | 'version' | string;
+      target_id: string;
+      action?: string;
+      message?: string;
+      read: boolean;
+      created_at?: string;
+    }
+
+    /** one append-only line of a KB's decision log (governance applies/dismissals, distill runs, compile-agent iterations) */
+    interface EvolutionEntry {
+      id: string;
+      kb_id: string;
+      kind: string;
+      actor?: string;
+      target_type?: string;
+      target_id?: string;
+      summary?: string;
+      detail?: Record<string, unknown>;
+      created?: string;
+    }
+
+    /** a captured work signal: chat vote, correction or knowledge gap */
+    interface Experience {
+      id: string;
+      kb_id: string;
+      kind: string;
+      question?: string;
+      answer?: string;
+      feedback?: string;
+      note?: string;
+      outcome?: string;
+      citations?: { doc_id?: string }[];
+      retention?: string;
+      created?: string;
+    }
+
+    /** the KB's distill schedule facts (rides on the experience response) */
+    interface DistillInfo {
+      interval: string;
+      last_run?: string;
+    }
+
+    /** a compile op that exhausted its retries (incremental-compile P1) */
+    interface CompileDeadOp {
+      op: { op: string; doc_id?: string; reason?: string; fail_count?: number };
+      error: string;
+      failed_at: string;
+    }
+
+    /** one skill-proposer run over a KB's recent experiences */
+    interface SkillRun {
+      sampled: number;
+      proposals: number;
+      created: number;
+      updated: number;
+      expired: number;
+      no_action: boolean;
+      skipped_notes?: string[];
+    }
+
+    /** mirror of core.WikiEvalCase — one golden query for a KB (LLM-wiki P3) */
+    interface EvalCase {
+      id: string;
+      kb_id: string;
+      query: string;
+      expected_ids: string[];
+      expected_titles?: string[];
+      note?: string;
+      created?: string;
+    }
+
+    /** per-case outcome inside a replay run */
+    interface EvalCaseResult {
+      query: string;
+      hit_rank: number;
+      total?: number;
+      top_ids?: string[];
+      top_titles?: string[];
+      error?: string;
+      took_ms?: number;
+    }
+
+    /** mirror of core.WikiEvalRun — one scoring pass over the KB's set */
+    interface EvalRun {
+      id: string;
+      kb_id: string;
+      total_cases: number;
+      top4_hits: number;
+      top4_rate: number;
+      mrr: number;
+      avg_took_ms?: number;
+      cases?: EvalCaseResult[];
+      /** 'manual' (operator) | 'skill_applied' (post-apply gate tie-in) */
+      trigger?: string;
+      created?: string;
+    }
+
+    /** one flagged page in the KB health report (mirror of modules/wiki/health.go) */
+    interface HealthArticle {
+      id: string;
+      title: string;
+      page_type?: string;
+      status?: string;
+      /** orphan | thin_content | no_sources | missing_provenance */
+      codes?: string[];
+      inbound_links: number;
+      content_len: number;
+    }
+
+    /** a red link aggregated across the KB — the next page worth writing */
+    interface HealthGap {
+      name: string;
+      count: number;
+      cited_by: { id: string; title: string }[];
+    }
+
+    /** mirror of KBHealthReport — live whole-KB lint scan */
+    interface KbHealth {
+      kb_id: string;
+      generated_at: string;
+      total_pages: number;
+      archived_pages: number;
+      counts: Record<string, number>;
+      knowledge_gaps?: HealthGap[];
+      orphans?: HealthArticle[];
+      hubs?: HealthArticle[];
+      flagged?: HealthArticle[];
+    }
+  }
 }
 
 declare module 'ui-search/source' {
@@ -360,4 +791,15 @@ declare module 'ui-search/source' {
   export const DocDetail: any;
   export const ActionButton: any;
   export const Preview: any;
+  // filename helpers — attachments saved under a bare title (no extension)
+  // can't be opened by the OS afterwards
+  export const ensureFilenameExtension: (
+    filename: string | undefined,
+    extension: string | undefined
+  ) => string;
+  export const extensionFromMime: (mime: string | undefined | null) => string | undefined;
+  // filter field keys — an aggregation must be named after its filter field for
+  // filter clicks to filter on it (used by hosts building their own agg DSL)
+  export const OWNER_FILTER_FIELD: '_system.owner_id';
+  export const TIME_FILTER_FIELD: 'updated_range';
 }

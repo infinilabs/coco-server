@@ -14,8 +14,10 @@ import (
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
 	llmmodule "infini.sh/coco/modules/llm"
+	utils "infini.sh/coco/plugins/processors"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
+	"infini.sh/framework/core/event"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/param"
 	"infini.sh/framework/core/pipeline"
@@ -38,7 +40,8 @@ type DocumentEmbeddingProcessor struct {
 }
 
 func init() {
-	pipeline.RegisterProcessorPlugin(ProcessorName, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(ProcessorName, New, Config{})
+	pipeline.RegisterProcessorContract(ProcessorName, utils.DocumentRecordContract(pipeline.GranularityBatchCapable))
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
@@ -69,7 +72,48 @@ func (processor *DocumentEmbeddingProcessor) Name() string {
 	return ProcessorName
 }
 
+// embedDocument is the per-document core shared by both conventions.
+// generateEmbedding resolves its own model config lazily (docs without
+// chunks skip it entirely).
+func (processor *DocumentEmbeddingProcessor) embedDocument(ctx context.Context, doc *core.Document) (bool, error) {
+	// langchaingo's embedding HTTP client has no overall timeout and the
+	// pipeline context carries no deadline — bound the call like every
+	// other pipeline LLM step, or one stalled provider connection hangs
+	// the whole serial consumer (observed live).
+	llmCtx, llmCancel := utils.PipelineLLMContext(ctx)
+	modified, errs := generateEmbedding(llmCtx, doc, processor.config)
+	llmCancel()
+	if len(errs) != 0 {
+		if modified {
+			log.Errorf("processor [%s] failed to generate embeddings for document [%s/%s] _partially_ due to error [%v]", processor.Name(), doc.Title, doc.ID, errs)
+		} else {
+			log.Errorf("processor [%s] failed to generate embeddings for document [%s/%s] due to error [%v]", processor.Name(), doc.Title, doc.ID, errs)
+		}
+	}
+	if modified {
+		log.Infof("processor [%s] embeddings of document [%s/%s] generated", processor.Name(), doc.Title, doc.ID)
+	}
+	return modified, nil
+}
+
+// ProcessBatch: record-convention batch channel.
+func (processor *DocumentEmbeddingProcessor) ProcessBatch(ctx *pipeline.Context, records []*event.Event) error {
+	return utils.EachDocumentRecord(ctx.Context, records, func(dctx context.Context, doc *core.Document) (bool, error) {
+		if global.ShuttingDown() {
+			return false, errors.New("shutting down")
+		}
+		return processor.embedDocument(dctx, doc)
+	})
+}
+
 func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) error {
+	// record-scope fallback: batch_capable degrades to per-record when nested
+	if rec, ok := pipeline.CurrentRecord(ctx); ok {
+		return utils.EachDocumentRecord(ctx.Context, []*event.Event{rec}, func(dctx context.Context, doc *core.Document) (bool, error) {
+			return processor.embedDocument(dctx, doc)
+		})
+	}
+
 	obj := ctx.Get(processor.config.MessageField)
 
 	if obj == nil {
@@ -108,21 +152,7 @@ func (processor *DocumentEmbeddingProcessor) Process(ctx *pipeline.Context) erro
 			continue
 		}
 
-		modified, errs := generateEmbedding(ctx.Context, &doc, processor.config)
-		/* Log out the corresponding state */
-		if len(errs) != 0 {
-			if modified {
-				log.Errorf("processor [%s] failed to generate embeddings for document [%s/%s] _partially_ due to error [%v]", processor.Name(), doc.Title, doc.ID, errs)
-			} else {
-				log.Errorf("processor [%s] failed to generate embeddings for document [%s/%s] due to error [%v]", processor.Name(), doc.Title, doc.ID, errs)
-			}
-		} else {
-			if modified {
-				log.Infof("processor [%s] embeddings of document [%s/%s] generated", processor.Name(), doc.Title, doc.ID)
-			} else {
-				log.Infof("processor [%s] skipped document [%s/%s]", processor.Name(), doc.Title, doc.ID)
-			}
-		}
+		modified, _ := processor.embedDocument(ctx.Context, &doc) // logging inside
 
 		if modified {
 			// Update messages[i].Data if doc gets modified
@@ -160,7 +190,13 @@ func generateEmbedding(ctx context.Context, document *core.Document, processorCo
 	var modified bool
 	var finalErrs []error
 
-	embedder, err := getEmbedderClient(processorConfig)
+	// nothing to embed — skip before resolving any model configuration
+	// (skip-only batches must not require embedder readiness)
+	if len(document.Chunks) == 0 && document.AiInsights.Text == "" {
+		return false, nil
+	}
+
+	embedder, modelId, err := getEmbedderClient(processorConfig)
 	if err != nil {
 		return false, []error{err}
 	}
@@ -187,6 +223,13 @@ func generateEmbedding(ctx context.Context, document *core.Document, processorCo
 				modified = true
 			}
 		}
+	}
+
+	// Stamp the embedding model identity (W1): a later default-model change
+	// can detect stale vectors per document and offer batch reprocessing
+	// instead of silently mixing models in one index.
+	if modified {
+		document.EmbeddingModel = modelId.ProviderID + "/" + modelId.ID
 	}
 
 	return modified, finalErrs
@@ -245,16 +288,17 @@ func validateEmbeddingDimension(embedding []float32, source string) error {
 }
 
 // According to the specified configuration, init the "EmbedderClient" and
-// return it.
-func getEmbedderClient(cfg *Config) (embeddings.EmbedderClient, error) {
+// return it, along with the resolved model identity (for the W1 embedding
+// model stamp).
+func getEmbedderClient(cfg *Config) (embeddings.EmbedderClient, *core.ModelId, error) {
 	modelId := llmmodule.ResolveModel(core.LLMTypeEmbedding, &core.ModelId{ProviderID: cfg.ModelProviderID, ID: cfg.ModelName})
 	if modelId == nil {
-		return nil, fmt.Errorf("no embedding model configured: set model_provider/model in pipeline config or configure a default embedding model in settings")
+		return nil, nil, fmt.Errorf("no embedding model configured: set model_provider/model in pipeline config or configure a default embedding model in settings")
 	}
 	provider, err := common.GetModelProvider(modelId.ProviderID)
 	if err != nil {
 		log.Error("failed to get model provider: ", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	model := langchain.GetEmbeddingLLM(provider.BaseURL, provider.APIType, modelId.ID, provider.APIKey, core.RequiredEmbeddingDimension)
@@ -264,8 +308,8 @@ func getEmbedderClient(cfg *Config) (embeddings.EmbedderClient, error) {
 	if !ok {
 		errorMsg := fmt.Sprintf("Model [%s/%s] does not support embeddings", cfg.ModelProviderID, cfg.ModelName)
 		log.Error(errorMsg)
-		return nil, errors.New(errorMsg)
+		return nil, nil, errors.New(errorMsg)
 	}
 
-	return embedder, nil
+	return embedder, modelId, nil
 }

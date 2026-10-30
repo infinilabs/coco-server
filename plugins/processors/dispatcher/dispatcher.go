@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"infini.sh/coco/core"
+	connectorcommon "infini.sh/coco/modules/common"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/errors"
@@ -34,7 +35,8 @@ type Dispatcher struct {
 const processorName = "connector_dispatcher"
 
 func init() {
-	pipeline.RegisterProcessorPlugin(processorName, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(processorName, New, Config{})
+	pipeline.RegisterProcessorContract(processorName, pipeline.RecordContract{Scope: pipeline.ScopeBatch})
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
@@ -101,6 +103,10 @@ NextPage:
 			}
 
 			if doc.SyncConfig.Enabled {
+				// close the sync-run journal when its dispatch pipeline has
+				// ended — otherwise a completed fetch reads as stale forever
+				connectorcommon.CloseSyncRunIfIdle(doc.ID)
+
 				// get connector config for the datasource
 				lastAccessTime, _ := processor.getLastAccessTime(doc.ID)
 				interval := util.GetDurationOrDefault(doc.SyncConfig.Interval, time.Duration(30*time.Second))

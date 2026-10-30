@@ -11,6 +11,7 @@ import (
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/modules/common/fingerprint"
 	"infini.sh/framework/core/api"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/errors"
@@ -65,6 +66,15 @@ func WebhookHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Para
 					document, ok := docV.(core.Document)
 					if ok {
 						if document.ID != "" {
+							// same source-side dedup stamp as
+							// BatchCollect: this push feeds the bulk
+							// indexing pipelines, not orm, so the
+							// document module's pre-hook cannot fire
+							if h, s, okFp := fingerprint.Compute(document.Content); okFp {
+								document.ContentHash, document.ContentSimhash = h, int64(s)
+							} else {
+								document.ContentHash, document.ContentSimhash = "", 0
+							}
 							queueCfg := &queue.QueueConfig{Name: "indexing_documents"}
 							data := util.MustToJSONBytes(document)
 							err := queue.Push(queue.SmartGetOrInitConfig(queueCfg), data)

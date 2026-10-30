@@ -113,7 +113,7 @@ Wrap the JSON result in <JSON></JSON> tags.
 };
 
 export default (props: any) => {
-  const { showSettings = true, value: propsValue, onChange, providers = [], width, modelType, showTemplate = true, namePrefix = [], allowClear = false, placeholder = '', defaultModel, onRefresh } = props;
+  const { showSettings = true, value: propsValue, onChange, providers = [], width, dropdownWidth, modelType, showTemplate = true, namePrefix = [], allowClear = false, placeholder = '', defaultModel, onRefresh } = props;
 
   const { hasAuth } = useAuth()
 
@@ -270,7 +270,7 @@ export default (props: any) => {
           allowClear={allowClear}
           data={formatData}
           defaultGroupVisible={true}
-          dropdownWidth={width}
+          dropdownWidth={dropdownWidth ?? width}
           filterOptions={filterOptions}
           filters={filters}
           groupOptions={groupOptions}

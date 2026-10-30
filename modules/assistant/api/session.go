@@ -18,6 +18,7 @@ import (
 	common2 "infini.sh/coco/modules/assistant/common"
 	"infini.sh/coco/modules/assistant/service"
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/modules/memory"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/orm"
@@ -441,6 +442,45 @@ func (h *APIHandler) askAssistant(w http.ResponseWriter, r *http.Request, ps htt
 
 }
 
+// askAssistantSync is the non-streaming twin of askAssistant: it runs the same
+// RAG pipeline but collects the reply in memory and returns a single JSON
+// response. It backs the ask_assistant MCP tool — SSE chunks do not fit the
+// tools/call request/response shape.
+func (h *APIHandler) askAssistantSync(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	id := ps.MustGetParameter("id")
+
+	var request core.MessageRequest
+	if err := h.DecodeJSON(r, &request); err != nil {
+		h.WriteError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if request.Message == "" {
+		h.WriteError(w, "message is empty", http.StatusBadRequest)
+		return
+	}
+
+	userInfo := security.MustGetUserFromRequest(r)
+
+	// cancel with the caller: a disconnected MCP client should stop the LLM work
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Minute)
+	defer cancel()
+
+	answer, err := service.AskAssistantSync(ctx, userInfo.MustGetUserID(), id, request.Message, nil)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if ctx.Err() != nil {
+			status = http.StatusGatewayTimeout
+		}
+		h.WriteError(w, err.Error(), status)
+		return
+	}
+
+	h.WriteJSON(w, util.MapStr{
+		"assistant_id": id,
+		"answer":       answer,
+	}, http.StatusOK)
+}
+
 func (h APIHandler) openChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("session_id")
 
@@ -669,6 +709,11 @@ func (h APIHandler) sendChatMessageV2(w http.ResponseWriter, r *http.Request, ps
 func (h APIHandler) closeChatSession(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
 	id := ps.MustGetParameter("session_id")
+	user, _ := security.GetUserFromRequest(req)
+	userID := ""
+	if user != nil {
+		userID = user.UserID
+	}
 	obj := core.Session{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
@@ -681,6 +726,53 @@ func (h APIHandler) closeChatSession(w http.ResponseWriter, req *http.Request, p
 		}, http.StatusNotFound)
 		return
 	}
+
+	// W6 auto-distill: the session's recent messages become the distill
+	// excerpt — confirmed memories join future prompts only after the
+	// owner confirms (the gate in the memory module enforces this)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Printf("memory: session-close distill skipped: %v\n", r)
+			}
+		}()
+		hctx := orm.NewContextWithParent(context.Background())
+		orm.WithModel(hctx, &core.ChatMessage{})
+		hres, herr := orm.SearchV2(hctx, orm.NewQuery().Size(40).
+			Filter(orm.TermQuery("session_id", id)).
+			SortBy(orm.Sort{Field: "created", SortType: orm.DESC}))
+		if herr != nil {
+			return
+		}
+		type msgHit struct {
+			Source struct {
+				MessageType string `json:"type"`
+				Message     string `json:"message"`
+			} `json:"_source"`
+		}
+		var hits struct {
+			Hits []msgHit `json:"hits"`
+		}
+		if raw, ok := hres.Payload.([]byte); ok {
+			if json.Unmarshal(raw, &hits) != nil {
+				return
+			}
+		}
+		var sb strings.Builder
+		// chronological order (query desc → reverse)
+		for i := len(hits.Hits) - 1; i >= 0; i-- {
+			m := hits.Hits[i]
+			role := "user"
+			if m.Source.MessageType != "user" {
+				role = "assistant"
+			}
+			fmt.Fprintf(&sb, "%s: %s\n", role, m.Source.Message)
+		}
+		if sb.Len() == 0 {
+			return
+		}
+		memory.AutoDistill(userID, sb.String(), id)
+	}()
 
 	//obj.Status = "closed"
 	//err = orm.Update(&orm.Context{

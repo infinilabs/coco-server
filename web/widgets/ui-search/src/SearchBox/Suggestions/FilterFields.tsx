@@ -19,6 +19,7 @@ const FilterFields: FC<FilterFieldsProps> = (props) => {
     <ListContainer
       type={SUGGESTION_FILTER_FIELDS}
       title={t('labels.filterTitle')}
+      selectOnSpace
       {...props}
     />
   )

@@ -20,7 +20,12 @@
 #nprogress-ui-search .bar {
   background: rgb(var(--ui-search--nprogress-color));
 
-  position: absolute;
+  /* pinned to the very top of the viewport so it reads as a top indicator bar
+     even when the host app renders its own header above the widget container.
+     The element renders at document.body (not inside .ui-search) for the same
+     reason: hosts may use `contain: layout`, which would re-anchor fixed
+     descendants — and the bar's color var is copied inline by the renderer. */
+  position: fixed;
   z-index: 1031;
   top: 0;
   left: 0;
@@ -46,42 +51,6 @@
   transform: rotate(3deg) translate(0px, -4px);
 }
 
-/* Remove these to get rid of the spinner */
-#nprogress-ui-search .spinner {
-  display: block;
-  position: fixed;
-  z-index: 1031;
-  top: 15px;
-  right: 15px;
-}
-
-#nprogress-ui-search .spinner-icon {
-  width: 18px;
-  height: 18px;
-  box-sizing: border-box;
-
-  border: solid 2px transparent;
-  border-top-color: rgb(var(--ui-search--nprogress-color));
-  border-left-color: rgb(var(--ui-search--nprogress-color));
-  border-radius: 50%;
-
-  -webkit-animation: nprogress-ui-search-spinner 400ms linear infinite;
-  animation: nprogress-ui-search-spinner 400ms linear infinite;
-}
-
-@-webkit-keyframes nprogress-ui-search-spinner {
-  0% {
-    -webkit-transform: rotate(0deg);
-  }
-  100% {
-    -webkit-transform: rotate(360deg);
-  }
-}
-@keyframes nprogress-ui-search-spinner {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
+/* The spinner is intentionally disabled (see DEFAULT_SETTINGS.showSpinner in
+ * src/utils/nprogress.ts): the top bar alone is the loading indicator — a fixed
+ * circle at the viewport corner collides with host header controls. */

@@ -7,7 +7,10 @@ package dispatcher
 import (
 	"fmt"
 
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
+	connectorcommon "infini.sh/coco/modules/common"
+	"infini.sh/coco/modules/common/secretbox"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/pipeline"
@@ -15,6 +18,11 @@ import (
 )
 
 func (processor *Dispatcher) syncDatasource(c *core.DataSource) error {
+
+	// S1: connector credentials are encrypted at rest — decrypt before the
+	// config feeds the transient connector pipeline; in-memory only, the
+	// datasource record is never re-saved from here
+	c.Connector.Config = secretbox.DecryptConfig(c.Connector.Config)
 
 	//check datasource and connector's config
 	//create pipeline based sub tasks
@@ -43,6 +51,14 @@ func (processor *Dispatcher) syncDatasource(c *core.DataSource) error {
 
 	if connector.Processor.Name == "" {
 		return errors.Errorf("connector %s not have a valid processor name", connector.ID)
+	}
+
+	// sync run journal (W8): opening a run supersedes any unrecorded
+	// previous one — the singleton pipeline guarantees no overlap, so a
+	// leftover "running" record is a run that died without a finish
+	if prev, jerr := connectorcommon.MarkSyncRunStarted(c.ID); jerr == nil && prev != nil && prev.State == connectorcommon.SyncRunSuperseded {
+		log.Warnf("dispatcher: datasource [%s] previous sync run %s ended unrecorded (crashed or killed) after %d batches / %d documents",
+			c.Name, prev.RunID, prev.Batches, prev.Documents)
 	}
 
 	pipelineCfg := pipeline.PipelineConfigV2{}

@@ -10,9 +10,11 @@ import (
 	"infini.sh/coco/modules/assistant/tools"
 	"infini.sh/coco/modules/datasource"
 	"infini.sh/coco/modules/llm"
+	"infini.sh/coco/modules/wiki"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/modules/assistant/langchain"
+	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 )
 
@@ -34,6 +36,15 @@ func RunDeepSearchTask(ctx context.Context, userID string, params *common2.RAGCo
 			}
 		}
 		params.InputValues["network_sources"] = datasourceStr.String()
+	}
+
+	// tier-1 skill index (LLM-wiki P2): the KBs bound to this assistant
+	// contribute their published skills' names + applicability to the
+	// prompt; the full pages surface through retrieval on demand
+	if params.AssistantCfg != nil {
+		if idx := wiki.SkillIndexForAssistant(orm.NewContextWithParent(ctx), params.AssistantCfg.GetID()); idx != "" {
+			params.InputValues["skills"] = idx
+		}
 	}
 
 	if cfg.DeepThinkConfig.PickTools {

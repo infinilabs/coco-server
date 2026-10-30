@@ -69,3 +69,22 @@
         }
     }
 }
+
+/* @infinilabs/attachments hard-codes every card to w-1/3 — a width tuned for
+   the 720px search-page box. In the ~340px minimize header that starves the
+   filename next to the 40px icon. Match the card by its literal class token
+   (attribute selector avoids escaping the `/`) and stretch cards to full rows;
+   the two-class specificity beats the package's single-class rule.
+   The 40px icon (size-10 + min-w-10) also dwarfs a one-line row — shrink it
+   to 24px (min-width included, or min-w-10 keeps it at 40px). */
+.compactAttachments {
+    :global([class~="w-1/3"]) {
+        width: 100%;
+    }
+
+    :global([class~="size-10"]) {
+        width: 24px;
+        height: 24px;
+        min-width: 24px;
+    }
+}

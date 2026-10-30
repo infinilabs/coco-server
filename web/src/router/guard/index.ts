@@ -17,7 +17,7 @@ import { isStaticSuper, resetAuth, selectUserInfo } from '@/store/slice/auth';
 import { getRouteHome, initAuthRoute, initConstantRoute, setFilterPaths } from '@/store/slice/route';
 import { localStg } from '@/utils/storage';
 import { fetchGetUserInfo } from '@/service/api';
-import { setApplicationSetting, updateRootRouteIfSearch } from '@/store/slice/server';
+import { getAppearance as selectAppearance, setApplicationSetting, updateRootRouteIfSearch } from '@/store/slice/server';
 
 function shouldRedirectLogin(path: string) {
   return ['provider', 'request_id', 'product'].every(keyword => !path.includes(keyword));
@@ -197,8 +197,12 @@ function handleRouteSwitch(to: RouteLocationNormalizedLoaded, NavigationGuardNex
 export const afterEach: AfterEach = to => {
   const { i18nKey, title } = to.meta as any;
 
-  const documentTitle = i18nKey ? $t(i18nKey) : title;
-  document.title = documentTitle ?? 'React-Soybean';
+  const pageTitle = i18nKey ? $t(i18nKey) : title;
+
+  // the configured site title (appearance settings) acts as the tab-title
+  // suffix; fall back to the app title from env
+  const siteTitle = selectAppearance(store.getState())?.title || import.meta.env.VITE_APP_TITLE;
+  document.title = pageTitle ? `${pageTitle} · ${siteTitle}` : siteTitle;
   window.NProgress?.done?.();
 };
 

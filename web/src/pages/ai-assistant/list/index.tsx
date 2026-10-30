@@ -1,5 +1,6 @@
-import { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
-import { Avatar, Button, Dropdown, Switch, Table, message } from 'antd';
+import { CommentOutlined, EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
+import PageHeaderTitle from '@/components/stateless/common/PageHeaderTitle';
+import { Avatar, Button, Dropdown, Switch, Table, Tag, message } from 'antd';
 import type { MenuProps, TableColumnsType, TableProps } from 'antd';
 import Search from 'antd/es/input/Search';
 
@@ -139,7 +140,7 @@ export function Component() {
                 />
               </IconWrapper>
             )}
-            {permissions.read && permissions.update && hasEdit(record) ? (
+            {permissions.read && (record.builtin === true || (permissions.update && hasEdit(record))) ? (
               <a
                 className='ant-table-cell-ellipsis max-w-150px cursor-pointer text-[var(--ant-color-link)]'
                 onClick={() => nav(`/ai-assistant/edit/${record.id}`)}
@@ -202,15 +203,20 @@ export function Component() {
     {
       title: t('page.assistant.labels.type'),
       dataIndex: 'type',
-      minWidth: 50,
+      minWidth: 90,
       render: (value: string, record: Assistant) => {
-        return ['simple', 'deep_think', 'deep_research'].includes(value) ? t(`page.assistant.mode.${value}`) : '-';
+        if (!value) return '-';
+        // pipeline assistants never surface in chat pickers; tag them so the distinction is visible here
+        if (value === 'data_processing') return <Tag color="purple">{t('page.assistant.mode.data_processing')}</Tag>;
+        return ['simple', 'deep_think', 'deep_research', 'external_workflow'].includes(value)
+          ? t(`page.assistant.mode.${value === 'external_workflow' ? 'workflow' : value}`)
+          : value;
       }
     },
     {
       title: t('page.assistant.labels.datasource'),
       dataIndex: ['datasource', 'enabled'],
-      minWidth: 50,
+      minWidth: 90,
       render: (value: boolean, record: Assistant) => {
         return t(`common.enableOrDisable.${value ? 'enable' : 'disable'}`);
       }
@@ -218,7 +224,7 @@ export function Component() {
     {
       title: t('page.assistant.labels.mcp_servers'),
       dataIndex: ['mcp_servers', 'enabled'],
-      minWidth: 50,
+      minWidth: 90,
       render: (value: boolean, record: Assistant) => {
         return t(`common.enableOrDisable.${value ? 'enable' : 'disable'}`);
       }
@@ -239,7 +245,7 @@ export function Component() {
       render: (value: boolean, record: Assistant) => {
         return (
           <Switch
-            disabled={!permissions.update || !hasEdit(record)}
+            disabled={!permissions.update || (!hasEdit(record) && record.builtin !== true)}
             size='small'
             value={value}
             onChange={v => onEnabledChange(v, record)}
@@ -254,7 +260,11 @@ export function Component() {
       hidden: !permissions.update && !permissions.delete,
       render: (_, record) => {
         const items: MenuProps['items'] = [];
-        if (permissions.read && permissions.update && hasEdit(record)) {
+        // builtin assistants carry no owner (system-seeded): anyone who may
+        // update assistants can view/edit them — the backend only locks the
+        // name and forbids delete
+        const editable = permissions.update && (hasEdit(record) || record.builtin === true);
+        if (permissions.read && editable) {
           items.push({
             label: t('common.edit'),
             key: '2'
@@ -266,7 +276,7 @@ export function Component() {
             key: '1'
           });
         }
-        if (permissions.create && hasEdit(record)) {
+        if (permissions.create && (hasEdit(record) || record.builtin === true)) {
           items.push({
             label: t('common.clone'),
             key: '3'
@@ -281,14 +291,6 @@ export function Component() {
       }
     }
   ];
-
-  // rowSelection object indicates the need for row selection
-  const rowSelection: TableProps<Assistant>['rowSelection'] = {
-    onChange: (selectedRowKeys: React.Key[], selectedRows: Assistant[]) => { },
-    getCheckboxProps: (record: Assistant) => ({
-      name: record.name
-    })
-  };
 
   const initialData = {
     data: [],
@@ -357,14 +359,20 @@ export function Component() {
   return (
     <ListContainer>
       <ACard
-        bordered={false}
         className='flex-col-stretch sm:flex-1-hidden card-wrapper'
         ref={tableWrapperRef}
+        title={(
+          <PageHeaderTitle
+            description={t('page.assistant.subtitle')}
+            icon={<CommentOutlined />}
+            title={t('page.assistant.title')}
+          />
+        )}
       >
-        <div className='mb-4 mt-4 flex items-center justify-between'>
+        <div className='mb-4 flex flex-wrap items-center justify-between gap-12px'>
           <Search
             addonBefore={<FilterOutlined />}
-            className='max-w-500px'
+            className='w-full max-w-360px sm:!w-300px'
             enterButton={t('common.refresh')}
             value={keyword}
             onChange={e => setKeyword(e.target.value)}
@@ -391,10 +399,10 @@ export function Component() {
           dataSource={data.data}
           loading={loading}
           rowKey='id'
-          rowSelection={{ ...rowSelection }}
+          scroll={{ ...scrollConfig, x: 'max-content' }}
           size='middle'
           pagination={{
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+            showTotal: total => t('common.totalItems', { total: String(total) }),
             pageSize: queryParams.size,
             current: Math.floor(queryParams.from / queryParams.size) + 1,
             total: data.total?.value || data?.total,

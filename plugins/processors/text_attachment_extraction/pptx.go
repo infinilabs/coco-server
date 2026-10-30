@@ -57,7 +57,7 @@ func (p *DocumentTextAttachmentExtractionProcessor) processPptx(ctx context.Cont
 			nameToId[name] = util.GetUUID()
 			if fileproc.IsImage(name) {
 				fullPath := filepath.Join(attachmentDirPath, name)
-				text, err := fileproc.OCR(ctx, p.config.TikaEndpoint, p.config.TikaTimeoutInSeconds, fullPath)
+				text, err := fileproc.OCR(ctx, resolveTikaEndpoint(p.config.TikaEndpoint), resolveTikaTimeout(p.config.TikaTimeoutInSeconds), fullPath)
 				if err != nil {
 					log.Warnf("failed to perform OCR for image [%s]: %v", name, err)
 				} else {

@@ -20,6 +20,7 @@ Welcome to the API Reference. Below are details on how to interact with the diff
 
 - [Search](./search) - Search, suggest, and recommend APIs
 - [Document](./document) - Document CRUD and management
+- [Record Path Contract](./path_contract) - The frozen `document.*` / `attachment.*` record path contract for pipeline configurations
 - [Datasource](./datasource) - Datasource configuration and management
 - [Connector](./connector) - Connector CRUD and management
 - [Assistant](./assistant) - AI assistant and chat session management

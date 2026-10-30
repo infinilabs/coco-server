@@ -1,0 +1,581 @@
+env:
+  ES_ENDPOINT: https://localhost:9200
+  ES_USERNAME: admin
+  ES_PASSWORD: "51a80c7efd88edef3117"
+#  ES_PASSWORD: "wPLCVI8v+7O/5+tgAm3fzg=="
+  WEB_BINDING: 0.0.0.0:9000
+  API_BINDING: 0.0.0.0:2900
+
+node:
+  id: d1vg52p4d9v5665coilg
+
+coco:
+  server:
+    public: false
+    name: "My Coco Server"
+    encode_icon_to_base64: false # enable this if coco-server is using self-signed certs
+#    #[START] for managed mode only, need to configured by coco-server operator
+    endpoint: "http://localhost:9000/"
+    auth_provider: #config for app to use
+      sso:
+        url: "http://localhost:9000/#/login"
+#    #[END] for managed mode only
+    minimal_client_version:
+      number: "0.3"
+    provider:
+      name: "INFINI Labs"
+      description: "Coco AI Server - Search, Connect, Collaborate, AI-powered enterprise search, all in one space."
+      icon: "https://coco.rs/favicon.ico"
+      website: "https://coco.rs/"
+      eula: "https://coco.rs/#/terms"
+      privacy_policy: "https://coco.rs/privacy"
+      banner: "https://coco.rs/svg/connect.svg"
+      #[START] for managed mode only, config for coco-server to use
+      auth_provider: #TODO, should be dynamic list provided by security module
+        sso:
+          url: "/sso/login/cloud?provider=coco-cloud&product=coco"
+      #[END] for managed mode only
+    store:
+      endpoint: "https://coco.infini.cloud"
+      local: false
+
+## Cleanup exists data:
+# curl -u admin:45ff432a5428ade77c7b -k -XDELETE   https://localhost:9200/_template/coco-search
+# curl -u admin:45ff432a5428ade77c7b -k -XDELETE   https://localhost:9200/_template/coco
+# curl -u admin:45ff432a5428ade77c7b -k -XDELETE  https://localhost:9200/_scripts/coco-query-string
+# curl -u admin:45ff432a5428ade77c7b -k -XDELETE  https://localhost:9200/_scripts/coco-query-string-extra-should
+# curl -u admin:45ff432a5428ade77c7b -k -XDELETE   https://localhost:9200/coco_*
+elastic:
+  elasticsearch: prod
+  enabled: true
+  store:
+    enabled: false
+  orm:
+    enabled: true
+    index_prefix: "coco_"
+    override_exists_template: true
+    override_exists_mapping: true
+    index_templates:
+      "coco-search": |
+        {
+          "order": 10,
+          "index_patterns": [
+            "coco_*"
+          ],
+          "settings": {
+            "index": {
+              "analysis": {
+                "char_filter": {
+                    "tsconvert" : {
+                        "type" : "stconvert",
+                        "delimiter" : ",",
+                        "keep_both" : false,
+                        "convert_type" : "t2s"
+                    }
+                 },
+                "tokenizer": {
+                      "my_pinyin": {
+                        "type": "pinyin",
+                        "keep_first_letter": true,
+                        "keep_separate_first_letter": true,
+                        "keep_full_pinyin": true,
+                        "keep_original": false,
+                        "limit_first_letter_length": 16,
+                        "lowercase": true
+                      }
+                    },
+                "analyzer": {
+                  "pinyin_analyzer": {
+                     "tokenizer": "my_pinyin"
+                   },
+                  "combined_text_analyzer": {
+                    "char_filter": ["tsconvert"],
+                    "filter": [
+                      "lowercase",
+                      "asciifolding",
+                      "word_delimiter",
+                      "unique"
+                    ],
+                    "tokenizer": "classic"
+                  }
+                }
+              }
+            }
+          },
+          "mappings": {}
+        }
+
+
+elasticsearch:
+  - name: prod
+    enabled: true
+    endpoints:
+      - $[[env.ES_ENDPOINT]]
+    discovery:
+      enabled: false
+    basic_auth:
+      username: $[[env.ES_USERNAME]]
+      password: $[[env.ES_PASSWORD]]
+
+api:
+  enabled: true
+  websocket:
+    enabled: false
+  network:
+    binding: $[[env.API_BINDING]]
+
+web:
+#  base_path: "/coco"
+  enabled: true
+  embedding_api: false
+  network:
+    binding: $[[env.WEB_BINDING]]
+  tls:
+    enabled: false
+    skip_insecure_verify: true
+    default_domain: "localhost:2900"
+    #    default_domain: "api.coco.rs"
+    auto_issue:
+      enabled: false
+      email: "hello@infinilabs.com"
+      include_default_domain: true
+      domains:
+        - "www.coco.rs"
+      provider:
+        tencent_dns:
+          secret_id: $[[keystore.TENCENT_DNS_ID]] #./bin/coco keystore add TENCENT_DNS_ID
+          secret_key: $[[keystore.TENCENT_DNS_KEY]] #./bin/coco keystore add TENCENT_DNS_KEY
+  security:
+    enabled: true
+    managed: true #remote managed instance
+    authentication:
+      native:
+        enabled: true
+      oauth:
+        cloud:
+          enabled: true
+          client_secret: "999999"
+          authorize_url: "http://localhost:9001/oauth/authorize"
+          token_url: "http://localhost:9001/oauth/token"
+          profile_url: "http://localhost:9001/account/profile"
+          redirect_url: "http://localhost:9000/sso/callback/cloud"
+          success_page: "/#/home"
+          failed_page: "/#/login"
+          scopes: [ "openid","email","profile"]
+          bootstrap_admin_users: ["d377tg3q50k4k6b0qapg"] #/user_id
+
+##background jobs
+pipeline:
+  - name: enrich_documents
+    auto_start: false
+    keep_running: true
+    processor:
+      - consumer:
+          auto_commit_offset: true
+          queue_selector:
+            keys:
+              - indexing_documents
+          consumer:
+            group: enriched_documents
+            fetch_max_messages: 10
+          processor:
+            - file_type_detection: {}
+            - file_extraction:
+                tika_endpoint: "http://127.0.0.1:9998"
+                tika_timeout_in_seconds: 360
+                chunk_size: 7000
+                vision_model_provider: qianwen
+                vision_model: qwen-vl-max
+                pigo_facefinder_path: "/Users/medcl/Downloads/facefinder"
+                llm_generation_lang: zh-CN
+            - document_summarization:
+                model_provider: deepseek
+                model: deepseek-chat
+                model_context_length: 128000
+                ai_insights_max_length: 500
+                llm_generation_lang: zh-CN
+            - extract_tags:
+                model_provider: deepseek
+                model: deepseek-chat
+                model_context_length: 128000
+                llm_generation_lang: zh-CN
+            - document_embedding:
+                model_provider: qianwen
+                model: text-embedding-v4
+                # Dimension of the vectors generated by your embedding model
+                embedding_dimension: 1024
+                # Chunk size in characters, it is recommended to use a value
+                # lower than you embedding model's input limit, e.g., if the
+                # limit is 8192 tokens, then we can set chunk size to 7000.
+                chunk_size: 7000
+                output_queue:
+                  name: "enriched_documents"
+
+  - name: merge_documents
+    auto_start: true
+    keep_running: true
+    processor:
+      - indexing_merge:
+          input_queue: "indexing_documents"
+          idle_timeout_in_seconds: 1
+          elasticsearch: "prod"
+          index_name: "coco_document-v2"
+          key_field: "id"
+          output_queue:
+            name: "merged_documents"
+            label:
+              tag: "merged"
+          worker_size: 1
+          bulk_size_in_kb: 10240
+  - name: ingest_documents
+    auto_start: true
+    keep_running: true
+    processor:
+      - bulk_indexing:
+          bulk:
+            compress: true
+            batch_size_in_mb: 10
+            batch_size_in_docs: 10240
+          consumer:
+            fetch_max_messages: 100
+          queues:
+            type: indexing_merge
+            tag: "merged"
+
+  - name: connector_dispatcher
+    auto_start: true
+    keep_running: true
+    singleton: true
+    retry_delay_in_ms: 10000
+    processor:
+      - connector_dispatcher:
+          max_running_timeout_in_seconds: 1200
+#          pipelines_in_sync: true
+
+#http_client:
+#  gitlab_12306:
+#    timeout: "30s"
+#    tls:
+#      enabled: true
+#      cert_file: /Users/medcl/Downloads/client.crt
+#      key_file: /Users/medcl/Downloads/client.key
+#      cert_password: 12306
+#      skip_insecure_verify: true
+#      bypass_malformed_cert: true
+#  default:
+#    proxy:
+#      enabled: true
+#      default_config:
+#        http_proxy: http://127.0.0.1:7890
+#        socket5_proxy: socks5://127.0.0.1:7890
+#      override_system_proxy_env: true #override system proxy's environment settings with this proxy settings
+#      permitted:
+#        - "google.com"
+#      denied:
+#        - "localhost"
+#        - "www.yuque.com"
+#        - "yuque.com"
+#        - "infinilabs.com"
+#        - "api.coco.rs"
+#        - "dashscope.aliyuncs.com"
+#      domains:
+#        "github.com":
+#          http_proxy: http://127.0.0.1:7890
+#          socket5_proxy: socks5://127.0.0.1:7890
+
+#store:
+#  extension:
+#    enabled: true
+#    repo_path: "/Users/medcl/go/src/infini.sh/coco-extensions/extensions"
+#    base_url: ""
+#    package_path: "/Users/medcl/go/src/infini.sh/coco/.public/pkg"
+#    package_base_url: "pkg"
+
+#service:
+#  audio:
+#    transcription: # aliyun only
+#      enabled: false
+#      provider: aliyun
+#      token: $[[keystore.ALIYUN_AI_TOKEN]]
+#    synthesize:
+#      enabled: false
+#      provider: aliyun
+#      token: $[[keystore.ALIYUN_AI_TOKEN]]
+#      model: "cosyvoice-v2"
+#      output_format: "wav"
+#      voice: "loongbella_v2"
+#      save_to_file: false
+#      output_path: "tts"
+
+
+enterprise:
+  security:
+    rbac:
+      principal_provider: #TODO how to sync for multi-tenant environment
+        endpoint: http://localhost:9001
+        token: d59mdsrq50k0q4bafgngx8ijbd189b30y3lxrkgxjzmefdconc8o1avk9myiieaejao2hm34q4kq6sjtqaea
+#        endpoint: https://app.infini.cloud
+#        token: d550u0k61mdtussoasfgyi2asgul2v963iqw3gd930lxpr7ib211duzw2rge9foqzjsi8yhk284cbz295j1t
+        auto_refresh: true
+        refresh_interval: 10s
+
+field_metadata:
+  "source.id":
+    field_label: Source
+    field_description: The data source of the document.
+    field_name: source.id
+    field_data_type: keyword
+    support_multi_select: true
+    field_icon: database
+
+  category:
+    field_label: Category
+    field_description: Primary category of the document, e.g., report.
+    field_name: category
+    field_data_type: keyword
+    support_multi_select: true
+    field_icon: folder
+
+  subcategory:
+    field_label: Subcategory
+    field_description: Secondary category of the document, e.g., 2024.
+    field_name: subcategory
+    field_data_type: keyword
+    support_multi_select: true
+    field_icon: folder
+
+  categories:
+    field_label: Categories
+    field_description: List of categories the document belongs to.
+    field_name: categories
+    field_data_type: keyword
+    support_multi_select: true
+    field_icon: folder
+
+  title:
+    field_label: Title
+    field_description: Title of the document.
+    field_name: title
+    field_data_type: text
+    support_multi_select: false
+    field_icon: heading-1
+
+  type:
+    field_label: Type
+    field_description: Type of the document, e.g., PDF.
+    field_name: type
+    field_data_type: keyword
+    support_multi_select: false
+    field_icon: case-sensitive
+
+  lang:
+    field_label: Lang
+    field_description: Language of the document.
+    field_name: lang
+    field_data_type: keyword
+    support_multi_select: false
+    field_icon: case-sensitive
+
+  content:
+    field_label: Content
+    field_description: The main content or body of the document.
+    field_name: content
+    field_data_type: text
+    support_multi_select: false
+    field_icon: text
+
+  icon:
+    field_label: Icon
+    field_description: URL to the documents icon.
+    field_name: icon
+    field_data_type: url
+    support_multi_select: false
+    field_icon: link
+
+  size:
+    field_label: Size
+    field_description: Size of the document in bytes.
+    field_name: size
+    field_data_type: integer
+    support_multi_select: false
+    field_icon: number
+
+  "owner.avatar":
+    field_label: Owner Avatar
+    field_description: URL to the owners avatar image.
+    field_name: owner.avatar
+    field_data_type: url
+    support_multi_select: false
+    field_icon: link
+
+  "owner.username":
+    field_label: Owner Username
+    field_description: Username of the owner.
+    field_name: owner.username
+    field_data_type: keyword
+    support_multi_select: false
+    field_icon: case-sensitive
+
+  "owner.userid":
+    field_label: Owner Userid
+    field_description: User ID of the owner.
+    field_name: owner.userid
+    field_data_type: keyword
+    support_multi_select: false
+    field_icon: case-sensitive
+
+  "last_updated_by.user.avatar":
+    field_label: Last Updated By User Avatar
+    field_description: URL to the avatar of the last editor.
+    field_name: last_updated_by.user.avatar
+    field_data_type: url
+    support_multi_select: false
+    field_icon: link
+
+  "last_updated_by.user.username":
+    field_label: Last Updated By User Username
+    field_description: Username of the last editor.
+    field_name: last_updated_by.user.username
+    field_data_type: keyword
+    support_multi_select: false
+    field_icon: case-sensitive
+
+  "last_updated_by.user.userid":
+    field_label: Last Updated By User Userid
+    field_description: User ID of the last editor.
+    field_name: last_updated_by.user.userid
+    field_data_type: keyword
+    support_multi_select: false
+    field_icon: case-sensitive
+
+  "last_updated_by.timestamp":
+    field_label: Last Updated Timestamp
+    field_description: Timestamp of the last update.
+    field_name: last_updated_by.timestamp
+    field_data_type: datetime
+    support_multi_select: false
+    field_icon: calendar
+
+  attachments:
+    field_label: Attachments
+    field_description: Related attachments, storing document IDs in the coco_attachment-v2 index.
+    field_name: attachments
+    field_data_type: keyword
+    support_multi_select: true
+    field_icon: folder
+
+  "metadata.content_category":
+    field_label: Content Category
+    field_description: >-
+      High-level content category, more granular than metadata.mime_type. Enum
+      values: doc, image, video, music, webpage.
+    field_name: metadata.content_category
+    field_data_type: keyword
+    support_multi_select: false
+    field_icon: folder
+
+  "metadata.content_type":
+    field_label: Content Type
+    field_description: >-
+      Detailed content type, more granular than metadata.mime_type. Enum values:
+      image, video, markdown, pdf, docx, pptx, xlsx.
+    field_name: metadata.content_type
+    field_data_type: keyword
+    support_multi_select: false
+    field_icon: folder
+
+  "metadata.mime_type":
+    field_label: MIME Type
+    field_description: >-
+      Document MIME type, used to determine preview/view component and search
+      result rendering.
+    field_name: metadata.mime_type
+    field_data_type: keyword
+    support_multi_select: false
+    field_icon: folder
+
+  "metadata.colors":
+    field_label: Colors
+    field_description: >-
+      Primary colors extracted from images.
+    field_name: metadata.colors
+    field_data_type: keyword
+    support_multi_select: true
+    field_icon: folder
+
+  "metadata.width":
+    field_label: Width
+    field_description: Original width of the image or video in pixels.
+    field_name: metadata.width
+    field_data_type: integer
+    support_multi_select: false
+    field_icon: folder
+
+  "metadata.height":
+    field_label: Height
+    field_description: Original height of the image or video in pixels.
+    field_name: metadata.height
+    field_data_type: integer
+    support_multi_select: false
+    field_icon: folder
+
+  "metadata.users":
+    field_label: Users
+    field_description: User list for filtering.
+    field_name: metadata.users
+    field_data_type: object
+    support_multi_select: true
+    field_icon: folder
+
+  tags:
+    field_label: Tags
+    field_description: Tags associated with the document.
+    field_name: tags
+    field_data_type: keyword
+    support_multi_select: true
+    field_icon: tag
+
+  cover:
+    field_label: Cover
+    field_description: Cover image URL used for document presentation.
+    field_name: cover
+    field_data_type: url
+    support_multi_select: false
+    field_icon: folder
+
+  thumbnail:
+    field_label: Thumbnail
+    field_description: Thumbnail image URL used in image search results.
+    field_name: thumbnail
+    field_data_type: url
+    support_multi_select: false
+    field_icon: link
+
+  url:
+    field_label: URL
+    field_description: URL for document preview or direct access.
+    field_name: url
+    field_data_type: url
+    support_multi_select: false
+    field_icon: link
+
+  "ai_insights.text":
+    field_label: AI Insights
+    field_description: AI-generated insights in markdown format.
+    field_name: ai_insights.text
+    field_data_type: text
+    support_multi_select: false
+    field_icon: folder
+
+  summary:
+    field_label: Summary
+    field_description: Short plain-text summary in English.
+    field_name: summary
+    field_data_type: text
+    support_multi_select: false
+    field_icon: book-open-text
+
+recommend:
+  default: '{ "recommendations": [ { "title": "Coco AI v0.9 Released: Automated AI Review & Plugin Architecture", "description": "Coco AI v0.9 introduces full support for automated AI review of GitLab merge requests and a plugin-based architecture for expanded data connectors.", "score": 0.99, "url": "https://blog.infinilabs.com/posts/2025/11-21-product-released-coco-ai-v0.9/", "category": "Product Release", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Product Release", "url": "/category/release" } ] }, { "title": "Coco AI v0.8 Released: Extensions, Linux Search & More", "description": "Coco AI v0.8 brings window management extensions, new connectors including Linux file search, and view extensions across platforms.", "score": 0.96, "url": "https://blog.infinilabs.com/posts/2025/09-29-product-released-coco-ai-v0.8/", "category": "Product Release", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Product Release", "url": "/category/release" } ] }, { "title": "Coco AI v0.6 Released: Introducing the Extension Store", "description": "Coco AI 0.6.0 adds an extension store to browse and install third-party extensions, expanding the platforms extensibility.", "score": 0.95, "url": "https://blog.infinilabs.com/posts/2025/06-29-product-released-coco-ai-v0.6/", "category": "Product Release", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Product Release", "url": "/category/release" } ] }, { "title": "Coco AI v0.5 Released: Local Plugins & Smarter Search", "description": "Coco AI v0.5 introduces local plugins, smarter application search, and instant AI commands, improving productivity and customization.", "score": 0.94, "url": "https://blog.infinilabs.com/posts/2025/06-11-product-released-coco-ai-v0.5/", "category": "Product Release", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Product Release", "url": "/category/release" } ] }, { "title": "Create Your Own AI Assistant: Coco AI v0.1.0 Released", "description": "Announcing the first preview release of Coco AI v0.1.0 a unified AI search and personal assistant tool that works across local and cloud data.", "score": 0.92, "url": "https://blog.infinilabs.com/posts/2025/02-14-product-released-coco-ai-v0.1/", "category": "Product Launch", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Product Launch", "url": "/category/news" } ] } ], "total": 5 }'
+  hot_topics_for_homepage: '{ "recommendations": [ { "title": "Introducing Coco AI in Two Minutes  A Quick Start Video", "description": "A quick start video guide introducing Coco AI and showing how it works with Google Drive.", "score": 0.92, "url": "https://blog.infinilabs.com/posts/2024/a-quick-start-viideo-to-introduce-coco-ai-in-two-minutes/", "category": "Tutorial", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Tutorial", "url": "/category/tutorial" } ] }, { "title": "Coco AI v0.2 Released", "description": "Announcement of Coco AI v0.2, focusing on unified AI search, personal knowledge management, and enhanced productivity tools.", "score": 0.90, "url": "https://blog.infinilabs.com/posts/2025/03-16-product-released-coco-ai-v0.2/", "category": "Product Release", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Product Release", "url": "/category/release" } ] }, { "title": "Coco AI v0.3 Released", "description": "Announcement of Coco AI v0.3 with powerful widget integration for external platforms.", "score": 0.91, "url": "https://blog.infinilabs.com/posts/2025/04-06-product-released-coco-ai-v0.3/", "category": "Product Release", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Product Release", "url": "/category/release" } ] }, { "title": "Coco AI v0.4 Released", "description": "Details on Coco AI v0.4 with improved assistant settings and support for MCP.", "score": 0.93, "url": "https://blog.infinilabs.com/posts/2025/04-28-product-released-coco-ai-v0.4/", "category": "Product Release", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Product Release", "url": "/category/release" } ] }, { "title": "Coco AI v0.7 Released", "description": "Coco AI v0.7 introduces a brand new file search experience and fullscreen integrations.", "score": 0.94, "url": "https://blog.infinilabs.com/posts/2025/07-28-product-released-coco-ai-v0.7/", "category": "Product Release", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Product Release", "url": "/category/release" } ] } ], "total": 5 }'
+  hot_topics_for_search_result: '{ "recommendations": [ { "title": "Welcome to the INFINI Labs Blog!", "description": "An introduction to the INFINI Labs blog, mission, and what readers can expect from future posts.", "score": 0.85, "url": "https://blog.infinilabs.com/posts/2024/welcome-to-our-blog/", "category": "Announcement", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Announcement", "url": "/category/announcement" } ] }, { "title": "Introducing Coco AI  Connect & Collaborate", "description": "Coco AI is a unified enterprise search platform that helps teams search and collaborate across multiple tools seamlessly. It brings AI-powered insights to enterprise knowledge workflows. ", "score": 0.88, "url": "https://blog.infinilabs.com/posts/2024/introducing-coco-ai/", "category": "Product Overview", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Product", "url": "/category/product" } ] }, { "title": "Your first Coco View extension  A small tic-tac-toe game", "description": "A tutorial showing how to build your first View extension for Coco AI, using a simple tic-tac-toe example to demonstrate extension capabilities.", "score": 0.89, "url": "https://blog.infinilabs.com/posts/2025/your-first-coco-view-extension-a-small-tic-tac-toe-game/", "category": "Tutorial", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Tutorial", "url": "/category/tutorial" } ] }, { "title": "Your first Coco Command extension  Spotify Control", "description": "Step-by-step tutorial on creating a Command extension for Coco AI that lets you control Spotify playback from within Coco.", "score": 0.87, "url": "https://blog.infinilabs.com/posts/2025/your-first-coco-command-extension-spotify-control/", "category": "Tutorial", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Tutorial", "url": "/category/tutorial" } ] }, { "title": "Protect Elasticsearch with INFINI Gateway: Block Unreasonable Queries", "description": "This article explores how to set up INFINI Gateway to safeguard Elasticsearch clusters by blocking unreasonable or malformed queries.", "score": 0.86, "url": "https://blog.infinilabs.com/posts/2025/protect-elasticsearch-with-infinigateway/", "category": "Guides", "breadcrumbs": [ { "name": "Blog", "url": "/blog" }, { "name": "Guides", "url": "/category/guides" } ] } ], "total": 5 }'

@@ -1,16 +1,20 @@
 package attachment
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"mime/multipart"
+	"strings"
 	"time"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/common/fingerprint"
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
 )
@@ -48,7 +52,11 @@ func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, hea
 		fileID = util.GetUUID()
 	}
 	fileSize := int64(len(data))
-	mimeType, err := DetectMimeType(fileName, file, header)
+	// the reader was fully consumed above — pass a fresh seekable reader over
+	// the same bytes, otherwise the sniff inside DetectMimeType reads from EOF
+	// and every internally generated file (covers, thumbnails) ends up as
+	// "text/plain" (http.DetectContentType of an empty buffer)
+	mimeType, err := DetectMimeType(fileName, bytes.NewReader(data), header)
 
 	attachment := core.Attachment{}
 	attachment.ID = fileID
@@ -71,6 +79,31 @@ func UploadToBlobStore(ctx *orm.Context, fileID string, file multipart.File, hea
 				attachment.Metadata[k] = v
 			}
 		}
+	}
+
+	// Image attachments get their perceptual hash at the single creation
+	// choke (W12): the bytes are in hand here and nowhere else on the write
+	// path. 0 means "not an image / undecodable" and is left as-is.
+	if strings.HasPrefix(mimeType, "image/") {
+		attachment.ImagePhash = int64(fingerprint.ImagePhash(data))
+	}
+
+	// Dry-run guard: pipeline replays (dry-run capture mode) must not
+	// persist attachments — the cover/chunk processors reach this choke
+	// during dry-runs and used to write real rows + blobs. Capture the
+	// write as a side effect instead and hand back the ID so downstream
+	// record fields (document.cover, attachment refs) stay meaningful.
+	// The dry-run state rides the Go context chain, so it survives the
+	// derived contexts processors hand down.
+	if sink := pipeline.DryRunCaptureCtx(ctx); sink != nil {
+		*sink = append(*sink, pipeline.DryRunWrite{
+			Kind:    "attachment",
+			Target:  fileID,
+			Records: 1,
+			Preview: fmt.Sprintf("%s (%d bytes, %s)", fileName, fileSize, mimeType),
+		})
+		log.Debugf("dry-run: attachment [%s/%s] capture-only, not persisted", fileName, fileID)
+		return fileID, nil
 	}
 
 	//save attachment metadata
