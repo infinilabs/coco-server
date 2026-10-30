@@ -9,6 +9,11 @@ export const formatESResult = (res: Record<string, unknown> = {}) => {
         total: ((res?.hits as Record<string, unknown>)?.total as Record<string, unknown>)?.value || 0,
         hits: (res?.hits as Record<string, unknown>)?.hits ? ((res?.hits as Record<string, unknown>)?.hits as Array<Record<string, unknown>>).map((item) => ({
             ...item._source as object,
+            // the hit's stable id — some entry types (assistant answers, for
+            // one) carry no id inside _source; without the _id fallback those
+            // rows all share the "undefined" React key and can never take the
+            // row-selection marker
+            id: ((item._source as Record<string, unknown> | undefined)?.id as string | undefined) ?? (item._id as string),
             // highlight fragments (plain text with literal <em> wrappers) —
             // preferred over raw _source fields when rendering title/summary
             ...(item.highlight ? { highlight: item.highlight as Record<string, string[]> } : {})
