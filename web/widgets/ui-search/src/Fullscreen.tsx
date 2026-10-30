@@ -172,6 +172,13 @@ const Fullscreen = (props: FullscreenProps) => {
   const loadLock = useRef(false);
   const isHomeSearchRef = useRef(true);
   const scrollRef = useRef(0)
+  // set by handleLoadMore, consumed by the search effect: only a run a user
+  // scroll actually initiated may APPEND. Any other re-run of the effect
+  // (aggfilter validation rewriting params mid-flight, URL sync) must
+  // REPLACE, even though scrollRef still holds the old scroll offset —
+  // otherwise it re-fetches the last window and appends it onto data that
+  // already contains it.
+  const pendingScrollRef = useRef(false)
 
   const [chatParams, setChatParams] = useState<Record<string, any>>(initialChatParams || {});
   const [attachments, setAttachments] = useState<any[]>(initialChatParams?.attachments || []);
@@ -282,6 +289,7 @@ const Fullscreen = (props: FullscreenProps) => {
     loadLock.current = true;
     const { from, size } = queryParams;
     scrollRef.current = (scrollRef.current || from) + size;
+    pendingScrollRef.current = true;
     handleSearch(queryParams, false, false, true);
   }, [queryParams, loading, hasMore, handleSearch]);
 
@@ -310,7 +318,11 @@ const Fullscreen = (props: FullscreenProps) => {
       return;
     }
 
-    const isScroll = Number.isInteger(scrollRef.current) && scrollRef.current > 0;
+    // a scroll continuation only if THIS run was started by handleLoadMore —
+    // scrollRef alone is not proof: it survives searches it no longer
+    // belongs to (see pendingScrollRef above)
+    const isScroll = pendingScrollRef.current && Number.isInteger(scrollRef.current) && scrollRef.current > 0;
+    pendingScrollRef.current = false;
 
     // record the executed query for the recent-searches dropdown; scrolling
     // deeper re-enters with the same query, and re-recording is a no-op
@@ -399,7 +411,20 @@ const Fullscreen = (props: FullscreenProps) => {
             rs = formatESResult(res);
             setResult(rs);
 
-            const newData = isScroll ? [...data, ...(rs.hits?.hits || [])] : rs.hits?.hits || [];
+            const incoming: any[] = rs.hits?.hits || [];
+            // paginated windows can still overlap (RRF tie order shifts
+            // between fetches) — two entries sharing one id would both take
+            // the row-selection marker and collide as React keys, so
+            // duplicates are dropped at the append seam
+            const merged: any[] = isScroll ? [...data, ...incoming] : incoming;
+            const seen = new Set<unknown>();
+            const newData = merged.filter(item => {
+              const id = item?.id;
+              if (id == null || id === '') return true;
+              if (seen.has(id)) return false;
+              seen.add(id);
+              return true;
+            });
             setData(newData);
             setHasMore(newData.length < (rs.hits.total || 0));
             if (!isScroll) isHomeSearchRef.current = false;

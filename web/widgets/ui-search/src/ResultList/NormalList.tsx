@@ -139,7 +139,10 @@ export function NormalList(props: NormalListProps) {
           {virtualItems.map(virtualRow => {
             const item = listData[virtualRow.index];
             if (!item) return null;
-            const isActive = item.id === detailRecord?.id;
+            // id must exist on both sides: rows without an id (e.g. assistant
+            // entries whose _source carries none) must not all light up when
+            // an id-less record is opened (undefined === undefined)
+            const isActive = item.id != null && item.id === detailRecord?.id;
             return (
               <div
                 data-index={virtualRow.index}
