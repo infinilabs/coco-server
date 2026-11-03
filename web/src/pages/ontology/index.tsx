@@ -1,4 +1,4 @@
-import { DeleteOutlined, PlusOutlined, SaveOutlined, ClusterOutlined } from '@ant-design/icons';
+import { ArrowRightOutlined, DeleteOutlined, PlusOutlined, SaveOutlined, ClusterOutlined } from '@ant-design/icons';
 import PageHeaderTitle from '@/components/stateless/common/PageHeaderTitle';
 import {
   AutoComplete,
@@ -15,6 +15,7 @@ import {
   Space,
   Spin,
   Switch,
+  Table,
   Tag,
   Tooltip,
   message
@@ -34,6 +35,20 @@ import {
 } from '@/service/api';
 
 const PROP_TYPES = ['string', 'text', 'number', 'boolean', 'date', 'url', 'enum'];
+
+/** color-coded type tags make the schema scannable at a glance */
+const PROP_TYPE_COLOR: Record<string, string> = {
+  string: 'blue',
+  text: 'default',
+  number: 'purple',
+  boolean: 'geekblue',
+  date: 'cyan',
+  url: 'green',
+  enum: 'orange'
+};
+
+/** notation-style cardinality labels (was bare "one"/"many") */
+const CARD_LABEL: Record<string, string> = { one: '1..1', many: '0..n' };
 
 /** Local-only stable node ids: index-based keys make React reuse mismatched
  *  inputs after a mid-list delete (contents shift down one row). */
@@ -317,6 +332,157 @@ export function Component() {
 
   const typeNames = ['*', ...types.map(tp => tp.name)];
 
+  /** B: interface-style declaration preview — shows what the type "looks
+   *  like" without parsing raw input rows */
+  const renderPreview = (tp: TType) => {
+    const props = tp.properties || [];
+    const rels = tp.relations || [];
+    if (!props.length && !rels.length) return null;
+    return (
+      <div
+        className='mb-12px rounded-6px border border-solid px-12px py-8px'
+        style={{ background: 'var(--ant-color-fill-quaternary)', borderColor: 'var(--ant-color-border-secondary)' }}
+      >
+        <div className='break-all font-mono text-12px leading-22px'>
+          <span style={{ color: 'var(--ant-color-text-quaternary)' }}>interface</span>{' '}
+          <span style={{ color: 'var(--ant-color-primary)' }}>{tp.name || '…'}</span>
+          {' {'}
+          {props.map(p => (
+            <div className='pl-16px' key={p._id}>
+              <span style={{ color: 'var(--ant-color-primary-text)' }}>{p.key || '…'}</span>
+              {p.required ? <span style={{ color: 'var(--ant-color-error)' }}>*</span> : null}
+              {': '}
+              <span style={{ color: 'var(--ant-color-info-text)' }}>{p.type}</span>
+              {p.type === 'enum' && (p.enum || []).length > 0 ? (
+                <span style={{ color: 'var(--ant-color-text-tertiary)' }}> &lt;{(p.enum || []).join('|')}&gt;</span>
+              ) : null}
+              {p.label ? <span style={{ color: 'var(--ant-color-text-quaternary)' }}>  // {p.label}</span> : null}
+            </div>
+          ))}
+          {rels.map(r => (
+            <div className='pl-16px' key={r._id}>
+              <span style={{ color: 'var(--ant-color-primary-text)' }}>{r.name || '…'}</span>
+              {': '}
+              <span style={{ color: 'var(--ant-color-info-text)' }}>{r.target_type || '*'}</span>
+              {r.cardinality === 'many' ? <span style={{ color: 'var(--ant-color-success-text)' }}>[]</span> : null}
+              {(CARD_LABEL[r.cardinality || ''] || r.inverse) ? (
+                <span style={{ color: 'var(--ant-color-text-quaternary)' }}>
+                  {'  // '}
+                  {CARD_LABEL[r.cardinality || ''] || ''}
+                  {r.inverse ? ` · inverse ${r.inverse}` : ''}
+                </span>
+              ) : null}
+            </div>
+          ))}
+        </div>
+        <div className='font-mono text-12px leading-22px'>{'}'}</div>
+      </div>
+    );
+  };
+
+  /** A: property rows become a table — column headers carry the semantics
+   *  that placeholders used to, and typed tags replace a bare select */
+  const propColumns = (tp: TType, typeIdx: number): any[] => [
+    {
+      dataIndex: 'key',
+      title: t('page.ontology.colKey'),
+      render: (v: string, p: TProp) => (
+        <Input
+          onChange={e => {
+            const next = (tp.properties || []).map(x => (x._id === p._id ? { ...x, key: e.target.value } : x));
+            mutateType(typeIdx, { properties: next });
+          }}
+          placeholder={t('page.ontology.propKey')}
+
+          status={saveAttempted && vmap[tp._id]?.props[p._id] ? 'error' : undefined}
+          value={v}
+        />
+      )
+    },
+    {
+      dataIndex: 'label',
+      title: t('page.ontology.typeLabel'),
+      render: (v: string, p: TProp) => (
+        <Input
+          onChange={e => {
+            const next = (tp.properties || []).map(x => (x._id === p._id ? { ...x, label: e.target.value } : x));
+            mutateType(typeIdx, { properties: next });
+          }}
+          placeholder={t('page.ontology.propLabel')}
+
+          value={v}
+        />
+      )
+    },
+    {
+      dataIndex: 'type',
+      title: t('page.ontology.colType'),
+      width: 120,
+      render: (v: string, p: TProp) => (
+        <Select
+          onChange={val => {
+            const next = (tp.properties || []).map(x => (x._id === p._id ? { ...x, type: val } : x));
+            mutateType(typeIdx, { properties: next });
+          }}
+          options={PROP_TYPES.map(x => ({ value: x, label: <Tag className='!mr-0' color={PROP_TYPE_COLOR[x]}>{x}</Tag> }))}
+
+          value={v}
+        />
+      )
+    },
+    {
+      dataIndex: 'enum',
+      title: t('page.ontology.colEnum'),
+      render: (v: string[] | undefined, p: TProp) =>
+        p.type === 'enum' ? (
+          <Tooltip title={t('page.ontology.enumHint')}>
+            <Input
+              onChange={e => {
+                const next = (tp.properties || []).map(x =>
+                  x._id === p._id ? { ...x, enum: e.target.value.split(',').map(s => s.trim()).filter(Boolean) } : x
+                );
+                mutateType(typeIdx, { properties: next });
+              }}
+              placeholder='a,b,c'
+
+              value={(p.enum || []).join(',')}
+            />
+          </Tooltip>
+        ) : (
+          <span className='text-gray-400'>—</span>
+        )
+    },
+    {
+      dataIndex: 'required',
+      title: t('page.ontology.required'),
+      width: 64,
+      render: (v: boolean | undefined, p: TProp) => (
+        <Switch
+          checked={!!v}
+          onChange={val => {
+            const next = (tp.properties || []).map(x => (x._id === p._id ? { ...x, required: val } : x));
+            mutateType(typeIdx, { properties: next });
+          }}
+
+        />
+      )
+    },
+    {
+      key: 'del',
+      title: '',
+      width: 40,
+      render: (_: any, p: TProp) => (
+        <Button
+          danger
+          icon={<DeleteOutlined />}
+          onClick={() => mutateType(typeIdx, { properties: (tp.properties || []).filter(x => x._id !== p._id) })}
+
+          type='text'
+        />
+      )
+    }
+  ];
+
   const renderTypePanel = (tp: TType, typeIdx: number) => (
     <>
       <div className='mb-12px flex flex-wrap items-center gap-8px'>
@@ -324,7 +490,7 @@ export function Component() {
           className='w-160px'
           onChange={e => renameType(typeIdx, e.target.value)}
           placeholder={t('page.ontology.typeName')}
-          size='small'
+
           status={nameErr(tp)}
           value={tp.name}
         />
@@ -332,7 +498,7 @@ export function Component() {
           className='w-160px'
           onChange={e => mutateType(typeIdx, { label: e.target.value })}
           placeholder={t('page.ontology.typeLabel')}
-          size='small'
+
           value={tp.label}
         />
         <Tooltip title={t('page.ontology.iconHint')}>
@@ -340,7 +506,7 @@ export function Component() {
             className='w-64px'
             onChange={e => mutateType(typeIdx, { icon: e.target.value })}
             placeholder='🙂'
-            size='small'
+
             value={tp.icon}
           />
         </Tooltip>
@@ -352,151 +518,110 @@ export function Component() {
           })}
         </Tag>
       </div>
-      <div className='grid grid-cols-1 gap-12px xl:!grid-cols-2'>
+      {renderPreview(tp)}
+      {/* properties and relations stack vertically: the relation triple card
+          needs full width, and side-by-side columns squeeze both sections */}
         {/* properties */}
         <div>
-          <div className='mb-2 flex items-center justify-between'>
+          <div className='mb-2'>
             <span className='font-medium'>{t('page.ontology.properties')}</span>
-            <Button icon={<PlusOutlined />} onClick={() => addProperty(typeIdx)} size='small' type='text' />
           </div>
-          {(tp.properties || []).map((prop: TProp) => (
-            <div className='mb-2 flex items-center gap-4px' key={prop._id}>
-              <Input
-                className='w-110px'
-                onChange={e => {
-                  const next = (tp.properties || []).map(p => (p._id === prop._id ? { ...p, key: e.target.value } : p));
-                  mutateType(typeIdx, { properties: next });
-                }}
-                placeholder={t('page.ontology.propKey')}
-                size='small'
-                status={saveAttempted && vmap[tp._id]?.props[prop._id] ? 'error' : undefined}
-                value={prop.key}
-              />
-              <Input
-                className='w-110px'
-                onChange={e => {
-                  const next = (tp.properties || []).map(p => (p._id === prop._id ? { ...p, label: e.target.value } : p));
-                  mutateType(typeIdx, { properties: next });
-                }}
-                placeholder={t('page.ontology.propLabel')}
-                size='small'
-                value={prop.label}
-              />
-              <Select
-                className='w-90px'
-                onChange={v => {
-                  const next = (tp.properties || []).map(p => (p._id === prop._id ? { ...p, type: v } : p));
-                  mutateType(typeIdx, { properties: next });
-                }}
-                options={PROP_TYPES.map(v => ({ value: v }))}
-                size='small'
-                value={prop.type}
-              />
-              {prop.type === 'enum' && (
-                <Tooltip title={t('page.ontology.enumHint')}>
-                  <Input
-                    className='w-140px'
-                    onChange={e => {
-                      const next = (tp.properties || []).map(p =>
-                        p._id === prop._id ? { ...p, enum: e.target.value.split(',').map(s => s.trim()).filter(Boolean) } : p
-                      );
-                      mutateType(typeIdx, { properties: next });
-                    }}
-                    placeholder='a,b,c'
-                    size='small'
-                    value={(prop.enum || []).join(',')}
-                  />
-                </Tooltip>
-              )}
-              <Tooltip title={t('page.ontology.required')}>
-                <Switch
-                  checked={!!prop.required}
-                  onChange={v => {
-                    const next = (tp.properties || []).map(p => (p._id === prop._id ? { ...p, required: v } : p));
-                    mutateType(typeIdx, { properties: next });
-                  }}
-                  size='small'
-                />
-              </Tooltip>
-              <Button
-                danger
-                icon={<DeleteOutlined />}
-                onClick={() => mutateType(typeIdx, { properties: (tp.properties || []).filter(p => p._id !== prop._id) })}
-                size='small'
-                type='text'
-              />
-            </div>
-          ))}
+          <Table
+            columns={propColumns(tp, typeIdx)}
+            dataSource={tp.properties || []}
+            locale={{ emptyText: <span className='text-12px text-gray-400'>{t('page.ontology.bareType')}</span> }}
+            pagination={false}
+            rowKey='_id'
+          />
+          <Button block className='mt-4px' variant='dashed' icon={<PlusOutlined />} onClick={() => addProperty(typeIdx)}>
+            {t('page.ontology.addProperty')}
+          </Button>
         </div>
 
-        {/* relations */}
-        <div>
-          <div className='mb-2 flex items-center justify-between'>
+        {/* relations — direction triples: source chip — name → target, so the
+            semantics hidden in selects (direction, cardinality, inverse) stay
+            visible on the surface */}
+        <div className='mt-20px'>
+          <div className='mb-2'>
             <span className='font-medium'>{t('page.ontology.relations')}</span>
-            <Button icon={<PlusOutlined />} onClick={() => addRelation(typeIdx)} size='small' type='text' />
           </div>
           {(tp.relations || []).map((rel: TRel) => (
-            <div className='mb-2 flex items-center gap-4px' key={rel._id}>
+            <div
+              className='mb-6px flex flex-wrap items-center gap-6px rounded-6px border border-solid px-10px py-8px'
+              key={rel._id}
+              style={{ borderColor: 'var(--ant-color-border-secondary)' }}
+            >
+              <Tag className='!mr-0' color='purple'>
+                {tp.name || '…'}
+              </Tag>
+              <span className='text-gray-400'>—</span>
               <Input
-                className='w-110px'
+                className='w-160px'
                 onChange={e => {
                   const next = (tp.relations || []).map(r => (r._id === rel._id ? { ...r, name: e.target.value } : r));
                   mutateType(typeIdx, { relations: next });
                 }}
                 placeholder={t('page.ontology.relName')}
-                size='small'
+
                 status={saveAttempted && vmap[tp._id]?.rels[rel._id] ? 'error' : undefined}
                 value={rel.name}
               />
+              <ArrowRightOutlined className='text-gray-400' />
               <Select
-                className='w-130px'
+                className='w-220px'
                 onChange={v => {
                   const next = (tp.relations || []).map(r => (r._id === rel._id ? { ...r, target_type: v } : r));
                   mutateType(typeIdx, { relations: next });
                 }}
                 options={[{ value: '*', label: '* — 任意类型' }, ...types.filter(x => x.name).map(x => ({ value: x.name, label: x.name }))]}
-                size='small'
                 showSearch
+
                 value={rel.target_type}
               />
               <Select
                 allowClear
-                className='w-90px'
+                className='w-130px'
                 onChange={v => {
                   const next = (tp.relations || []).map(r => (r._id === rel._id ? { ...r, cardinality: v } : r));
                   mutateType(typeIdx, { relations: next });
                 }}
-                options={[{ value: 'one' }, { value: 'many' }]}
+                options={[{ value: 'one', label: CARD_LABEL.one }, { value: 'many', label: CARD_LABEL.many }]}
                 placeholder={t('page.ontology.cardinality')}
-                size='small'
+
                 value={rel.cardinality}
               />
+              <span className='text-12px text-gray-500'>{t('page.ontology.inverse')}</span>
               <Input
-                className='w-110px'
+                className='w-160px'
                 onChange={e => {
                   const next = (tp.relations || []).map(r => (r._id === rel._id ? { ...r, inverse: e.target.value } : r));
                   mutateType(typeIdx, { relations: next });
                 }}
                 placeholder={t('page.ontology.inverse')}
-                size='small'
+
                 value={rel.inverse}
               />
               <Button
+                className='ml-auto'
                 danger
                 icon={<DeleteOutlined />}
                 onClick={() => mutateType(typeIdx, { relations: (tp.relations || []).filter(r => r._id !== rel._id) })}
-                size='small'
+
                 type='text'
               />
             </div>
           ))}
+          {!(tp.relations || []).length && (
+            <div className='text-12px text-gray-400'>{t('page.ontology.bareType')}</div>
+          )}
+          <Button block className='mt-8px' variant='dashed' icon={<PlusOutlined />} onClick={() => addRelation(typeIdx)}>
+            {t('page.ontology.addRelation')}
+          </Button>
         </div>
-      </div>
       {/* page layout: the section list a generated page follows */}
-      <div className='mt-12px'>
-        <div className='mb-2 flex items-center justify-between'>
+      <div className='mt-20px'>
+        <div className='mb-2'>
           <span className='font-medium'>{t('page.ontology.pageSections')}</span>
-          <Button icon={<PlusOutlined />} onClick={() => addPageSection(typeIdx)} size='small' type='text' />
         </div>
         <div className='mb-4px text-gray-500'>{t('page.ontology.pageSectionsHint')}</div>
         {(tp.page_sections || []).map((sec: TSec) => (
@@ -509,7 +634,7 @@ export function Component() {
               }}
               options={sectionKeyOptions(tp)}
               placeholder={t('page.ontology.sectionKey')}
-              size='small'
+
               value={sec.key}
             />
             <Input
@@ -519,18 +644,21 @@ export function Component() {
                 mutateType(typeIdx, { page_sections: next });
               }}
               placeholder={t('page.ontology.sectionTitle')}
-              size='small'
+
               value={sec.title}
             />
             <Button
               danger
               icon={<DeleteOutlined />}
               onClick={() => mutateType(typeIdx, { page_sections: (tp.page_sections || []).filter(s => s._id !== sec._id) })}
-              size='small'
+
               type='text'
             />
           </div>
         ))}
+        <Button block className='mt-4px' variant='dashed' icon={<PlusOutlined />} onClick={() => addPageSection(typeIdx)}>
+          {t('page.ontology.addSection')}
+        </Button>
       </div>
     </>
   );
@@ -640,12 +768,39 @@ export function Component() {
               items={types.map((tp, typeIdx) => ({
                 key: tp._id,
                 label: (
-                  <div className='flex items-center gap-8px'>
+                  <div className='flex min-w-0 items-center gap-8px'>
                     <span>{tp.icon}</span>
                     <span className={saveAttempted && vmap[tp._id]?.name ? 'color-[var(--ant-color-error)] font-medium' : 'font-medium'}>
                       {tp.name || t('page.ontology.typeName')}
                     </span>
                     {tp.label && <span className='text-gray-500'>{tp.label}</span>}
+                    {/* at-a-glance schema chips: readable even when collapsed */}
+                    <span className='hidden min-w-0 flex-1 items-center gap-4px overflow-hidden lg:!flex'>
+                      {(tp.properties || []).slice(0, 3).map(p => (
+                        <span
+                          className='whitespace-nowrap rounded-4px px-6px py-1px font-mono text-11px'
+                          key={p._id}
+                          style={{ background: 'var(--ant-color-fill-tertiary)', color: 'var(--ant-color-text-secondary)' }}
+                        >
+                          {p.key}
+                          {p.required ? '*' : ''}:{p.type}
+                        </span>
+                      ))}
+                      {(tp.relations || []).slice(0, 2).map(r => (
+                        <span
+                          className='whitespace-nowrap rounded-4px px-6px py-1px text-11px'
+                          key={r._id}
+                          style={{ background: 'var(--ant-color-fill-tertiary)', color: 'var(--ant-color-text-secondary)' }}
+                        >
+                          {r.name} → {r.target_type}
+                        </span>
+                      ))}
+                      {(tp.properties?.length || 0) + (tp.relations?.length || 0) > 5 && (
+                        <span className='whitespace-nowrap text-11px' style={{ color: 'var(--ant-color-text-quaternary)' }}>
+                          +{(tp.properties?.length || 0) + (tp.relations?.length || 0) - 5}
+                        </span>
+                      )}
+                    </span>
                   </div>
                 ),
                 extra: (
