@@ -5,6 +5,12 @@ package core
 
 import "infini.sh/framework/core/orm"
 
+// SystemPromptNote joins the assistant system prompt so the model keeps
+// memory promises honest: it cannot persist anything mid-conversation —
+// distillation runs system-side after each exchange and candidates only
+// take effect after the owner confirms them in the console.
+const SystemPromptNote = "\n\nLong-term memory policy: you cannot save memories yourself. The system automatically distills candidate memories from each conversation exchange; they only take effect after the user confirms them in the console. Never claim you have \"saved\", \"stored\" or \"will permanently remember\" anything. When the user shares a durable preference or fact, acknowledge it naturally and, if useful, mention it will be remembered once confirmed."
+
 // MemoryRecord (W6, confirmation-gated long-term memory): one durable
 // fact about a user, distilled from a conversation or filed manually.
 // Every record starts PENDING — nothing enters a prompt until the user
@@ -19,8 +25,11 @@ type MemoryRecord struct {
 	// fact+task are query-recalled, interest is bookkeeping.
 	Kind string `json:"kind" elastic_mapping:"kind:{type:keyword}"`
 
-	// Status: pending → confirmed | rejected. Only confirmed memories
-	// inject anywhere or surface through search_memory.
+	// Status: pending → confirmed | rejected; confirmed state records
+	// (profile/preference) may later become superseded when a newer
+	// record about the same topic replaces them. Only confirmed memories
+	// inject anywhere or surface through search_memory; superseded rows
+	// stay as history for trend/change analysis.
 	Status string `json:"status" elastic_mapping:"status:{type:keyword}"`
 
 	// UserID scopes every read and write — memories are strictly
@@ -48,9 +57,10 @@ const (
 	MemoryKindTask       = "task"
 	MemoryKindInterest   = "interest"
 
-	MemoryStatusPending   = "pending"
-	MemoryStatusConfirmed = "confirmed"
-	MemoryStatusRejected  = "rejected"
+	MemoryStatusPending    = "pending"
+	MemoryStatusConfirmed  = "confirmed"
+	MemoryStatusRejected   = "rejected"
+	MemoryStatusSuperseded = "superseded"
 )
 
 // ValidMemoryKind reports whether k is one of the five kinds.

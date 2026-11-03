@@ -10,6 +10,7 @@ import (
 	"infini.sh/coco/modules/assistant/tools"
 	"infini.sh/coco/modules/datasource"
 	"infini.sh/coco/modules/llm"
+	"infini.sh/coco/modules/memory"
 	"infini.sh/coco/modules/wiki"
 
 	log "github.com/cihub/seelog"
@@ -120,6 +121,12 @@ func RunDeepSearchTask(ctx context.Context, userID string, params *common2.RAGCo
 				_ = tools.FetchDocumentInDepth(ctx, reqMsg, replyMsg, params, docs, params.InputValues, sender)
 			}
 		}
+	}
+
+	// W6: confirmed long-term memories join the deep-search prompt too —
+	// same recall contract as simple mode; no section when nothing applies
+	if sec := memory.RenderSection(memory.Recall(ctx, userID, reqMsg.Message, 20), memory.PromptSectionMaxChars); sec != "" {
+		params.InputValues["memory_section"] = sec
 	}
 
 	err = langchain.GenerateFinalResponse(ctx, reqMsg, replyMsg, params, params.InputValues, sender)

@@ -5,8 +5,6 @@ package service
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
 	"infini.sh/coco/modules/memory"
 )
@@ -20,8 +18,6 @@ import (
 // Injected as a dedicated prompt section so the model can distinguish
 // remembered context from the current conversation.
 
-const memorySectionMaxChars = 1500
-
 // memoryRecallFn is swappable in tests.
 var memoryRecallFn = memory.Recall
 
@@ -30,19 +26,5 @@ var memoryRecallFn = memory.Recall
 // memories (no section — no noise).
 func buildMemorySection(userID, query string) string {
 	recs := memoryRecallFn(context.Background(), userID, query, 20)
-	if len(recs) == 0 {
-		return ""
-	}
-	var sb strings.Builder
-	sb.WriteString("\nLong-term Memory (confirmed facts about this user — respect preferences, use facts when relevant):\n")
-	used := 0
-	for _, rec := range recs {
-		line := fmt.Sprintf("- [%s] %s\n", rec.Kind, rec.Content)
-		if used+len(line) > memorySectionMaxChars {
-			break
-		}
-		sb.WriteString(line)
-		used += len(line)
-	}
-	return sb.String()
+	return memory.RenderSection(recs, memory.PromptSectionMaxChars)
 }
