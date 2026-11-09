@@ -404,11 +404,28 @@
   background: var(--wiki-accent-softer);
   border-radius: 0 8px 8px 0;
 }
+/* article reading surface: roomier line box — inline code chips and entity
+   capsules carry their own padding+border (~22px tall), at the 1.5 base (or
+   the UA-default `normal` lists revert to) consecutive wrapped lines touch */
+.wiki-article-body .coco-chat .markdown-body {
+  line-height: 1.8;
+}
+/* the `all: revert` on ul/ol (markdown.scss) throws away the inherited
+   line-height — restate it on the items themselves */
+.wiki-article-body .markdown-body li {
+  line-height: 1.8;
+}
 .wiki-article-body .markdown-body code {
   background: var(--wiki-panel-3);
   border: 1px solid var(--wiki-border-soft);
   border-radius: 5px;
   padding: 1px 5px;
+  margin: 1px 0;
+}
+/* entity capsule: middle-align inside the taller line box so it sits on the
+   text baseline instead of stretching the line it shares with plain text */
+.wiki-article-body .markdown-body .ant-tag {
+  vertical-align: middle;
 }
 .wiki-article-body .markdown-body table th {
   background: var(--wiki-panel-2);
@@ -746,6 +763,19 @@
 .wiki-article-lead:hover .wiki-cite-chip {
   color: var(--ant-color-primary);
   background: color-mix(in srgb, var(--ant-color-primary) 16%, transparent);
+}
+/* reset.css and markdown.scss reset every sup to `line-height: 0; position:
+   relative; top: -0.5em` — the 0 line-height collapses the chip's box to a
+   2px sliver, so its rounded background renders as a stray hairline while
+   the digit itself paints via overflow; restate the chip box at matching
+   specificity (markdown.scss's `.coco-chat .markdown-body sup` is 0-2-1) */
+sup.wiki-cite-chip,
+.coco-chat .markdown-body sup.wiki-cite-chip {
+  line-height: 1.35;
+  vertical-align: baseline;
+  position: relative;
+  top: -0.5em;
+  bottom: auto;
 }
 .wiki-cite-chip-plain {
   cursor: default;

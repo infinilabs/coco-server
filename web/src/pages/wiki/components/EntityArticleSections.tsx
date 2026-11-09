@@ -1,9 +1,10 @@
-import { Divider, Empty, List, Spin, Tag, Typography } from 'antd';
+import { Divider, Empty, List, Spin, Tag, Tooltip, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { fetchWikiEntityBacklinks, fetchWikiEntityNeighbors, type WikiEntityBacklink } from '@/service/api';
+import { plainDisplayText } from '../shared/content';
 import { wikiTypeColor } from '../shared/WikiLinkTag';
 
 type NeighborData = Awaited<ReturnType<typeof fetchWikiEntityNeighbors>>;
@@ -31,7 +32,16 @@ function Section({ title, children }: { title: string; children: React.ReactNode
  * the schema by the backend) and the wikilink back-references — the articles
  * that cite this entity.
  */
-export function EntityArticleSections({ entityId, kbId }: { entityId: string; kbId?: string }) {
+export function EntityArticleSections({
+  entityId,
+  kbId,
+  typeDescription
+}: {
+  entityId: string;
+  kbId?: string;
+  /** the ontology type's definition, shown as a tooltip on the type chip */
+  typeDescription?: string;
+}) {
   const { t } = useTranslation();
   const nav = useNavigate();
   const [data, setData] = useState<NeighborData | null>(null);
@@ -62,6 +72,10 @@ export function EntityArticleSections({ entityId, kbId }: { entityId: string; kb
   const incoming = data?.incoming ?? [];
   const props = entity?.properties ?? {};
   const propKeys = Object.keys(props);
+  // vocabulary display labels (backend resolves from the ontology schema);
+  // properties without a declared label fall back to the raw key
+  const propLabels = data?.property_labels ?? {};
+  const displayDescription = data?.display_description;
 
   return (
     <>
@@ -69,9 +83,14 @@ export function EntityArticleSections({ entityId, kbId }: { entityId: string; kb
       {entity && (
         <div className="mb-4 flex flex-wrap items-center gap-2 rounded-6px bg-[var(--ant-color-fill-tertiary)] px-12px py-8px">
           {entity.type && (
-            <span className="font-mono text-12px" style={{ color: wikiTypeColor(entity.type) }}>
-              {entity.type}
-            </span>
+            <Tooltip title={typeDescription}>
+              <span
+                className={typeDescription ? 'cursor-help font-mono text-12px underline decoration-dashed underline-offset-4' : 'font-mono text-12px'}
+                style={{ color: wikiTypeColor(entity.type) }}
+              >
+                {entity.type}
+              </span>
+            </Tooltip>
           )}
           {entity.status && (
             <Tag className="m-0" color={STATUS_TAG_COLOR[entity.status]}>
@@ -91,12 +110,20 @@ export function EntityArticleSections({ entityId, kbId }: { entityId: string; kb
           </span>
         </div>
       )}
+      {displayDescription && (
+        <Typography.Paragraph className="mb-4 text-13px">{displayDescription}</Typography.Paragraph>
+      )}
       {propKeys.length > 0 && (
         <Section title={t('page.wiki.entity.properties')}>
           <div className="flex flex-col gap-1">
             {propKeys.map(key => (
               <div className="flex gap-3 text-13px" key={key}>
-                <span className="w-40 shrink-0 text-[var(--ant-color-text-tertiary)]">{key}</span>
+                <span
+                  className="w-40 shrink-0 text-[var(--ant-color-text-tertiary)]"
+                  title={propLabels[key] ? `${propLabels[key]} (${key})` : key}
+                >
+                  {propLabels[key] || key}
+                </span>
                 <span className="min-w-0 break-all">{String(props[key])}</span>
               </div>
             ))}
@@ -172,7 +199,7 @@ export function EntityArticleSections({ entityId, kbId }: { entityId: string; kb
                   }
                   description={
                     <Typography.Paragraph className="mb-0 text-12px text-[var(--ant-color-text-tertiary)]" ellipsis={{ rows: 2 }}>
-                      {bl.snippet}
+                      {plainDisplayText(bl.snippet || '')}
                     </Typography.Paragraph>
                   }
                 />

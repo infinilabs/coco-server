@@ -60,6 +60,7 @@ import {
   deleteWikiBookmark,
   deleteWikiLike,
   exportWikiSkillMd,
+  getArticleBacklinks,
   getWikiArticle,
   getWikiArticleVersions,
   getWikiArticleMaterials,
@@ -72,12 +73,14 @@ import {
   searchWikiLikes,
   updateWikiArticle,
   updateWikiArticleAttachments,
-  updateWikiArticleStatus
+  updateWikiArticleStatus,
+  type WikiEntityBacklink
 } from '@/service/api';
 import {
   parseStructuredContent,
   parseWikiLink,
   parseWikilinkInner,
+  plainDisplayText,
   splitCitationBlock,
   linkifyCitations,
   shortUrlLabel,
@@ -169,7 +172,10 @@ function CitationChip({ n, citation }: { n: number; citation?: CitationRef }) {
           {/* raw evidence can be a whole CSV row — the popover hints at the
               source, the full text lives one click away in the document */}
           <LinkifiedText
-            text={citation.excerpt.length > 220 ? `${citation.excerpt.slice(0, 220)}…` : citation.excerpt}
+            text={(() => {
+              const ex = plainDisplayText(citation.excerpt || '');
+              return ex.length > 220 ? `${ex.slice(0, 220)}…` : ex;
+            })()}
           />
         </div>
       )}
@@ -628,6 +634,15 @@ export function Component() {
     }
   }, [article?.id]);
 
+  // "What links here": live pages referencing this article through wikilinks
+  const [backlinks, setBacklinks] = useState<WikiEntityBacklink[]>([]);
+  useEffect(() => {
+    if (!article?.id) return;
+    getArticleBacklinks(article.id)
+      .then(res => setBacklinks(res.items))
+      .catch(() => setBacklinks([]));
+  }, [article?.id]);
+
   useEffect(() => {
     if (!id) return;
     searchWikiBookmarks().then(res => {
@@ -787,13 +802,23 @@ export function Component() {
   // rewrite wikilinks into #wikilink anchors so they survive the markdown
   // pipeline; renderLink turns them back into capsules at render time.
   // Bare `[[name]]` links rewrite with an empty type — resolution is by
-  // name (linked_pages stores them with type ""), same as the backend parser
+  // name (linked_pages stores them with type ""), same as the backend parser.
+  // Fenced blocks and inline code spans are left untouched: a capsule inside
+  // code renders as a raw anchor URL and reads as broken prose.
   const rewriteWikiLinks = useCallback((raw: string) => {
-    return raw.replace(/\[\[([^\[\]]+)]]/g, (match, inner: string) => {
-      const link = parseWikilinkInner(inner);
-      if (!link) return match;
-      return `[${link.label}](#wikilink?t=${encodeURIComponent(link.type)}&n=${encodeURIComponent(link.label)})`;
-    });
+    return raw
+      .split('```')
+      .map((seg, i) =>
+        i % 2 === 1
+          ? seg
+          : seg.replace(/(`[^`\n]+`)|\[\[([^\[\]]+)]]/g, (match, code: string, inner: string) => {
+              if (code) return code;
+              const link = parseWikilinkInner(inner);
+              if (!link) return match;
+              return `[${link.label}](#wikilink?t=${encodeURIComponent(link.type)}&n=${encodeURIComponent(link.label)})`;
+            })
+      )
+      .join('```');
   }, []);
   const mainContent = useMemo(() => rewriteWikiLinks(structured?.mainContent ?? ''), [structured?.mainContent, rewriteWikiLinks]);
 
@@ -1428,7 +1453,7 @@ export function Component() {
                                         </div>
                                         {(src.excerpt || mat?.excerpt) && (
                                           <div className='mt-4px text-12.5px color-[var(--wiki-text-3)] leading-5'>
-                                            {src.excerpt || mat?.excerpt}
+                                            {plainDisplayText(src.excerpt || mat?.excerpt || '')}
                                           </div>
                                         )}
                                         {!!mat?.attachments?.length && (
@@ -1567,6 +1592,37 @@ export function Component() {
                   </Section>
                     </>
                   )}
+                  {/* "What links here": every live page whose wikilinks
+                      resolve to this one (health-report anchors); rendered
+                      even at 0 so the inbound surface is discoverable */}
+                  <Divider />
+                  <Section title={`${t('page.wiki.article.sections.backlinks')} (${backlinks.length})`}>
+                    <div className='flex flex-col gap-6px'>
+                      {backlinks.length === 0 && (
+                        <div className='text-12.5px color-[var(--wiki-text-3)]'>
+                          {t('page.wiki.article.backlinksEmpty')}
+                        </div>
+                      )}
+                      {backlinks.map(b => (
+                        <div className='flex flex-col gap-2px' key={b.article_id}>
+                          <div className='flex items-center gap-8px'>
+                            <a
+                              className='text-12.5px text-[var(--ant-color-link)]'
+                              onClick={() => nav(`/wiki/article/${b.article_id}?kb=${article.kb_id}`)}
+                            >
+                              {b.title}
+                            </a>
+                            {b.link_name && b.link_name !== b.title && (
+                              <span className='text-11px color-[var(--wiki-text-3)]'>↔ {b.link_name}</span>
+                            )}
+                          </div>
+                          {b.snippet && (
+                            <div className='text-11.5px color-[var(--wiki-text-3)] line-clamp-2'>{plainDisplayText(b.snippet)}</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </Section>
                   {article.page_type === 'entity' && article.entity_id && (
                     <EntityArticleSections
                       entityId={article.entity_id}

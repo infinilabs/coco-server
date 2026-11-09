@@ -221,20 +221,27 @@ export function splitCitationBlock(
   // agent-compiled pages reference sources inline as `[Doc: <file>]` instead
   // of the numbered claims tail — turn each distinct marker into a numbered
   // cite anchored to the matching source entry (doc_id + excerpt feed the
-  // hover chip); names without a matching source stay as written. Numbering
-  // continues after the claims tail so hybrid pages never collide.
-  if (sources?.length && body.includes('[Doc:')) {
-    const byTitle = new Map(sources.map((s, i) => [s.title ?? '', s]));
+  // hover chip). Numbering continues after the claims tail so hybrid pages
+  // never collide.
+  if (body.includes('[Doc:')) {
+    // agents sometimes wrap the doc name in wikilink syntax — `[Doc:
+    // [[product:GitLab]]]`. The name match (and later the capsule rewrite)
+    // would see `[[product:GitLab` and leak raw brackets into the prose:
+    // unwrap the inner wikilink before matching.
+    body = body.replace(/\[Doc:\s*\[\[([^\[\]]+)\]\]\]/g, '[Doc: $1]');
+    const byTitle = new Map((sources ?? []).map((s, i) => [s.title ?? '', s]));
     const docNum = new Map<string, number>();
     body = body.replace(/\[Doc:\s*([^\]]+)\]/g, (m, nameRaw: string) => {
       const name = nameRaw.trim();
       const src = byTitle.get(name);
-      if (!src) return m;
       let n = docNum.get(name);
       if (n == null) {
         n = claims.length + docNum.size + 1;
         docNum.set(name, n);
-        claims.push({ n, claim: name, docId: src.doc_id, excerpt: src.excerpt });
+        // unmatched names (the agent cited a doc outside this page's source
+        // list) still get a chip — hover shows the doc name — instead of
+        // leaking raw `[Doc: x]` text into the reading surface
+        claims.push({ n, claim: name, docId: src?.doc_id, excerpt: src?.excerpt });
       }
       return `[${n}](#cite-${n})`;
     });
@@ -263,6 +270,29 @@ export function linkifyCitations(body: string): string {
         : seg
     )
     .join('```');
+}
+
+/**
+ * Strip compile artifacts for plain-text display (backlink snippets, source
+ * excerpts, evidence popovers): the backend snippets are cut from the raw
+ * article content, so they carry `[[type:name]]` markers and `[Doc: x]`
+ * cite markers that read as broken prose outside the markdown pipeline —
+ * wikilinks unwrap to their label, Doc markers drop entirely.
+ */
+export function plainDisplayText(text: string): string {
+  if (!text) return text;
+  return text
+    .replace(/\[Doc:\s*\[\[([^\[\]]+)\]\]\]/g, '')
+    .replace(/\s*\[Doc:\s*[^\]]*\]/g, '')
+    // snippets are cut from raw content at a fixed length — a marker sliced
+    // in half (`[Doc: [[product:`) can't match the complete forms above, so
+    // drop anything trailing a leftover marker opener
+    .replace(/\s*\[Doc:[\s\S]*$/, '')
+    .replace(/\[\[[^\[\]]*$/, '')
+    .replace(/\[\[([^\[\]]+)]]/g, (_m, inner: string) => {
+      const link = parseWikilinkInner(inner);
+      return link ? link.label : inner;
+    });
 }
 
 /* ---------------- evidence URL rendering ---------------- */

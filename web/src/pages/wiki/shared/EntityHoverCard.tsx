@@ -71,6 +71,7 @@ export function EntityHoverCard({ entityId, type, statusLabel, detailsLabel, onO
           {(entity.aliases || []).length > aliases.length ? ' …' : ''}
         </div>
       )}
+      {entity.description ? <div className="line-clamp-3 text-12px">{entity.description}</div> : null}
       {(entity.relations || []).length > 0 && (
         <div className="text-12px text-[var(--ant-color-text-tertiary)]">
           {t('page.wiki.entityManager.columns.relations')}: {(entity.relations || []).length}

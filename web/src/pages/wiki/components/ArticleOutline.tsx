@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { plainDisplayText } from '../shared/content';
+
 /**
  * Right-hand outline for the article read view: markdown headings extracted from the structured content, scroll-spy
  * highlight, click-to-scroll. Headings are located in the DOM by text, so the markdown renderer needs no anchor
@@ -33,10 +35,13 @@ export function ArticleOutline({
     .filter(line => /^#{1,3}\s+/.test(line))
     .map(line => ({
       level: line.match(/^#+/)?.[0].length ?? 2,
-      text: line
+      // plainDisplayText unwraps `[[type:name]]` to its label — the rendered
+      // heading shows the capsule whose visible text is the same label, so
+      // scroll-spy and click matching stay consistent
+      text: plainDisplayText(line
         .replace(/^#+\s+/, '')
         .replace(/[#*`]/g, '')
-        .trim()
+        .trim())
     }))
     .filter(h => h.text);
 
