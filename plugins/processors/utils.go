@@ -176,9 +176,11 @@ func AttachmentRecordContract(granularity pipeline.Granularity) pipeline.RecordC
 // pipeline. langchaingo's default HTTP client has no overall timeout and the
 // pipeline context carries no deadline, so one stalled provider connection
 // hangs the (serial) queue consumer forever — every datasource's sync run
-// then reads as stale ("疑似僵死") and ingestion stops silently. Three
-// minutes is far above the observed latency of every pipeline LLM call
-// (max ~40s summarization) while capping the damage of a dead connection.
+// then reads as stale ("疑似僵死") and ingestion stops silently. Eight
+// minutes still caps the damage of a dead connection while leaving room for
+// slow streaming models on large inputs: extract_entities feeds up to 30k
+// chars and summarization was observed at 3m13s (2026-11-05, the old 3m cap
+// made entity extraction fail with "no valid JSON object found in response").
 func PipelineLLMContext(ctx context.Context) (context.Context, context.CancelFunc) {
-	return context.WithTimeout(ctx, 3*time.Minute)
+	return context.WithTimeout(ctx, 8*time.Minute)
 }

@@ -130,6 +130,9 @@ type extractedEntity struct {
 		Target   string `json:"target"`
 	} `json:"relations"`
 	Evidence string `json:"evidence"`
+	// Summary is a one-sentence grounded description of what this entity
+	// is, per this document — persisted as WikiEntity.Description.
+	Summary string `json:"summary"`
 }
 
 type extractionResult struct {
@@ -429,6 +432,34 @@ func (processor *ExtractEntitiesProcessor) extractAndLink(ctx context.Context, l
 	return ids, nil
 }
 
+// mergeExtractedInto folds a later extraction into an existing entity:
+// new property keys fill in (existing values win — provenance stability
+// over churn), missing aliases absorb, and an empty description takes the
+// first grounded summary. Without this the update path only appended
+// sources and an entity first created without properties/summary stayed
+// frozen that way forever (seen live: 12 mentions, 0 properties).
+func mergeExtractedInto(existing *core.WikiEntity, extracted *extractedEntity) {
+	if existing.Properties == nil {
+		existing.Properties = util.MapStr{}
+	}
+	for k, v := range extracted.Properties {
+		if k == "" || v == nil || v == "" {
+			continue
+		}
+		if _, ok := existing.Properties[k]; !ok {
+			existing.Properties[k] = v
+		}
+	}
+	for _, a := range normalizeAliases(extracted.Aliases) {
+		if a != "" && a != existing.Name && !util.AnyInArrayEquals(existing.Aliases, a) {
+			existing.Aliases = append(existing.Aliases, a)
+		}
+	}
+	if strings.TrimSpace(existing.Description) == "" {
+		existing.Description = strings.TrimSpace(extracted.Summary)
+	}
+}
+
 // resolveOrCreateEntity disambiguates by exact name, then alias match
 // (case-insensitive retry); unmatched extractions become proposed entities
 // with the document recorded as provenance (design doc B2).
@@ -436,6 +467,7 @@ func resolveOrCreateEntity(ctx *orm.Context, extracted *extractedEntity, doc *co
 	orm.WithModel(ctx, &core.WikiEntity{})
 
 	extractedType := strings.ToLower(strings.TrimSpace(extracted.Type))
+
 	if existing := findEntityByName(ctx, kbID, extracted.Name); existing != nil {
 		// same name, conflicting types: keep merging the provenance but let
 		// the governance queue ask the human whether to split (O2)
@@ -444,6 +476,7 @@ func resolveOrCreateEntity(ctx *orm.Context, extracted *extractedEntity, doc *co
 				fmt.Sprintf("document %q mentions %q as %q, existing entity is %q", doc.Title, extracted.Name, extractedType, existing.Type),
 				util.MapStr{"doc_id": doc.ID, "existing_type": existing.Type, "extracted_type": extractedType})
 		}
+		mergeExtractedInto(existing, extracted)
 		appendEntitySource(existing, extracted, doc)
 		if err := orm.Update(ctx, existing); err != nil {
 			return nil, false, err
@@ -458,10 +491,11 @@ func resolveOrCreateEntity(ctx *orm.Context, extracted *extractedEntity, doc *co
 		if existing := findEntityByName(ctx, kbID, alias); existing != nil {
 			if existing.Type != "" && extractedType != "" && existing.Type != extractedType {
 				wiki.FileEntityGovernanceProposal(kbID, existing, core.WikiGovernanceEntityConflict,
-					fmt.Sprintf("document %q mentions alias %q of %q as %q, existing entity is %q", doc.Title, alias, extracted.Name, extractedType, existing.Type),
-					util.MapStr{"doc_id": doc.ID, "alias": alias, "existing_type": existing.Type, "extracted_type": extractedType})
-			}
-			appendEntitySource(existing, extracted, doc)
+				fmt.Sprintf("document %q mentions alias %q of %q as %q, existing entity is %q", doc.Title, alias, extracted.Name, extractedType, existing.Type),
+				util.MapStr{"doc_id": doc.ID, "alias": alias, "existing_type": existing.Type, "extracted_type": extractedType})
+		}
+		mergeExtractedInto(existing, extracted)
+		appendEntitySource(existing, extracted, doc)
 			if err := orm.Update(ctx, existing); err != nil {
 				return nil, false, err
 			}
@@ -488,17 +522,20 @@ func resolveOrCreateEntity(ctx *orm.Context, extracted *extractedEntity, doc *co
 		// orphaned (kb_id-less rows no KB-scoped query can ever see) —
 		// exactly how the Books KB's entity tab stayed empty while
 		// extraction kept "working"
-		KbID:       kbID,
-		Type:       entityType,
-		Name:       extracted.Name,
-		Aliases:    normalizeAliases(extracted.Aliases),
-		Properties: extracted.Properties,
-		Status:     status,
-		Sources:    []core.WikiSourceReference{documentSourceRef(doc, extracted.Evidence)},
+		KbID:        kbID,
+		Type:        entityType,
+		Name:        extracted.Name,
+		Aliases:     normalizeAliases(extracted.Aliases),
+		Properties:  extracted.Properties,
+		Description: strings.TrimSpace(extracted.Summary),
+		Status:      status,
+		Sources:     []core.WikiSourceReference{documentSourceRef(doc, extracted.Evidence)},
 	}
 	if schema != nil {
 		if dropped := wiki.SanitizeEntityAgainstSchema(entity, schema); len(dropped) > 0 {
-			log.Debugf("[%s] schema sanitize dropped from %q: %v", ProcessorName, extracted.Name, dropped)
+			// Warn, not Debug: silent drops made declared properties vanish
+			// invisibly (live data showed 0/363 entities with properties).
+			log.Warnf("[%s] schema sanitize dropped from %q: %v", ProcessorName, extracted.Name, dropped)
 		}
 	}
 	// name-anchored id: extraction resolves identity by name, so two
@@ -512,6 +549,7 @@ func resolveOrCreateEntity(ctx *orm.Context, extracted *extractedEntity, doc *co
 		// path on the winner instead of failing the batch
 		if strings.Contains(err.Error(), "version_conflict") {
 			if winner := findEntityByName(ctx, kbID, entity.Name); winner != nil {
+				mergeExtractedInto(winner, extracted)
 				appendEntitySource(winner, extracted, doc)
 				if uerr := orm.Update(ctx, winner); uerr != nil {
 					return nil, false, uerr
@@ -781,14 +819,18 @@ func buildExtractionPrompt(material string, config *Config, schema *wiki.Ontolog
 			"Requirements:\n"+
 			"- Return ONLY a valid JSON object, no markdown fences\n"+
 			"- Extract at most %d entities, only clearly mentioned ones\n"+
+			"- An entity MUST be a proper noun naming a specific thing (a product, organization, person, named document, named feature/mechanism). Skip generic nouns, verbs, adjectives\n"+
+			"- Do NOT extract: configuration keys or parameter names (e.g. \"include_private_book\", \"max_retries\"), UI labels or menu items, HTTP/API field names, file paths, code identifiers, error messages, plural/common words (e.g. \"name\", \"source\", \"config\", \"share\", \"payload\")\n"+
+			"- When unsure whether something is a nameable entity or just common wording, skip it — a smaller high-precision pool beats a large noisy one\n"+
 			"- Use one of the allowed entity types for \"type\"\n"+
 			"- \"aliases\": alternate names/s spellings found in the text (may be empty)\n"+
 			"- \"properties\": up to 5 short factual attributes as {\"key\": \"value\"}\n"+
 			"- \"relations\": links to OTHER entities extracted from the same document as {\"relation\": \"verb_phrase\", \"target\": \"<entity name>\"}\n"+
 			"- \"evidence\": a VERBATIM excerpt of 15-80 characters copied character-for-character from the document text where the entity is mentioned - same language as the document, no translation, no paraphrase, no added words (it is matched back against the source text to locate the exact block)\n"+
+			"- \"summary\": ONE sentence, grounded strictly in the document, saying what this entity is (identity/category plus the most distinguishing fact). 15-60 characters, same language as the document, no speculation\n"+
 			"- Names and aliases MUST be in their original language as they appear\n%s\n"+
 			"Format:\n"+
-			`{"entities":[{"name":"","type":"","aliases":[],"properties":{},"relations":[{"relation":"","target":""}],"evidence":""}]}`+"\n\n"+
+			`{"entities":[{"name":"","type":"","aliases":[],"properties":{},"relations":[{"relation":"","target":""}],"evidence":"","summary":""}]}`+"\n\n"+
 			"Document:\n%s\n\n"+
 			"Generate the JSON object now.",
 		vocabulary,
@@ -815,6 +857,9 @@ func vocabularySection(config *Config, schema *wiki.OntologySchemaDoc) (string, 
 		fmt.Fprintf(&b, "- %s", t.Name)
 		if len(t.Label) > 0 {
 			fmt.Fprintf(&b, " (%s)", t.Label)
+		}
+		if len(t.Description) > 0 {
+			fmt.Fprintf(&b, ": %s", t.Description)
 		}
 		if len(t.Properties) > 0 {
 			keys := make([]string, 0, len(t.Properties))
@@ -853,9 +898,320 @@ func parseEntitiesFromResponse(response string) (*extractionResult, error) {
 	if jsonStart == -1 || jsonEnd == -1 || jsonStart > jsonEnd {
 		return nil, fmt.Errorf("no valid JSON object found in response")
 	}
+	payload := trimmed[jsonStart : jsonEnd+1]
 	result := extractionResult{}
-	if err := json.Unmarshal([]byte(trimmed[jsonStart:jsonEnd+1]), &result); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal JSON: %w", err)
+	if err := json.Unmarshal([]byte(payload), &result); err != nil {
+		// live failure mode (~14% of one GLM run): slightly malformed JSON —
+		// trailing commas, missing commas between adjacent objects. Repair
+		// the common cases once before giving up; the doc-level retry costs
+		// a full LLM round trip.
+		repaired := repairLooseJSON(payload)
+		// the other live failure mode: verbatim evidence copies raw markdown
+		// into string values with unescaped quotes/newlines
+		sanitized := repairLooseJSON(sanitizeRawStrings(payload))
+		// the dominant structural failure: {"relation":..} objects dropped
+		// at entity-object key positions instead of inside a relations array
+		hoisted := hoistStrayRelationObjects(sanitized)
+		candidates := []string{repaired, sanitized, hoisted}
+		// models sometimes double-wrap the object ({{...}}) or answer with
+		// a bare array — peel/wrap one layer each before conceding
+		peeled := strings.TrimSpace(hoisted)
+		if strings.HasPrefix(peeled, "{{") && strings.HasSuffix(peeled, "}}") {
+			candidates = append(candidates, peeled[1:len(peeled)-1])
+		}
+		if strings.HasPrefix(peeled, "[") {
+			candidates = append(candidates, `{"entities":`+peeled+`}`)
+		}
+		parsed := false
+		for _, cand := range candidates {
+			if rerr := json.Unmarshal([]byte(cand), &result); rerr == nil {
+				parsed = true
+				break
+			}
+		}
+		if !parsed {
+			log.Warnf("[%s] unparseable extraction response (head): %.300s", ProcessorName, payload)
+			return nil, fmt.Errorf("failed to unmarshal JSON: %w", err)
+		}
+		log.Warnf("[%s] recovered malformed JSON from extraction response via repair", ProcessorName)
 	}
 	return &result, nil
+}
+
+// hoistStrayRelationObjects repairs the dominant live structural failure:
+// the model drops {"relation":..,"target":..} objects at entity-object KEY
+// positions ("properties":{...},{"relation":...}]) instead of inside a
+// relations array — strict unmarshal dies with "invalid character '{'
+// looking for beginning of object key string". Each stray object is
+// gathered and re-attached as a relations array on its owning object.
+func hoistStrayRelationObjects(s string) string {
+	if !strings.Contains(s, `"relation"`) {
+		return s
+	}
+	// matching close-brace index for the object opening at `open`
+	matchObj := func(open int) int {
+		depth := 0
+		inStr, escape := false, false
+		for i := open; i < len(s); i++ {
+			c := s[i]
+			if inStr {
+				if escape {
+					escape = false
+				} else if c == '\\' {
+					escape = true
+				} else if c == '"' {
+					inStr = false
+				}
+				continue
+			}
+			switch c {
+			case '"':
+				inStr = true
+			case '{':
+				depth++
+			case '}':
+				depth--
+				if depth == 0 {
+					return i
+				}
+			}
+		}
+		return len(s) - 1
+	}
+
+	type frame struct {
+		isObj  bool
+		keyPos bool
+		rels   []string
+		hasArr bool // the object already declares a real "relations" key
+	}
+	var b strings.Builder
+	var stack []*frame
+	inStr, escape := false, false
+	keyStart := -1
+	lastByte := byte(0) // last byte actually written (never whitespace)
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if inStr {
+			b.WriteByte(c)
+			lastByte = c
+			if escape {
+				escape = false
+			} else if c == '\\' {
+				escape = true
+			} else if c == '"' {
+				inStr = false
+				if len(stack) > 0 && keyStart >= 0 {
+					if f := stack[len(stack)-1]; f.isObj && s[keyStart:i+1] == `"relations"` {
+						f.hasArr = true
+					}
+				}
+				keyStart = -1
+			}
+			continue
+		}
+		switch c {
+		case '"':
+			b.WriteByte(c)
+			inStr = true
+			keyStart = -1
+			if len(stack) > 0 {
+				if f := stack[len(stack)-1]; f.isObj && f.keyPos {
+					keyStart = i
+				}
+			}
+		case '{':
+			if len(stack) > 0 {
+				if f := stack[len(stack)-1]; f.isObj && f.keyPos {
+					// stray value object at key position: skip it, keep it
+					// if it looks like a relation pair
+					j := matchObj(i)
+					obj := s[i : j+1]
+					if strings.Contains(obj, `"relation"`) {
+						f.rels = append(f.rels, obj)
+					}
+					i = j
+					continue
+				}
+			}
+			stack = append(stack, &frame{isObj: true, keyPos: true})
+			b.WriteByte(c)
+		case '[':
+			stack = append(stack, &frame{})
+			b.WriteByte(c)
+		case '}':
+			f := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			if f != nil && f.isObj && len(f.rels) > 0 && !f.hasArr {
+				// the stray's separating comma is already in the output —
+				// don't double it
+				if lastByte == ',' {
+					b.WriteString(`"relations":[` + strings.Join(f.rels, ",") + `]`)
+				} else {
+					b.WriteString(`,"relations":[` + strings.Join(f.rels, ",") + `]`)
+				}
+			}
+			b.WriteByte(c)
+			lastByte = c
+		case ']':
+			// mismatch guard: models sometimes omit the entity object's
+			// closing brace before the array close — synthesize the
+			// missing object closes (attaching hoisted relations) until
+			// the matching array frame is on top
+			for len(stack) > 0 {
+				f := stack[len(stack)-1]
+				if !f.isObj {
+					stack = stack[:len(stack)-1]
+					break
+				}
+				stack = stack[:len(stack)-1]
+				if len(f.rels) > 0 && !f.hasArr {
+					if lastByte == ',' {
+						b.WriteString(`"relations":[` + strings.Join(f.rels, ",") + `]`)
+					} else {
+						b.WriteString(`,"relations":[` + strings.Join(f.rels, ",") + `]`)
+					}
+				}
+				b.WriteByte('}')
+				lastByte = '}'
+			}
+			b.WriteByte(c)
+			lastByte = c
+		case ':':
+			b.WriteByte(c)
+			// a value follows — the next { is the value, not a stray
+			if len(stack) > 0 {
+				if f := stack[len(stack)-1]; f.isObj {
+					f.keyPos = false
+				}
+			}
+		case ',':
+			b.WriteByte(c)
+			if len(stack) > 0 {
+				if f := stack[len(stack)-1]; f.isObj {
+					f.keyPos = true
+				}
+			}
+		default:
+			b.WriteByte(c)
+		}
+		lastByte = c
+	}
+	return b.String()
+}
+
+// sanitizeRawStrings escapes raw quotes/newlines/tabs inside JSON string
+// values: the "evidence" field copies document text verbatim, so models
+// routinely emit unescaped `"` / newlines there and strict unmarshal dies.
+// A closing quote is only accepted when the next non-space byte is
+// structural (, } ] : or end) — anything else is an inner raw quote.
+func sanitizeRawStrings(s string) string {
+	var b strings.Builder
+	inStr := false
+	escape := false
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if !inStr {
+			b.WriteByte(c)
+			if c == '"' {
+				inStr = true
+			}
+			continue
+		}
+		if escape {
+			b.WriteByte(c)
+			escape = false
+			continue
+		}
+		switch c {
+		case '\\':
+			b.WriteByte(c)
+			escape = true
+		case '"':
+			j := i + 1
+			for j < len(s) && (s[j] == ' ' || s[j] == '\t' || s[j] == '\n' || s[j] == '\r') {
+				j++
+			}
+			if j >= len(s) || s[j] == ',' || s[j] == '}' || s[j] == ']' || s[j] == ':' {
+				b.WriteByte(c)
+				inStr = false
+			} else {
+				b.WriteString("\\\"")
+			}
+		case '\n':
+			b.WriteString("\\n")
+		case '\r':
+			b.WriteString("\\r")
+		case '\t':
+			b.WriteString("\\t")
+		default:
+			b.WriteByte(c)
+		}
+	}
+	return b.String()
+}
+
+// repairLooseJSON fixes two common LLM JSON defects: trailing commas
+// (`,}` / `,]`) and missing commas between adjacent values (`}{`, `]["`,
+// `"a" "b"`). The missing-comma pass runs a small string-aware scanner so
+// quotes containing those byte pairs are never touched.
+func repairLooseJSON(s string) string {
+	// trailing commas
+	trailing := regexp.MustCompile(`,\s*([}\]])`)
+	s = trailing.ReplaceAllString(s, "$1")
+
+	// missing commas between adjacent elements
+	var b strings.Builder
+	prev := byte(0) // last structural byte outside strings
+	inStr := false
+	escape := false
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if inStr {
+			b.WriteByte(c)
+			switch {
+			case escape:
+				escape = false
+			case c == '\\':
+				escape = true
+			case c == '"':
+				inStr = false
+				prev = '"'
+			}
+			continue
+		}
+		switch c {
+		case '"':
+			// a value straight after another value needs a comma first
+			if prev == '}' || prev == ']' || prev == '"' {
+				b.WriteByte(',')
+			}
+			inStr = true
+		case '{', '[':
+			if prev == '}' || prev == ']' || prev == '"' {
+				b.WriteByte(',')
+			}
+		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 't', 'f', 'n':
+			// number/true/false/null literal starting right after a value
+			if prev == '}' || prev == ']' || prev == '"' {
+				b.WriteByte(',')
+			}
+		}
+		b.WriteByte(c)
+		if c == ' ' || c == '\t' || c == '\n' || c == '\r' {
+			// whitespace never resets the terminator state: `} {` must
+			// still be seen as adjacent values
+			continue
+		}
+		switch c {
+		case '}', ']', ',', ':':
+			prev = c
+		default:
+			// openers and literal content are not value terminators; using
+			// a non-triggering sentinel also keeps multi-char literals
+			// (123, true, null) from emitting a comma mid-token
+			prev = 0
+		}
+	}
+	return b.String()
 }

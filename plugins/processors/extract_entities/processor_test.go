@@ -54,6 +54,47 @@ func TestNormalizeAliases(t *testing.T) {
 	}
 }
 
+// Live failure mode on 2026-11-08: ~14% of GLM extraction responses were
+// slightly malformed JSON (trailing commas, missing commas between adjacent
+// objects) and each failure cost a full doc re-extraction. The repair pass
+// must recover all of these, and must NOT mangle quotes containing the
+// same byte pairs.
+func TestParseEntitiesFromResponseLooseJSON(t *testing.T) {
+	// trailing comma after last array element
+	result, err := parseEntitiesFromResponse(`{"entities":[{"name":"A","type":"concept"},]}`)
+	if err != nil || len(result.Entities) != 1 {
+		t.Fatalf("trailing comma not repaired: %v %v", result, err)
+	}
+	// trailing comma in object
+	result, err = parseEntitiesFromResponse(`{"entities":[{"name":"A","type":"concept",}]}`)
+	if err != nil || len(result.Entities) != 1 {
+		t.Fatalf("object trailing comma not repaired: %v %v", result, err)
+	}
+	// missing comma between adjacent array objects (the observed error:
+	// "invalid character '{' looking for beginning of object key string")
+	result, err = parseEntitiesFromResponse(`{"entities":[{"name":"A","type":"concept"} {"name":"B","type":"product"}]}`)
+	if err != nil || len(result.Entities) != 2 {
+		t.Fatalf("missing comma between objects not repaired: %v %v", result, err)
+	}
+	if result.Entities[0].Name != "A" || result.Entities[1].Name != "B" {
+		t.Fatalf("unexpected entities: %+v", result.Entities)
+	}
+	// missing comma between two string array elements
+	result, err = parseEntitiesFromResponse(`{"entities":[{"name":"A","type":"concept","aliases":["x" "y"]}]}`)
+	if err != nil || len(result.Entities[0].Aliases) != 2 {
+		t.Fatalf("missing comma between strings not repaired: %v %v", result, err)
+	}
+	// multi-char literals must not get commas injected mid-token
+	if _, err := parseEntitiesFromResponse(`{"entities":[{"name":"A","type":"concept","properties":{"n":123,"ok":true,"x":null}}]}`); err != nil {
+		t.Fatalf("valid numeric/bool/null literals broken by repair: %v", err)
+	}
+	// quotes containing }{ byte pairs must be preserved untouched
+	result, err = parseEntitiesFromResponse(`{"entities":[{"name":"A","type":"concept","evidence":"code }{ block"}]}`)
+	if err != nil || result.Entities[0].Evidence != "code }{ block" {
+		t.Fatalf("in-string braces mangled: %v %v", result, err)
+	}
+}
+
 func TestBuildExtractionMaterial(t *testing.T) {
 	// no real text — folder nodes / extraction-dead docs must not extract
 	empty := core.Document{}
@@ -164,5 +205,55 @@ func TestChunkLocator(t *testing.T) {
 	// no chunks / no evidence → empty
 	if got := chunkLocator(&core.Document{}, "x"); got != "" {
 		t.Errorf("expected empty locator without chunks, got %q", got)
+	}
+}
+
+// verbatim-evidence quotes/newlines inside string values (the second live
+// failure mode) must be escaped, not lost
+func TestParseEntitiesFromResponseRawStrings(t *testing.T) {
+	// unescaped inner quotes + a raw newline inside evidence
+	resp := `{"entities":[{"name":"Assistant API","type":"document","evidence":"Assistant API Reference #  Below "the line" continues
+with text"}]}`
+	result, err := parseEntitiesFromResponse(resp)
+	if err != nil {
+		t.Fatalf("raw-string response not repaired: %v", err)
+	}
+	if len(result.Entities) != 1 || result.Entities[0].Name != "Assistant API" {
+		t.Fatalf("unexpected entities: %+v", result.Entities)
+	}
+	// a genuine close followed by the next key still parses normally
+	result, err = parseEntitiesFromResponse(`{"entities":[{"name":"A","type":"concept","evidence":"clean evidence"}]}`)
+	if err != nil || result.Entities[0].Evidence != "clean evidence" {
+		t.Fatalf("clean response mangled: %v %v", result, err)
+	}
+}
+
+// the dominant structural failure observed live (2026-11-08): relation
+// objects dropped at entity-object key positions instead of inside a
+// relations array
+func TestParseEntitiesFromResponseStrayRelations(t *testing.T) {
+	for _, resp := range []string{
+		// well-formed except the stray relation object
+		`{"entities":[{"name":"Coco Server","type":"product","aliases":["Coco-Server"],"properties":{"status":"active","description":"Retrieval-augmented chat platform"},{"relation":"makes","target":"Assistant"}}]}`,
+		// ...and the variant that also omits the entity object's close
+		`{"entities":[{"name":"Coco Server","type":"product","aliases":["Coco-Server"],"properties":{"status":"active","description":"Retrieval-augmented chat platform"},{"relation":"makes","target":"Assistant"}]}`,
+	} {
+		result, err := parseEntitiesFromResponse(resp)
+		if err != nil {
+			t.Fatalf("stray relation object not hoisted: %v", err)
+		}
+		e := result.Entities[0]
+		if len(e.Properties) != 2 {
+			t.Fatalf("expected 2 properties, got %v", e.Properties)
+		}
+		if len(e.Relations) != 1 || e.Relations[0].Relation != "makes" || e.Relations[0].Target != "Assistant" {
+			t.Fatalf("expected hoisted relation, got %+v", e.Relations)
+		}
+	}
+	// a real relations array must survive untouched
+	resp := `{"entities":[{"name":"A","type":"concept","properties":{"k":"v"},"relations":[{"relation":"uses","target":"B"}]}]}`
+	result, err := parseEntitiesFromResponse(resp)
+	if err != nil || len(result.Entities[0].Relations) != 1 || result.Entities[0].Relations[0].Relation != "uses" {
+		t.Fatalf("declared relations damaged: %v %+v", err, result)
 	}
 }
