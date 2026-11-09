@@ -89,11 +89,14 @@ func (h *APIHandler) kbFiles(w http.ResponseWriter, req *http.Request, ps httpro
 		return
 	}
 
-	upDS, err := ensureUploadDatasource(ctx, &kb)
-	if err != nil {
-		h.WriteError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	// read path: reference the upload datasource by its deterministic id
+	// WITHOUT materializing it. ensureUploadDatasource here created an empty
+	// "知识库上传 · <kb>" connector row on every files-page visit, so the
+	// datasource list grew a zero-document source before any upload — the
+	// row is now minted by the upload handler on the first real upload.
+	upDS := &core.DataSource{}
+	upDS.SetID(uploadDatasourceID(kbID))
+	upDS.Name = "知识库上传 · " + kb.Name
 	dsIDs := append([]string{}, kb.DatasourceIDs...)
 	dsIDs = append(dsIDs, upDS.ID)
 
