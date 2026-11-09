@@ -779,8 +779,10 @@ func (h *APIHandler) entityNeighbors(w http.ResponseWriter, req *http.Request, p
 	}
 
 	// schema-resolved labels for both directions (O3): forward relations
-	// carry the declared label, incoming ones the declared inverse
-	schema := loadOntologySchemaForKB(req.Context(), "")
+	// carry the declared label, incoming ones the declared inverse.
+	// Scope by the entity's own KB — an empty kbID silently degrades to the
+	// tenant schema and KB-level vocabularies never resolve.
+	schema := loadOntologySchemaForKB(req.Context(), entity.KbID)
 	typeDefs := map[string]*OntologyEntityTypeDef{}
 	if schema != nil {
 		for i := range schema.EntityTypes {
@@ -814,6 +816,12 @@ func (h *APIHandler) entityNeighbors(w http.ResponseWriter, req *http.Request, p
 
 	h.WriteOKJSON(w, util.MapStr{
 		"entity":             entity,
+		// stored description, or the deterministic provenance fallback —
+		// the detail page renders one line even for legacy rows
+		"display_description": EntityDisplayDescription(&entity),
+		// vocabulary display labels for the entity's typed properties
+		// (key → label); the detail page prefers them over raw keys
+		"property_labels":    PropertyDisplayLabels(req.Context(), entity.KbID, entity.Type),
 		"relations":          entity.Relations,
 		"relations_detailed": relationsDetailed,
 		"incoming":           entityInverseEdges(req.Context(), &entity),

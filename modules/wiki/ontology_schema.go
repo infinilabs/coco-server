@@ -84,11 +84,15 @@ type OntologyPageSection struct {
 
 // OntologyEntityTypeDef declares one entity type.
 type OntologyEntityTypeDef struct {
-	Name       string                `json:"name"`
-	Label      string                `json:"label,omitempty"`
-	Icon       string                `json:"icon,omitempty"`
-	Properties []OntologyPropertyDef `json:"properties,omitempty"`
-	Relations  []OntologyRelationDef `json:"relations,omitempty"`
+	Name  string `json:"name"`
+	Label string `json:"label,omitempty"`
+	Icon  string `json:"icon,omitempty"`
+	// Description is the human-written type definition ("公司、机构等法人
+	// 实体") shown on the ontology page and fed to the extraction prompt so
+	// the LLM can judge type membership instead of guessing from the name.
+	Description string                `json:"description,omitempty"`
+	Properties  []OntologyPropertyDef `json:"properties,omitempty"`
+	Relations   []OntologyRelationDef `json:"relations,omitempty"`
 	// PageSections optionally lays out the type's wiki page (客户 pages get
 	// 客户档案/关键联系人/相关文档; contract pages get 条款/期限/相关方 …)
 	PageSections []OntologyPageSection `json:"page_sections,omitempty"`
@@ -118,6 +122,7 @@ func (doc *OntologySchemaDoc) normalize() error {
 			return fmt.Errorf("entity type %q declared twice", t.Name)
 		}
 		seen[t.Name] = true
+		t.Description = strings.TrimSpace(t.Description)
 
 		sections := map[string]bool{}
 		for j := range t.PageSections {
@@ -697,6 +702,28 @@ func findPropertyDef(typeDef *OntologyEntityTypeDef, key string) *OntologyProper
 	return nil
 }
 
+// PropertyDisplayLabels returns the declared display label for each typed
+// property of one entity type (key → label), resolved against the KB-scoped
+// vocabulary with tenant fallback. Properties without a declared label are
+// omitted — call sites render the raw key as the fallback.
+func PropertyDisplayLabels(ctx context.Context, kbID, typeName string) map[string]string {
+	doc := loadOntologySchemaForKB(ctx, kbID)
+	td := doc.typeDef(typeName)
+	if td == nil {
+		return nil
+	}
+	labels := make(map[string]string, len(td.Properties))
+	for _, p := range td.Properties {
+		if p.Label != "" {
+			labels[p.Key] = p.Label
+		}
+	}
+	if len(labels) == 0 {
+		return nil
+	}
+	return labels
+}
+
 // FileEntityGovernanceProposal files an entity-dimension governance proposal
 // (extraction conflicts and duplicates). Idempotent per open (entity, type);
 // the KB owner gets a notification. The row id is anchored to entity+type
@@ -782,4 +809,60 @@ func (h *APIHandler) relinkArticle(w http.ResponseWriter, req *http.Request, ps 
 
 	persistLinkedPages(&article)
 	h.WriteGetOKJSON(w, article.ID, util.MapStr{"linked_pages": article.LinkedPages})
+}
+
+/* ---------------- POST /wiki/kb/:id/_relink ---------------- */
+
+// relinkKBMentions back-fills entity capsules across a whole KB: articles
+// whose content predates the entity pool (compiled before extraction ran,
+// or imported raw) hold plain text with zero `[[` wikilinks, so no capsule
+// ever rendered no matter how rich the pool later grew. Every live page
+// without wikilinks gets LinkEntityMentions re-run, then
+// persistLinkedPages resolves the fresh links into linked_pages and
+// mention edges in one pass. Content that already carries wikilinks is
+// skipped: the linker is not idempotent over wrapped text and would nest
+// brackets. Advisory maintenance op — pages untouched unless a capsule was
+// actually added.
+func (h *APIHandler) relinkKBMentions(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	kbID := ps.ByName("id")
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+
+	articles, err := kbHealthArticles(ctx, kbID)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	scanned, relinked, skippedWithLinks, archived := 0, 0, 0, 0
+	for i := range articles {
+		a := &articles[i]
+		if a.Status == "archived" {
+			archived++
+			continue
+		}
+		if strings.Contains(a.Content, "[[") {
+			skippedWithLinks++
+			continue
+		}
+		scanned++
+		linked := LinkEntityMentions(ctx, a.Content, a.Title)
+		if linked == a.Content {
+			continue
+		}
+		a.Content = linked
+		// resolves wikilinks → linked_pages, refreshes lint, re-saves,
+		// rebuilds mention edges (entity pages)
+		persistLinkedPages(a)
+		relinked++
+	}
+
+	log.Infof("wiki: kb relink mentions [%s]: %d relinked / %d scanned plain, %d already linked, %d archived", kbID, relinked, scanned, skippedWithLinks, archived)
+	h.WriteGetOKJSON(w, kbID, util.MapStr{
+		"relinked":           relinked,
+		"scanned_plain":      scanned,
+		"skipped_with_links": skippedWithLinks,
+		"archived":           archived,
+	})
 }

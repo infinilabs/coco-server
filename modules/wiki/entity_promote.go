@@ -47,6 +47,11 @@ func promoteTopicEntities(ctx *orm.Context, kbID string, names []string, types m
 			Status:     core.WikiEntityProposed,
 			Confidence: 0.5,
 		}
+		// name-anchored id (same scheme as extract_entities): promotion and
+		// extraction racing on the same name must land on ONE row — generated
+		// ids here let a promote shell and an extraction row coexist as
+		// twins that never self-merge (live data: Deepseek/DeepSeek ×3)
+		e.SetID(core.AnchoredEntityID(kbID, name))
 		if err := applyEntityCreateDefaults(e); err != nil {
 			log.Warnf("wiki entity promotion: defaults [%s]: %v", name, err)
 			continue

@@ -136,9 +136,9 @@ type WikiKnowledgeBase struct {
 	// queried by KBsByAssistant) purely as the legacy experience-capture
 	// linkage — thumbs on a chat assistant's answers still file WikiExperience
 	// records into the KBs bound to it; no UI sets it anymore.
-	AssistantID  string   `json:"assistant_id,omitempty" elastic_mapping:"assistant_id:{type:keyword}"`
-	SyncStrategy string   `json:"sync_strategy,omitempty" elastic_mapping:"sync_strategy:{type:keyword}"` // realtime | scheduled | manual
-	ArticleCount  int      `json:"article_count" elastic_mapping:"article_count:{type:integer}"`
+	AssistantID  string `json:"assistant_id,omitempty" elastic_mapping:"assistant_id:{type:keyword}"`
+	SyncStrategy string `json:"sync_strategy,omitempty" elastic_mapping:"sync_strategy:{type:keyword}"` // realtime | scheduled | manual
+	ArticleCount int    `json:"article_count" elastic_mapping:"article_count:{type:integer}"`
 	// 企业目录布局(可选):研发/销售/售前/市场等部门各成顶层目录,目录内
 	// 编译器按实体类型维度再分。部门归属按被引文档的 folder_path 前缀匹配;
 	// 未配置时编译器退回单层维度目录
@@ -289,20 +289,23 @@ type WikiEvolutionEntry struct {
 // Obsidian-style sections with [[type:name]] wikilinks and doc_id mentions).
 type WikiArticle struct {
 	orm.ORMObjectBase
-	KbID        string                `json:"kb_id" elastic_mapping:"kb_id:{type:keyword}"`
-	TocNodeID   string                `json:"toc_node_id,omitempty" elastic_mapping:"toc_node_id:{type:keyword}"`
-	Title       string                `json:"title" elastic_mapping:"title:{type:keyword,copy_to:combined_fulltext,fields:{text:{type:text},pinyin:{type:text,analyzer:pinyin_analyzer}}}"`
-	Summary     string                `json:"summary,omitempty" elastic_mapping:"summary:{type:text,copy_to:combined_fulltext}"`
-	Content     string                `json:"content,omitempty" elastic_mapping:"content:{enabled:false}"`    // full structured markdown, versions keep history
-	PageType    string                `json:"page_type,omitempty" elastic_mapping:"page_type:{type:keyword}"` // entity | concept | source
-	Subtype     string                `json:"subtype,omitempty" elastic_mapping:"subtype:{type:keyword}"`
-	Aliases     []string              `json:"aliases,omitempty" elastic_mapping:"aliases:{type:keyword,copy_to:combined_fulltext}"`
-	Tags        []string              `json:"tags,omitempty" elastic_mapping:"tags:{type:keyword,copy_to:combined_fulltext}"`
-	Status      string                `json:"status" elastic_mapping:"status:{type:keyword}"` // draft | reviewed | published | archived
-	AIGenerated bool                  `json:"ai_generated" elastic_mapping:"ai_generated:{type:boolean}"`
-	Confidence  string                `json:"confidence,omitempty" elastic_mapping:"confidence:{type:keyword}"` // high | medium | low
-	Sources     []WikiSourceReference `json:"sources,omitempty" elastic_mapping:"sources:{type:object,enabled:false}"`
-	EntityID    string                `json:"entity_id,omitempty" elastic_mapping:"entity_id:{type:keyword}"` // set when page_type=entity
+	// fulltext sink for title/summary/tags (copy_to targets, tsconvert
+	// 繁→简 analyzed) — mirrors WikiEntity.CombinedFullText.
+	CombinedFullText string                `json:"combined_fulltext,omitempty" elastic_mapping:"combined_fulltext:{type:text,index_prefixes:{},index_phrases:true,analyzer:combined_text_analyzer}"`
+	KbID             string                `json:"kb_id" elastic_mapping:"kb_id:{type:keyword}"`
+	TocNodeID        string                `json:"toc_node_id,omitempty" elastic_mapping:"toc_node_id:{type:keyword}"`
+	Title            string                `json:"title" elastic_mapping:"title:{type:keyword,copy_to:combined_fulltext,fields:{text:{type:text},pinyin:{type:text,analyzer:pinyin_analyzer}}}"`
+	Summary          string                `json:"summary,omitempty" elastic_mapping:"summary:{type:text,copy_to:combined_fulltext}"`
+	Content          string                `json:"content,omitempty" elastic_mapping:"content:{enabled:false}"`    // full structured markdown, versions keep history
+	PageType         string                `json:"page_type,omitempty" elastic_mapping:"page_type:{type:keyword}"` // entity | concept | source
+	Subtype          string                `json:"subtype,omitempty" elastic_mapping:"subtype:{type:keyword}"`
+	Aliases          []string              `json:"aliases,omitempty" elastic_mapping:"aliases:{type:keyword,copy_to:combined_fulltext}"`
+	Tags             []string              `json:"tags,omitempty" elastic_mapping:"tags:{type:keyword,copy_to:combined_fulltext}"`
+	Status           string                `json:"status" elastic_mapping:"status:{type:keyword}"` // draft | reviewed | published | archived
+	AIGenerated      bool                  `json:"ai_generated" elastic_mapping:"ai_generated:{type:boolean}"`
+	Confidence       string                `json:"confidence,omitempty" elastic_mapping:"confidence:{type:keyword}"` // high | medium | low
+	Sources          []WikiSourceReference `json:"sources,omitempty" elastic_mapping:"sources:{type:object,enabled:false}"`
+	EntityID         string                `json:"entity_id,omitempty" elastic_mapping:"entity_id:{type:keyword}"` // set when page_type=entity
 	// wikilinks parsed from content at save time (design doc B3)
 	LinkedPages []WikiLinkedPage `json:"linked_pages,omitempty" elastic_mapping:"linked_pages:{type:object,enabled:false}"`
 	// page-level attachments (core.Attachment ids): files hung on the wiki
@@ -544,6 +547,13 @@ type WikiLinkedPage struct {
 // page_type=entity) links back via EntityID/ArticleID (design doc D1).
 type WikiEntity struct {
 	orm.ORMObjectBase
+	// fulltext sink for name/aliases (both copy_to here): analyzed with
+	// combined_text_analyzer (tsconvert 繁→简 + pinyin-adjacent filters) so
+	// simplified queries match traditional entity names. App code never
+	// writes it — copy_to populates it at index time; omitempty keeps API
+	// payloads clean. Not the core.CombinedFullText struct (it carries its
+	// own ORMObjectBase, can't be embedded here).
+	CombinedFullText string `json:"combined_fulltext,omitempty" elastic_mapping:"combined_fulltext:{type:text,index_prefixes:{},index_phrases:true,analyzer:combined_text_analyzer}"`
 	// KbID scopes the entity to one knowledge base: each KB compiles its
 	// own entity pool from its bound datasources, and deleting the KB
 	// deletes its entities wholesale. Same-name entities in different KBs
@@ -551,7 +561,12 @@ type WikiEntity struct {
 	KbID       string                 `json:"kb_id,omitempty" elastic_mapping:"kb_id:{type:keyword}"`
 	Type       string                 `json:"type" elastic_mapping:"type:{type:keyword}"` // store | campaign | contract | ...
 	Subtype    string                 `json:"subtype,omitempty" elastic_mapping:"subtype:{type:keyword}"`
-	Name       string                 `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext,fields:{text:{type:text},pinyin:{type:text,analyzer:pinyin_analyzer}}}"`
+	// Description is a short grounded summary of what THIS entity is
+	// (LLM-extracted one-liner, or deterministic aggregation over
+	// sources for legacy rows). Empty until extraction/backfill provides
+	// one — display layers fall back to source-excerpt rendering.
+	Description string                 `json:"description,omitempty" elastic_mapping:"description:{type:text,index_phrases:true,analyzer:combined_text_analyzer}"`
+	Name        string                 `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext,fields:{text:{type:text},pinyin:{type:text,analyzer:pinyin_analyzer}}}"`
 	Aliases    []string               `json:"aliases,omitempty" elastic_mapping:"aliases:{type:keyword,copy_to:combined_fulltext}"`
 	Properties map[string]interface{} `json:"properties,omitempty" elastic_mapping:"properties:{type:object}"` // free attributes per ontology schema
 	Relations  []WikiEntityRelation   `json:"relations,omitempty" elastic_mapping:"relations:{type:object,enabled:false}"`

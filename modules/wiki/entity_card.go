@@ -51,15 +51,26 @@ func (p *WikiEntityProvider) GenEntityInfo(ctx context.Context, t, id string) *e
 	if entity.ArticleID != "" {
 		card.URL = articleURLForCard(entity.ArticleID)
 	}
+	if desc := EntityDisplayDescription(entity); desc != "" {
+		card.Properties = append(card.Properties, entity_card.Property{Value: desc})
+	}
 	card.Properties = append(card.Properties, entity_card.Property{
 		Value: "status: " + entity.Status,
 	})
 	if len(entity.Properties) > 0 {
+		// vocabulary-declared display labels win over raw keys (fallback = key)
+		labels := PropertyDisplayLabels(ctx, entity.KbID, entity.Type)
 		rows := make([]entity_card.CardRow, 0, len(entity.Properties))
 		for k, v := range entity.Properties {
+			name := k
+			if labels != nil {
+				if lbl, ok := labels[k]; ok {
+					name = lbl
+				}
+			}
 			rows = append(rows, entity_card.CardRow{
 				Columns: []entity_card.CardColumn{
-					{Value: k},
+					{Value: name},
 					{Value: v},
 				},
 			})

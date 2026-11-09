@@ -238,6 +238,24 @@ func FindEntityByNameOrAlias(ctx *orm.Context, name, entityType, kbID string) *c
 			return &entities[i]
 		}
 	}
+	// case-fold net: the term lookups above are byte-exact, so a
+	// mixed-case stored name ("Deepseek") never matches a differently
+	// cased probe ("DeepSeek") and extraction happily mints a twin.
+	// TrimSpace+EqualFold over the already-fetched page closes that hole
+	// without a mapping change; only reached when exact matching missed.
+	probe := strings.TrimSpace(name)
+	for i := range entities {
+		if strings.EqualFold(strings.TrimSpace(entities[i].Name), probe) {
+			return &entities[i]
+		}
+	}
+	for i := range entities {
+		for _, a := range entities[i].Aliases {
+			if strings.EqualFold(strings.TrimSpace(a), probe) {
+				return &entities[i]
+			}
+		}
+	}
 	return nil
 }
 
