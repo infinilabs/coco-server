@@ -98,6 +98,29 @@ func wikiArticleToHit(article *core.WikiArticle, score float32) elastic.Document
 	}
 }
 
+// applyCuratedTextQuery attaches the keyword text clause to a curated-layer
+// recall builder with the operator-configured match behavior applied — the
+// same AND / minimum_should_match semantics the document text leg runs
+// (applyMatchSettings), so every recall route agrees on what "matching the
+// query" means. Without it the curated legs stay OR: single CJK characters
+// (关/限/网 from 社区关"怀" or 订购"限"制) match unrelated pages and the
+// junk travels all the way into fusion, entity chips and the graph panel.
+func applyCuratedTextQuery(builder *orm.QueryBuilder, cfg *core.SearchSettings, query string) error {
+	textClauses, err := orm.BuildFuzzinessQueryClauses(query, 0, builder.DefaultQueryFieldsVal())
+	if err != nil {
+		return err
+	}
+	applyMatchSettings(cfg, textClauses)
+	if len(textClauses) == 1 {
+		builder.Must(textClauses[0])
+	} else {
+		wrapper := orm.ShouldQuery(textClauses...)
+		applyTextClause(cfg, wrapper, true)
+		builder.Must(wrapper)
+	}
+	return nil
+}
+
 // wikiRoute runs the wiki recall leg: BM25 over the curated pages the user
 // is allowed to search. Hits become pseudo-documents (wikiArticleToHit) so
 // the fusion math treats them like any other route.
@@ -122,8 +145,11 @@ func (h *APIHandler) wikiRoute(req *http.Request, query string, window int) (*el
 	orm.WithModel(octx, &core.WikiArticle{})
 
 	builder := orm.NewQuery().From(0).Size(window)
-	builder.Query(query)
 	builder.DefaultQueryField("title^20", "title.pinyin^8", "summary^4", "tags^2", "combined_fulltext")
+	builder.SkipFuzziness()
+	if err := applyCuratedTextQuery(builder, searchSettingsSnapshot(), query); err != nil {
+		return nil, err
+	}
 	builder.Filter(
 		orm.TermQuery("status", core.WikiArticlePublished),
 		orm.MustNotQuery(orm.TermQuery("confidence", "low")),
@@ -160,8 +186,11 @@ func wikiProjectionRoute(req *http.Request, query string, window int) (*elastic.
 	orm.WithModel(octx, &core.Document{})
 
 	builder := orm.NewQuery().From(0).Size(window)
-	builder.Query(query)
 	builder.DefaultQueryField("title^20", "title.pinyin^8", "summary^4", "tags^2", "combined_fulltext")
+	builder.SkipFuzziness()
+	if err := applyCuratedTextQuery(builder, searchSettingsSnapshot(), query); err != nil {
+		return nil, err
+	}
 	builder.Filter(orm.TermQuery("type", "wiki_article"))
 	builder.Exclude("document_chunk", "payload", "ai_insights.embedding")
 

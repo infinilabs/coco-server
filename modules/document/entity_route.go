@@ -6,6 +6,7 @@ package document
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/elastic"
@@ -29,7 +30,9 @@ var errEntityRouteSkipped = fmt.Errorf("entity route skipped: no wiki article se
 // contract renders it in place).
 func entityToHit(entity *core.WikiEntity, score float32) elastic.DocumentWithMeta[core.Document] {
 	summary := ""
-	if len(entity.Aliases) > 0 {
+	if desc := strings.TrimSpace(entity.Description); desc != "" {
+		summary = desc // the entity's own definition beats the alias list
+	} else if len(entity.Aliases) > 0 {
 		summary = fmt.Sprintf("aliases: %v", entity.Aliases)
 	}
 	doc := core.Document{
@@ -50,6 +53,10 @@ func entityToHit(entity *core.WikiEntity, score float32) elastic.DocumentWithMet
 		"entity_id":     entity.ID,
 		"entity_type":   entity.Type,
 		"entity_status": entity.Status,
+		// lets the search page group entity hits under their KB — the graph
+		// panel scopes each KB's canvas to the KBs actually present in the
+		// results, entity-only hits included
+		"kb_id": entity.KbID,
 	}
 	if len(entity.Sources) > 0 {
 		refs := make([]interface{}, 0, len(entity.Sources))
@@ -85,8 +92,11 @@ func (h *APIHandler) entityRoute(req *http.Request, query string, window int) (*
 	orm.WithModel(octx, &core.WikiEntity{})
 
 	builder := orm.NewQuery().From(0).Size(window)
-	builder.Query(query)
 	builder.DefaultQueryField("name^20", "name.pinyin^8", "aliases^6", "subtype^2", "combined_fulltext")
+	builder.SkipFuzziness()
+	if err := applyCuratedTextQuery(builder, searchSettingsSnapshot(), query); err != nil {
+		return nil, err
+	}
 	builder.Filter(
 		orm.TermsQuery("status", []string{core.WikiEntityReviewed, core.WikiEntityPublished}),
 	)
@@ -100,7 +110,16 @@ func (h *APIHandler) entityRoute(req *http.Request, query string, window int) (*
 
 	out := &elastic.SearchResponseWithMeta[core.Document]{}
 	for i := range entities {
-		out.Hits.Hits = append(out.Hits.Hits, entityToHit(&entities[i], float32(window-i)))
+		e := &entities[i]
+		// quality gate on top of the status gate: an entity with no
+		// description is an unenriched shell (promoted name or extraction
+		// that never merged) — recall noise, not knowledge. ES "exists"
+		// can't express this: an empty string still counts as present,
+		// so filter after decode.
+		if strings.TrimSpace(e.Description) == "" {
+			continue
+		}
+		out.Hits.Hits = append(out.Hits.Hits, entityToHit(e, float32(window-i)))
 	}
 	// plain map, not util.MapStr — GetTotal's type switch (the D2 lesson)
 	out.Hits.Total = map[string]interface{}{"value": int64(len(out.Hits.Hits)), "relation": "eq"}
