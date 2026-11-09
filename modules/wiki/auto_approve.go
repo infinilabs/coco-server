@@ -5,6 +5,7 @@ package wiki
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"strings"
 	"time"
@@ -44,6 +45,49 @@ func KBAutoApprove(ctx *orm.Context, kbID string) bool {
 }
 
 const autoApproveBatch = 10
+
+// autoApproveMinBodyChars keeps stub-thin compile drafts out of auto
+// publishing: a page whose whole body is under this many runes stays open
+// for the human gate. Auto-approving 100-char pages is how KBs filled up
+// with thin published stubs (observed: 92-191 chars, 7 pages in one KB).
+const autoApproveMinBodyChars = 300
+
+// autoApproveBodyChars sums a compile proposal's section bodies (runes).
+// Evidence shape varies by storage path (live struct vs ES round-trip), so
+// every plausible encoding is handled; undecodable evidence counts as 0 —
+// such proposals fall back to the gate, never bypass it.
+func autoApproveBodyChars(p *core.WikiGovernanceProposal) int {
+	var secs []core.WikiSection
+	switch v := p.Evidence["sections"].(type) {
+	case []core.WikiSection:
+		secs = v
+	case json.RawMessage:
+		if err := json.Unmarshal(v, &secs); err != nil {
+			return 0
+		}
+	case []byte:
+		if err := json.Unmarshal(v, &secs); err != nil {
+			return 0
+		}
+	case string:
+		if err := json.Unmarshal([]byte(v), &secs); err != nil {
+			return 0
+		}
+	default:
+		raw, err := json.Marshal(v)
+		if err != nil {
+			return 0
+		}
+		if err := json.Unmarshal(raw, &secs); err != nil {
+			return 0
+		}
+	}
+	n := 0
+	for i := range secs {
+		n += len([]rune(strings.TrimSpace(secs[i].Body)))
+	}
+	return n
+}
 
 func init() {
 	interval := strings.TrimSpace(os.Getenv("WIKI_AUTO_APPROVE_INTERVAL"))
@@ -119,6 +163,12 @@ func autoApproveSweep(ctx context.Context) {
 		exists, gerr := orm.GetV2(actx, &full)
 		if gerr != nil || !exists {
 			failed++
+			continue
+		}
+		// thin-page floor: stub-thin compile drafts stay human-gated even
+		// in auto-approve KBs (they stay open in the queue, nothing lost)
+		if p.Type == compileProposalType && autoApproveBodyChars(&full) < autoApproveMinBodyChars {
+			skipped++
 			continue
 		}
 		if _, _, aerr := applyOneProposal(actx, &full, "auto-approve"); aerr != nil {

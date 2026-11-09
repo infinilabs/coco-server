@@ -45,11 +45,12 @@ import (
  */
 
 const (
-	topicMaxStatements  = 100 // per-topic claim pool cap for prompts/evidence
-	topicOutlineSamples = 16  // claims the OUTLINE call may see
-	topicMaxKeyEntities = 10
-	topicLLMOutlineTTL  = 150 * time.Second
-	topicLLMFillTTL     = 300 * time.Second
+	topicMaxStatements    = 100 // per-topic claim pool cap for prompts/evidence
+	topicFillPromptClaims = 60  // claims the FILL drafting call may see (latency guard)
+	topicOutlineSamples   = 16  // claims the OUTLINE call may see
+	topicMaxKeyEntities   = 10
+	topicLLMOutlineTTL    = 150 * time.Second
+	topicLLMFillTTL       = 600 * time.Second
 
 	// content-based update matching: the LLM names clusters slightly
 	// differently every run, so title/alias equality alone mints a
@@ -347,6 +348,15 @@ func classifyKeyEntities(ctx context.Context, model *core.ModelId, kbID, title s
 // topicLLMCall runs one structured topic call: stream-captured content,
 // reasoning-strip, fence-tolerant. Empty content is an error (retry-able).
 func topicLLMCall(ctx context.Context, model *core.ModelId, system, user string, timeout time.Duration) (string, error) {
+	start := time.Now()
+	raw, err := topicLLMCallRaw(ctx, model, system, user, timeout)
+	if err != nil {
+		log.Warnf("wiki topic compiler: llm call failed after %s: %v", time.Since(start).Round(time.Second), err)
+	}
+	return raw, err
+}
+
+func topicLLMCallRaw(ctx context.Context, model *core.ModelId, system, user string, timeout time.Duration) (string, error) {
 	llm, err := langchain.SimplyGetLLM(model.ProviderID, model.ID, "")
 	if err != nil {
 		return "", err
@@ -444,7 +454,13 @@ type topicNaming struct {
 // summarized by its key names and a few sample claims; the model returns
 // index-addressed metadata. Fallback title on any trouble: the cluster's
 // strongest key name — the pipeline never dies on the naming step.
-func nameTopics(ctx context.Context, model *core.ModelId, clusters []*topicCluster, existingTitles []string) {
+// nameTopics titles and scopes every cluster in ONE call. existing carries
+// the KB's live topic pages WITH aliases: translation twins (OAuth认证 vs
+// OAuth Authentication) used to slip past the title-normalize matcher and
+// stack duplicate pages, so the naming rule now instructs the model to
+// REUSE the existing page's exact title for same-subject clusters —
+// matchTopicTargets then claims it as an update instead of filing a twin.
+func nameTopics(ctx context.Context, model *core.ModelId, clusters []*topicCluster, existing []core.WikiArticle) {
 	if len(clusters) == 0 {
 		return
 	}
@@ -475,24 +491,38 @@ func nameTopics(ctx context.Context, model *core.ModelId, clusters []*topicClust
 		briefs = append(briefs, clusterBrief{Index: i, Keys: keys, Samples: samples})
 	}
 	material, _ := json.Marshal(briefs)
-	existing := "（无）"
-	if len(existingTitles) > 0 {
-		existing = strings.Join(existingTitles, "、")
+	existingDesc := make([]string, 0, len(existing))
+	for _, a := range existing {
+		if a.PageType != core.WikiPageTypeTopic || a.Status == core.WikiArticleArchived {
+			continue
+		}
+		if len(a.Aliases) > 0 {
+			existingDesc = append(existingDesc, fmt.Sprintf("「%s」(别名:%s)", a.Title, strings.Join(a.Aliases, ",")))
+		} else {
+			existingDesc = append(existingDesc, "「"+a.Title+"」")
+		}
+	}
+	existingStr := "（无）"
+	if len(existingDesc) > 0 {
+		existingStr = strings.Join(existingDesc, "、")
 	}
 	user := fmt.Sprintf(`以下是知识库语料聚类出的 %d 个主题。为每个主题起一个主题页标题、一句话范围说明，并给出最多 3 个别名。
 
 规则：
 - 标题是名词短语，概括该主题的主体（如「支付与清结算」「客户服务体系」），不要用单个实体名
 - 标题语言跟随材料语言
-- 标题之间要互相区分，且不与已有页面重复（已有页面：%s）
+- 标题之间要互相区分
+- 若某主题与已有页面指向同一事物（包括中英互译、简称/全称、新旧叫法），该主题的 title 必须原样返回那个已有页面的标题（不翻译、不改写），并把本次材料里的叫法放进 aliases —— 这会让编译去更新已有页面，而不是新建重复页
 - scope 一句话说清这个主题页覆盖什么
+
+已有页面：%s
 
 聚类摘要：
 %s
 
-只返回 JSON 数组：[{"index":0,"title":"...","scope":"...","aliases":["..."]}]`, len(clusters), existing, material)
+只返回 JSON 数组：[{"index":0,"title":"...","scope":"...","aliases":["..."]}]`, len(clusters), existingStr, material)
 
-	fp := topicFingerprint(model, "name", fmt.Sprintf("kb:%d", len(clusters)), []string{string(material), existing})
+	fp := topicFingerprint(model, "name", fmt.Sprintf("kb:%d", len(clusters)), []string{string(material), existingStr})
 	var named []topicNaming
 	if fp != "" && topicCacheGet(fp, &named) {
 		applyNaming(clusters, named)
@@ -672,6 +702,12 @@ func overlapRatio(a, b map[string]bool) float64 {
 
 /* ---------------- OUTLINE + FILL (per topic, cached) ---------------- */
 
+// topicMaxSections is the hard ceiling for one topic page's outline. The
+// planning cap alone is not enough: composeTopicDraft prepends the update
+// target's anchored headings to the fresh ones, and without re-capping
+// there an update path slowly grows pages (observed: 8 sections -> 9+).
+const topicMaxSections = 8
+
 // planTopicOutline asks the LLM for the page's section plan across
 // dimensions, update-aware: given the KB's existing topic pages it may
 // claim one as this topic's enrichment target.
@@ -736,22 +772,25 @@ func planTopicOutline(ctx context.Context, model *core.ModelId, c *topicCluster,
 		}
 	}
 	var outline *topicOutline
+	var lastOutlineErr error
 	for attempt := 0; attempt < 2; attempt++ {
 		raw, err := topicLLMCall(ctx, model,
 			"你是百科主编，只依据给定材料规划大纲，不引入材料之外的章节。", user, topicLLMOutlineTTL)
 		if err != nil {
+			lastOutlineErr = err
 			continue
 		}
 		if o, err := extractJSONValue[topicOutline](raw); err == nil && len(o.Sections) > 0 {
 			outline = o
 			break
 		}
+		lastOutlineErr = fmt.Errorf("unparseable outline response (%d chars)", len(raw))
 	}
 	if outline == nil {
-		return nil, fmt.Errorf("outline planning failed for [%s]", c.Title)
+		return nil, fmt.Errorf("outline planning failed for [%s]: %w", c.Title, lastOutlineErr)
 	}
-	if len(outline.Sections) > 8 {
-		outline.Sections = outline.Sections[:8]
+	if len(outline.Sections) > topicMaxSections {
+		outline.Sections = outline.Sections[:topicMaxSections]
 	}
 	if fp != "" {
 		topicCachePut(fp, outline)
@@ -764,6 +803,9 @@ func planTopicOutline(ctx context.Context, model *core.ModelId, c *topicCluster,
 func fillTopicSections(ctx context.Context, model *core.ModelId, c *topicCluster, headings []string) (*topicFill, error) {
 	claims := make([]string, 0, len(c.Statements))
 	for _, s := range c.Statements {
+		if len(claims) >= topicFillPromptClaims {
+			break
+		}
 		line := fmt.Sprintf("%d. [%s] %s", s.Index, orDash(s.KeyName), s.Text)
 		if ex := strings.TrimSpace(s.Excerpt); ex != "" && ex != s.Text {
 			line += "（摘录：" + truncateCompile(ex, 100) + "）"
@@ -776,6 +818,8 @@ func fillTopicSections(ctx context.Context, model *core.ModelId, c *topicCluster
 - 只使用下方编号主张及其摘录，绝不引入材料之外的事实、数字或评价
 - 每节 1-3 段成文散文（不要列表化罗列主张），句末用 [编号] 标注所依据的主张
 - 每节至少引用 1 条主张；某章节确实无材料支撑时，body 留空、refs 为空数组
+- 每条编号主张只允许出现在一个章节里：先到先得，后面章节不得再用同一编号；多条主张表达同一事实时，只采用编号最小的那条，其余视为重复跳过
+- 任何一句实质内容（事实、数字、结论）都不得在两个章节中重复出现；后面章节若无可写的新内容，宁可 body 留空
 - 语言跟随材料语言（材料是繁体就用繁体，是英文就用英文）
 - 正文里提及主题核心实体时直接写实体名，不要加引号或前缀
 
@@ -793,19 +837,22 @@ func fillTopicSections(ctx context.Context, model *core.ModelId, c *topicCluster
 		}
 	}
 	var fill *topicFill
+	var lastErr error
 	for attempt := 0; attempt < 2; attempt++ {
 		raw, err := topicLLMCall(ctx, model,
 			"你是严谨的百科编辑，只依据给定材料写作，宁可留空也不编造。", user, topicLLMFillTTL)
 		if err != nil {
+			lastErr = err
 			continue
 		}
 		if f, err := extractJSONValue[topicFill](raw); err == nil && len(f.Sections) > 0 {
 			fill = f
 			break
 		}
+		lastErr = fmt.Errorf("unparseable fill response (%d chars)", len(raw))
 	}
 	if fill == nil {
-		return nil, fmt.Errorf("section drafting failed for [%s]", c.Title)
+		return nil, fmt.Errorf("section drafting failed for [%s]: %w", c.Title, lastErr)
 	}
 	if fp != "" {
 		topicCachePut(fp, fill)
@@ -867,6 +914,9 @@ func composeTopicDraft(ctx context.Context, model *core.ModelId, kbID string, c 
 			}
 		}
 		headings = append(append([]string{}, anchorHeadings...), fresh...)
+	}
+	if len(headings) > topicMaxSections {
+		headings = headings[:topicMaxSections]
 	}
 	fill, err := fillTopicSections(ctx, model, c, headings)
 	if err != nil {
@@ -1102,13 +1152,7 @@ func runTopicPipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *co
 		return 0
 	}
 
-	titles := make([]string, 0, len(existing))
-	for _, a := range existing {
-		if a.PageType == core.WikiPageTypeTopic && a.Status != core.WikiArticleArchived {
-			titles = append(titles, a.Title)
-		}
-	}
-	nameTopics(ctx, model, clusters, titles)
+	nameTopics(ctx, model, clusters, existing)
 	matchTopicTargets(clusters, existing)
 
 	if job != nil {
