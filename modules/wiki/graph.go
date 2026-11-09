@@ -17,6 +17,7 @@ import (
 	"infini.sh/framework/core/util"
 
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/common"
 )
 
 // Knowledge-graph query face (ontology phase O3): one request returns the
@@ -30,6 +31,9 @@ const (
 	graphMaxEntities     = 800
 	graphMaxEdges        = 2000
 	graphEntityChunkSize = 200 // ES terms-query safe batch
+	// graphMaxQueryEntities caps the ?q= focus entity pull: the canvas
+	// surfaces the query's own entities first, relations stay one hop.
+	graphMaxQueryEntities = 8
 )
 
 type GraphNode struct {
@@ -45,6 +49,7 @@ type GraphNode struct {
 	Properties  map[string]interface{} `json:"properties,omitempty"`
 	Confidence  float64                `json:"confidence,omitempty"`
 	ViaRelation bool                   `json:"via_relation,omitempty"` // pulled in by one-hop expansion, not cited by any article
+	QueryMatch  bool                   `json:"query_match,omitempty"`  // name/aliases matched the search query (?q=)
 }
 
 type GraphEdge struct {
@@ -57,9 +62,23 @@ type GraphEdge struct {
 	InverseLabel string `json:"inverse_label,omitempty"`
 }
 
-// kbGraph serves GET /wiki/kb/:id/_graph.
+// kbGraph serves GET /wiki/kb/:id/_graph. Optional ?article_ids=a,b scopes
+// the subgraph to those articles (the search results page passes the wiki
+// hits of the current query, so the canvas reflects WHAT was searched, not
+// just WHICH knowledge base) — each id still has to belong to this KB.
+// Optional ?q= additionally pulls in the entities whose name/aliases match
+// the query (wikilink-driven focus alone misses "search the thing itself":
+// the voucher page may never wikilink the voucher entity). Status is not
+// filtered here — proposed drafts already enter the canvas via wikilinks.
 func (h *APIHandler) kbGraph(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	kbID := ps.ByName("id")
+	var focusIDs []string
+	for _, id := range strings.Split(req.URL.Query().Get("article_ids"), ",") {
+		if id = strings.TrimSpace(id); id != "" {
+			focusIDs = append(focusIDs, id)
+		}
+	}
+	query := strings.TrimSpace(req.URL.Query().Get("q"))
 	ctx := orm.NewContextWithParent(req.Context())
 	orm.WithModel(ctx, &core.WikiKnowledgeBase{})
 
@@ -79,7 +98,15 @@ func (h *APIHandler) kbGraph(w http.ResponseWriter, req *http.Request, ps httpro
 		return
 	}
 
-	graph, err := buildKnowledgeGraph(req.Context(), kbID)
+	var focusEntityIDs []string
+	if query != "" {
+		if focusEntityIDs, err = kbEntityIDsByQuery(ctx, kbID, query); err != nil {
+			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	graph, err := buildKnowledgeGraph(req.Context(), kbID, focusIDs, focusEntityIDs)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -93,15 +120,80 @@ type knowledgeGraph struct {
 	EntityTypes map[string]util.MapStr `json:"entity_types,omitempty"`
 }
 
+// graphSearchConfig reads the tenant config for the graph query focus —
+// indirect through a recover wrapper because common.AppConfig touches the
+// kv store, which panics in unit tests without a kv handler (same reason
+// projection.go swaps projectionConfigFn in tests).
+var graphSearchConfig = func() (cfg core.Config) {
+	defer func() { _ = recover() }()
+	return common.AppConfig()
+}
+
+// kbEntityIDsByQuery resolves the entities of one KB whose name or aliases
+// match the query text (the search page's ?q=). Match semantics follow the
+// configured search match_operator — the focus answers "the searched thing
+// itself", junk OR-matches would only crowd the 8-slot canvas. Best-effort
+// by design: on an index without the combined_fulltext sink (pre-migration
+// mapping) the match finds nothing and the graph falls back to wikilink
+// scope.
+func kbEntityIDsByQuery(ctx *orm.Context, kbID, query string) ([]string, error) {
+	readCtx := orm.NewContextWithParent(ctx)
+	readCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(readCtx, &core.WikiEntity{})
+
+	builder := orm.NewQuery().From(0).Size(graphMaxQueryEntities)
+	builder.Filter(orm.TermQuery("kb_id", kbID))
+	builder.SkipFuzziness()
+	clauses, err := orm.BuildFuzzinessQueryClauses(query, 0, []string{"combined_fulltext"})
+	if err != nil {
+		return nil, err
+	}
+	if cfg := graphSearchConfig(); cfg.SearchSettings != nil && cfg.SearchSettings.MatchOperatorVal() == "AND" {
+		for _, c := range clauses {
+			if c.IsLeaf() && c.Operator == orm.QueryMatch {
+				c.Parameter("operator", "AND")
+			}
+		}
+	}
+	for _, c := range clauses {
+		builder.Must(c)
+	}
+	builder.Exclude("relations", "sources", "properties")
+
+	res, err := orm.SearchV2(readCtx, builder)
+	if err != nil {
+		return nil, err
+	}
+	entities, _, err := elastic.DecodeHits[core.WikiEntity](res)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]string, 0, len(entities))
+	for i := range entities {
+		ids = append(ids, entities[i].ID)
+	}
+	return ids, nil
+}
+
 // buildKnowledgeGraph assembles the KB subgraph: articles and their
 // wikilink-resolved entities form the core; typed relations expand the
-// canvas by one hop. The KB's ontology schema resolves display labels and
-// inverse relation names; without a schema the raw vocabulary is used.
-func buildKnowledgeGraph(ctx context.Context, kbID string) (*knowledgeGraph, error) {
+// canvas by one hop. focusIDs narrows the article set (search-results
+// mode: the whole graph then hangs off the actually-hit articles); nil
+// pulls every article in the KB. focusEntityIDs pins query-matched
+// entities onto the same canvas (they carry no wikilink from any article).
+// The KB's ontology schema resolves display labels and inverse relation
+// names; without a schema the raw vocabulary is used.
+func buildKnowledgeGraph(ctx context.Context, kbID string, focusIDs []string, focusEntityIDs []string) (*knowledgeGraph, error) {
 	readCtx := orm.NewContextWithParent(ctx)
 	readCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
 
-	articles, err := kbArticlesForGraph(readCtx, kbID)
+	var articles []core.WikiArticle
+	var err error
+	if len(focusIDs) > 0 {
+		articles, err = kbArticlesForGraphIDs(readCtx, kbID, focusIDs)
+	} else {
+		articles, err = kbArticlesForGraph(readCtx, kbID)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -128,6 +220,15 @@ func buildKnowledgeGraph(ctx context.Context, kbID string) (*knowledgeGraph, err
 				citedIDs[lp.EntityID] = true
 			}
 		}
+	}
+	// query-matched entities join the canvas at the same priority as
+	// wikilink-cited ones; the flag tells the frontend to badge them
+	queryMatch := map[string]bool{}
+	for _, id := range focusEntityIDs {
+		if !citedIDs[id] {
+			queryMatch[id] = true
+		}
+		citedIDs[id] = true
 	}
 	entities, err := loadEntitiesCapped(readCtx, citedIDs, graphMaxEntities)
 	if err != nil {
@@ -201,6 +302,7 @@ func buildKnowledgeGraph(ctx context.Context, kbID string) (*knowledgeGraph, err
 			Confidence:  entity.Confidence,
 			ArticleID:   entity.ArticleID,
 			ViaRelation: !citedIDs[entity.ID],
+			QueryMatch:  queryMatch[entity.ID],
 		}
 		graph.Nodes = append(graph.Nodes, node)
 	}
@@ -327,6 +429,21 @@ func kbArticlesForGraph(ctx *orm.Context, kbID string) ([]core.WikiArticle, erro
 	builder := orm.NewQuery().Size(graphMaxArticles).
 		Filter(orm.TermQuery("kb_id", kbID)).
 		SortBy(orm.Sort{Field: "title", SortType: orm.ASC})
+	res, err := orm.SearchV2(ctx, builder)
+	if err != nil {
+		return nil, err
+	}
+	articles, _, err := elastic.DecodeHits[core.WikiArticle](res)
+	return articles, err
+}
+
+// kbArticlesForGraphIDs loads only the named articles of one KB — the
+// search-results scope. Ids that don't exist or belong to another KB are
+// silently dropped (an empty result yields an empty graph, never an error).
+func kbArticlesForGraphIDs(ctx *orm.Context, kbID string, ids []string) ([]core.WikiArticle, error) {
+	orm.WithModel(ctx, &core.WikiArticle{})
+	builder := orm.NewQuery().Size(graphMaxArticles).
+		Filter(orm.TermQuery("kb_id", kbID), orm.TermsQuery("id", ids))
 	res, err := orm.SearchV2(ctx, builder)
 	if err != nil {
 		return nil, err

@@ -173,3 +173,36 @@ func TestKbHealth_MissingKb(t *testing.T) {
 	w, _ := callHealth(t, h, "nope")
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
+
+// KeyEntities store entity NAMES while wikilinks may carry an entity ID
+// plus that name — inbound resolution must bridge the two, or every
+// topic page with entity-shaped links reads as an orphan (seen live:
+// 19/19 orphans in a fully linked KB).
+func TestKbHealth_EntityNameResolution(t *testing.T) {
+	h := healthSetup(t)
+
+	kb := &core.WikiKnowledgeBase{}
+	kb.SetID("health-kb2")
+	kb.Name = "Health KB 2"
+	healthWrite(t, kb)
+
+	rich := strings.Repeat("知识沉淀正文。", 40)
+	source := []core.WikiSourceReference{{DocID: "doc-9"}}
+
+	target := &core.WikiArticle{KbID: "health-kb2", Title: "Neo4j Connector", Status: core.WikiArticlePublished, PageType: core.WikiPageTypeTopic, Content: rich, Sources: source, KeyEntities: []string{"Neo4j Connector", "Cypher"}}
+	target.SetID("health2-target")
+	target.LinkedPages = []core.WikiLinkedPage{{Name: "Sync Guide"}}
+	healthWrite(t, target)
+
+	linker := &core.WikiArticle{KbID: "health-kb2", Title: "Sync Guide", Status: core.WikiArticlePublished, PageType: core.WikiPageTypeTopic, Content: rich, Sources: source}
+	linker.SetID("health2-linker")
+	linker.LinkedPages = []core.WikiLinkedPage{{Type: "entity", Name: "Cypher", EntityID: "ent-cypher-1"}}
+	healthWrite(t, linker)
+
+	w, out := callHealth(t, h, "health-kb2")
+	require.Equal(t, http.StatusOK, w.Code)
+	counts, _ := out["counts"].(map[string]interface{})
+	assert.Equal(t, float64(0), counts["orphan_pages"], "entity link must reach the page advertising Cypher as a key entity")
+	orphaned, _ := out["orphans"].([]interface{})
+	assert.Empty(t, orphaned)
+}

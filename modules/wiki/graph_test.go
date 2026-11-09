@@ -108,21 +108,21 @@ func graphSeed(t *testing.T) {
 	kb.Name = "Graph KB"
 	graphWrite(t, kb)
 
-	alice := &core.WikiEntity{Type: "person", Name: "Alice", Status: core.WikiEntityPublished}
+	alice := &core.WikiEntity{KbID: "graph-kb", Type: "person", Name: "Alice", Status: core.WikiEntityPublished, CombinedFullText: "Alice"}
 	alice.SetID("graph-alice")
 	alice.Relations = []core.WikiEntityRelation{{TargetID: "graph-acme", TargetType: "organization", Relation: "works_for"}}
 	graphWrite(t, alice)
 
-	zoe := &core.WikiEntity{Type: "person", Name: "Zoe", Status: core.WikiEntityPublished}
+	zoe := &core.WikiEntity{KbID: "graph-kb", Type: "person", Name: "Zoe", Status: core.WikiEntityPublished, CombinedFullText: "Zoe"}
 	zoe.SetID("graph-zoe")
 	zoe.Relations = []core.WikiEntityRelation{{TargetID: "graph-acme", TargetType: "organization", Relation: "works_for"}}
 	graphWrite(t, zoe)
 
-	acme := &core.WikiEntity{Type: "organization", Name: "Acme", Status: core.WikiEntityPublished}
+	acme := &core.WikiEntity{KbID: "graph-kb", Type: "organization", Name: "Acme", Status: core.WikiEntityPublished, CombinedFullText: "Acme"}
 	acme.SetID("graph-acme")
 	graphWrite(t, acme)
 
-	latte := &core.WikiEntity{Type: "drink", Name: "Latte", Status: core.WikiEntityProposed, Confidence: 0.7}
+	latte := &core.WikiEntity{KbID: "graph-kb", Type: "drink", Name: "Latte", Status: core.WikiEntityProposed, Confidence: 0.7, CombinedFullText: "Latte"}
 	latte.SetID("graph-latte")
 	latte.Properties = map[string]interface{}{"origin": "Italy"}
 	graphWrite(t, latte)
@@ -214,6 +214,71 @@ func TestKbGraph_MissingKb(t *testing.T) {
 
 	w, _ := callGraph(t, h, "/wiki/kb/nope/_graph", "nope")
 	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestKbGraph_FocusedByArticleIDs(t *testing.T) {
+	h := graphSetup(t)
+	kbID, _, _ := graphFixture(t)
+
+	// the hit article scopes the canvas to its own neighborhood — same
+	// nodes the whole-KB graph has for this single-article fixture
+	// (article + 2 cited entities + relation-expanded acme + unresolved)
+	w, out := callGraph(t, h, "/wiki/kb/"+kbID+"/_graph?article_ids=graph-article", kbID)
+	require.Equal(t, http.StatusOK, w.Code)
+	nodes, _ := out["nodes"].([]interface{})
+	require.NotNil(t, nodes)
+	require.Len(t, nodes, 5)
+
+	// unknown ids are dropped silently — empty graph, not an error
+	w, out = callGraph(t, h, "/wiki/kb/"+kbID+"/_graph?article_ids=nope,graph-article", kbID)
+	require.Equal(t, http.StatusOK, w.Code)
+	nodes, _ = out["nodes"].([]interface{})
+	require.NotNil(t, nodes)
+	require.Len(t, nodes, 5)
+
+	w, out = callGraph(t, h, "/wiki/kb/"+kbID+"/_graph?article_ids=nope", kbID)
+	require.Equal(t, http.StatusOK, w.Code)
+	nodes, _ = out["nodes"].([]interface{})
+	require.Empty(t, nodes)
+	edges, _ := out["edges"].([]interface{})
+	require.Empty(t, edges)
+}
+
+func TestKbGraph_QueryMatchFocus(t *testing.T) {
+	h := graphSetup(t)
+	kbID, _, _ := graphFixture(t)
+
+	// zoe is cited by no article, yet ?q=Zoe pins her onto the canvas as a
+	// query-matched node — the "search the thing itself" face
+	w, out := callGraph(t, h, "/wiki/kb/"+kbID+"/_graph?q=Zoe", kbID)
+	require.Equal(t, http.StatusOK, w.Code)
+	nodes, _ := out["nodes"].([]interface{})
+	require.NotNil(t, nodes)
+	nodeByID := map[string]map[string]interface{}{}
+	for _, n := range nodes {
+		node, _ := n.(map[string]interface{})
+		nodeByID[node["id"].(string)] = node
+	}
+	zoeNode, hasZoe := nodeByID["entity:graph-zoe"]
+	require.True(t, hasZoe, "query-matched entity should join the canvas")
+	assert.Equal(t, true, zoeNode["query_match"])
+
+	// alice is already cited via wikilink: no query_match badge
+	aliceNode, hasAlice := nodeByID["entity:graph-alice"]
+	require.True(t, hasAlice)
+	assert.NotContains(t, aliceNode, "query_match")
+
+	// a query matching nothing degrades to the plain wikilink canvas
+	w, out = callGraph(t, h, "/wiki/kb/"+kbID+"/_graph?q=nonexistent-thing", kbID)
+	require.Equal(t, http.StatusOK, w.Code)
+	nodes, _ = out["nodes"].([]interface{})
+	require.NotNil(t, nodes)
+	nodeByID = map[string]map[string]interface{}{}
+	for _, n := range nodes {
+		node, _ := n.(map[string]interface{})
+		nodeByID[node["id"].(string)] = node
+	}
+	assert.NotContains(t, nodeByID, "entity:graph-zoe", "no match: the canvas falls back to the wikilink scope")
 }
 
 func TestEntityNeighbors_InverseRelations(t *testing.T) {

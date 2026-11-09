@@ -167,6 +167,10 @@ func init() {
 	api.HandleUIMethod(api.GET, "/wiki/entity/:id/backlinks", handler.entityBacklinks,
 		api.RequireLogin(), api.RequirePermission(readEntityPermission),
 		api.MCPTool("entity_backlinks", "List the articles that reference an entity through wikilinks, with a context snippet per article"))
+	// per-page "What links here": which live pages reference this article
+	// (same anchor resolution as the KB health report)
+	api.HandleUIMethod(api.GET, "/wiki/article/:id/backlinks", handler.articleBacklinks,
+		api.RequireLogin(), api.RequirePermission(readArticlePermission))
 
 	// entity create is hand-registered (not the generated CRUD route) so the
 	// body may carry a kb_id passthrough that validates against that KB's
@@ -257,6 +261,11 @@ func init() {
 	// dangling-wikilink repair (phase O2): after entities are proposed from
 	// unresolved links, relink binds them without touching the content
 	api.HandleUIMethod(api.POST, "/wiki/article/:id/_relink", handler.relinkArticle,
+		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
+	// capsule back-fill: articles compiled before the entity pool existed
+	// hold plain text with zero wikilinks — re-run the mention linker over
+	// every live page that has none, then resolve the fresh links
+	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_relink", handler.relinkKBMentions,
 		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
 
 	// knowledge compiler (W9): four-stage pipeline over the KB's source

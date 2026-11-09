@@ -12,9 +12,11 @@ import (
 	"time"
 
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/common/fingerprint"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/util"
 )
 
 /* KB health report — the whole-KB counterpart of the per-page lint
@@ -152,6 +154,10 @@ func buildKBHealthReport(ctx context.Context, kbID string) (*KBHealthReport, err
 	entityPage := map[string]string{}
 	keyEntityPages := map[string][]string{}
 	live := make([]*core.WikiArticle, 0, len(articles))
+	// KeyEntities store entity NAMES (keyEntityNames), not IDs — index
+	// them normalized so wikilinks can resolve by name. Raw keys stay in
+	// a separate map for ID-shaped links (older data).
+	keyEntityNamePages := map[string][]string{}
 	for i := range articles {
 		a := &articles[i]
 		if a.Status == "archived" {
@@ -173,6 +179,9 @@ func buildKBHealthReport(ctx context.Context, kbID string) (*KBHealthReport, err
 		for _, id := range a.KeyEntities {
 			if id != "" {
 				keyEntityPages[id] = append(keyEntityPages[id], a.ID)
+				if n := fingerprint.Normalize(id); n != "" {
+					keyEntityNamePages[n] = append(keyEntityNamePages[n], a.ID)
+				}
 			}
 		}
 	}
@@ -192,12 +201,21 @@ func buildKBHealthReport(ctx context.Context, kbID string) (*KBHealthReport, err
 				for _, id := range keyEntityPages[link.EntityID] {
 					targets[id] = true
 				}
-			} else if link.Name != "" {
+			}
+			if link.Name != "" {
 				if id := titleOwner[link.Name]; id != "" {
 					targets[id] = true
 				}
 				if id := aliasOwner[link.Name]; id != "" {
 					targets[id] = true
+				}
+				// entity links carry the entity name too; topic pages
+				// advertise their key entities by name — resolve through
+				// the normalized name index
+				if n := fingerprint.Normalize(link.Name); n != "" {
+					for _, id := range keyEntityNamePages[n] {
+						targets[id] = true
+					}
 				}
 			}
 			for id := range targets {
@@ -283,4 +301,113 @@ func buildKBHealthReport(ctx context.Context, kbID string) (*KBHealthReport, err
 	report.Counts["knowledge_gaps"] = len(gapByName)
 
 	return report, nil
+}
+
+/* ---------------- GET /wiki/article/:id/backlinks ---------------- */
+
+// articleBacklinks lists the live pages that reference this article through
+// wikilinks — the per-page "What links here" face of the KB health scan
+// (entity pages already had one via /wiki/entity/:id/backlinks). Anchors
+// mirror buildKBHealthReport exactly: title, aliases, entity page and
+// KeyEntities all make an article reachable; archived referrers don't
+// count. The scan is in-memory — linked_pages is stored unmapped.
+func (h *APIHandler) articleBacklinks(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	id := ps.ByName("id")
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(ctx, &core.WikiArticle{})
+
+	var target core.WikiArticle
+	target.SetID(id)
+	exists, err := orm.GetV2(ctx, &target)
+	if err != nil && !strings.Contains(err.Error(), "record not found") {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err != nil || !exists {
+		h.WriteOpRecordNotFoundJSON(w, id)
+		return
+	}
+
+	articles, err := kbHealthArticles(ctx, target.KbID)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// anchor indexes — same construction as buildKBHealthReport so the
+	// panel can never disagree with the health report's inbound count.
+	// The TARGET stays in these indexes: it is typically its own entity's
+	// entity page, and excluding it here would erase the entity→page
+	// mapping the inbound links resolve through. Self-references are
+	// filtered in the scan loop below instead.
+	titleOwner := map[string]string{}
+	aliasOwner := map[string]string{}
+	entityPage := map[string]string{}
+	keyEntityNamePages := map[string][]string{}
+	for i := range articles {
+		a := &articles[i]
+		if a.Status == "archived" {
+			continue
+		}
+		if a.Title != "" {
+			titleOwner[a.Title] = a.ID
+		}
+		for _, alias := range a.Aliases {
+			if alias != "" {
+				aliasOwner[alias] = a.ID
+			}
+		}
+		if a.EntityID != "" {
+			entityPage[a.EntityID] = a.ID
+		}
+		for _, ke := range a.KeyEntities {
+			if ke == "" {
+				continue
+			}
+			if n := fingerprint.Normalize(ke); n != "" {
+				keyEntityNamePages[n] = append(keyEntityNamePages[n], a.ID)
+			}
+		}
+	}
+
+	items := []util.MapStr{}
+	for i := range articles {
+		a := &articles[i]
+		if a.Status == "archived" || a.ID == target.ID {
+			continue
+		}
+		for _, link := range a.LinkedPages {
+			matched := false
+			if link.EntityID != "" && entityPage[link.EntityID] == target.ID {
+				matched = true
+			}
+			if !matched && link.Name != "" {
+				if titleOwner[link.Name] == target.ID || aliasOwner[link.Name] == target.ID {
+					matched = true
+				} else if n := fingerprint.Normalize(link.Name); n != "" {
+					for _, pid := range keyEntityNamePages[n] {
+						if pid == target.ID {
+							matched = true
+						}
+					}
+				}
+			}
+			if matched {
+				items = append(items, util.MapStr{
+					"article_id": a.ID,
+					"title":      a.Title,
+					"kb_id":      a.KbID,
+					"page_type":  a.PageType,
+					"status":     a.Status,
+					"updated":    a.Updated,
+					"link_name":  link.Name,
+					"snippet":    backlinkSnippet(a.Content, link.Name),
+				})
+				break // one row per referrer, even when it links twice
+			}
+		}
+	}
+
+	h.WriteOKJSON(w, util.MapStr{"items": items, "total": len(items)})
 }
