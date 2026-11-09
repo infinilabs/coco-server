@@ -281,11 +281,10 @@ export interface GovernanceProposal {
 
 export function searchWikiGovernance(params?: { status?: string; type?: string; kbId?: string }) {
   const searchParams = new URLSearchParams();
-  const filters: string[] = [];
-  if (params?.status) filters.push(`status:${params.status}`);
-  if (params?.type) filters.push(`type:${params.type}`);
-  if (params?.kbId) filters.push(`kb_id:${params.kbId}`);
-  if (filters.length) searchParams.set('filter', filters.join(' AND '));
+  // one condition per `filter` param — joined values become one bogus term
+  if (params?.status) searchParams.append('filter', `status:${params.status}`);
+  if (params?.type) searchParams.append('filter', `type:${params.type}`);
+  if (params?.kbId) searchParams.append('filter', `kb_id:${params.kbId}`);
   // the crud default page size is 10 — the review queue paginates
   // client-side, so pull a full window (the badge may say 99+ while the
   // list would otherwise show one page and no pager)
@@ -349,6 +348,8 @@ export interface OntologyEntityTypeDef {
   name: string;
   label?: string;
   icon?: string;
+  /** human-written type definition, shown on the vocabulary page and fed to the extraction prompt */
+  description?: string;
   properties?: OntologyPropertyDef[];
   relations?: OntologyRelationDef[];
   /** per-type wiki page layout: sources/aliases/properties/relations:<name>/custom */
@@ -439,6 +440,10 @@ export function fetchWikiEntityBacklinks(id: string) {
 
 export interface WikiEntityNeighbor {
   entity: Api.Wiki.EntityInfo | null;
+  /** stored description, or the deterministic provenance fallback */
+  display_description?: string;
+  /** vocabulary display labels for the entity's typed properties (key → label) */
+  property_labels?: Record<string, string>;
   relations_detailed?: Array<{
     target_id: string;
     target_name: string;
@@ -459,14 +464,19 @@ export function fetchWikiEntityNeighbors(id: string) {
   }).then(res => (res?.data ?? {}) as WikiEntityNeighbor);
 }
 
-export function searchWikiEntityPage(params: { query?: string; type?: string; status?: string; kbId?: string; from?: number; size?: number }) {
+export function searchWikiEntityPage(params: { query?: string; type?: string; status?: string; kbId?: string; from?: number; size?: number; qualityOnly?: boolean }) {
   const searchParams = new URLSearchParams();
   if (params.query) searchParams.set('query', params.query);
-  const filters: string[] = [];
-  if (params.kbId) filters.push(`kb_id:${params.kbId}`);
-  if (params.type) filters.push(`type:${params.type}`);
-  if (params.status) filters.push(`status:${params.status}`);
-  if (filters.length > 0) searchParams.set('filter', filters.join(','));
+  // one condition per `filter` param: the backend parses each filter value
+  // as a single clause (parseFilterToClause has no comma/AND splitting), so
+  // joining conditions here silently produced a term query whose value was
+  // the whole joined string — the manager's filters matched nothing
+  if (params.kbId) searchParams.append('filter', `kb_id:${params.kbId}`);
+  if (params.type) searchParams.append('filter', `type:${params.type}`);
+  if (params.status) searchParams.append('filter', `status:${params.status}`);
+  // quality gate: description is omitempty, so an empty one is absent from
+  // the index and exists(description) precisely selects enriched entities
+  if (params.qualityOnly) searchParams.append('filter', 'exists(description)');
   searchParams.set('from', String(params.from ?? 0));
   searchParams.set('size', String(params.size ?? 20));
   searchParams.set('sort', 'updated:desc');
@@ -474,6 +484,13 @@ export function searchWikiEntityPage(params: { query?: string; type?: string; st
     const es = formatESSearchResult(res?.data);
     return { data: (es.data || []) as Api.Wiki.EntityInfo[], total: es.total ?? 0 };
   });
+}
+
+/** "What links here": live pages referencing this article through wikilinks (health-report anchors). */
+export function getArticleBacklinks(id: string) {
+  return request<{ items?: WikiEntityBacklink[]; total?: number }>({ method: 'get', url: `/wiki/article/${id}/backlinks` }).then(
+    res => ({ items: (res?.data?.items || []) as WikiEntityBacklink[], total: res?.data?.total ?? 0 })
+  );
 }
 
 export function updateWikiEntity(id: string, body: Partial<Api.Wiki.EntityInfo> & { kb_id?: string; properties?: Record<string, unknown> }) {
@@ -530,7 +547,9 @@ export function fetchKbHealth(kbId: string) {
 
 export function searchWikiEntities(ids?: string[], kbId?: string) {
   const searchParams = new URLSearchParams();
-  if (ids?.length) searchParams.set('filter', `id:${ids.join(',')}`);
+  // `any(...)` is the backend's multi-value term syntax; a comma-joined
+  // plain value would be one bogus term
+  if (ids?.length) searchParams.set('filter', `id:any(${ids.join(',')})`);
   else if (kbId) searchParams.set('filter', `kb_id:${kbId}`);
   // crud default page size is 10 — the wikilink autocomplete wants the KB's
   // full entity pool (names + aliases), not the first page
@@ -618,7 +637,10 @@ export function listWikiAssistants() {
 }
 
 export function listWikiDatasources() {
-  return request<{ hits: any }>({ method: 'get', url: '/datasource/_search' }).then(res => {
+  // size must be explicit: /datasource/_search defaults to 10, which
+  // truncated the KB datasource dropdown and silently hid bound
+  // datasources past the first page on the KB detail page
+  return request<{ hits: any }>({ method: 'get', url: '/datasource/_search?size=1000' }).then(res => {
     const es = formatESSearchResult(res?.data);
     return (es.data || []).map(
       (ds: any): Api.Wiki.DatasourceInfo => ({

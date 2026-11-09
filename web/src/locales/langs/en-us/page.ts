@@ -248,6 +248,8 @@ const page: App.I18n.Schema['translation']['page'] = {
           searchPlaceholder: 'Search name or alias…',
           typeFilter: 'Type',
           statusFilter: 'Status',
+          qualityGate: 'Enriched only',
+          qualityGateTooltip: 'Hide unenriched entities (description-less promotion shells / unmerged extractions); the search entity leg returns enriched entities only',
           columns: { name: 'Name', type: 'Type', status: 'Status', relations: 'Relations' },
           newTitle: 'New Entity',
           editTitle: 'Edit Entity — {{name}}',
@@ -548,8 +550,10 @@ const page: App.I18n.Schema['translation']['page'] = {
         mentions: 'Mentions in Source',
         sources: 'Source References',
         materials: 'Sources & attachments',
-        attachments: 'Attachments'
+        attachments: 'Attachments',
+        backlinks: 'Cited by'
       },
+      backlinksEmpty: 'No other page references this one yet',
       attachments: {
         empty: 'No attachments yet — upload files to hang them on this page',
         upload: 'Upload attachment',
@@ -1884,6 +1888,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     saved: 'Schema saved',
     typeName: 'Type name',
     typeLabel: 'Label',
+    typeDescription: 'Type definition shown on entity pages and fed to entity extraction (e.g. "companies, institutions and other legal entities")',
     removeType: 'Remove type',
     removeTypeConfirm: 'Remove type {{name}}? Existing entities are untouched, but new ones will be rejected.',
     properties: 'Properties',

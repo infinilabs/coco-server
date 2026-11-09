@@ -518,6 +518,13 @@ export function Component() {
           })}
         </Tag>
       </div>
+      <Input
+        className='mb-12px'
+        maxLength={200}
+        onChange={e => mutateType(typeIdx, { description: e.target.value })}
+        placeholder={t('page.ontology.typeDescription')}
+        value={tp.description}
+      />
       {renderPreview(tp)}
       {/* properties and relations stack vertically: the relation triple card
           needs full width, and side-by-side columns squeeze both sections */}
@@ -774,6 +781,13 @@ export function Component() {
                       {tp.name || t('page.ontology.typeName')}
                     </span>
                     {tp.label && <span className='text-gray-500'>{tp.label}</span>}
+                    {tp.description && (
+                      <Tooltip title={tp.description}>
+                        <span className='hidden min-w-0 max-w-320px truncate text-12px text-gray-400 xl:!inline'>
+                          {tp.description}
+                        </span>
+                      </Tooltip>
+                    )}
                     {/* at-a-glance schema chips: readable even when collapsed */}
                     <span className='hidden min-w-0 flex-1 items-center gap-4px overflow-hidden lg:!flex'>
                       {(tp.properties || []).slice(0, 3).map(p => (

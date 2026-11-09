@@ -628,6 +628,8 @@ declare namespace Api {
       type: string;
       subtype?: string;
       name: string;
+      /** short grounded summary of what this entity is (LLM one-liner or deterministic aggregation) */
+      description?: string;
       aliases?: string[];
       status?: string;
       article_id?: string;

@@ -248,6 +248,8 @@ const page: App.I18n.Schema['translation']['page'] = {
           searchPlaceholder: '搜索名称或别名…',
           typeFilter: '按类型',
           statusFilter: '按状态',
+          qualityGate: '仅看有描述',
+          qualityGateTooltip: '隐藏未充实的实体（无描述的提升壳/未合并抽取），搜索实体腿同样只返回有描述的实体',
           columns: { name: '名称', type: '类型', status: '状态', relations: '关系数' },
           newTitle: '新建实体',
           editTitle: '编辑实体 — {{name}}',
@@ -548,8 +550,10 @@ const page: App.I18n.Schema['translation']['page'] = {
         mentions: '来源引用',
         sources: '来源文献',
         materials: '来源与附件',
-        attachments: '附件'
+        attachments: '附件',
+        backlinks: '被引用'
       },
+      backlinksEmpty: '暂无其他页面引用本页',
       attachments: {
         empty: '暂无附件,可上传文件挂到本页',
         upload: '上传附件',
@@ -2514,6 +2518,7 @@ const page: App.I18n.Schema['translation']['page'] = {
     saved: '词表已保存',
     typeName: '类型名',
     typeLabel: '显示名',
+    typeDescription: '类型定义,展示在实体页并用于实体抽取提示(如「公司、机构等法人实体」)',
     removeType: '删除该类型',
     removeTypeConfirm: '确认删除类型 {{name}}?已存在该类型的实体不受影响,但将无法新建。',
     properties: '属性',

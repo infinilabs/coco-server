@@ -31,6 +31,7 @@ interface GNode {
   aliases?: string[];
   properties?: Record<string, unknown>;
   viaRelation?: boolean;
+  queryMatch?: boolean;
 }
 
 interface GEdge {
@@ -74,16 +75,26 @@ const toGNode = (raw: any, kbId: string): GNode => ({
   confidence: raw.confidence,
   aliases: raw.aliases,
   properties: raw.properties,
-  viaRelation: raw.via_relation
+  viaRelation: raw.via_relation,
+  queryMatch: raw.query_match
 });
 
 /* ---------------- data loading ---------------- */
 
-function useWikiGraphData(kbIds: string[], apiConfig?: Record<string, any>) {
+function useWikiGraphData(
+  kbIds: string[],
+  hitArticleIds: Record<string, string[]>,
+  apiConfig?: Record<string, any>,
+  query?: string
+) {
   const [loading, setLoading] = useState(false);
   const [nodes, setNodes] = useState<GNode[]>([]);
   const [edges, setEdges] = useState<GEdge[]>([]);
   const key = kbIds.join(',');
+  const focusKey = Object.entries(hitArticleIds)
+    .map(([kb, ids]) => `${kb}:${ids.join('+')}`)
+    .join(',');
+  const normalizedQuery = (query || '').trim();
 
   useEffect(() => {
     if (!key) {
@@ -97,8 +108,17 @@ function useWikiGraphData(kbIds: string[], apiConfig?: Record<string, any>) {
     const headers: Record<string, string> = { ...(apiConfig?.headers || {}) };
     if (apiConfig?.Token) headers['X-API-TOKEN'] = String(apiConfig.Token);
 
-    const loadOne = (kbId: string) =>
-      fetch(`${base}/wiki/kb/${kbId}/_graph`, { headers, credentials: 'include' })
+    const loadOne = (kbId: string) => {
+      // search-results scope: only the articles the current query actually
+      // hit hang their subgraph onto the canvas (empty focus = whole KB);
+      // ?q= additionally pins the entities whose name/aliases match the
+      // query itself — wikilink focus alone can miss the searched thing
+      const focus = (hitArticleIds[kbId] || []).filter(Boolean);
+      const params = new URLSearchParams();
+      if (focus.length > 0) params.set('article_ids', focus.join(','));
+      if (normalizedQuery) params.set('q', normalizedQuery);
+      const qs = params.toString();
+      return fetch(`${base}/wiki/kb/${kbId}/_graph${qs ? `?${qs}` : ''}`, { headers, credentials: 'include' })
         .then(res => (res.ok ? res.json() : null))
         .then(body => {
           const data = body?.data ?? body ?? {};
@@ -108,6 +128,7 @@ function useWikiGraphData(kbIds: string[], apiConfig?: Record<string, any>) {
           };
         })
         .catch(() => ({ nodes: [] as GNode[], edges: [] as GEdge[] }));
+    };
 
     Promise.resolve()
       .then(() => Promise.all(key.split(',').map(loadOne)))
@@ -134,7 +155,7 @@ function useWikiGraphData(kbIds: string[], apiConfig?: Record<string, any>) {
     return () => {
       cancelled = true;
     };
-  }, [key, apiConfig]);
+  }, [key, focusKey, normalizedQuery, apiConfig]);
 
   return { loading, nodes, edges };
 }
@@ -319,6 +340,11 @@ function GraphCanvas({ nodes, edges, selected, onSelect, expanded, onToggleExpan
                   {node.kind === 'unresolved' && (
                     <Tag variant='filled'>{t('labels.wikiGraphUnresolved')}</Tag>
                   )}
+                  {node.queryMatch && (
+                    <Tag variant='filled' color='geekblue'>
+                      {t('labels.wikiGraphQueryMatch')}
+                    </Tag>
+                  )}
                 </div>
                 {!!node.aliases?.length && (
                   <div className='mt-4px text-11px text-[var(--ant-color-text-secondary)]'>{node.aliases.join(' / ')}</div>
@@ -392,6 +418,12 @@ function GraphCanvas({ nodes, edges, selected, onSelect, expanded, onToggleExpan
 
 interface WikiGraphPanelProps {
   kbIds: string[];
+  /** wiki article ids the current results hit, per KB — scopes the graph
+   * to the searched neighborhood instead of the whole knowledge base */
+  hitArticleIds?: Record<string, string[]>;
+  /** current search query — entities whose name/aliases match it join the
+   * canvas even when no hit article wikilinks them */
+  query?: string;
   apiConfig?: Record<string, any>;
   theme?: string;
   /** open the wiki article page for a graph node (host-side navigation) */
@@ -400,15 +432,15 @@ interface WikiGraphPanelProps {
   height?: number;
 }
 
-export function WikiGraphPanel({ kbIds, apiConfig, theme, onOpenArticle, height = 300 }: WikiGraphPanelProps) {
+export function WikiGraphPanel({ kbIds, hitArticleIds = {}, query, apiConfig, theme, onOpenArticle, height = 300 }: WikiGraphPanelProps) {
   const { t } = useTranslation();
-  const { loading, nodes, edges } = useWikiGraphData(kbIds, apiConfig);
+  const { loading, nodes, edges } = useWikiGraphData(kbIds, hitArticleIds, apiConfig, query);
   const [selected, setSelected] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     setSelected(null);
-  }, [kbIds.join(',')]);
+  }, [kbIds.join(','), JSON.stringify(hitArticleIds), (query || '').trim()]);
 
   const openSelectedArticle = () => {
     const node = selected ? nodes.find(n => n.id === selected) : null;

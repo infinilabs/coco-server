@@ -344,17 +344,37 @@ export default function Search({
 
   /* ---------------- knowledge graph side panel ---------------- */
 
-  // KBs behind the current wiki hits (projection rows carry metadata.kb_id),
-  // ordered by how many of the current results each owns — the panel merges
-  // their subgraphs into one canvas
+  // KBs behind the current wiki/entity hits (wiki projection rows and entity
+  // pseudo-hits carry metadata.kb_id), ordered by how many of the current
+  // results each owns — the panel merges their subgraphs into one canvas.
+  // Entity-only hits matter: searching the thing itself should surface its
+  // KB even when no article matched.
   const wikiKbIds = useMemo(() => {
     const counts = new Map<string, number>();
     (data || []).forEach(item => {
-      if (!isWikiHit(item)) return;
-      const kbId = (item as any)?.metadata?.kb_id;
+      const meta = (item as any)?.metadata;
+      if (!isWikiHit(item) && !meta?.entity) return;
+      const kbId = meta?.kb_id;
       if (typeof kbId === 'string' && kbId) counts.set(kbId, (counts.get(kbId) || 0) + 1);
     });
     return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
+  }, [data]);
+
+  // hit article ids per KB (projection rows carry metadata.article_id) — the
+  // graph panel scopes its canvas to these articles, so the graph reflects
+  // the actual query neighborhood instead of the whole knowledge base
+  const wikiHitArticles = useMemo(() => {
+    const byKb: Record<string, string[]> = {};
+    (data || []).forEach(item => {
+      if (!isWikiHit(item)) return;
+      const meta = (item as any)?.metadata;
+      const kbId = meta?.kb_id;
+      const articleId = meta?.article_id;
+      if (typeof kbId === 'string' && kbId && typeof articleId === 'string' && articleId) {
+        (byKb[kbId] ||= []).push(articleId);
+      }
+    });
+    return byKb;
   }, [data]);
 
   // auto-open where the graph has room to breathe; the header toggle takes
@@ -718,6 +738,8 @@ export default function Search({
             <WikiGraphPanel
               apiConfig={commonProps?.apiConfig}
               kbIds={wikiKbIds}
+              hitArticleIds={wikiHitArticles}
+              query={query}
               theme={theme}
               onOpenArticle={handleOpenWikiArticle}
             />

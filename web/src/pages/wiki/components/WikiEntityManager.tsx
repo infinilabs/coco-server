@@ -1,6 +1,6 @@
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { BookOpen, Pencil } from 'lucide-react';
-import { Button, Card, Drawer, Empty, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Switch, Table, Tag, message } from 'antd';
+import { Button, Card, Drawer, Empty, Form, Input, InputNumber, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Tooltip, message } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -132,6 +132,11 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
   const [keyword, setKeyword] = useState('');
   const [typeFilter, setTypeFilter] = useState<string | undefined>();
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
+  // quality gate (default ON): hide unenriched entities (no description —
+  // promoted shells / extractions that never merged). exists(description)
+  // is exact here because description is omitempty: an empty one is absent
+  // from the index.
+  const [qualityOnly, setQualityOnly] = useState(true);
   const [data, setData] = useState<Api.Wiki.EntityInfo[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -156,21 +161,21 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
   const pageSize = 20;
 
   const fetchData = useCallback(
-    (kw = keyword, tf = typeFilter, sf = statusFilter, pg = page) => {
+    (kw = keyword, tf = typeFilter, sf = statusFilter, pg = page, qOnly = qualityOnly) => {
       setLoading(true);
-      searchWikiEntityPage({ query: kw || undefined, type: tf, status: sf, kbId, from: pg * pageSize, size: pageSize })
+      searchWikiEntityPage({ query: kw || undefined, type: tf, status: sf, kbId, from: pg * pageSize, size: pageSize, qualityOnly: qOnly })
         .then(res => {
           setData(res.data);
           setTotal(res.total);
         })
         .finally(() => setLoading(false));
     },
-    [keyword, typeFilter, statusFilter, page]
+    [keyword, typeFilter, statusFilter, page, qualityOnly]
   );
 
   useEffect(() => {
     fetchData();
-  }, [typeFilter, statusFilter, page]);
+  }, [typeFilter, statusFilter, page, qualityOnly]);
 
   useEffect(() => {
     getOntologySchema(kbId || undefined).then(res => setSchemaTypes(res.entity_types || []));
@@ -443,6 +448,12 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
             setPage(0);
           }}
         />
+        <Tooltip title={t('page.wiki.entityManager.qualityGateTooltip')}>
+          <span className="flex items-center gap-6px text-13px">
+            <Switch size="small" checked={qualityOnly} onChange={v => setQualityOnly(v)} />
+            {t('page.wiki.entityManager.qualityGate')}
+          </span>
+        </Tooltip>
       </Space>
       <Table
         rowKey="id"
@@ -568,7 +579,13 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
           )
         }
       >
-        {detail && <EntityArticleSections entityId={detail.id} kbId={kbId} />}
+        {detail && (
+          <EntityArticleSections
+            entityId={detail.id}
+            kbId={kbId}
+            typeDescription={schemaTypes.find(x => x.name === detail.type)?.description}
+          />
+        )}
       </Drawer>
 
       <Modal title={t('page.wiki.entityManager.pickTarget')} open={!!targetPicker} onCancel={() => setTargetPicker(null)} onOk={() => setTargetPicker(null)} footer={null}>
