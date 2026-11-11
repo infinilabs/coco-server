@@ -50,6 +50,14 @@ export function deleteDatasource(dataourceID: string) {
   });
 }
 
+/** 手动触发一次同步（P2-2）：POST /datasource/:id/_sync */
+export function triggerDatasourceSync(datasourceID: string) {
+  return request({
+    method: 'post',
+    url: `/datasource/${datasourceID}/_sync`
+  });
+}
+
 export function getDatasource(dataourceID: string) {
   return request({
     method: 'get',

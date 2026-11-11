@@ -55,14 +55,10 @@ const MAX_GRAPH_HEIGHT = 1200;
 
 // world-space radius of a default node ball (three-forcegraph: cbrt(val) * nodeRelSize)
 const NODE_WORLD_RADIUS = 4.2;
-// cap on the overlay node labels painted around a selected node: the
-// selection plus its direct (one-hop) neighbors, nearest-first. Generous
-// budget — direct neighbors are the answer to "what is this related to".
-// Nothing beyond one hop gets a name: no direct edge, no label.
-const MAX_VISIBLE_NODE_LABELS = 48;
-// relation titles on the selected node's edges: nearest-to-focus only — a
-// hub with 90 edges would bury every node name under relation chips
-const MAX_VISIBLE_RELATION_LABELS = 18;
+// caps on the overlay labels painted around a selected node: first-hop
+// bright and nearest-first, second-hop dimmer
+const MAX_VISIBLE_NODE_LABELS = 24;
+const MAX_VISIBLE_SECOND_LABELS = 30;
 
 const makeLabelEl = (text: string, kind: 'link' | 'node') => {
   const el = document.createElement('div');
@@ -118,72 +114,14 @@ const projectToScreen = (
   };
 };
 
-// the lib swaps string endpoints for node-object references on the links
-// passed to graphData — comparisons against selection must normalize both
-const endpointId = (v: unknown): string =>
-  typeof v === 'object' && v !== null ? String((v as { id?: unknown }).id) : String(v);
-
-/**
- * Fly the camera so the selected node sits centered with its one-hop
- * neighborhood spread across the viewport: distance comes from a p70
- * percentile of neighbor distances TO THE SELECTED NODE — outliers neither
- * starve the view (fixed-distance bug) nor shrink the dense core into an
- * unreadable blob (centroid-max fit). Far neighbors may fall off-frame;
- * they stay lit and named on hover.
- */
-const flyToNeighborhood = (graph: any, nodeList: GNode[], edgeList: GEdge[], centerId: string) => {
-  if (!graph) return;
-  const ids = new Set<string>([centerId]);
-  edgeList.forEach(e => {
-    if (endpointId(e.source) === centerId) ids.add(endpointId(e.target));
-    if (endpointId(e.target) === centerId) ids.add(endpointId(e.source));
-  });
-  const sel = (nodeList as Array<GNode & { x?: number; y?: number; z?: number }>).find(n => n.id === centerId);
-  if (!sel || typeof sel.x !== 'number' || typeof sel.y !== 'number' || typeof sel.z !== 'number') return;
-  const sx = sel.x;
-  const sy = sel.y;
-  const sz = sel.z;
-  const dists: number[] = [];
-  (nodeList as Array<GNode & { x?: number; y?: number; z?: number }>).forEach(n => {
-    if (n.id === centerId || !ids.has(n.id)) return;
-    if (typeof n.x === 'number' && typeof n.y === 'number' && typeof n.z === 'number')
-      dists.push(Math.hypot(n.x - sx, n.y - sy, n.z - sz));
-  });
-  if (dists.length === 0) return;
-  dists.sort((a, b) => a - b);
-  // p70: the typical direct neighbor lands ~55% out from the center; the
-  // crowded inner ring spreads wide enough for its name labels. The floor
-  // is low on purpose — settled hub layouts pack neighbors tightly and
-  // need a close camera, not a safe default distance.
-  const p70 = dists[Math.min(dists.length - 1, Math.floor(dists.length * 0.7))] || 0;
-  const dist = Math.max(50, (p70 / Math.tan((55 / 2) * (Math.PI / 180))) * 0.92);
-  // keep the current viewing direction, just re-frame around the selection
-  const pos = graph.cameraPosition();
-  let dx = sx;
-  let dy = sy;
-  let dz = sz;
-  if (pos && typeof pos.x === 'number') {
-    dx = pos.x - sx;
-    dy = pos.y - sy;
-    dz = pos.z - sz;
-  }
-  const len = Math.max(Math.hypot(dx, dy, dz), 1);
-  graph.cameraPosition(
-    { x: sx + (dx / len) * dist, y: sy + (dy / len) * dist, z: sz + (dz / len) * dist },
-    { x: sx, y: sy, z: sz },
-    800
-  );
-};
-
 /**
  * Knowledge graph for one KB (ontology phase O3), rendered as an interactive
  * 3D force graph: articles, wikilink-resolved entities and one-hop typed
  * relations in a self-organizing layout — drag to orbit, wheel to zoom, click
  * an article to navigate, click an entity to open its card. The canvas stays
  * clean by default: hovering a node shows its name via the built-in tooltip,
- * clicking one paints overlay labels for it and its direct one-hop neighbors,
- * plus the relation titles on its adjacent edges. Nodes without a direct
- * edge to the selection stay unnamed.
+ * clicking one paints overlay labels for it, its one-hop neighborhood (bright)
+ * and second hop (dimmer), plus the relation titles on its adjacent edges.
  */
 export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?: string }) {
   const { t } = useTranslation();
@@ -263,7 +201,17 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
     return set;
   }, [selected, edges]);
 
-  // repaint accessors when the selection changes
+  // second-hop neighborhood of the selection: their titles render dimmer
+  // instead of hiding, so the selected area reads two steps out
+  const secondNeighbors = useMemo(() => {
+    if (!selected || !neighbors) return null;
+    const set = new Set<string>();
+    edges.forEach(e => {
+      if (neighbors.has(e.source) && !neighbors.has(e.target)) set.add(e.target);
+      if (neighbors.has(e.target) && !neighbors.has(e.source)) set.add(e.source);
+    });
+    return set;
+  }, [selected, neighbors, edges]);
 
   const hasNeighbor = (a: string, b: string) =>
     edges.some(e => (e.source === a && e.target === b) || (e.source === b && e.target === a));
@@ -275,11 +223,7 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
     let disposed = false;
     const host = containerRef.current;
     const nodeIds = new Set(nodes.map(n => n.id));
-    // copies, not the state objects: the engine mutates each link's
-    // string endpoints into node-object references in place, which would
-    // silently break every e.source === selection comparison held
-    // elsewhere against the state edges
-    const links = edges.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target)).map(e => ({ ...e }));
+    const links = edges.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
     const nodeByIdLocal = new Map(nodes.map(n => [n.id, n]));
 
     const computeHeight = () =>
@@ -303,15 +247,6 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
         return n.color;
       })
       .nodeOpacity(0.92)
-      // selection emphasis: the picked node and its direct neighbors swell,
-      // everything else keeps the base size — "lit up" reads even when the
-      // neighbor's own label was decluttered away
-      .nodeVal((n: any) => {
-        const sel = selectedRef.current;
-        if (!sel) return 1;
-        if (n.id === sel) return 5;
-        return neighborsRef.current?.has(n.id) ? 2.2 : 0.5;
-      })
       .nodeLabel((n: any) => {
         if (labeledNodeIdsRef.current.has(n.id)) return '';
         const bits = [n.label];
@@ -322,30 +257,34 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
       .nodeRelSize(4.2)
       .linkColor((l: any) => {
         const sel = selectedRef.current;
-        const sid = endpointId(l.source);
-        const tid = endpointId(l.target);
-        if (sel && sel !== sid && sel !== tid) return 'rgba(140,140,140,0.12)';
+        if (sel && sel !== l.source && sel !== l.target) return 'rgba(140,140,140,0.12)';
         return l.kind === 'relation' ? 'rgba(22,119,255,0.55)' : 'rgba(160,160,160,0.3)';
       })
-      .linkWidth((l: any) => {
-        const sel = selectedRef.current;
-        const touches = sel && (sel === endpointId(l.source) || sel === endpointId(l.target));
-        return touches ? 1.6 : l.kind === 'relation' ? 0.9 : 0.5;
-      })
+      .linkWidth((l: any) =>
+        selectedRef.current && (selectedRef.current === l.source || selectedRef.current === l.target)
+          ? 1.6
+          : l.kind === 'relation'
+            ? 0.9
+            : 0.5
+      )
       .linkOpacity(0.5)
-      .linkDirectionalParticles((l: any) => {
-        const sel = selectedRef.current;
-        const touches = sel && (sel === endpointId(l.source) || sel === endpointId(l.target));
-        return touches ? 2 : 0;
-      })
+      .linkDirectionalParticles((l: any) =>
+        selectedRef.current && (selectedRef.current === l.source || selectedRef.current === l.target) ? 2 : 0
+      )
       .linkDirectionalParticleWidth(1.4)
       .onNodeClick((n: any) => {
         selectedRef.current = n.id;
         setSelected(n.id);
         setCardOpen(true);
         graphRef.current?.refresh();
-        // re-frame the camera around the clicked node's neighborhood
-        flyToNeighborhood(graph, nodes, edges, n.id);
+        // keep the clicked node in view
+        const distance = 140;
+        const distRatio = 1 + distance / Math.max(Math.hypot(n.x, n.y, n.z), 1);
+        graphRef.current?.cameraPosition(
+          { x: n.x * distRatio, y: n.y * distRatio, z: n.z * distRatio },
+          n,
+          800
+        );
       })
       .onBackgroundClick(() => {
         selectedRef.current = null;
@@ -363,13 +302,7 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
     });
     graphRef.current = graph;
     graph.onEngineStop(() => {
-      if (!disposed) {
-        // a selection made while the engine was still settling (deep link)
-        // had its camera fly overwritten by this fit — re-frame around the
-        // selection's neighborhood instead of zooming out to the whole graph
-        if (selectedRef.current) flyToNeighborhood(graph, nodes, edges, selectedRef.current);
-        else graph.zoomToFit(600, 40);
-      }
+      if (!disposed) graph.zoomToFit(600, 40);
     });
 
     // DOM overlay carrying node names and relation titles; visibility is
@@ -419,18 +352,14 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
       const camDist = Math.max(Math.hypot(camPos.x - target.x, camPos.y - target.y, camPos.z - target.z), 1);
       const pxPerUnit = h / (2 * camDist * Math.tan((((cam.fov as number) || 55) / 2) * (Math.PI / 180)));
       const ballPx = Math.min(Math.max(NODE_WORLD_RADIUS * pxPerUnit, 3), 22);
+      const focusRadius = 0.48 * Math.min(w, h);
       const halfW = w / 2;
       const halfH = h / 2;
       const sel = selectedRef.current;
       const nbrs = neighborsRef.current;
-      const firstCandidates: (ScreenPoint & {
-        el: HTMLDivElement;
-        centerDist: number;
-        id: string;
-        color: string;
-        isSel: boolean;
-      })[] = [];
-      const relationCandidates: (ScreenPoint & { el: HTMLDivElement; centerDist: number })[] = [];
+      const second = secondNeighborsRef.current;
+      const firstCandidates: (ScreenPoint & { el: HTMLDivElement; centerDist: number; id: string; isSel: boolean })[] = [];
+      const secondCandidates: (ScreenPoint & { el: HTMLDivElement; centerDist: number; id: string })[] = [];
       // labels hug the selected node on screen — near it or not at all;
       // fall back to screen center when the anchor is behind the camera
       let focusPt = { sx: halfW, sy: halfH };
@@ -461,8 +390,8 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
         }
 
         if (sel) {
-          // clicked: only the selection and its direct (one-hop) neighbors
-          // get names — anything without a direct edge stays unnamed
+          // clicked: first-hop titles render bright nearest the anchor,
+          // second-hop dimmer — far-flung neighbors label not at all
           if (n.id === sel) {
             labeled.add(n.id);
             el.style.display = '';
@@ -479,14 +408,15 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
               hideEl(el);
               return;
             }
-            firstCandidates.push({
-              el,
-              id: n.id,
-              color: n.color,
-              ...placed,
-              centerDist: distToFocus(placed),
-              isSel: false
-            });
+            firstCandidates.push({ el, id: n.id, ...placed, centerDist: distToFocus(placed), isSel: false });
+          } else if (second?.has(n.id)) {
+            if (!onScreen(placed)) {
+              hideEl(el);
+              return;
+            }
+            const centerDist = distToFocus(placed);
+            if (centerDist <= focusRadius * 1.15) secondCandidates.push({ el, id: n.id, ...placed, centerDist });
+            else hideEl(el);
           } else hideEl(el);
           return;
         }
@@ -506,10 +436,23 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
         c.el.style.opacity = '';
         c.el.style.zIndex = String(Math.max(1, Math.round(1000 - c.depth)));
         c.el.style.transform = `translate(-50%, -50%) translate(${c.sx.toFixed(1)}px, ${(c.sy + ballPx + 5).toFixed(1)}px)`;
-        c.el.style.fontWeight = '500';
-        // label border matches the neighbor's ball color — the name visually
-        // anchors to its node even in a crowded first ring
-        c.el.style.borderColor = c.color;
+        c.el.style.fontWeight = '400';
+        c.el.style.borderColor = '';
+      });
+
+      secondCandidates.sort((a, b) => a.centerDist - b.centerDist);
+      secondCandidates.forEach((c, i) => {
+        if (i >= MAX_VISIBLE_SECOND_LABELS) {
+          hideEl(c.el);
+          return;
+        }
+        labeled.add(c.id);
+        c.el.style.display = '';
+        c.el.style.opacity = '0.72';
+        c.el.style.zIndex = String(Math.max(1, Math.round(900 - c.depth)));
+        c.el.style.transform = `translate(-50%, -50%) translate(${c.sx.toFixed(1)}px, ${(c.sy + ballPx + 5).toFixed(1)}px)`;
+        c.el.style.fontWeight = '400';
+        c.el.style.borderColor = '';
       });
 
       links.forEach((l, i) => {
@@ -539,11 +482,9 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
           const sid = typeof l.source === 'object' ? (l.source as unknown as { id: string }).id : l.source;
           const tid = typeof l.target === 'object' ? (l.target as unknown as { id: string }).id : l.target;
           if (sid === sel || tid === sel) {
-            if (!onScreen(placed)) {
-              hideEl(el);
-              return;
-            }
-            relationCandidates.push({ el, centerDist: distToFocus(placed), ...placed });
+            el.style.display = '';
+            el.style.zIndex = String(Math.max(1, Math.round(1000 - placed.depth)));
+            el.style.transform = `translate(-50%, -50%) translate(${placed.sx.toFixed(1)}px, ${placed.sy.toFixed(1)}px)`;
           } else hideEl(el);
           return;
         }
@@ -551,18 +492,6 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
         // nothing selected: relation titles stay hidden too —
         // a click on either endpoint reveals them
         hideEl(el);
-      });
-
-      // candidates are populated by the links scan above — paint after it
-      relationCandidates.sort((a, b) => a.centerDist - b.centerDist);
-      relationCandidates.forEach((c, i) => {
-        if (i >= MAX_VISIBLE_RELATION_LABELS) {
-          hideEl(c.el);
-          return;
-        }
-        c.el.style.display = '';
-        c.el.style.zIndex = String(Math.max(1, Math.round(1000 - c.depth)));
-        c.el.style.transform = `translate(-50%, -50%) translate(${c.sx.toFixed(1)}px, ${c.sy.toFixed(1)}px)`;
       });
 
       labeledNodeIdsRef.current = labeled;
@@ -588,45 +517,34 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
   }, [loading, nodes, edges]);
 
   // repaint accessors when the selection changes
+  const secondNeighborsRef = useRef<Set<string> | null>(null);
   useEffect(() => {
     selectedRef.current = selected;
     neighborsRef.current = neighbors;
+    secondNeighborsRef.current = secondNeighbors;
     graphRef.current?.refresh();
-  }, [selected, neighbors]);
+  }, [selected, neighbors, secondNeighbors]);
 
   // deep link from an article capsule: select the requested entity once the
   // graph has loaded (ignored when the id is not on canvas); fly the camera
-  // to it so the click-to-focus view (labels, relations) applies here too.
-  // Callers pass the bare entity id while canvas nodes carry the "entity:"
-  // prefix — accept both.
+  // to it so the click-to-focus view (labels, relations) applies here too
   useEffect(() => {
     if (!focusEntityId || loading || selected) return;
-    const findFocusNode = () =>
-      nodes.find(
-        (x): x is GNode & { x?: number; y?: number; z?: number } =>
-          x.id === focusEntityId || x.id === `entity:${focusEntityId}`
-      );
-    const n = findFocusNode();
+    const n = nodes.find(
+      (x): x is GNode & { x?: number; y?: number; z?: number } => x.id === focusEntityId
+    );
     if (!n) return;
-    // select with the canvas node id (prefixed) — the bare param id matches
-    // no node, which dimmed the whole canvas with no card and no labels
-    setSelected(n.id);
-    selectedRef.current = n.id;
+    setSelected(focusEntityId);
+    selectedRef.current = focusEntityId;
     setCardOpen(true);
-    // the engine assigns node coordinates a few frames after graphData —
-    // poll briefly until they exist, then fly (engine-stop re-frames too)
-    let tries = 0;
-    const tryFly = () => {
-      const node = findFocusNode();
-      if (!node) return;
-      if (typeof node.x !== 'number' && tries++ < 300) {
-        requestAnimationFrame(tryFly);
-        return;
-      }
-      flyToNeighborhood(graphRef.current, nodes, edges, node.id);
-    };
-    tryFly();
-  }, [focusEntityId, loading, nodes, edges, selected]);
+    if (graphRef.current) {
+      const x = n.x || 0;
+      const y = n.y || 0;
+      const z = n.z || 0;
+      const distRatio = 1 + 140 / Math.max(Math.hypot(x, y, z), 1);
+      graphRef.current.cameraPosition({ x: x * distRatio, y: y * distRatio, z: z * distRatio }, n, 800);
+    }
+  }, [focusEntityId, loading, nodes, selected]);
 
   const nodeById = useMemo(() => new Map(nodes.map(n => [n.id, n])), [nodes]);
   const cardNode = cardOpen && selected ? nodeById.get(selected) : null;
@@ -645,7 +563,14 @@ export function KbGraph({ kbId, focusEntityId }: { kbId: string; focusEntityId?:
     setSelected(id);
     selectedRef.current = id;
     setCardOpen(true);
-    flyToNeighborhood(graphRef.current, nodes, edges, id);
+    const n = nodeById.get(id) as (GNode & { x?: number; y?: number; z?: number }) | undefined;
+    if (n && graphRef.current) {
+      const x = n.x || 0;
+      const y = n.y || 0;
+      const z = n.z || 0;
+      const distRatio = 1 + 140 / Math.max(Math.hypot(x, y, z), 1);
+      graphRef.current.cameraPosition({ x: x * distRatio, y: y * distRatio, z: z * distRatio }, n, 800);
+    }
     graphRef.current?.refresh();
   };
 

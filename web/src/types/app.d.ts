@@ -406,8 +406,9 @@ declare namespace App {
                 manual_sync: string;
                 manual_sync_desc: string;
                 name: string;
-                realtime_sync: string;
-                realtime_sync_desc: string;
+                push_mode_hint: string;
+                realtime_legacy_note: string;
+                webhook_url: string;
                 scheduled_sync: string;
                 scheduled_sync_desc: string;
                 type: string;

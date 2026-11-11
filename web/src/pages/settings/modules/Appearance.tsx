@@ -58,7 +58,6 @@ interface ColorFieldProps {
  */
 const ColorField = memo(({ hint, label, onChange, onPreview, placeholder, value }: ColorFieldProps) => {
   const { t } = useTranslation();
-  const current = value || placeholder || '';
   return (
     <div className="mb-8px flex items-center" style={{ gap: 12 }}>
       <span className="w-88px shrink-0 text-12px">{label}</span>
@@ -67,16 +66,9 @@ const ColorField = memo(({ hint, label, onChange, onPreview, placeholder, value 
         onChange={color => onChange(color.toHexString())}
         onChangeComplete={color => onPreview?.(color.toHexString())}
         presets={COLOR_PRESETS}
-        value={current || undefined}
+        value={value || undefined}
       >
-        <span className="flex cursor-pointer items-center" style={{ gap: 8 }}>
-          {/* swatch showing the current (or default) color */}
-          <span
-            className="inline-block size-18px shrink-0 rounded-4px"
-            style={{ background: current || 'transparent' }}
-          />
-          <span className="text-12px color-[var(--ant-color-text-tertiary)]">{current || placeholder}</span>
-        </span>
+        <span className="cursor-pointer text-12px color-[var(--ant-color-text-tertiary)]">{value || placeholder}</span>
       </ColorPicker>
       {value ? (
         <Button
@@ -325,18 +317,10 @@ const AppearanceSettings = memo(() => {
                 disabledAlpha
                 onChange={color => setValue(['login', 'background_color'], color.toHexString())}
                 presets={COLOR_PRESETS}
-                value={getValue(['login', 'background_color']) || DEFAULT_COLORS.login_background}
+                value={getValue(['login', 'background_color']) || undefined}
               >
-                <span className="flex cursor-pointer items-center" style={{ gap: 8 }}>
-                  <span
-                    className="inline-block size-18px shrink-0 rounded-4px"
-                    style={{
-                      background: getValue(['login', 'background_color']) || DEFAULT_COLORS.login_background
-                    }}
-                  />
-                  <span className="text-12px color-[var(--ant-color-text-tertiary)]">
-                    {getValue(['login', 'background_color']) || DEFAULT_COLORS.login_background}
-                  </span>
+                <span className="cursor-pointer text-12px color-[var(--ant-color-text-tertiary)]">
+                  {getValue(['login', 'background_color']) || DEFAULT_COLORS.login_background}
                 </span>
               </ColorPicker>
               {getValue(['login', 'background_color']) ? (

@@ -7,6 +7,14 @@ const style = {
   flexDirection: 'column',
   gap: 8
 };
+
+// DataSync: pull-mode sync strategies only — manual waits for
+// POST /datasource/:id/_sync, interval auto-dispatches on the configured
+// cadence. Push mode (formerly the "realtime" option) is now owned by the
+// datasource-level Webhook switch: when webhook is enabled the pages hide
+// this block entirely and disable pull, so realtime is no longer selectable
+// here. A legacy datasource stored with strategy=realtime but webhook off
+// shows an inline note instead of a selectable option.
 export const DataSync = ({ onChange, value = { enabled: true, interval: '1h', strategy: 'interval' } }) => {
   const { t } = useTranslation();
   const [innerV, setValue] = useState(value);
@@ -49,7 +57,6 @@ export const DataSync = ({ onChange, value = { enabled: true, interval: '1h', st
       >
         <Radio
           className="mb-10px flex"
-          disabled={true}
           value="manual"
         >
           <div>
@@ -66,22 +73,19 @@ export const DataSync = ({ onChange, value = { enabled: true, interval: '1h', st
             <div className="text-gray-400">{t('page.datasource.new.labels.scheduled_sync_desc')}</div>
           </div>
         </Radio>
-        <div className="mb-10px ml-25px">
-          <SyncTime
-            value={innerV.interval}
-            onChange={onIntervalChange}
-          />
-        </div>
-        <Radio
-          className="mb-10px"
-          disabled={true}
-          value="realtime"
-        >
-          <div>
-            <div className="mb-5px">{t('page.datasource.new.labels.realtime_sync')}</div>
-            <div className="text-gray-400">{t('page.datasource.new.labels.realtime_sync_desc')}</div>
+        {innerV.strategy === 'interval' && (
+          <div className="mb-10px ml-25px">
+            <SyncTime
+              value={innerV.interval}
+              onChange={onIntervalChange}
+            />
           </div>
-        </Radio>
+        )}
+        {innerV.strategy === 'realtime' && (
+          <div className="ml-25px" style={{ color: 'var(--ant-color-warning, #faad14)' }}>
+            {t('page.datasource.new.labels.realtime_legacy_note')}
+          </div>
+        )}
       </Radio.Group>
     </div>
   );
@@ -91,11 +95,20 @@ const SyncTime = ({ onChange, value }) => {
   // Extract number and unit from value (default to "10s")
   const { t } = useTranslation();
   const match = value?.match(/^(\d+)([smh])$/);
-  const initialNumber = match ? Number.parseInt(match[1], 10) : 10;
-  const initialUnit = match ? match[2] : 's';
 
-  const [num, setNum] = useState(initialNumber);
-  const [unit, setUnit] = useState(initialUnit);
+  const [num, setNum] = useState(match ? Number.parseInt(match[1], 10) : 10);
+  const [unit, setUnit] = useState(match ? match[2] : 's');
+
+  // Follow incoming value changes: the edit page loads the stored interval
+  // asynchronously after mount, so num/unit must track the prop instead of
+  // freezing at the initial parse (P2-5 echo bug).
+  useEffect(() => {
+    const m = value?.match(/^(\d+)([smh])$/);
+    if (m) {
+      setNum(Number.parseInt(m[1], 10));
+      setUnit(m[2]);
+    }
+  }, [value]);
 
   // Update parent component when num or unit changes
   useEffect(() => {

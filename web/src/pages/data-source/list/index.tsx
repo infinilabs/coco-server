@@ -9,6 +9,7 @@ import InfiniIcon from '@/components/common/icon';
 import { GoogleDriveSVG, HugoSVG, NotionSVG, YuqueSVG } from '@/components/icons';
 import useQueryParams from '@/hooks/common/queryParams';
 import { deleteDatasource, fetchDataSourceList, getConnectorByIDs, updateDatasource } from '@/service/api';
+import { triggerDatasourceSync } from '@/service/api/data-source';
 import { formatESSearchResult } from '@/service/request/es';
 import { Api } from '@/types/api';
 
@@ -84,6 +85,19 @@ export function Component() {
         break;
       case '2':
         nav(`/data-source/edit/${record.id}`, { state: record });
+        break;
+      case '3':
+        // 立即同步（P2-2）：POST /datasource/:id/_sync
+        setSyncingId(record.id);
+        triggerDatasourceSync(record.id)
+          .then(() => {
+            message.success(t('page.datasource.new.labels.immediate_sync', 'Sync triggered'));
+            setQueryParams(old => ({ ...old, t: new Date().valueOf() }));
+          })
+          .catch(() => {
+            message.error(t('common.modifyFailed', 'Sync trigger failed'));
+          })
+          .finally(() => setSyncingId(undefined));
         break;
     }
   };
@@ -330,6 +344,12 @@ export function Component() {
             key: '2',
             label: t('common.edit')
           });
+          // 立即同步：仅数据源已启用且同步已启用时可用（后端同样校验）
+          items.push({
+            key: '3',
+            disabled: !(record.enabled && record.sync?.enabled) || syncingId === record.id,
+            label: t('page.datasource.new.labels.immediate_sync')
+          });
         }
         if (permissions.delete && isEditorOwner(record)) {
           items.push({
@@ -356,6 +376,7 @@ export function Component() {
   };
   const [data, setData] = useState(initialData);
   const [loading, setLoading] = useState(false);
+  const [syncingId, setSyncingId] = useState<string | undefined>(undefined);
 
   const [keyword, setKeyword] = useState();
 

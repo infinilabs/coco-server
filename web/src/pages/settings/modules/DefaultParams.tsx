@@ -11,9 +11,11 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import SaveBar from './SaveBar';
 
 // 默认参数：合并原「默认模型」与「文档处理」两个 tab。
-// 两者都是全局兜底参数（数据源/Pipeline 未单独指定时生效），共用一张表单、
-// 一个保存条；保存时按字段拆分，分别写 settings 的 default_model 与
-// document_processing 两节，后端接口与存储结构不变。
+// default_pipeline_for_attachment 是附件处理的全局兜底（服务端直接消费）；
+// default_pipeline_for_document 仅作为数据源「文档分析」开关打开时的
+// 选择框预填默认值（服务端不再兜底，关闭开关的数据源不加工），
+// 共用一张表单、一个保存条；保存时按字段拆分，分别写 settings 的
+// default_model 与 document_processing 两节，后端接口与存储结构不变。
 const DOC_PROCESSING_KEYS = ['default_pipeline_for_attachment', 'default_pipeline_for_document', 'llm_generation_language'];
 
 const SectionTitle = ({ title }: { title: string }) => (
