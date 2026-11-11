@@ -7,6 +7,7 @@ package webhooks
 import (
 	"context"
 	"net/http"
+	"time"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
@@ -15,6 +16,7 @@ import (
 	"infini.sh/framework/core/api"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/errors"
+	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/queue"
@@ -22,6 +24,11 @@ import (
 	"infini.sh/framework/core/task"
 	"infini.sh/framework/core/util"
 )
+
+// webhookLastAccessKey mirrors the dispatcher tracker's bucket: webhook
+// deliveries refresh the same stamp so _sync_status's last_dispatch and
+// realtime-source freshness reflect push activity (P2-3).
+const webhookLastAccessKey = "/datasource/lastAccessTime"
 
 func WebhookHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	datasourceID := ps.MustGetParameter("id")
@@ -80,6 +87,15 @@ func WebhookHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Para
 							err := queue.Push(queue.SmartGetOrInitConfig(queueCfg), data)
 							if err != nil {
 								panic(err)
+							}
+
+							// P2-3: webhook delivery counts as source
+							// activity — refresh the dispatcher's stamp so
+							// last_dispatch stays meaningful for push-fed
+							// (realtime/manual) datasources. Best-effort:
+							// the document was already queued.
+							if kerr := kv.AddValue(webhookLastAccessKey, []byte(datasource.ID), []byte(util.FormatTimeWithLocalTZ(time.Now()))); kerr != nil {
+								log.Warnf("failed to refresh last access time for webhook datasource [%s]: %v", datasource.ID, kerr)
 							}
 						}
 					}

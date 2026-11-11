@@ -178,15 +178,17 @@ func (p *ProcessDocumentsProcessor) processMessage(msg queue.Message) error {
 		return p.pushPassthrough(msg.Data, "datasource-not-found")
 	}
 
-	// Resolve the enrichment pipeline name: datasource-level first, then global default.
+	// Resolve the enrichment pipeline name from the datasource's own
+	// processing config only. A disabled switch or an empty selection means
+	// the datasource opted out — documents pass through unprocessed. The
+	// global default (settings.document_processing.default_pipeline_for_document)
+	// is NOT applied here anymore: the datasource UI prefills the pipeline
+	// select from that default when the switch is turned on, so "enabled"
+	// always reflects a deliberate choice (falling back here would re-run
+	// enrichment for datasources the user explicitly turned off).
 	pipelineName := ""
 	if ds.DocumentProcessingConfig.Enabled && ds.DocumentProcessingConfig.Pipeline != "" {
 		pipelineName = ds.DocumentProcessingConfig.Pipeline
-	} else {
-		appCfg := common.AppConfig()
-		if appCfg.DocumentProcessing != nil {
-			pipelineName = appCfg.DocumentProcessing.DefaultPipelineForDocument
-		}
 	}
 
 	if pipelineName == "" {

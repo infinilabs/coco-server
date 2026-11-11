@@ -9,9 +9,10 @@ import (
 	"database/sql"
 	"fmt"
 	"infini.sh/coco/core"
+	"strings"
 	"time"
 
-	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/kv"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/plugins/connectors"
@@ -21,6 +22,20 @@ import (
 
 const (
 	DefaultPageSize = 500
+
+	// lastSyncValueKV persists the incremental watermark for RDBMS scanners:
+	// the max last_modified_field value actually observed from the source in
+	// the last fully-successful scan. Persisted per datasource so deletions
+	// on the Coco side can no longer rewind it, and unrelated document writes
+	// can no longer push it forward (it is a source-side value, not an
+	// index-side timestamp).
+	lastSyncValueKV = "/datasource/increment/lastSyncValue"
+
+	// watermarkLookback rewinds the effective cursor a little on every
+	// incremental scan so rows modified while the previous scan was still
+	// running (between the query snapshot and watermark save) are re-read.
+	// Re-collection is safe: unchanged documents are dropped downstream.
+	watermarkLookback = 1 * time.Minute
 )
 
 type Scanner struct {
@@ -170,6 +185,11 @@ func (s *Scanner) processQuery(ctx context.Context, db *sql.DB, cfg *Config) err
 	}
 	var offset uint = 0
 
+	// Track the max last_modified_field value observed from the source rows.
+	// It is only persisted after the WHOLE scan succeeds — a mid-scan failure
+	// keeps the previous watermark so the next run re-reads the window.
+	var watermark *time.Time
+
 	for {
 		query := baseQuery
 
@@ -189,7 +209,7 @@ func (s *Scanner) processQuery(ctx context.Context, db *sql.DB, cfg *Config) err
 			return fmt.Errorf("failed to execute query: %w", err)
 		}
 
-		rowsProcessed, err := s.processRows(ctx, rows, cfg)
+		rowsProcessed, err := s.processRows(ctx, rows, cfg, &watermark)
 		if err != nil {
 			_ = log.Errorf("[%s connector] error processing rows for datasource [%s]: %v", s.Name, s.Datasource.Name, err)
 			_ = rows.Close()
@@ -202,14 +222,35 @@ func (s *Scanner) processQuery(ctx context.Context, db *sql.DB, cfg *Config) err
 		}
 		offset += pageSize
 	}
+
+	// Persist the source-side cursor only after a fully successful scan.
+	if cfg.LastModifiedField != "" && watermark != nil {
+		if err := s.SetLastSyncValue(s.Datasource.ID, *watermark); err != nil {
+			_ = log.Errorf("[%s connector] failed to save sync watermark for datasource [%s]: %v", s.Name, s.Datasource.Name, err)
+			return fmt.Errorf("failed to save sync watermark: %w", err)
+		}
+		log.Debugf("[%s connector] saved sync watermark [%s] for datasource [%s]", s.Name, watermark.UTC().Format(time.RFC3339Nano), s.Datasource.Name)
+	}
 	return nil
 }
 
 // processRows iterates through query results, transforms them, and pushes them to the queue.
-func (s *Scanner) processRows(ctx context.Context, rows *sql.Rows, cfg *Config) (int, error) {
+// watermark receives the max last_modified_field value observed in this batch (source-side cursor).
+func (s *Scanner) processRows(ctx context.Context, rows *sql.Rows, cfg *Config, watermark **time.Time) (int, error) {
 	columns, err := rows.Columns()
 	if err != nil {
 		return 0, fmt.Errorf("failed to get columns: %w", err)
+	}
+
+	// resolve the watermark column index (case-insensitive match on the configured field)
+	watermarkIdx := -1
+	if cfg.LastModifiedField != "" {
+		for i, col := range columns {
+			if strings.EqualFold(col, cfg.LastModifiedField) {
+				watermarkIdx = i
+				break
+			}
+		}
 	}
 
 	var rowsProcessed int
@@ -231,6 +272,14 @@ func (s *Scanner) processRows(ctx context.Context, rows *sql.Rows, cfg *Config) 
 		if err != nil {
 			_ = log.Errorf("[%s connector] failed to scan row for datasource [%s]: %v", s.Name, s.Datasource.Name, err)
 			continue
+		}
+
+		if watermarkIdx >= 0 {
+			if v, ok := rowMap[columns[watermarkIdx]]; ok && v != nil {
+				if t := parseColumnTime(v); t != nil && (*watermark == nil || t.After(**watermark)) {
+					*watermark = t
+				}
+			}
 		}
 
 		doc, err := s.transformRowToDocument(rowMap, cfg)
@@ -307,29 +356,82 @@ func (s *Scanner) transformRowToDocument(rowMap map[string]interface{}, cfg *Con
 	return doc, nil
 }
 
+// GetLastSyncValue returns the persisted source-side watermark for this
+// datasource (the max last_modified_field observed in the previous
+// successful scan), rewound by watermarkLookback. nil means "no cursor
+// yet" — callers fall back to a full scan.
 func (s *Scanner) GetLastSyncValue(datasourceID string) (*time.Time, error) {
-	var err error
-
-	q := orm.Query{}
-	q.Size = 1
-	q.AddSort("updated", orm.DESC)
-	q.Filter = &orm.Cond{
-		BoolType:  orm.Filter,
-		QueryType: orm.QueryTerms,
-		Field:     "source.id",
-		Value:     []interface{}{datasourceID},
+	data, err := kv.GetValue(lastSyncValueKV, []byte(datasourceID))
+	if err != nil || len(data) == 0 {
+		return nil, nil
 	}
 
-	var results []core.Document
-
-	err, _ = orm.SearchWithJSONMapper(&results, &q)
+	t, err := time.Parse(time.RFC3339Nano, string(data))
 	if err != nil {
-		_ = log.Errorf("[%s connector] fetch last updated doc failed, datasource id: [%s]: %v", s.Name, datasourceID, err)
+		_ = log.Errorf("[%s connector] invalid persisted watermark for datasource [%s]: %v", s.Name, datasourceID, err)
+		return nil, nil
 	}
-	if len(results) > 0 {
-		return results[0].Updated, nil
+
+	effective := t.Add(-watermarkLookback)
+	return &effective, nil
+}
+
+// SetLastSyncValue persists the source-side watermark after a fully
+// successful scan.
+func (s *Scanner) SetLastSyncValue(datasourceID string, watermark time.Time) error {
+	return kv.AddValue(lastSyncValueKV, []byte(datasourceID), []byte(watermark.UTC().Format(time.RFC3339Nano)))
+}
+
+// parseColumnTime normalizes a scanned last_modified_field value
+// (driver-dependent: time.Time, []byte, string or unix epoch) to time.Time.
+func parseColumnTime(v interface{}) *time.Time {
+	switch val := v.(type) {
+	case time.Time:
+		return &val
+	case []byte:
+		return parseTimeString(string(val))
+	case string:
+		return parseTimeString(val)
+	case int64:
+		return unixSecondsToTime(val)
+	case int:
+		return unixSecondsToTime(int64(val))
+	case float64:
+		return unixSecondsToTime(int64(val))
 	}
-	return nil, nil
+	return nil
+}
+
+func unixSecondsToTime(sec int64) *time.Time {
+	// heuristic: values beyond ~1e11 are milliseconds
+	if sec > 1e12 {
+		t := time.UnixMilli(sec)
+		return &t
+	}
+	t := time.Unix(sec, 0)
+	return &t
+}
+
+func parseTimeString(s string) *time.Time {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil
+	}
+	layouts := []string{
+		time.RFC3339Nano,
+		time.RFC3339,
+		"2006-01-02 15:04:05.999999999 -0700 MST",
+		"2006-01-02 15:04:05.999999999",
+		"2006-01-02 15:04:05",
+		"2006-01-02T15:04:05",
+		"2006-01-02",
+	}
+	for _, layout := range layouts {
+		if t, err := time.Parse(layout, s); err == nil {
+			return &t
+		}
+	}
+	return nil
 }
 
 func (p *KVPair) GetValue() string {

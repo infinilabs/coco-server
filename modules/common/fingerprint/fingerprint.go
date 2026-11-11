@@ -96,3 +96,27 @@ func SourceFS(info os.FileInfo) string {
 	fmt.Fprintf(h, "fs:%d|%d", info.Size(), info.ModTime().UnixNano())
 	return hex.EncodeToString(h.Sum(nil))
 }
+
+// SourceMeta builds a cheap change fingerprint from source-side metadata
+// signals (modified timestamps, sizes, ETags, revisions, commit shas).
+// Connectors that observe such signals while listing should stamp
+// doc.SourceFingerprint with this — the collection skip gate then drops
+// unchanged documents before the enrichment chain runs. Empty result when
+// no signal is present: those documents always re-enrich (safe fallback).
+func SourceMeta(prefix string, parts ...string) string {
+	h := sha256.New()
+	fmt.Fprintf(h, "%s:", prefix)
+	n := 0
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		fmt.Fprintf(h, "%s|", p)
+		n++
+	}
+	if n == 0 {
+		return ""
+	}
+	return hex.EncodeToString(h.Sum(nil))
+}

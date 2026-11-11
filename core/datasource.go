@@ -56,6 +56,32 @@ type SyncConfig struct {
 	PageSize int    `json:"page_size" config:"page_size"`
 }
 
+// Sync strategies: how a datasource is scheduled into runs. The dispatcher
+// branches on the effective value; the webhook handler drives realtime
+// sources by push.
+const (
+	// SyncStrategyInterval auto-dispatches on the configured interval (the
+	// historical default; empty or unknown values normalize to this).
+	SyncStrategyInterval = "interval"
+	// SyncStrategyManual never auto-dispatches — runs happen only through
+	// POST /datasource/:id/_sync.
+	SyncStrategyManual = "manual"
+	// SyncStrategyRealtime is push-driven: webhook deliveries carry the
+	// content, no interval polling.
+	SyncStrategyRealtime = "realtime"
+)
+
+// EffectiveStrategy normalizes the configured strategy: empty or unknown
+// values read as interval so existing records keep their behavior.
+func (c SyncConfig) EffectiveStrategy() string {
+	switch c.Strategy {
+	case SyncStrategyManual, SyncStrategyRealtime:
+		return c.Strategy
+	default:
+		return SyncStrategyInterval
+	}
+}
+
 type ConnectorConfig struct {
 	ConnectorID string      `json:"id,omitempty" elastic_mapping:"id:{type:keyword}"`          // Connector ID for the datasource
 	Config      interface{} `json:"config,omitempty" elastic_mapping:"config:{enabled:false}"` // Configs for this Connector, also pass to connector's processor

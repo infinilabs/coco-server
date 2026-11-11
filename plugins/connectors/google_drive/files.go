@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"google.golang.org/api/option"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/modules/common/fingerprint"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/pipeline"
@@ -408,6 +410,7 @@ func (this *Processor) IndexingFile(pipeCtx *pipeline.Context, connector *core.C
 	document.ID = common.GetDocID(datasource.ID, i.Id)
 	document.Created = createdAt
 	document.Updated = updatedAt
+	document.SourceFingerprint = fingerprint.SourceMeta("gdrive", i.ModifiedTime, strconv.FormatInt(i.Size, 10))
 
 	if len(parent) > 0 {
 		path := common.GetFullPathForCategories(parent)
@@ -737,6 +740,7 @@ func (this *Processor) createDocumentFromFile(file *drive.File, datasource *core
 	document.ID = common.GetDocID(datasource.ID, file.Id)
 	document.Created = createdAt
 	document.Updated = updatedAt
+	document.SourceFingerprint = fingerprint.SourceMeta("gdrive", file.ModifiedTime, strconv.FormatInt(file.Size, 10))
 
 	// Set category and path
 	if len(folderPath) > 0 {

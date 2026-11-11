@@ -61,6 +61,10 @@ func (processor *Dispatcher) syncDatasource(c *core.DataSource) error {
 			c.Name, prev.RunID, prev.Batches, prev.Documents)
 	}
 
+	// deletion reconciliation: open a fresh observed-ID collection for
+	// this run; BatchCollect fills it (before the fingerprint skip gate)
+	connectorcommon.BeginSeenCollection(c.ID)
+
 	pipelineCfg := pipeline.PipelineConfigV2{}
 	pipelineCfg.Name = fmt.Sprintf("dynamic-datasource-task-%v", c.ID)
 	pipelineCfg.Singleton = true
@@ -86,6 +90,4 @@ func (processor *Dispatcher) syncDatasource(c *core.DataSource) error {
 	} else {
 		return errors.Errorf("invalid pipeline config for datasource: %v,%v, processor not found", c.ID, c.Name)
 	}
-
-	return nil
 }

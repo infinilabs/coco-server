@@ -111,19 +111,22 @@ func SyncRunStale(run *SyncRun, maxAge time.Duration) bool {
 // processing window that follows a successful fetch. Called from the
 // dispatcher's keep-running loop, right before it decides whether a new
 // dispatch is due.
-func CloseSyncRunIfIdle(datasourceID string) {
+// Returns true when this call closed a run — the deletion reconciliation
+// uses the transition as its trigger.
+func CloseSyncRunIfIdle(datasourceID string) bool {
 	run, err := ReadSyncRun(datasourceID)
 	if err != nil || run == nil || run.State != SyncRunRunning {
-		return
+		return false
 	}
 	if dispatchPipelineActive(datasourceID) {
-		return
+		return false
 	}
 	now := time.Now().UnixMilli()
 	run.State = SyncRunCompleted
 	run.UpdatedAt = now
 	run.FinishedAt = now
 	_ = writeSyncRun(datasourceID, run)
+	return true
 }
 
 // dispatchPipelineActive reports whether the transient task backing this

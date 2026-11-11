@@ -171,25 +171,52 @@ func (h *APIHandler) updateDatasource(w http.ResponseWriter, req *http.Request, 
 	}
 
 	replace := h.GetBoolOrDefault(req, "replace", false)
-	var err error
 
-	obj := core.DataSource{}
-	err = h.DecodeJSON(req, &obj)
+	body, err := util.ReadBody(req)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	//protect
-	obj.ID = id
+	obj := core.DataSource{}
 	ctx := orm.NewContextWithParent(req.Context())
 	ctx.Refresh = orm.WaitForRefresh
 	ctx.Set(orm.SharingEnabled, true)
 	ctx.Set(orm.SharingResourceType, "datasource")
 
 	if replace {
+		// full replace: the request body is authoritative
+		if err := util.FromJSONBytes(body, &obj); err != nil {
+			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		obj.ID = id
 		err = orm.Upsert(ctx, &obj)
 	} else {
+		// patch semantics: load the stored document first, then overlay the
+		// request body onto it. JSON decoding only touches fields present in
+		// the body, so omitted fields keep their stored values — without the
+		// pre-load, omitted fields decode as zero values and are persisted
+		// (e.g. an interval-only PUT silently disabled the datasource by
+		// clearing `enabled`).
+		obj.ID = id
+		var exists bool
+		exists, err = orm.GetV2(ctx, &obj)
+		if err != nil {
+			panic(err)
+		}
+		if !exists {
+			h.WriteJSON(w, util.MapStr{
+				"_id":   id,
+				"found": false,
+			}, http.StatusNotFound)
+			return
+		}
+		if err := util.FromJSONBytes(body, &obj); err != nil {
+			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		obj.ID = id // protect against body-supplied id drift
 		err = orm.Update(ctx, &obj)
 	}
 

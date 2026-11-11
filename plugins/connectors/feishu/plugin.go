@@ -15,6 +15,7 @@ import (
 	"infini.sh/framework/core/security"
 
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/modules/common/fingerprint"
 	cmn "infini.sh/coco/plugins/connectors/common"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/config"
@@ -485,6 +486,10 @@ func (this *Plugin) searchFilesRecursively(ctx *SearchContext) {
 				key = fmt.Sprintf("%d", i)
 			}
 			doc.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", ctx.DataSource.Connector.ConnectorID, ctx.DataSource.ID, key))
+
+			// stamp source-side change signal (modified_time + size when
+			// present): lets the collection skip gate drop unchanged documents
+			doc.SourceFingerprint = fingerprint.SourceMeta("feishu", getString(m, "modified_time"), getString(m, "size"))
 
 			if global.Env().IsDebug {
 				log.Tracef("collecting document: %v", util.MustToJSON(doc))

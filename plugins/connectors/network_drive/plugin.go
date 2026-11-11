@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/common/fingerprint"
 
 	log "github.com/cihub/seelog"
 	"github.com/hirochachacha/go-smb2"
@@ -189,6 +190,10 @@ func (p *Plugin) processFile(ctx *pipeline.Context, d fs.DirEntry, currentPath s
 	modTime := fileInfo.ModTime()
 	doc.Created = &modTime
 	doc.Updated = &modTime
+
+	// fs-style change signal (size + mtime): lets the collection skip gate
+	// drop unchanged files before enrichment
+	doc.SourceFingerprint = fingerprint.SourceFS(fileInfo)
 
 	p.Collect(ctx, connector, datasource, doc)
 }

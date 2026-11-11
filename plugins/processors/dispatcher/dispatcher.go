@@ -6,11 +6,13 @@ package dispatcher
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"infini.sh/coco/core"
 	connectorcommon "infini.sh/coco/modules/common"
 	"infini.sh/framework/core/api"
+	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
@@ -34,9 +36,38 @@ type Dispatcher struct {
 
 const processorName = "connector_dispatcher"
 
+// activeDispatcher is the live processor instance, set by New(). Routes
+// below delegate to it at request time.
+var activeDispatcher *Dispatcher
+
 func init() {
 	pipeline.RegisterProcessorPluginWithConfigMetadata(processorName, New, Config{})
 	pipeline.RegisterProcessorContract(processorName, pipeline.RecordContract{Scope: pipeline.ScopeBatch})
+
+	// NOTE: routes must be registered at package-init time. StartWeb
+	// snapshots registeredUIMethodHandler into the live httprouter at boot,
+	// and processor constructors (New) run after that — routes registered
+	// inside New() never reach the router (this is why /_reset_sync had
+	// silently 404'd since its introduction).
+	registerDispatcherRoute(api.POST, "/datasource/:id/_reset_sync", func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+		activeDispatcher.resetAccessTime(w, req, ps)
+	})
+	registerDispatcherRoute(api.POST, "/datasource/:id/_sync", func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+		activeDispatcher.triggerSync(w, req, ps)
+	})
+}
+
+// registerDispatcherRoute wraps a UI-method registration with a readiness
+// guard: requests arriving before the dispatcher processor is constructed
+// get a clean 503 instead of a nil-pointer panic.
+func registerDispatcherRoute(method api.Method, pattern string, invoke func(w http.ResponseWriter, req *http.Request, ps httprouter.Params)) {
+	api.HandleUIMethod(method, pattern, func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+		if activeDispatcher == nil {
+			http.Error(w, "dispatcher is not ready", http.StatusServiceUnavailable)
+			return
+		}
+		invoke(w, req, ps)
+	}, api.RequireLogin())
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
@@ -46,7 +77,7 @@ func New(c *config.Config) (pipeline.Processor, error) {
 	}
 
 	runner := Dispatcher{config: &cfg}
-	api.HandleUIMethod(api.POST, "/datasource/:id/_reset_sync", runner.resetAccessTime, api.RequireLogin())
+	activeDispatcher = &runner
 	return &runner, nil
 }
 
@@ -105,45 +136,60 @@ NextPage:
 			if doc.SyncConfig.Enabled {
 				// close the sync-run journal when its dispatch pipeline has
 				// ended — otherwise a completed fetch reads as stale forever
-				connectorcommon.CloseSyncRunIfIdle(doc.ID)
-
-				// get connector config for the datasource
-				lastAccessTime, _ := processor.getLastAccessTime(doc.ID)
-				interval := util.GetDurationOrDefault(doc.SyncConfig.Interval, time.Duration(30*time.Second))
-
-				needSync := false
-				if lastAccessTime != "" {
-					t := util.ParseTimeWithLocalTZ(lastAccessTime)
-					if time.Since(t) > interval {
-						needSync = true
-						log.Tracef("need to sync, beyond interval, datasource: %v(%v), last_access: %v, interval: %v", doc.ID, doc.Name, lastAccessTime, interval)
-					} else {
-						log.Tracef("time: %v, %v since interval: %v", t, time.Since(t), interval)
+				if connectorcommon.CloseSyncRunIfIdle(doc.ID) {
+					// the run just closed: take the observed-ID set (always,
+					// so non-whitelisted connectors don't leak registry
+					// memory) and reconcile deletions for full-scan ones
+					seen := connectorcommon.TakeSeenIDs(doc.ID)
+					if connectorcommon.ShouldReconcile(&doc) {
+						go connectorcommon.ReconcileDeletedDryRun(&doc, seen)
 					}
-				} else {
-					needSync = true
-					log.Tracef("need to sync, empty interval, datasource: %v(%v), interval: %v", doc.ID, doc.Name, interval)
 				}
 
-				//need to sync
-				if needSync {
-					log.Debugf("start sync, datasource: %v(%v), last_access: %v, interval: %v", doc.ID, doc.Name, lastAccessTime, interval)
-					// handle the sync task for each datasource
-					err := processor.syncDatasource(&doc)
-					if err != nil {
-						log.Errorf("sync error, %v, datasource: %v(%v), last_access: %v, interval: %v", err, doc.ID, doc.Name, lastAccessTime, interval)
-						continue
+				// strategy gate (P2-1): only interval sources auto-dispatch.
+				// manual sources wait for POST /datasource/:id/_sync;
+				// realtime sources are fed by webhook pushes. The journal
+				// close above still applies — manual/realtime runs need
+				// their journals closed too.
+				if strategy := doc.SyncConfig.EffectiveStrategy(); strategy == core.SyncStrategyInterval {
+					// get connector config for the datasource
+					lastAccessTime, _ := processor.getLastAccessTime(doc.ID)
+					interval := util.GetDurationOrDefault(doc.SyncConfig.Interval, time.Duration(30*time.Second))
+
+					needSync := false
+					if lastAccessTime != "" {
+						t := util.ParseTimeWithLocalTZ(lastAccessTime)
+						if time.Since(t) > interval {
+							needSync = true
+							log.Tracef("need to sync, beyond interval, datasource: %v(%v), last_access: %v, interval: %v", doc.ID, doc.Name, lastAccessTime, interval)
+						} else {
+							log.Tracef("time: %v, %v since interval: %v", t, time.Since(t), interval)
+						}
+					} else {
+						needSync = true
+						log.Tracef("need to sync, empty interval, datasource: %v(%v), interval: %v", doc.ID, doc.Name, interval)
 					}
 
-					//update last access time
-					err = processor.saveLastAccessTime(doc.ID, util.FormatTimeWithLocalTZ(time.Now()))
-					if err != nil {
-						panic(err)
+					//need to sync
+					if needSync {
+						log.Debugf("start sync, datasource: %v(%v), last_access: %v, interval: %v", doc.ID, doc.Name, lastAccessTime, interval)
+						// handle the sync task for each datasource
+						err := processor.syncDatasource(&doc)
+						if err != nil {
+							log.Errorf("sync error, %v, datasource: %v(%v), last_access: %v, interval: %v", err, doc.ID, doc.Name, lastAccessTime, interval)
+							continue
+						}
+
+						//update last access time
+						err = processor.saveLastAccessTime(doc.ID, util.FormatTimeWithLocalTZ(time.Now()))
+						if err != nil {
+							panic(err)
+						}
+						log.Debugf("sync success, update last access time, datasource: %v(%v), last_access: %v, interval: %v", doc.ID, doc.Name, lastAccessTime, interval)
+					} else {
+						//no need to sync, within interval
+						log.Debugf("no need to sync, datasource: %v(%v), last_access: %v, interval: %v", doc.ID, doc.Name, lastAccessTime, interval)
 					}
-					log.Debugf("sync success, update last access time, datasource: %v(%v), last_access: %v, interval: %v", doc.ID, doc.Name, lastAccessTime, interval)
-				} else {
-					//no need to sync, within interval
-					log.Debugf("no need to sync, datasource: %v(%v), last_access: %v, interval: %v", doc.ID, doc.Name, lastAccessTime, interval)
 				}
 			}
 		}

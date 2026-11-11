@@ -82,7 +82,7 @@ func TestStructuredChunksLosslessWithoutOverlap(t *testing.T) {
 	prevTail := rune(0)
 	for i, c := range chunks {
 		runes := []rune(c.Text)
-		if i > 0 && len(runes) > 0 && len(runes) > 0 && runes[0] == prevTail {
+		if i > 0 && len(runes) > 0 && runes[0] == prevTail {
 			runes = runes[1:]
 		}
 		if len(runes) > 0 {
