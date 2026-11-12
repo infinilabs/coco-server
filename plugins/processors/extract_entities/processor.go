@@ -390,6 +390,13 @@ func (processor *ExtractEntitiesProcessor) extractAndLink(ctx context.Context, l
 	ormCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
 
 	kbID := processor.resolveKB(ctx, doc)
+	// orphan guard: a kb-less write is invisible to every KB-scoped view and
+	// silently defeats the whole extraction (live case: 150 described entities
+	// stranded while the compile-time promote path showed bare placeholders).
+	// Warn loudly — resolution must fail visibly, not quietly.
+	if kbID == "" {
+		log.Warnf("[%s] document %q (datasource %q) resolved no KB: entities will be stored without kb_id and stay invisible to KB views", ProcessorName, doc.Title, doc.Source.ID)
+	}
 
 	resolved := make([]*core.WikiEntity, 0, len(result.Entities))
 	seen := map[string]bool{}
