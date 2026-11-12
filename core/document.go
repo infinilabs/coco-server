@@ -104,6 +104,14 @@ type Document struct {
 	// document's vectors — stamped by the embedding processor so a model
 	// change can detect and batch-reprocess stale vectors (W1).
 	EmbeddingModel string `json:"embedding_model,omitempty" elastic_mapping:"embedding_model:{type:keyword}"`
+
+	// Source-side tombstone (deletion reconciliation): a full-scan sync
+	// run no longer saw this document in the source listing. The copy
+	// stays searchable — the flag is advisory, surfaced as a badge in the
+	// datasource document list so a human decides whether to delete.
+	// Cleared automatically once the source lists the document again.
+	SourceDeleted   bool   `json:"source_deleted,omitempty" elastic_mapping:"source_deleted:{type:boolean}"`
+	SourceDeletedAt string `json:"source_deleted_at,omitempty" elastic_mapping:"source_deleted_at:{type:keyword}"` // RFC3339, when the absence was first observed
 }
 
 // Document processing lifecycle states (Document.Status).
