@@ -411,6 +411,15 @@ declare namespace App {
                 webhook_url: string;
                 scheduled_sync: string;
                 scheduled_sync_desc: string;
+                cron_sync: string;
+                cron_sync_desc: string;
+                cron_freq_daily: string;
+                cron_freq_weekly: string;
+                cron_freq_monthly: string;
+                cron_preset_monthly_day: string;
+                cron_unmapped_hint: string;
+                doc_pipeline: string;
+                doc_pipeline_placeholder: string;
                 type: string;
                 [key: string]: any;
               };

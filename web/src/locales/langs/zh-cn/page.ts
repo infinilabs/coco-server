@@ -1007,7 +1007,10 @@ const page: App.I18n.Schema['translation']['page'] = {
       tabRuns: '解析记录',
       tabJson: '原始 JSON',
       tabText: '文档文本',
-      viewDetail: '查看详情'
+      viewDetail: '查看详情',
+      sourceDeleted: '源已删除',
+      sourceDeletedTip: '源端已删除该文档：此副本保留且仍可搜索，可手动删除或忽略（源端恢复后标记自动清除）',
+      allDocs: '全部文档'
     },
     every: '每',
     commons: {
@@ -1371,6 +1374,15 @@ const page: App.I18n.Schema['translation']['page'] = {
         redirect_uri: '重定向 URI',
         scheduled_sync: '定时同步',
         scheduled_sync_desc: '每隔固定时间同步一次',
+        cron_sync: '定时计划（Cron）',
+        cron_sync_desc: '按定时计划在固定时刻同步，例如每天 00:00、每周一 02:00',
+        cron_freq_daily: '每天',
+        cron_freq_weekly: '每周',
+        cron_freq_monthly: '每月',
+        cron_preset_monthly_day: '{{day}} 号',
+        cron_unmapped_hint: '当前保存的表达式无法映射到以上选项，重新选择后将被覆盖',
+        doc_pipeline: '解析管道',
+        doc_pipeline_placeholder: '选择解析管道',
         site_urls: '站点地址',
         permission_sync_enabled: '权限同步',
         sync_enabled: '启用同步',
@@ -1382,7 +1394,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         push_mode_hint: '推送模式（接收推送已开启）：文档通过 Webhook 推送摄入，定时/手动拉取已停用；关闭"接收推送"开关可恢复拉取设置',
         webhook_needs_pipeline: '已开启接收推送但未配置 Enrichment Pipeline：推送内容将被忽略。请在下方配置内联 Pipeline JSON，或关闭"接收推送"开关',
         enrichment_pipeline: 'Enrichment Pipeline',
-        enrichment_pipeline_desc: '内联 Pipeline 配置（JSON），作用于该数据源的全部摄入：连接器拉取与 Webhook 推送的文档都会先经过它加工（解析、分块、向量化等）。不配置时拉取文档原样入库，但 Webhook 推送将因无法解析而被忽略。常规拉取场景请使用下方"文档分析"开关选择现成 Pipeline；此字段适合定制加工，是推送场景的必需配置',
+        enrichment_pipeline_desc: '内联 Pipeline 配置（JSON），作用于该数据源的全部摄入：连接器拉取与 Webhook 推送的文档都会先经过它加工（解析、分块、向量化等）。不配置时拉取文档原样入库，但 Webhook 推送内容将被直接忽略（不解析、不入库），且推送方仍会收到成功应答。常规拉取场景请使用下方"文档分析"开关选择现成 Pipeline；此字段适合定制加工，是推送场景的必需配置',
         document_analysis: '文档分析'
       },
       title: '连接 {{connector}}',
@@ -2917,12 +2929,6 @@ const page: App.I18n.Schema['translation']['page'] = {
     labels: {
       enabled: '启用状态',
       integration: '组件'
-    },
-    not_enabled: {
-      title: 'AI 搜索未启用',
-      desc_admin: '当前未启用 AI 搜索组件。请前往「搜索设置 → 基础与组件」，打开启用状态并选择搜索组件后即可使用。',
-      desc_user: '当前未启用 AI 搜索功能，请联系管理员在「搜索设置」中开启。',
-      go_settings: '前往搜索设置'
     },
     title: '搜索设置'
   },

@@ -4,3 +4,18 @@
     margin-top: 3px;
   }
 }
+
+// Align the "同步策略" label with the first radio's title line. antd v6 pins
+// the horizontal-form label element to a fixed control-height box (32px,
+// inline-flex + align-items:center), so its text center sits ~5px below the
+// first radio title (a 22px line at the top of the control column). Form.Item
+// has no per-item label style override in v6 (the semantic `styles` prop only
+// exists on <Form>), so we target the label element via a className on the
+// item instead. The doubled class bumps specificity above the cssinjs rule
+// `.css-hash.ant-form-item .ant-form-item-label >label` without !important.
+.datasource-sync-item.datasource-sync-item.ant-form-item {
+  .ant-form-item-label > label {
+    height: auto;
+    line-height: 22px;
+  }
+}

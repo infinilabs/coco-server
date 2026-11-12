@@ -8,7 +8,7 @@
  */
 import { ArrowLeftOutlined, DownOutlined, ExportOutlined } from '@ant-design/icons';
 import { Download } from 'lucide-react';
-import { Avatar, Button, Dropdown, Empty, Image, Space, Spin, Tabs, Tag, Typography } from 'antd';
+import { Avatar, Button, Dropdown, Empty, Image, Space, Spin, Tabs, Tag, Tooltip, Typography } from 'antd';
 
 import ChunkTable from '@/components/DocumentDrawer/ChunkTable';
 import Markdown from '@/components/DocumentDrawer/Markdown';
@@ -261,6 +261,13 @@ export function Component() {
               <Typography.Title className='mb-0! min-w-0 flex-1 truncate! text-16px!'>
                 {doc?.title || docId}
               </Typography.Title>
+              {doc?.source_deleted && (
+                <Tooltip title={t('page.datasource.doc.sourceDeletedTip')}>
+                  <Tag className='shrink-0' color='warning'>
+                    {t('page.datasource.doc.sourceDeleted')}
+                  </Tag>
+                </Tooltip>
+              )}
               {docId &&
                 (hasRawFile ? (
                   // 原文预览 + 下载原文件是同一源文件的两种消费方式，收进一个按钮组；

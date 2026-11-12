@@ -1,6 +1,6 @@
 import { CheckCircleFilled, CloseCircleFilled, DatabaseOutlined, DownOutlined, EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, RightOutlined } from '@ant-design/icons';
 import type { MenuProps, TableColumnsType, TableProps } from 'antd';
-import { Avatar, Button, Dropdown, Popover, Table, Typography, message } from 'antd';
+import { Avatar, Button, Dropdown, Popover, Segmented, Table, Tag, Tooltip, Typography, message } from 'antd';
 import Search from 'antd/es/input/Search';
 import { useNavigate } from 'react-router-dom';
 
@@ -253,6 +253,16 @@ const FileManagement = props => {
           );
         }
 
+        // source-side tombstone (deletion reconciliation): the copy stays
+        // searchable; the badge tells the user the source no longer lists it
+        const deletedTag = record.source_deleted ? (
+          <Tooltip title={t('page.datasource.doc.sourceDeletedTip')}>
+            <Tag className='mr-0 shrink-0' color='warning'>
+              {t('page.datasource.doc.sourceDeleted')}
+            </Tag>
+          </Tooltip>
+        ) : null;
+
         if (connector?.path_hierarchy && queryParams.view === 'list') {
           return (
             <span className='flex-col inline-flex'>
@@ -271,6 +281,7 @@ const FileManagement = props => {
                 )}
                 <a {...aProps}>{text}</a>
                 {shareIcon}
+                {deletedTag}
               </span>
               <span className='h-14px text-10px text-#999'>
                 {record.categories?.length > 0 ? `/${record.categories.join('/')}` : '/'}
@@ -295,6 +306,7 @@ const FileManagement = props => {
             )}
             <a {...aProps}>{text}</a>
             {shareIcon}
+            {deletedTag}
           </span>
         );
       },
@@ -440,14 +452,24 @@ const FileManagement = props => {
 
   const [keyword, setKeyword] = useState();
 
+  // source-deleted tombstone filter: segmented view switch above the table;
+  // when on, only documents the sync reconciliation flagged as missing at the
+  // source are listed
+  const [docView, setDocView] = useState<'all' | 'source_deleted'>('all');
+  const showSourceDeleted = docView === 'source_deleted';
+
   const fetchData = async (queryParams, datasourceID) => {
     if (!datasourceID) return;
     setLoading(true);
     const { filter = {} } = queryParams || {};
+    const effectiveFilter = { ...filter };
+    if (showSourceDeleted) {
+      effectiveFilter['source_deleted'] = ['true'];
+    }
     const res = await fetchDatasourceDetail({
       ...queryParams,
       filter: {
-        ...filter,
+        ...effectiveFilter,
         'source.id': [datasourceID]
       }
     });
@@ -473,7 +495,7 @@ const FileManagement = props => {
 
   useEffect(() => {
     fetchData(queryParams, datasourceID);
-  }, [queryParams, datasourceID]);
+  }, [queryParams, datasourceID, showSourceDeleted]);
 
   useEffect(() => {
     setKeyword(queryParams.query);
@@ -571,17 +593,19 @@ const FileManagement = props => {
         </div>
       ) : null}
       <div className='mb-4 mt-6 flex items-center justify-between'>
-        <Search
-          addonBefore={<FilterOutlined />}
-          className='max-w-500px'
-          enterButton={t('common.refresh')}
-          value={keyword}
-          onChange={e => setKeyword(e.target.value)}
-          onSearch={onRefreshClick}
-        />
+        <div className='flex items-center gap-12px'>
+          <Search
+            addonBefore={<FilterOutlined />}
+            className='max-w-500px'
+            enterButton={t('common.refresh')}
+            value={keyword}
+            onChange={e => setKeyword(e.target.value)}
+            onSearch={onRefreshClick}
+          />
+        </div>
         {permissions.delete && (
           <div>
-            <Dropdown 
+            <Dropdown
               menu={{ items: items.map((item) => ({
                 ...item,
                 disabled: state.selectedRowKeys?.length === 0
@@ -593,6 +617,19 @@ const FileManagement = props => {
             </Dropdown>
           </div>
         )}
+      </div>
+      <div className='mb-4'>
+        <Segmented
+          value={docView}
+          onChange={v => {
+            setDocView(v as 'all' | 'source_deleted');
+            setQueryParams(params => ({ ...params, from: 0 }));
+          }}
+          options={[
+            { label: t('page.datasource.doc.allDocs'), value: 'all' },
+            { label: t('page.datasource.doc.sourceDeleted'), value: 'source_deleted' }
+          ]}
+        />
       </div>
       <Table<DataType>
         columns={columns}

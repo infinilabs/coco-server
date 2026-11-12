@@ -1047,7 +1047,10 @@ const page: App.I18n.Schema['translation']['page'] = {
       tabRuns: 'Processing Runs',
       tabJson: 'Raw JSON',
       tabText: 'Document Text',
-      viewDetail: 'View Detail'
+      viewDetail: 'View Detail',
+      sourceDeleted: 'Deleted at source',
+      sourceDeletedTip: 'The source no longer has this document: the copy is kept and still searchable — delete it manually or ignore (the flag clears itself if the document reappears at the source)',
+      allDocs: 'All documents'
     },
     every: 'Every',
     file_paths_add: 'Add File Path',
@@ -1272,6 +1275,15 @@ const page: App.I18n.Schema['translation']['page'] = {
         redirect_uri: 'Redirect URI',
         scheduled_sync: 'Scheduled Sync',
         scheduled_sync_desc: 'Sync at fixed intervals',
+        cron_sync: 'Cron Schedule',
+        cron_sync_desc: 'Sync at fixed times on a schedule, e.g. daily at 00:00, Mondays at 02:00',
+        cron_freq_daily: 'Daily',
+        cron_freq_weekly: 'Weekly',
+        cron_freq_monthly: 'Monthly',
+        cron_preset_monthly_day: 'Day {{day}}',
+        cron_unmapped_hint: 'The saved expression does not map to the options above; picking a new one will overwrite it',
+        doc_pipeline: 'Parsing pipeline',
+        doc_pipeline_placeholder: 'Select a parsing pipeline',
         site_urls: 'Site URLs',
         permission_sync_enabled: 'Permission Sync',
         sync_enabled: 'Sync',
@@ -1283,7 +1295,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         push_mode_hint: 'Push mode (receive push enabled): documents are ingested via Webhook pushes; scheduled/manual pull is disabled. Turn off the "Receive push" switch to restore pull settings',
         webhook_needs_pipeline: 'Receive push is enabled but no Enrichment Pipeline is configured: pushed payloads will be ignored. Configure the inline pipeline JSON below, or turn off the "Receive push" switch',
         enrichment_pipeline: 'Enrichment Pipeline',
-        enrichment_pipeline_desc: 'Inline pipeline config (JSON) applied to all ingestion of this datasource: documents from both connector pulls and Webhook pushes pass through it (parsing, chunking, embedding, etc.). Without it, pulled documents are stored as-is, but Webhook payloads cannot be parsed and are silently ignored. For regular pull-based sources use the Document Analysis switch below to pick a managed pipeline; this field is for custom processing and is required for push scenarios',
+        enrichment_pipeline_desc: 'Inline pipeline config (JSON) applied to all ingestion of this datasource: documents from both connector pulls and Webhook pushes pass through it (parsing, chunking, embedding, etc.). Without it, pulled documents are stored as-is, but Webhook payloads are skipped entirely (never parsed, never indexed) while the sender still receives a success acknowledgment. For regular pull-based sources use the Document Analysis switch below to pick a managed pipeline; this field is for custom processing and is required for push scenarios',
         document_analysis: 'Document Analysis'
       },
       title: '{{connector}} Connection',
@@ -3006,13 +3018,6 @@ const page: App.I18n.Schema['translation']['page'] = {
     labels: {
       enabled: 'Enabled',
       integration: 'Widget'
-    },
-    not_enabled: {
-      title: 'AI Search is not enabled',
-      desc_admin:
-        'The AI search widget is currently disabled. Go to "Search Settings → Basics & Widget", turn on the enabled switch and pick a search widget to use it.',
-      desc_user: 'AI Search is currently disabled. Please ask an administrator to enable it in "Search Settings".',
-      go_settings: 'Go to Search Settings'
     },
     title: 'Search Settings'
   },

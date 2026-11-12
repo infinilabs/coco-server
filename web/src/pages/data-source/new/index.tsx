@@ -3,7 +3,7 @@
 // @ts-ignore
 
 import type { FormProps } from 'antd';
-import { Alert, Button, Form, Input, Modal, Select, Spin, Switch, message } from 'antd';
+import { Alert, Button, Form, Input, Modal, Spin, Switch, message } from 'antd';
 import { useForm } from 'antd/es/form/Form';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +12,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
 import { DataSync } from '@/components/datasource/data_sync';
+import PipelineDropdown from '@/components/datasource/pipeline_dropdown';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
 import { Types } from '@/components/datasource/type';
@@ -393,7 +394,8 @@ export function Component() {
         // 隐藏区块中的残留值（默认 enabled=true）触发幽灵 connector 拉取
         enabled: values.webhook?.enabled ? false : values.sync_config.enabled,
         strategy: values.sync_config.strategy,
-        interval: values.sync_config.interval
+        interval: values.sync_config.interval,
+        crontab: values.sync_config.strategy === 'cron' ? values.sync_config.crontab : undefined
       },
       type: 'connector',
       webhook: values.webhook,
@@ -502,7 +504,8 @@ export function Component() {
                 sync_config: {
                   enabled: true,
                   interval: '60s',
-                  strategy: 'interval'
+                  strategy: 'interval',
+                  crontab: '0 0 0 * * *'
                 }
               }}
               onFinish={onFinish}
@@ -644,6 +647,7 @@ export function Component() {
                         label={t('page.datasource.new.labels.data_sync')}
                         name='sync_config'
                         style={{ display: isSyncEnabled ? 'block' : 'none' }}
+                        className='datasource-sync-item'
                       >
                         <DataSync />
                       </Form.Item>
@@ -667,23 +671,11 @@ export function Component() {
                   const isDocumentProcessingEnabled = getFieldValue(['document_processing_config', 'enabled']);
                   return (
                     <Form.Item
-                      label={
-                        <span className="inline-flex items-center gap-4px">
-                          Pipeline
-                          <Button type="link" className="!px-0 !h-auto !text-12px" onClick={() => nav('/pipeline/list')}>
-                            {t('page.pipeline.manageLink')}
-                          </Button>
-                        </span>
-                      }
+                      label={t('page.datasource.new.labels.doc_pipeline')}
                       name={['document_processing_config', 'pipeline']}
                       style={{ display: isDocumentProcessingEnabled ? 'block' : 'none' }}
                     >
-                      <Select
-                        options={pipelineList.map(item => ({
-                          label: item.name,
-                          value: item.id
-                        }))}
-                      />
+                      <PipelineDropdown pipelineList={pipelineList} onRefresh={fetchPipelines} />
                     </Form.Item>
                   );
                 }}
