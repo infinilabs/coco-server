@@ -12,7 +12,7 @@ import RsaSourcesSection from './RsaSourcesSection';
 import AggregationFieldsField, { AGG_DIMENSIONS } from './AggregationFieldsField';
 import { useLoading, useRequest } from '@sa/hooks';
 import { getApplicationSetting, setApplicationSetting, updateRootRouteIfSearch } from '@/store/slice/server';
-import { initAuthRoute, initConstantRoute, selectFilterPaths, setFilterPaths } from '@/store/slice/route';
+import { initAuthRoute, initConstantRoute } from '@/store/slice/route';
 import { resetAuth } from '@/store/slice/auth';
 import BuiltinSearchForm from './BuiltinSearchForm';
 import SaveBar from './SaveBar';
@@ -145,7 +145,6 @@ const SearchSettings = memo(() => {
 
   const dispatch = useAppDispatch();
   const applicationSetting = useAppSelector(getApplicationSetting);
-  const filterPaths = useAppSelector(selectFilterPaths);
 
   const {
     data,
@@ -258,9 +257,6 @@ const SearchSettings = memo(() => {
       }
       await dispatch(setApplicationSetting(newApplicationSetting));
       await dispatch(updateRootRouteIfSearch(newApplicationSetting));
-      if (search_settings.enabled) {
-        await dispatch(setFilterPaths(filterPaths.filter(path => path !== '/search')));
-      }
       await dispatch(initConstantRoute());
       await dispatch(resetAuth());
       await dispatch(initAuthRoute());

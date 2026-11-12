@@ -1,6 +1,7 @@
 import { Spin } from 'antd';
 import dayjs from 'dayjs';
 import { useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { fetchIntegration } from '@/service/api/integration';
 import useQueryParams from '@/hooks/common/queryParams';
 import { FullscreenPage, OWNER_FILTER_FIELD, TIME_FILTER_FIELD } from 'ui-search/source';
@@ -16,6 +17,7 @@ import { voteAnswerExperience } from '@/service/api/wiki';
 import { fetchBatchEntityLabels } from '@/service/api/entity';
 import { CorrectionModal, type CorrectionPayload } from './components/CorrectionModal';
 import { SaveToWikiModal, type SaveToWikiPayload } from './components/SaveToWikiModal';
+import SearchNotEnabled from './SearchNotEnabled';
 
 // creator filter: buckets carry user ids — display names are resolved client-side
 // via getUserEntities (same as the result list's owner names). The agg is named
@@ -100,6 +102,12 @@ const buildAggsImage = () => ({
 });
 
 export function Component() {
+
+  // /chat re-exports this component (AI Chat is the chat mode of the search
+  // app); the AI-search enable switch only governs the search application —
+  // the chat entry stays usable when it is off
+  const { pathname } = useLocation();
+  const isChatEntry = pathname === '/chat';
 
   const [queryParams, setQueryParams] = useQueryParams({ mode: 'search' }, { reactive: true });
 
@@ -519,6 +527,13 @@ export function Component() {
     return (
       <GlobalLoading spinning={loading} />
     )
+  }
+
+  // the AI search component is off (搜索设置 · 基础与组件) — guide to the
+  // setting instead of a bare page; the route stays registered on purpose.
+  // Scope: only the /search entry — /chat bypasses the switch by design
+  if (!isChatEntry && (!search_settings?.enabled || !search_settings?.integration)) {
+    return <SearchNotEnabled />;
   }
 
   if (!integration) return null;

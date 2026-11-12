@@ -31,15 +31,14 @@ export const init: Init = async currentFullPath => {
 
   const setupRequired = Boolean(result.data?.setup_required);
   const isManaged = Boolean(result?.data?.security?.managed);
-  const searchEnabled = Boolean(result?.data?.search_settings?.enabled) && Boolean(result?.data?.search_settings?.integration);
 
   const filterPaths: RoutePath[] = [];
   if (!setupRequired || isManaged) {
     filterPaths.push('/guide');
   }
-  if (!searchEnabled) {
-    filterPaths.push('/search');
-  }
+  // note: /search is deliberately NOT filtered when the AI search component
+  // is disabled — the page itself renders a "not enabled" guide (config
+  // pointer + settings entry) instead of an unexplained 404
 
   await store.dispatch(setFilterPaths(filterPaths));
 

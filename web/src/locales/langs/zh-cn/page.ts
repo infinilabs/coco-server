@@ -2918,6 +2918,12 @@ const page: App.I18n.Schema['translation']['page'] = {
       enabled: '启用状态',
       integration: '组件'
     },
+    not_enabled: {
+      title: 'AI 搜索未启用',
+      desc_admin: '当前未启用 AI 搜索组件。请前往「搜索设置 → 基础与组件」，打开启用状态并选择搜索组件后即可使用。',
+      desc_user: '当前未启用 AI 搜索功能，请联系管理员在「搜索设置」中开启。',
+      go_settings: '前往搜索设置'
+    },
     title: '搜索设置'
   },
   setupLater: '稍后设置',
