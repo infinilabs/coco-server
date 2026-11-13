@@ -125,7 +125,7 @@ func freshnessSweep(ctx context.Context, llm llms.Model, since time.Time) freshn
 				break
 			}
 			article := &articles[j]
-			if err := regenerateStaleArticle(ctx, llm, article, mergeArticleDocs(ctx, article, kbChanged)); err != nil {
+			if err := regenerateStaleArticle(ctx, llm, article, mergeArticleDocs(ctx, article, kbChanged), kb.GenerationLanguage); err != nil {
 				log.Warnf("wiki: freshness regeneration of %q failed: %v", article.Title, err)
 				continue
 			}
@@ -302,12 +302,16 @@ func mergeArticleDocs(ctx context.Context, article *core.WikiArticle, kbChanged 
 // and records an auto-updated version. The live article content and its
 // status are deliberately left alone: the output is a pending-review
 // version, publishing stays human (D1).
-func regenerateStaleArticle(ctx context.Context, llm llms.Model, article *core.WikiArticle, docs []core.Document) error {
+func regenerateStaleArticle(ctx context.Context, llm llms.Model, article *core.WikiArticle, docs []core.Document, lang string) error {
 	if len(docs) == 0 {
 		return fmt.Errorf("no source documents to regenerate from")
 	}
 	opts := generationOptions{}
 	opts.applyDefaults()
+	// the KB-level language wins over the global generation setting
+	if lang != "" {
+		opts.Lang = lang
+	}
 
 	candidate := pageCandidate{
 		Title:    article.Title,

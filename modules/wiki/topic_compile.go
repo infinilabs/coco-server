@@ -460,7 +460,7 @@ type topicNaming struct {
 // stack duplicate pages, so the naming rule now instructs the model to
 // REUSE the existing page's exact title for same-subject clusters —
 // matchTopicTargets then claims it as an update instead of filing a twin.
-func nameTopics(ctx context.Context, model *core.ModelId, clusters []*topicCluster, existing []core.WikiArticle) {
+func nameTopics(ctx context.Context, model *core.ModelId, clusters []*topicCluster, existing []core.WikiArticle, lang string) {
 	if len(clusters) == 0 {
 		return
 	}
@@ -510,7 +510,7 @@ func nameTopics(ctx context.Context, model *core.ModelId, clusters []*topicClust
 
 规则：
 - 标题是名词短语，概括该主题的主体（如「支付与清结算」「客户服务体系」），不要用单个实体名
-- 标题语言跟随材料语言
+%s
 - 标题之间要互相区分
 - 若某主题与已有页面指向同一事物（包括中英互译、简称/全称、新旧叫法），该主题的 title 必须原样返回那个已有页面的标题（不翻译、不改写），并把本次材料里的叫法放进 aliases —— 这会让编译去更新已有页面，而不是新建重复页
 - scope 一句话说清这个主题页覆盖什么
@@ -520,9 +520,9 @@ func nameTopics(ctx context.Context, model *core.ModelId, clusters []*topicClust
 聚类摘要：
 %s
 
-只返回 JSON 数组：[{"index":0,"title":"...","scope":"...","aliases":["..."]}]`, len(clusters), existingStr, material)
+只返回 JSON 数组：[{"index":0,"title":"...","scope":"...","aliases":["..."]}]`, len(clusters), nameLangRule(lang), existingStr, material)
 
-	fp := topicFingerprint(model, "name", fmt.Sprintf("kb:%d", len(clusters)), []string{string(material), existingStr})
+	fp := topicFingerprint(model, "name", fmt.Sprintf("kb:%d|lang:%s", len(clusters), lang), []string{string(material), existingStr})
 	var named []topicNaming
 	if fp != "" && topicCacheGet(fp, &named) {
 		applyNaming(clusters, named)
@@ -711,7 +711,7 @@ const topicMaxSections = 8
 // planTopicOutline asks the LLM for the page's section plan across
 // dimensions, update-aware: given the KB's existing topic pages it may
 // claim one as this topic's enrichment target.
-func planTopicOutline(ctx context.Context, model *core.ModelId, c *topicCluster, existingPages []core.WikiArticle) (*topicOutline, error) {
+func planTopicOutline(ctx context.Context, model *core.ModelId, c *topicCluster, existingPages []core.WikiArticle, lang string) (*topicOutline, error) {
 	keyEntities := keyEntityNames(c)
 	claims := make([]string, 0, topicOutlineSamples)
 	for _, s := range c.Statements {
@@ -752,7 +752,7 @@ func planTopicOutline(ctx context.Context, model *core.ModelId, c *topicCluster,
 
 参考维度（按材料取舍，不要求全部）：概述、背景与上下文、核心机制或关键维度（可拆多节）、关键实体与关系、时间线（仅当材料含时间脉络）、数据与事实、争议与开放问题、来源与延伸。
 规则：
-- 4-8 个章节标题，标题语言跟随材料语言，必须覆盖材料实际支持的内容
+- %s
 - 核心维度优先：材料最丰富的侧面拆成独立章节
 - 若该主题实质上是已有主题页的一部分，返回 update_title 为那个页面的完整标题；否则 update_title 留空
 - 已有主题页：%s%s
@@ -761,10 +761,10 @@ func planTopicOutline(ctx context.Context, model *core.ModelId, c *topicCluster,
 编号主张样例：
 %s
 
-只返回 JSON：{"update_title":"","sections":["...","..."]}`, c.Title, orDash(c.Scope), existing, anchorRule,
+只返回 JSON：{"update_title":"","sections":["...","..."]}`, c.Title, orDash(c.Scope), outlineLangRule(lang), existing, anchorRule,
 		strings.Join(keyEntities, "、"), strings.Join(claims, "\n"))
 
-	fp := topicFingerprint(model, "outline", c.Title, claims)
+	fp := topicFingerprint(model, "outline", c.Title+"|lang:"+lang, claims)
 	if fp != "" {
 		var cached topicOutline
 		if topicCacheGet(fp, &cached) && len(cached.Sections) > 0 {
@@ -800,7 +800,7 @@ func planTopicOutline(ctx context.Context, model *core.ModelId, c *topicCluster,
 
 // fillTopicSections routes the pooled claims into the planned sections and
 // drafts each as finished prose citing claim indexes — one call per topic.
-func fillTopicSections(ctx context.Context, model *core.ModelId, c *topicCluster, headings []string) (*topicFill, error) {
+func fillTopicSections(ctx context.Context, model *core.ModelId, c *topicCluster, headings []string, lang string) (*topicFill, error) {
 	claims := make([]string, 0, len(c.Statements))
 	for _, s := range c.Statements {
 		if len(claims) >= topicFillPromptClaims {
@@ -820,16 +820,16 @@ func fillTopicSections(ctx context.Context, model *core.ModelId, c *topicCluster
 - 每节至少引用 1 条主张；某章节确实无材料支撑时，body 留空、refs 为空数组
 - 每条编号主张只允许出现在一个章节里：先到先得，后面章节不得再用同一编号；多条主张表达同一事实时，只采用编号最小的那条，其余视为重复跳过
 - 任何一句实质内容（事实、数字、结论）都不得在两个章节中重复出现；后面章节若无可写的新内容，宁可 body 留空
-- 语言跟随材料语言（材料是繁体就用繁体，是英文就用英文）
+- %s
 - 正文里提及主题核心实体时直接写实体名，不要加引号或前缀
 
 编号主张：
 %s
 
 只返回 JSON：{"sections":[{"heading":"与大纲一致的章节标题","body":"...","refs":[1,3]}]}`,
-		c.Title, strings.Join(headings, "、"), strings.Join(claims, "\n"))
+		c.Title, strings.Join(headings, "、"), strings.Join(claims, "\n"), fillLangRule(lang))
 
-	fp := topicFingerprint(model, "fill", c.Title, append([]string{strings.Join(headings, "|")}, claims...))
+	fp := topicFingerprint(model, "fill", c.Title+"|lang:"+lang, append([]string{strings.Join(headings, "|")}, claims...))
 	if fp != "" {
 		var cached topicFill
 		if topicCacheGet(fp, &cached) && len(cached.Sections) > 0 {
@@ -867,11 +867,48 @@ func orDash(s string) string {
 	return strings.TrimSpace(s)
 }
 
+// langDisplayName renders a generation_language code for use inside prompts;
+// unknown codes pass through verbatim.
+func langDisplayName(lang string) string {
+	switch lang {
+	case "zh-CN", "zh":
+		return "简体中文"
+	case "en-US", "en":
+		return "English"
+	}
+	return lang
+}
+
+// Per-stage language rules. An empty KB language keeps the legacy
+// follow-the-material behavior; a configured KB language pins the output
+// deterministically even for mixed-language corpora.
+func nameLangRule(lang string) string {
+	if lang == "" {
+		return "- 标题语言跟随材料语言"
+	}
+	n := langDisplayName(lang)
+	return fmt.Sprintf("- 标题与 scope 必须用 %s 撰写；材料为其他语言时翻译成 %s，专有名词与产品名保留原文", n, n)
+}
+
+func outlineLangRule(lang string) string {
+	if lang == "" {
+		return "- 4-8 个章节标题，标题语言跟随材料语言，必须覆盖材料实际支持的内容"
+	}
+	return fmt.Sprintf("- 4-8 个章节标题，必须用 %s，必须覆盖材料实际支持的内容", langDisplayName(lang))
+}
+
+func fillLangRule(lang string) string {
+	if lang == "" {
+		return "- 语言跟随材料语言（材料是繁体就用繁体，是英文就用英文）"
+	}
+	return fmt.Sprintf("- 正文必须用 %s 撰写（证据摘录中的原文引语可保留原语言），专有名词与产品名保留原文", langDisplayName(lang))
+}
+
 // composeTopicDraft runs OUTLINE → FILL for one cluster and assembles the
 // structured draft: WikiSections with per-section provenance, the pooled
 // claims for the evidence chain, and the page's key entities.
-func composeTopicDraft(ctx context.Context, model *core.ModelId, kbID string, c *topicCluster, existing []core.WikiArticle) (*topicDraft, error) {
-	outline, err := planTopicOutline(ctx, model, c, existing)
+func composeTopicDraft(ctx context.Context, model *core.ModelId, kbID string, c *topicCluster, existing []core.WikiArticle, lang string) (*topicDraft, error) {
+	outline, err := planTopicOutline(ctx, model, c, existing, lang)
 	if err != nil {
 		return nil, err
 	}
@@ -918,7 +955,7 @@ func composeTopicDraft(ctx context.Context, model *core.ModelId, kbID string, c 
 	if len(headings) > topicMaxSections {
 		headings = headings[:topicMaxSections]
 	}
-	fill, err := fillTopicSections(ctx, model, c, headings)
+	fill, err := fillTopicSections(ctx, model, c, headings, lang)
 	if err != nil {
 		return nil, err
 	}
@@ -1152,7 +1189,7 @@ func runTopicPipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *co
 		return 0
 	}
 
-	nameTopics(ctx, model, clusters, existing)
+	nameTopics(ctx, model, clusters, existing, kb.GenerationLanguage)
 	matchTopicTargets(clusters, existing)
 
 	if job != nil {
@@ -1166,7 +1203,7 @@ func runTopicPipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *co
 		if job != nil {
 			job.Current = c.Title
 		}
-		draft, err := composeTopicDraft(ctx, model, kb.ID, c, existing)
+		draft, err := composeTopicDraft(ctx, model, kb.ID, c, existing, kb.GenerationLanguage)
 		if err != nil {
 			if job != nil {
 				job.log("compose failed [%s]: %v", c.Title, err)

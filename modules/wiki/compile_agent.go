@@ -472,7 +472,8 @@ const compileAgentPersona = `你是知识库的持续编译维护者。你的职
 3. 修订必须以工具取回的真实内容为据，正文里用 [Doc: 文档标题] 标注来源；禁止编造
 4. 提交前自查：内容是否答标题？每个关键主张是否有出处？比现有版本好吗？没把握就 no_action
 5. propose_page_patch 提交的是整页替换正文（Markdown，## 小节结构，无一级标题）
-6. 提交完成后立即结束，最终回答必须是纯 JSON（不要代码块不要解释）：
+6. 保留正文已有的 [[类型:名称]] 实体链接：链接目标与数量不得减少，正文新提及知识库实体时按原文名称书写（应用时会自动重新挂链接，但链接所在位置由你的正文决定）
+7. 提交完成后立即结束，最终回答必须是纯 JSON（不要代码块不要解释）：
 {"action":"patch_proposed" 或 "no_action","page":"页面标题","rationale":"一句话理由"}`
 
 // runCompileAgentOnce runs ONE agent iteration: pick a page, gather
@@ -486,11 +487,17 @@ func runCompileAgentOnce(ctx context.Context, kb core.WikiKnowledgeBase, tools *
 	if err != nil {
 		return nil, err
 	}
+	// per-KB output language pins the rewrite prose; empty keeps the
+	// legacy behavior (output follows the persona's language)
+	persona := compileAgentPersona
+	if lang := strings.TrimSpace(kb.GenerationLanguage); lang != "" {
+		persona += fmt.Sprintf("\n\n语言规则：修订正文必须用 %s 撰写；证据摘录中的原文引语可保留原语言，专有名词与产品名保留原文。", langDisplayName(lang))
+	}
 	agent, err := react.NewAgent(ctx, &react.AgentConfig{
 		ToolCallingModel: cm,
 		ToolsConfig:      compose.ToolsNodeConfig{Tools: einoTools},
 		MaxStep:          compileAgentMaxSteps,
-		MessageModifier:  react.NewPersonaModifier(compileAgentPersona),
+		MessageModifier:  react.NewPersonaModifier(persona),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create react agent: %w", err)

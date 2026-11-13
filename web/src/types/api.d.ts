@@ -435,6 +435,8 @@ declare namespace Api {
       auto_organize_toc?: boolean;
       /** AI 生成约束:该库 AI 生成/编辑的附加指引,非空时覆盖默认人设 */
       ai_guidance?: string;
+      /** 编译输出语言:作用于知识编译/编译代理/新鲜度重生成;空=跟随原材料语言 */
+      generation_language?: string;
       /** 回答模型:该库 AI 生成/编辑用的模型覆盖,空则回落服务器默认语言模型 */
       ai_model?: { provider_id?: string; name?: string; [k: string]: unknown };
     }

@@ -172,6 +172,13 @@ type WikiKnowledgeBase struct {
 	// guidance in settings could never overwrite a stored value (same
 	// partial-update semantics the bool flags above document)
 	AIGuidance string `json:"ai_guidance" elastic_mapping:"ai_guidance:{enabled:false}"`
+	// GenerationLanguage (编译输出语言): per-KB language for the compilation
+	// prompts — topic compile (naming/outline/drafting), the compile agent's
+	// page rewrites and freshness regeneration. Empty (default) keeps the
+	// legacy behavior: output follows the source material's language. Values:
+	// zh-CN | en-US. No omitempty: clearing in settings must overwrite a
+	// stored value (same partial-update semantics as ai_guidance).
+	GenerationLanguage string `json:"generation_language" elastic_mapping:"generation_language:{type:keyword}"`
 	// AIModel (回答模型): per-KB override of the answering model for wiki
 	// AI generation/editing. Empty provider/name falls back to the server
 	// default language model. Stored, never queried.

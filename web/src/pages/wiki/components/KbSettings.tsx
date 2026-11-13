@@ -44,6 +44,7 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
       experience_capture: !!kb.experience_capture,
       auto_organize_toc: !!kb.auto_organize_toc,
       ai_guidance: kb.ai_guidance || '',
+      generation_language: kb.generation_language || undefined,
       ai_model: (kb as any).ai_model || undefined,
       toc_layout: (kb.toc_layout || []).map(f => ({
         title: f.title,
@@ -84,6 +85,9 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
         // an undefined (cleared) model must serialize explicitly — a missing
         // key would leave the stored value alive in the partial update
         ai_model: values.ai_model || { provider_id: '', name: '' },
+        // same partial-update semantics: an empty string clears the stored
+        // language, a missing key would keep it forever
+        generation_language: values.generation_language || '',
         toc_layout: ((values.toc_layout || []) as any[])
           .filter(row => row?.title?.trim())
           .map(row => ({
@@ -131,6 +135,7 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
           auto_organize_toc: !!kb.auto_organize_toc,
           datasource_ids: kb.datasource_ids,
           ai_guidance: kb.ai_guidance || '',
+          generation_language: kb.generation_language || undefined,
           ai_model: (kb as any).ai_model || undefined,
           toc_layout: (kb.toc_layout || []).map(f => ({
             title: f.title,
@@ -257,6 +262,20 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
         </Card>
 
         <Card bordered={false} className="wiki-panel mb-12px" title={t('page.wiki.settings.aiGuidance')}>
+          <Form.Item
+            label={t('page.wiki.settings.generationLanguage')}
+            name="generation_language"
+            tooltip={t('page.wiki.settings.generationLanguageHint')}
+          >
+            <Select
+              allowClear
+              options={[
+                { value: 'zh-CN', label: '中文' },
+                { value: 'en-US', label: 'English' }
+              ]}
+              placeholder={t('page.wiki.settings.generationLanguagePlaceholder')}
+            />
+          </Form.Item>
           <Form.Item
             label={t('page.wiki.settings.aiGuidance')}
             name="ai_guidance"

@@ -134,6 +134,20 @@ export function CreateKbModal({
           </Form.Item>
         </div>
         <Form.Item
+          label={t('page.wiki.settings.generationLanguage')}
+          name='generation_language'
+          tooltip={t('page.wiki.settings.generationLanguageHint')}
+        >
+          <Select
+            allowClear
+            options={[
+              { value: 'zh-CN', label: '中文' },
+              { value: 'en-US', label: 'English' }
+            ]}
+            placeholder={t('page.wiki.settings.generationLanguagePlaceholder')}
+          />
+        </Form.Item>
+        <Form.Item
           label={t('page.wiki.workspace.title')}
           name='workspace_id'
           tooltip={t('page.wiki.workspace.hint')}
