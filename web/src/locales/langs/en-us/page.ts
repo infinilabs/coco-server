@@ -3019,6 +3019,12 @@ const page: App.I18n.Schema['translation']['page'] = {
       enabled: 'Enabled',
       integration: 'Widget'
     },
+    not_enabled: {
+      title: 'AI Search is not enabled',
+      desc_admin: 'The AI search widget is currently disabled. Go to "Search Settings → Basics & Widget", turn on the enabled switch and pick a search widget to use it.',
+      desc_user: 'AI search is currently disabled. Please contact your administrator to enable it in Search Settings.',
+      go_settings: 'Go to Search Settings'
+    },
     title: 'Search Settings'
   },
   setupLater: 'Set Up Later'
