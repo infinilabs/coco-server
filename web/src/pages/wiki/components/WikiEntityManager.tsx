@@ -289,7 +289,9 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
           message.success(t('page.wiki.entityManager.batchDone', { count: updated }));
         }
         setSelectedIds([]);
-        fetchData();
+        // the batch no longer waits on ES refresh per entity (fast path) —
+        // give the ~1s refresh cycle a beat so the reload sees new statuses
+        setTimeout(fetchData, 1200);
       })
       .catch(() => message.error(t('page.wiki.entityManager.batchFailed')))
       .finally(() => setBatchLoading(false));

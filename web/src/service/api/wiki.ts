@@ -53,6 +53,10 @@ const normalizeKb = (src: any): Api.Wiki.Kb => ({
   experience_capture: !!src?.experience_capture,
   auto_organize_toc: !!src?.auto_organize_toc,
   ai_guidance: src?.ai_guidance ?? '',
+  // same normalization lesson as experience_capture: without this mapping
+  // the saved language round-trips to the settings form as undefined and
+  // the Select falls back to the "follow material" placeholder
+  generation_language: src?.generation_language ?? '',
   toc_layout: src?.toc_layout ?? []
 });
 
@@ -842,8 +846,17 @@ export function batchUpdateWikiEntityStatus(ids: string[], status: string) {
   return request<{ updated: number; skipped: number }>({
     method: 'put',
     data: { ids, status },
-    url: '/wiki/entity/_batch_status'
-  }).then(res => (res as any)?.data);
+    url: '/wiki/entity/_batch_status',
+    // the shared client defaults to 10s; large batches are sequential
+    // per-entity updates and must not be aborted mid-flight
+    timeout: 120 * 1000
+  }).then(res => {
+    // flat requests resolve with { data, error } and never reject: without
+    // this rethrow a timeout showed "已更新 0 个实体" success next to the
+    // global error toast while the server had actually finished the batch
+    if (res?.error) throw res.error;
+    return res?.data;
+  });
 }
 
 /* ---------------- KB-level files (raw material) ---------------- */
