@@ -1,0 +1,25 @@
+// pipeline editor: advanced settings pane lives one level below .settings-form
+// (inside Collapse), so the shared direct-child rule doesn't reach it — mirror
+// the .search-tab-pane pattern: fixed 160px left label column, controls capped
+// at 520px
+.pipeline-advanced-pane {
+  // cancel .ant-collapse-content-box default 16px padding so the 160px label
+  // column starts exactly under the Name/Description labels above
+  margin-left: -16px;
+
+  & > .ant-form-item > .ant-row {
+    & > .ant-form-item-label {
+      width: 160px;
+    }
+    & > .ant-form-item-control {
+      max-width: 520px;
+    }
+  }
+}
+
+// collapse header carries a default 16px padding-left that shifts the
+// "Advanced" title right of the Name/Description labels — remove it so the
+// title text starts exactly at the label column
+.settings-form > .ant-collapse > .ant-collapse-item > .ant-collapse-header {
+  padding-left: 0;
+}

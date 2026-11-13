@@ -40,6 +40,12 @@ const MenuProvider: FC<Props> = ({ children }) => {
 
     const routeName = (hideInMenu ? activeMenu : name) || name;
 
+    // the search app hosts two first-level entries distinguished by ?mode= — keep the menu highlight in sync
+    // (mode is dropped entirely when the app switches forms in place, so default to the search entry)
+    if (routeName === 'search' || routeName === 'chat') {
+      return [route.query?.mode === 'chat' ? 'chat' : 'search'];
+    }
+
     return [routeName];
   }, [route]);
 

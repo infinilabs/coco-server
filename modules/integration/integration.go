@@ -5,14 +5,21 @@
 package integration
 
 import (
+	"net/http"
+	"sync"
+
 	"infini.sh/coco/core"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
-	"net/http"
-	"sync"
 )
+
+// isBuiltInIntegration reports whether the integration id is reserved for the
+// app's own search page.
+func isBuiltInIntegration(id string) bool {
+	return core.IsBuiltInIntegration(id)
+}
 
 func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 
@@ -23,6 +30,10 @@ func (h *APIHandler) create(w http.ResponseWriter, req *http.Request, ps httprou
 	err := h.DecodeJSON(req, obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if isBuiltInIntegration(obj.ID) {
+		h.WriteError(w, "integration id is reserved for the built-in search integration", http.StatusBadRequest)
 		return
 	}
 	err = orm.Create(ctx, obj)
@@ -68,6 +79,15 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	// the built-in integration stays editable (its payload is the in-app
+	// search's config surface), but disabling it would take the app's own
+	// search page down — reject that one field
+	if isBuiltInIntegration(id) {
+		if enabled, ok := delta["enabled"].(bool); ok && !enabled {
+			h.WriteError(w, "the built-in search integration cannot be disabled", http.StatusBadRequest)
+			return
+		}
+	}
 	ctx.Set(orm.SharingEnabled, true)
 	ctx.Set(orm.SharingResourceType, "integration")
 	ctx.Refresh = orm.WaitForRefresh
@@ -90,6 +110,11 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.MustGetParameter("id")
 
+	if isBuiltInIntegration(id) {
+		h.WriteError(w, "the built-in search integration cannot be deleted", http.StatusBadRequest)
+		return
+	}
+
 	obj := core.Integration{}
 	obj.ID = id
 	ctx := orm.NewContextWithParent(req.Context())
@@ -101,7 +126,7 @@ func (h *APIHandler) delete(w http.ResponseWriter, req *http.Request, ps httprou
 		return
 	}
 	// remove related origins check
-	integrationOrigins.Delete(obj.ID)
+	integrationOrigins.Delete(id)
 
 	h.WriteDeletedOKJSON(w, id)
 }
@@ -138,18 +163,10 @@ func (h *APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprou
 
 		// NOTICE: i don't think we should modify anything when do search!
 
-		//for _, hit := range searchRes.Hits.Hits {
-		//	if token, ok := hit.Source["token"].(string); ok && token != "" {
-		//		tokenObj, err := security.GetToken(token)
-		//		if tokenObj == nil && err == nil {
-		//			// token is not found in the kv, here we set it as expired
-		//			hit.Source["token_expire_in"] = time.Time{}.Unix()
-		//		}
-		//		if tokenObj != nil {
-		//			hit.Source["token_expire_in"] = tokenObj.ExpireIn
-		//		}
-		//	}
-		//}
+		// the built-in search integration is app infrastructure, not a
+		// manageable item — keep it out of every management list (the direct
+		// GET /integration/:id the search page uses is unaffected)
+		core.StripBuiltInIntegration(&searchRes)
 
 	}
 

@@ -17,6 +17,12 @@ type Attachment struct {
 	Size        int64  `json:"size,omitempty" elastic_mapping:"size:{type:long}"`
 	Text        string `json:"text,omitempty" elastic_mapping:"text:{type:text}"` // Extracted text content (e.g., via OCR)
 
+	// ImagePhash is the 64-bit perceptual hash for image attachments (W12),
+	// stored signed for the same reason as Document.ContentSimhash — the
+	// engine's long field rejects high-bit patterns. 0 = not an image (or
+	// undecodable), the same "no fingerprint" convention as the text hash.
+	ImagePhash int64 `json:"image_phash,omitempty" elastic_mapping:"image_phash:{type:long}"`
+
 	Deleted       bool        `json:"deleted,omitempty" elastic_mapping:"deleted:{type:boolean}"`
 	LastUpdatedBy *EditorInfo `json:"last_updated_by,omitempty" elastic_mapping:"last_updated_by:{type:object}"`
 

@@ -1,0 +1,1311 @@
+/* Copyright © INFINI LTD. All rights reserved.
+ * Web: https://infini.ltd */
+
+package wiki
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"regexp"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+
+	log "github.com/cihub/seelog"
+	"infini.sh/coco/core"
+	"infini.sh/coco/modules/assistant/langchain"
+	"infini.sh/coco/modules/common/fingerprint"
+	llmmodule "infini.sh/coco/modules/llm"
+	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/elastic"
+	"infini.sh/framework/core/kv"
+	"infini.sh/framework/core/orm"
+	"infini.sh/framework/core/util"
+
+	"github.com/tmc/langchaingo/llms"
+)
+
+// Knowledge compiler (W9, design doc 第七篇): turn a KB's source
+// documents into curated wiki pages through a four-stage pipeline whose
+// every output is a governance PROPOSAL — the human publishes, always.
+//
+//	MAP     batches of chunks → LLM extracts entities/concepts/claims
+//	        (each carrying SourceChunkIDs), results cached by content
+//	        fingerprint + model + schema fingerprint — unchanged chunks
+//	        cost zero LLM on recompile
+//	REDUCE  deterministic merge by normalized key (pure code, no LLM):
+//	        same-key extracts across documents merge source lists
+//	PLAN    reconcile against existing pages: names that already exist
+//	        become UPDATE proposals, new ones CREATE
+//	REFINE  one LLM writing pass per planned page — the draft IS the
+//	        proposal payload, never a live article
+//
+// v1 scope: manual trigger, name-match reconciliation (embedding
+// candidate matching when the page count justifies it), deterministic
+// proposal anchors for idempotent re-runs.
+
+const (
+	compileChunkBatchRunes = 2000
+	compileMaxDocs         = 200
+	compileProposalType    = core.WikiGovernanceKnowledgeCompile
+	compileFenceRe         = "(?s)```[a-zA-Z]*\\n?(.*?)```"
+)
+
+/* ---------------- extract types (MAP output) ---------------- */
+
+type CompileExtract struct {
+	Kind      string   `json:"kind"` // entity | concept | claim
+	Name      string   `json:"name"`
+	Aliases   []string `json:"aliases,omitempty"`
+	Statement string   `json:"statement,omitempty"`
+	DocID     string   `json:"-"` // stamped by the driver, not the model
+	ChunkHint string   `json:"-"` // excerpt for evidence
+}
+
+type compileBatchResult struct {
+	Fingerprint string           `json:"fingerprint"`
+	Extracts    []CompileExtract `json:"extracts"`
+}
+
+// compileMapCache: batch fingerprint → cached result (zero LLM on
+// recompile). Written through to badger so a restart (or a crashed
+// compile hours into its MAP) resumes warm instead of re-paying the LLM;
+// the in-memory map stays as the hot read path.
+var (
+	compileCacheMu    sync.RWMutex
+	compileCache      = map[string][]CompileExtract{}
+	compileCacheKVKey = "wiki-compile-map-cache"
+)
+
+// compileCacheGet looks the batch fingerprint up in memory, then in the
+// persistent cache. Store trouble degrades to a miss — the compile pays
+// the LLM again rather than failing.
+func compileCacheGet(fp string) ([]CompileExtract, bool) {
+	compileCacheMu.RLock()
+	extracts, hit := compileCache[fp]
+	compileCacheMu.RUnlock()
+	if hit {
+		return extracts, true
+	}
+	buf, err := kv.GetCompressedValue(compileCacheKVKey, []byte(fp))
+	if err != nil || buf == nil {
+		return nil, false
+	}
+	if err := util.FromJSONBytes(buf, &extracts); err != nil {
+		log.Debugf("wiki compiler: decode cached MAP batch [%s] failed: %v", fp, err)
+		return nil, false
+	}
+	compileCacheMu.Lock()
+	compileCache[fp] = extracts
+	compileCacheMu.Unlock()
+	return extracts, true
+}
+
+// compileCachePut writes the batch result through to the store. A failed
+// persist only costs a recompute after restart, so it logs and moves on.
+func compileCachePut(fp string, extracts []CompileExtract) {
+	compileCacheMu.Lock()
+	compileCache[fp] = extracts
+	compileCacheMu.Unlock()
+	if err := kv.AddValueCompress(compileCacheKVKey, []byte(fp), util.MustToJSONBytes(extracts)); err != nil {
+		log.Debugf("wiki compiler: persist MAP batch [%s] failed: %v", fp, err)
+	}
+}
+
+const mapExtractPrompt = `You extract knowledge from document chunks for a wiki compiler.
+Return ONLY a JSON array of extracts, each:
+{"kind": "entity" | "concept", "name": "<canonical name>", "aliases": ["<alt names>"], "statement": "<one-sentence factual claim this source makes>"}
+Rules: entities are named things (products, services, people, orgs); concepts are abstract topics.
+Statements must be factual and attributable to THIS chunk. Max 8 per batch. No explanations, just the JSON array.`
+
+// compileMAPFn is swappable in tests.
+var compileMAPFn = compileMAP
+
+// compileMAP runs one chunk batch through the LLM.
+func compileMAP(ctx context.Context, model *core.ModelId, batchText string) ([]CompileExtract, error) {
+	llm, err := langchain.SimplyGetLLM(model.ProviderID, model.ID, "")
+	if err != nil {
+		return nil, err
+	}
+	messages := []llms.MessageContent{
+		langchain.SystemTextParts(mapExtractPrompt),
+		llms.TextParts(llms.ChatMessageTypeHuman, batchText),
+	}
+	// the upstream occasionally answers 200 with a zero-byte completion
+	// (observed under concurrent enrichment pressure) — retry: the batches
+	// are idempotent reads, a flaky empty must not drop a document's
+	// knowledge out of the compile
+	var lastErr error
+	for attempt := 0; attempt < 3; attempt++ {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(time.Duration(attempt) * 2 * time.Second):
+			}
+		}
+		extracts, err := compileMAPOnce(ctx, llm, messages)
+		if err == nil {
+			return extracts, nil
+		}
+		lastErr = err
+	}
+	return nil, lastErr
+}
+
+func compileMAPOnce(ctx context.Context, llm llms.Model, messages []llms.MessageContent) ([]CompileExtract, error) {
+	// no token cap and stream like the enrich processors do: reasoning
+	// models burn hundreds of tokens thinking before the JSON, a tight cap
+	// leaves nothing but the thinking and the parse sees no array at all
+	var out strings.Builder
+	resp, err := llm.GenerateContent(ctx, messages,
+		llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
+			out.Write(chunk)
+			return nil
+		}))
+	if err != nil {
+		return nil, err
+	}
+	if resp == nil || len(resp.Choices) == 0 {
+		return nil, fmt.Errorf("empty MAP response")
+	}
+	content := resp.Choices[0].Content
+	if strings.TrimSpace(content) == "" {
+		content = out.String()
+	}
+	if strings.TrimSpace(content) == "" {
+		return nil, fmt.Errorf("empty MAP response (finish_reason=%v, choices=%d, stream_bytes=%d)",
+			resp.Choices[0].StopReason, len(resp.Choices), out.Len())
+	}
+	return parseCompileExtracts(content)
+}
+
+var compileFencePattern = regexp.MustCompile(compileFenceRe)
+
+func parseCompileExtracts(s string) ([]CompileExtract, error) {
+	// reasoning models may inline their thinking — it must not leak into
+	// the bracket slice (a stray "[" inside the think block breaks it)
+	if i := strings.Index(s, "</think>"); i >= 0 {
+		s = s[i+len("</think>"):]
+	}
+	if m := compileFencePattern.FindStringSubmatch(s); len(m) > 1 {
+		s = m[1]
+	}
+	start, end := strings.Index(s, "["), strings.LastIndex(s, "]")
+	if start < 0 || end <= start {
+		preview := strings.TrimSpace(s)
+		if len(preview) > 300 {
+			preview = preview[:300] + "…"
+		}
+		return nil, fmt.Errorf("no JSON array in MAP output, got: %q", preview)
+	}
+	var out []CompileExtract
+	if err := json.Unmarshal([]byte(s[start:end+1]), &out); err != nil {
+		return nil, err
+	}
+	valid := out[:0]
+	for _, e := range out {
+		if (e.Kind == "entity" || e.Kind == "concept") && strings.TrimSpace(e.Name) != "" {
+			valid = append(valid, e)
+		}
+	}
+	return valid, nil
+}
+
+/* ---------------- REDUCE (pure) ---------------- */
+
+// ReducedKey is one merged knowledge unit after REDUCE.
+type ReducedKey struct {
+	Kind       string
+	NormKey    string
+	Name       string
+	Aliases    map[string]bool
+	Statements []ReducedStatement
+}
+
+// ReducedStatement carries its source for the evidence chain.
+type ReducedStatement struct {
+	DocID   string `json:"doc_id"`
+	Excerpt string `json:"excerpt"`
+	Text    string `json:"text"`
+}
+
+// NormalizeCompileKey: the deterministic identity of an extract.
+// fingerprint.Normalize keeps single spaces; compile keys strip ALL
+// whitespace — "支付 网关" and "支付网关" are the same label to a
+// compiler even if they differ to a search index.
+func NormalizeCompileKey(kind, name string) string {
+	return kind + "|" + strings.ReplaceAll(fingerprint.Normalize(name), " ", "")
+}
+
+// ReduceExtracts merges MAP output by normalized key — pure code, no
+// LLM, order-independent. Statements dedup by text hash per key.
+func ReduceExtracts(extracts []CompileExtract) []ReducedKey {
+	byKey := map[string]*ReducedKey{}
+	order := []string{}
+	for _, e := range extracts {
+		key := NormalizeCompileKey(e.Kind, e.Name)
+		rk, ok := byKey[key]
+		if !ok {
+			rk = &ReducedKey{Kind: e.Kind, NormKey: key, Name: e.Name, Aliases: map[string]bool{}}
+			byKey[key] = rk
+			order = append(order, key)
+		}
+		for _, a := range e.Aliases {
+			if a = strings.TrimSpace(a); a != "" {
+				rk.Aliases[a] = true
+			}
+		}
+		if e.Statement != "" && e.DocID != "" {
+			dup := false
+			stmtHash := fingerprint.Normalize(e.Statement)
+			for _, s := range rk.Statements {
+				if fingerprint.Normalize(s.Text) == stmtHash {
+					dup = true
+					break
+				}
+			}
+			if !dup {
+				rk.Statements = append(rk.Statements, ReducedStatement{
+					DocID: e.DocID, Excerpt: e.ChunkHint, Text: e.Statement,
+				})
+			}
+		}
+	}
+	out := make([]ReducedKey, 0, len(order))
+	for _, k := range order {
+		out = append(out, *byKey[k])
+	}
+	// most-evidence first — the compile capacity goes to what the corpus
+	// actually talks about
+	sort.SliceStable(out, func(i, j int) bool { return len(out[i].Statements) > len(out[j].Statements) })
+	return out
+}
+
+/* ---------------- PLAN (pure) ---------------- */
+
+type CompilePlanAction int
+
+const (
+	PlanCreate CompilePlanAction = iota
+	PlanUpdate
+)
+
+type CompilePlanItem struct {
+	Action            CompilePlanAction
+	Key               ReducedKey
+	ExistingArticleID string
+}
+
+// PlanCompile reconciles reduced keys against the KB's existing entity
+// pages: a page whose title (or alias set) matches the key's normalized
+// name becomes an UPDATE; everything else is a CREATE. Name-match v1 —
+// embedding candidates when page counts justify it.
+func PlanCompile(reduced []ReducedKey, existing []core.WikiArticle) []CompilePlanItem {
+	type existingEntry struct {
+		id    string
+		names map[string]bool // normalized title + aliases
+	}
+	entries := make([]existingEntry, 0, len(existing))
+	for _, a := range existing {
+		if a.PageType != core.WikiPageTypeEntity {
+			continue
+		}
+		e := existingEntry{id: a.ID, names: map[string]bool{}}
+		e.names[fingerprint.Normalize(a.Title)] = true
+		// resolved wikilinks carry the aliases the page is known by
+		for _, lp := range a.LinkedPages {
+			if lp.Name != "" {
+				e.names[fingerprint.Normalize(lp.Name)] = true
+			}
+		}
+		entries = append(entries, e)
+	}
+
+	out := make([]CompilePlanItem, 0, len(reduced))
+	for _, rk := range reduced {
+		item := CompilePlanItem{Action: PlanCreate, Key: rk}
+		for _, e := range entries {
+			if e.names[fingerprint.Normalize(rk.Name)] {
+				item.Action = PlanUpdate
+				item.ExistingArticleID = e.id
+				break
+			}
+			for alias := range rk.Aliases {
+				if e.names[fingerprint.Normalize(alias)] {
+					item.Action = PlanUpdate
+					item.ExistingArticleID = e.id
+					break
+				}
+			}
+			if item.Action == PlanUpdate {
+				break
+			}
+		}
+		out = append(out, item)
+	}
+	return out
+}
+
+/* ---------------- driver ---------------- */
+
+// compileKBHandler: POST /wiki/kb/:id/_compile — runs the pipeline
+// against the KB's bound documents and files proposals.
+func (h *APIHandler) compileKBHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	kbID := ps.ByName("id")
+
+	kb := core.WikiKnowledgeBase{}
+	kb.ID = kbID
+	kctx := orm.NewContextWithParent(req.Context())
+	kctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	exists, err := orm.GetV2(kctx, &kb)
+	if err != nil || !exists {
+		h.WriteOpRecordNotFoundJSON(w, kbID)
+		return
+	}
+
+	model := llmmodule.ResolveModel(core.LLMTypeLanguage, nil)
+	if model == nil {
+		h.WriteError(w, "no default language model configured — the compiler needs one", http.StatusServiceUnavailable)
+		return
+	}
+
+	// one job per KB: the console polls its progress; cancel trips the ctx
+	job, jerr := startCompileJob(kbID)
+	if jerr != nil {
+		h.WriteError(w, jerr.Error(), http.StatusConflict)
+		return
+	}
+	cctx, cancel := context.WithCancel(context.Background())
+	job.cancel = cancel
+
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Errorf("wiki compiler: run panicked for kb [%s]: %v", kbID, r)
+				job.finish("failed")
+			}
+		}()
+		summary, err := runCompilePipeline(cctx, &kb, model, job)
+		if err != nil {
+			if err == context.Canceled {
+				log.Infof("wiki compiler: kb [%s] run cancelled", kbID)
+				return
+			}
+			log.Warnf("wiki compiler: kb [%s] run failed: %v", kbID, err)
+			job.finish("failed")
+			return
+		}
+		job.finish("done")
+		// the manual full run subsumes whatever per-document ops were
+		// queued for this KB (compileops P1)
+		deleteCompileOps(kbID)
+		log.Infof("wiki compiler: kb [%s] done — %d docs, %d batches, %d extracts, %d reduced, %d proposals (%d cached, %d failed batches)",
+			kb.Name, summary.Docs, summary.Batches, summary.Extracts, summary.Reduced, summary.Proposals, summary.CachedBatches, summary.FailedBatches)
+	}()
+
+	h.WriteOKJSON(w, util.MapStr{
+		"result": "compile started",
+		"kb_id":  kbID,
+		"note":   "output lands in the governance queue as proposals — publishing stays human",
+	})
+}
+
+type compileSummary struct {
+	Docs          int
+	Batches       int
+	Extracts      int
+	Reduced       int
+	Proposals     int
+	CachedBatches int
+	FailedBatches int
+}
+
+// runCompilePipeline: MAP (cached) → REDUCE → PLAN → REFINE → propose.
+// job is optional progress/cancel instrumentation (nil for fire-and-forget
+// callers): stages, per-batch counters, log lines and cooperative
+// cancellation between batches.
+func runCompilePipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *core.ModelId, job *CompileJob) (*compileSummary, error) {
+	summary := &compileSummary{}
+
+	// source documents: the KB's bound datasources
+	docs, err := compileSourceDocuments(ctx, kb)
+	if err != nil {
+		return nil, err
+	}
+	summary.Docs = len(docs)
+	if job != nil {
+		job.Docs = summary.Docs
+		job.log("source documents: %d", summary.Docs)
+	}
+
+	// MAP over chunk batches with fingerprint cache
+	allExtracts := mapDocumentsForCompile(ctx, model, job, docs, summary)
+	summary.Extracts = len(allExtracts)
+	if job != nil {
+		job.Extracts = summary.Extracts
+	}
+	if len(allExtracts) == 0 {
+		if job != nil {
+			job.log("no extracts — nothing to compile")
+			job.finish("done")
+		}
+		return summary, nil
+	}
+
+	// REDUCE
+	if job != nil {
+		job.Stage = "reduce"
+	}
+	reduced := ReduceExtracts(allExtracts)
+	summary.Reduced = len(reduced)
+	if job != nil {
+		job.Reduced = summary.Reduced
+		job.log("reduced to %d keys", summary.Reduced)
+	}
+
+	// TOPIC PIPELINE (DESIGN-topic-pages.md): pages are subjects, not
+	// single entities — CLUSTER the reduced keys into topics, NAME them,
+	// plan each page's OUTLINE, FILL its sections from the pooled claims,
+	// and file one rich proposal per topic. The per-entity article path is
+	// retired: entities live in the ontology pool, peer to pages.
+	pctx := orm.NewContext()
+	// the write flag passes create/update hooks; the READ flag is what the
+	// search hooks bypass on — compileGeneration searches with this same
+	// context to derive each proposal's generation, and without it the
+	// first proposal filing panicked the whole compile
+	pctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	pctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	existing := compileExistingArticles(ctx, kb.ID)
+	summary.Proposals = runTopicPipeline(ctx, kb, model, job, reduced, existing, summary.Docs, pctx)
+	if job != nil {
+		job.log("filed %d topic proposals", summary.Proposals)
+	}
+
+	// dimension organization: propose a TOC that groups the KB's pages into
+	// 客户与组织 / 产品与服务 / 专题与概念 folders — the human confirms it in
+	// the governance queue, confirming applies the tree
+	proposeTreeOrganization(pctx, kb, existing)
+	return summary, nil
+}
+
+// mapDocumentsForCompile is the MAP stage shared by the full and the
+// incremental pipelines: per-document chunk batches through the LLM with
+// the fingerprint cache — unchanged documents replay from cache at zero
+// LLM cost.
+func mapDocumentsForCompile(ctx context.Context, model *core.ModelId, job *CompileJob, docs []core.Document, summary *compileSummary) []CompileExtract {
+	var allExtracts []CompileExtract
+	for _, doc := range docs {
+		if job != nil {
+			if job.cancelled() {
+				return allExtracts
+			}
+			job.Current = doc.Title
+		}
+		batches := batchChunkText(doc.Content, compileChunkBatchRunes)
+		summary.Batches += len(batches)
+		if job != nil {
+			job.Batches = summary.Batches
+		}
+		for bi, batch := range batches {
+			if job != nil && job.cancelled() {
+				return allExtracts
+			}
+			fp, _, okFp := fingerprint.Compute(fmt.Sprintf("%s|%s/%s|%s", model.ProviderID, model.ID, doc.ID, fingerprint.Normalize(batch)))
+			if !okFp {
+				continue
+			}
+			extracts, hit := compileCacheGet(fp)
+			if hit {
+				summary.CachedBatches++
+				if job != nil {
+					job.BatchesCached = summary.CachedBatches
+				}
+			} else {
+				var merr error
+				extracts, merr = compileMAPFn(context.WithoutCancel(ctx), model, batch)
+				if merr != nil {
+					summary.FailedBatches++
+					if job != nil {
+						job.BatchesDone++
+						job.BatchesFailed = summary.FailedBatches
+						job.log("MAP failed %s/%d: %v", doc.Title, bi, merr)
+					}
+					if summary.FailedBatches <= 3 {
+						log.Warnf("wiki compiler: MAP batch %s/%d failed (model %s/%s): %v", doc.ID, bi, model.ProviderID, model.ID, merr)
+					}
+					continue
+				}
+				compileCachePut(fp, extracts)
+			}
+			// provenance stamp runs on BOTH paths — DocID/ChunkHint carry
+			// json:"-" and never persist, so a cache replay that skips the
+			// stamp produces keys with zero statements (observed: 335 keys,
+			// 0 statements, zero topics filed)
+			for i := range extracts {
+				extracts[i].DocID = doc.ID
+				extracts[i].ChunkHint = truncateCompile(batch, 200)
+			}
+			if job != nil {
+				job.BatchesDone++
+				if !hit {
+					job.log("MAP %s: %d extracts", doc.Title, len(extracts))
+				}
+			}
+			allExtracts = append(allExtracts, extracts...)
+		}
+	}
+	return allExtracts
+}
+
+/* ---------------- incremental pipeline (compileops P2) ---------------- */
+
+// opDocIDsOf lists the distinct non-empty op doc ids.
+func opDocIDsOf(ops []CompileOp) []string {
+	seen := map[string]bool{}
+	var ids []string
+	for _, op := range ops {
+		if op.DocID != "" && !seen[op.DocID] {
+			seen[op.DocID] = true
+			ids = append(ids, op.DocID)
+		}
+	}
+	return ids
+}
+
+// compileDocsByIDs loads exactly the documents an incremental pass maps —
+// deleted ids simply drop out of the claim pool.
+func compileDocsByIDs(ctx context.Context, docIDs []string) []core.Document {
+	if len(docIDs) == 0 {
+		return nil
+	}
+	octx := orm.NewContextWithParent(ctx)
+	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(octx, &core.Document{})
+	docs := make([]core.Document, 0, len(docIDs))
+	for _, id := range docIDs {
+		doc := core.Document{}
+		doc.ID = id
+		exists, err := orm.GetV2(octx, &doc)
+		if err != nil || !exists {
+			continue
+		}
+		doc.Content = StripImageMarkers(doc.Content)
+		docs = append(docs, doc)
+	}
+	return docs
+}
+
+// kbDocumentCount is the topic-clustering基数 the full pipeline feeds on
+// (maxTopics = docCount/3): incremental passes map a subset, but topics
+// must cap against the whole corpus like a full run would.
+func kbDocumentCount(ctx context.Context, kb *core.WikiKnowledgeBase) int {
+	if len(kb.DatasourceIDs) == 0 {
+		return 0
+	}
+	octx := orm.NewContextWithParent(ctx)
+	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(octx, &core.Document{})
+	res, err := orm.SearchV2(octx, orm.NewQuery().Size(1).
+		Filter(orm.TermsQuery("source.id", kb.DatasourceIDs)))
+	if err != nil || res == nil {
+		return 0
+	}
+	_, total, derr := elastic.DecodeHits[core.Document](res)
+	if derr != nil {
+		return 0
+	}
+	return int(total)
+}
+
+// runIncrementalCompile reconciles only what a corpus change can touch
+// (DESIGN-incremental-compile.md 3.4): op docs ∪ the docs cited by the
+// affected pages are mapped — the cited-but-unchanged ones replay from the
+// fingerprint cache so claim pools stay whole — then reduced and fed
+// through the same topic pipeline with the FULL existing page list, so
+// matching and generation behave exactly like a full run. Topics no
+// changed document feeds are never proposed; proposals-only stays the
+// contract.
+func runIncrementalCompile(ctx context.Context, kb *core.WikiKnowledgeBase, model *core.ModelId, job *CompileJob, ops []CompileOp) (*compileSummary, error) {
+	summary := &compileSummary{}
+
+	opDocs := opDocIDsOf(ops)
+	byDoc := contributionsForDocs(ctx, kb.ID, opDocs)
+	scope := planIncrementalScope(ops, byDoc, nil) // phase 1: affected pages
+	byPage := contributionsForPages(ctx, kb.ID, scope.AffectedPages)
+	scope = planIncrementalScope(ops, byDoc, byPage) // phase 2: full map scope
+
+	if job != nil {
+		job.Incremental = true
+		job.Ops = len(ops)
+		job.AffectedPages = len(scope.AffectedPages)
+		job.log("incremental scope: %d ops, %d affected pages, %d docs to map", len(ops), len(scope.AffectedPages), len(scope.MapDocs))
+	}
+	docs := compileDocsByIDs(ctx, scope.MapDocs)
+	summary.Docs = len(docs)
+	if job != nil {
+		job.Docs = summary.Docs
+	}
+
+	extracts := mapDocumentsForCompile(ctx, model, job, docs, summary)
+	summary.Extracts = len(extracts)
+	if job != nil {
+		job.Extracts = summary.Extracts
+	}
+	if len(extracts) == 0 {
+		if job != nil {
+			job.log("no extracts — nothing to compile")
+			job.finish("done")
+		}
+		return summary, nil
+	}
+
+	if job != nil {
+		job.Stage = "reduce"
+	}
+	reduced := ReduceExtracts(extracts)
+	summary.Reduced = len(reduced)
+	if job != nil {
+		job.Reduced = summary.Reduced
+		job.log("reduced to %d keys", summary.Reduced)
+	}
+
+	pctx := orm.NewContext()
+	// same flags as the full run: the write flag passes create/update
+	// hooks; compileGeneration needs the read flag to derive generations
+	pctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	pctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	existing := compileExistingArticles(ctx, kb.ID)
+	docCount := kbDocumentCount(ctx, kb)
+	if docCount == 0 {
+		docCount = summary.Docs
+	}
+	summary.Proposals = runTopicPipeline(ctx, kb, model, job, reduced, existing, docCount, pctx)
+	if job != nil {
+		job.log("filed %d topic proposals (incremental)", summary.Proposals)
+	}
+	proposeTreeOrganization(pctx, kb, existing)
+	return summary, nil
+}
+
+// proposeTreeOrganization files ONE tree_organize proposal carrying the
+// compiler's suggested TOC: with a KB toc_layout configured, the configured
+// departments are the top level (部门 → 维度 → 页面, department membership
+// from the cited documents' folder path); without one, every KB page sits in
+// the dimension folder its entity type implies (organization→客户与组织,
+// product→产品与服务, the rest →专题与概念). The open twin is the living
+// suggestion: identical trees skip, changed trees refresh it in place.
+func proposeTreeOrganization(ctx *orm.Context, kb *core.WikiKnowledgeBase, existing []core.WikiArticle) {
+	if len(existing) == 0 {
+		return
+	}
+	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
+
+	// article → entity ontology type (entities carry ArticleID once their
+	// page exists); unknown types fall into the concepts folder
+	articleType := map[string]string{}
+	if ids := articleIDsOf(existing); len(ids) > 0 {
+		orm.WithModel(ctx, &core.WikiEntity{})
+		if res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1000).
+			Filter(orm.TermsQuery("article_id", ids))); err != nil {
+			log.Warnf("wiki compiler: tree entity lookup failed (%d ids): %v", len(ids), err)
+		} else if res != nil {
+			if entities, _, derr := elastic.DecodeHits[core.WikiEntity](res); derr != nil {
+				log.Warnf("wiki compiler: tree entity decode failed: %v", derr)
+			} else {
+				for i := range entities {
+					if entities[i].ArticleID != "" {
+						articleType[entities[i].ArticleID] = entities[i].Type
+					}
+				}
+			}
+		}
+		log.Infof("wiki compiler: tree grouping looked up %d articles, matched %d entity types", len(ids), len(articleType))
+	}
+
+	// dimensionSlots are the canonical dimension folders every layout
+	// shape hangs articles under, in slot order: an entity type maps to a
+	// slot (entityDimensionSlot), and a department may rename its slots
+	// (WikiTocLayoutFolder.Dimensions) while the grouping semantics stay.
+	dimensionSlots := []struct {
+		key   string
+		title string
+		types []string
+	}{
+		{"org", "客户与组织", []string{"organization", "person"}},
+		{"product", "产品与服务", []string{"product"}},
+		{"topic", "专题与概念", nil}, // everything else
+	}
+
+	// skip rule shared by every layout shape
+	navigable := func(a core.WikiArticle) bool {
+		// single-source drafts live in the 实体 tab (the same rule the
+		// governance orphan sweep enforces) — dimension overview pages
+		// (…概览) are aggregate hubs and always stay
+		return !(a.Status == core.WikiArticleDraft && len(a.Sources) < 2 &&
+			!strings.HasSuffix(a.Title, "概览"))
+	}
+	// articleSlot assigns each article exactly ONE dimension slot: the
+	// first typed slot whose entity type matches, else the topic catch-all.
+	// Without exclusivity the catch-all re-files every typed article and
+	// the tree shows each of them twice (customer/product pages appearing
+	// under 专题与概念 as well).
+	articleSlot := func(a core.WikiArticle) string {
+		t := articleType[a.ID]
+		for _, def := range dimensionSlots {
+			for _, want := range def.types {
+				if t == want {
+					return def.key
+				}
+			}
+		}
+		return "topic"
+	}
+	dimensionNode := func(key, title, idNS string, arts []core.WikiArticle) *core.WikiTocNode {
+		children := make([]core.WikiTocNode, 0, len(arts))
+		for _, a := range arts {
+			if articleSlot(a) != key {
+				continue
+			}
+			children = append(children, core.WikiTocNode{
+				ID: "toc-" + a.ID, Title: a.Title, Type: "article", ArticleID: a.ID,
+			})
+		}
+		if len(children) == 0 {
+			return nil
+		}
+		// the department name namespaces the node id — two departments
+		// share the same slot keys, and colliding tree node ids break
+		// expand/collapse state in the UI
+		if idNS != "" {
+			return &core.WikiTocNode{ID: "folder-" + idNS + "-" + key + "-" + kb.ID, Title: title, Type: "folder", Children: children}
+		}
+		return &core.WikiTocNode{ID: "folder-" + key + "-" + kb.ID, Title: title, Type: "folder", Children: children}
+	}
+
+	var nodes []core.WikiTocNode
+	if len(kb.TocLayout) > 0 {
+		// 企业布局:配置的部门各成顶层目录,部门内按实体类型维度再分。
+		// 部门归属来自被引文档的 folder_path 前缀;没有命中的文章归「综合」
+		deptOf := articleDeptByPath(ctx, existing, kb.TocLayout)
+		nav := make([]core.WikiArticle, 0, len(existing))
+		for _, a := range existing {
+			if navigable(a) {
+				nav = append(nav, a)
+			}
+		}
+		for di, dept := range kb.TocLayout {
+			var deptChildren []core.WikiTocNode
+			inDept := make([]core.WikiArticle, 0, len(nav))
+			for _, a := range nav {
+				if deptOf[a.ID] == dept.Title {
+					inDept = append(inDept, a)
+				}
+			}
+			for slot, f := range dimensionSlots {
+				if dim := dimensionNode(f.key, dimensionDisplayName(&kb.TocLayout[di], slot), dept.Title, inDept); dim != nil {
+					deptChildren = append(deptChildren, *dim)
+				}
+			}
+			if len(deptChildren) > 0 {
+				nodes = append(nodes, core.WikiTocNode{
+					ID: "folder-dept-" + dept.Title + "-" + kb.ID, Title: dept.Title, Type: "folder", Children: deptChildren,
+				})
+			}
+		}
+		// unmatched articles → the catch-all department keeps them reachable
+		var rest []core.WikiArticle
+		for _, a := range nav {
+			if deptOf[a.ID] == "" {
+				rest = append(rest, a)
+			}
+		}
+		if len(rest) > 0 {
+			var deptChildren []core.WikiTocNode
+			for slot, f := range dimensionSlots {
+				if dim := dimensionNode(f.key, dimensionDisplayName(nil, slot), "综合", rest); dim != nil {
+					deptChildren = append(deptChildren, *dim)
+				}
+			}
+			if len(deptChildren) > 0 {
+				nodes = append(nodes, core.WikiTocNode{
+					ID: "folder-dept-综合-" + kb.ID, Title: "综合", Type: "folder", Children: deptChildren,
+				})
+			}
+		}
+	} else {
+		nodes = make([]core.WikiTocNode, 0, len(dimensionSlots))
+		for slot, f := range dimensionSlots {
+			arts := make([]core.WikiArticle, 0, len(existing))
+			for _, a := range existing {
+				if navigable(a) {
+					arts = append(arts, a)
+				}
+			}
+			if dim := dimensionNode(f.key, dimensionDisplayName(nil, slot), "", arts); dim != nil {
+				nodes = append(nodes, *dim)
+			}
+		}
+	}
+	if len(nodes) == 0 {
+		return
+	}
+
+	reason := fmt.Sprintf("按维度把 %d 篇页面组织进 %d 个目录(客户与组织/产品与服务/专题与概念),确认后生效", len(existing), len(nodes))
+	if len(kb.TocLayout) > 0 {
+		titles := make([]string, 0, len(kb.TocLayout))
+		for _, dept := range kb.TocLayout {
+			titles = append(titles, dept.Title)
+		}
+		reason = fmt.Sprintf("按企业目录布局(%s)把 %d 篇页面组织进部门目录,部门内按维度再分,确认后生效", strings.Join(titles, "/"), len(existing))
+	}
+
+	proposal := &core.WikiGovernanceProposal{
+		KbID:         kb.ID,
+		Type:         core.WikiGovernanceTreeOrganize,
+		Status:       core.WikiGovernanceOpen,
+		ArticleTitle: "知识目录组织建议",
+		Reason:       reason,
+	}
+	// day-anchored id: one suggestion per KB per day — recompiles the same
+	// day overwrite the suggestion in place instead of stacking twins
+	proposal.ID = core.AnchoredProposalID("tree:"+kb.ID, core.WikiGovernanceTreeOrganize, int(time.Now().Unix()/86400))
+	proposal.Evidence = util.MapStr{"cascade": "tree-organize", "tree": json.RawMessage(util.MustToJSON(nodes))}
+
+	// an open twin is the living suggestion: identical trees skip (no queue
+	// churn), changed trees refresh it in place — otherwise a changed layout
+	// would never re-file until the stale proposal was resolved by hand
+	newTree := canonicalTreeJSON(nodes)
+	if res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1).
+		Filter(orm.TermQuery("kb_id", kb.ID),
+			orm.TermQuery("type", core.WikiGovernanceTreeOrganize),
+			orm.TermQuery("status", core.WikiGovernanceOpen))); err == nil && res != nil {
+		if open, _, derr := elastic.DecodeHits[core.WikiGovernanceProposal](res); derr == nil && len(open) > 0 {
+			if canonicalTreeJSON(open[0].Evidence["tree"]) == newTree {
+				return
+			}
+			twin := open[0]
+			twin.Reason = proposal.Reason
+			twin.Evidence = proposal.Evidence
+			if err := orm.Update(ctx, &twin); err != nil {
+				log.Debugf("wiki compiler: tree proposal refresh failed for [%s]: %v", kb.Name, err)
+			}
+			notifyOwner(kb.GetOwnerID(), "kb", kb.ID, "governance",
+				fmt.Sprintf("知识编译:「%s」的目录组织建议已按最新布局更新,在治理队列确认后生效", kb.Name))
+			return
+		}
+	}
+
+	// a same-day dismissed twin occupies the anchored id — refresh it back
+	// to open with the fresh tree instead of letting the Create conflict
+	twin := core.WikiGovernanceProposal{}
+	twin.SetID(proposal.ID)
+	if found, err := orm.GetV2(ctx, &twin); err == nil && found {
+		twin.Status = core.WikiGovernanceOpen
+		twin.Reason = proposal.Reason
+		twin.Evidence = proposal.Evidence
+		twin.ResolvedAt = nil
+		twin.ResolvedBy = ""
+		if err := orm.Update(ctx, &twin); err != nil {
+			log.Debugf("wiki compiler: tree proposal refresh failed for [%s]: %v", kb.Name, err)
+		}
+		return
+	}
+	if err := orm.Create(ctx, proposal); err != nil {
+		log.Debugf("wiki compiler: tree proposal create failed for [%s]: %v", kb.Name, err)
+		return
+	}
+	notifyOwner(kb.GetOwnerID(), "kb", kb.ID, "governance",
+		fmt.Sprintf("知识编译:为「%s」生成了目录组织建议(%d 篇页面),在治理队列确认后生效", kb.Name, len(existing)))
+}
+
+// canonicalTreeJSON normalizes a stored-or-built tree value to comparable
+// JSON: struct-built nodes marshal in field order, ES-decoded maps sort keys
+// alphabetically — byte comparison alone would call equal trees different.
+func canonicalTreeJSON(tree any) string {
+	if raw, ok := tree.(json.RawMessage); ok {
+		tree = json.RawMessage(raw)
+	}
+	var v any
+	if err := json.Unmarshal([]byte(util.ToString(tree)), &v); err != nil {
+		return ""
+	}
+	out, err := json.Marshal(v)
+	if err != nil {
+		return ""
+	}
+	return string(out)
+}
+
+func articleIDsOf(articles []core.WikiArticle) []string {
+	out := make([]string, 0, len(articles))
+	for _, a := range articles {
+		if a.ID != "" {
+			out = append(out, a.ID)
+		}
+	}
+	return out
+}
+
+// articleDeptByPath resolves each article's department from its cited
+// documents' folder path: a layout folder matches when any path prefix hits
+// a segment of the doc's folder_path (case-insensitive); first match wins.
+// Articles with no hit are absent from the map — the caller files them
+// under the catch-all department.
+func articleDeptByPath(ctx *orm.Context, articles []core.WikiArticle, layout []core.WikiTocLayoutFolder) map[string]string {
+	ids := make([]string, 0)
+	for _, a := range articles {
+		for _, s := range a.Sources {
+			if s.DocID != "" {
+				ids = append(ids, s.DocID)
+			}
+		}
+	}
+	docPath := map[string]string{}
+	if len(ids) > 0 {
+		octx := orm.NewContextWithParent(ctx)
+		octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+		orm.WithModel(octx, &core.Document{})
+		res, err := orm.SearchV2(octx, orm.NewQuery().Size(2000).
+			Filter(orm.TermsQuery("id", ids)).Include("id", "folder_path", "category"))
+		if err != nil {
+			log.Warnf("wiki compiler: dept path lookup failed (%d ids): %v", len(ids), err)
+		} else if res != nil {
+			if docs, _, derr := elastic.DecodeHits[core.Document](res); derr == nil {
+				for i := range docs {
+					p := docs[i].FolderPath
+					if p == "" {
+						p = docs[i].Category
+					}
+					docPath[docs[i].ID] = strings.Trim(p, "/")
+				}
+			}
+		}
+	}
+	deptOf := make(map[string]string, len(articles))
+	for _, a := range articles {
+		for _, s := range a.Sources {
+			p := strings.ToLower(docPath[s.DocID])
+			if p == "" {
+				continue
+			}
+			for _, dept := range layout {
+				for _, prefix := range dept.PathPrefixes {
+					prefix = strings.ToLower(strings.Trim(prefix, "/"))
+					if prefix == "" {
+						continue
+					}
+					if p == prefix || strings.HasPrefix(p, prefix+"/") ||
+						strings.Contains("/"+p+"/", "/"+prefix+"/") {
+						deptOf[a.ID] = dept.Title
+						break
+					}
+				}
+				if deptOf[a.ID] != "" {
+					break
+				}
+			}
+			if deptOf[a.ID] != "" {
+				break
+			}
+		}
+	}
+	return deptOf
+}
+
+func compileSourceDocuments(ctx context.Context, kb *core.WikiKnowledgeBase) ([]core.Document, error) {
+	if len(kb.DatasourceIDs) == 0 {
+		return nil, nil
+	}
+	octx := orm.NewContextWithParent(ctx)
+	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(octx, &core.Document{})
+	res, err := orm.SearchV2(octx, orm.NewQuery().Size(compileMaxDocs).
+		Filter(orm.TermsQuery("source.id", kb.DatasourceIDs)).
+		SortBy(orm.Sort{Field: "updated", SortType: orm.DESC}).
+		Include("id", "title", "content"))
+	if err != nil {
+		return nil, err
+	}
+	docs, _, err := elastic.DecodeHits[core.Document](res)
+	// embedded-figure markers ([[Image(uuid\tOCR)]]) carry attachment OCR —
+	// supplementary text that must not feed compilation as body prose, or
+	// scan noise becomes standalone pages/entities
+	for i := range docs {
+		docs[i].Content = StripImageMarkers(docs[i].Content)
+	}
+	return docs, err
+}
+
+func compileExistingArticles(ctx context.Context, kbID string) []core.WikiArticle {
+	octx := orm.NewContextWithParent(ctx)
+	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(octx, &core.WikiArticle{})
+	res, err := orm.SearchV2(octx, orm.NewQuery().Size(1000).
+		Filter(orm.TermQuery("kb_id", kbID)))
+	if err != nil {
+		return nil
+	}
+	articles, _, err := elastic.DecodeHits[core.WikiArticle](res)
+	if err != nil {
+		return nil
+	}
+	return articles
+}
+
+// fileCompileProposal files one compile proposal — the REFINE output in
+// v1 is the deterministic evidence draft (statements + sources); the
+// LLM writing pass lands when compiles are frequent enough to justify
+// its cost. Anchored per key+generation for idempotent re-runs.
+func fileCompileProposal(ctx *orm.Context, kb *core.WikiKnowledgeBase, item CompilePlanItem, model *core.ModelId) bool {
+	key := item.Key
+	actionLabel := "create"
+	if item.Action == PlanUpdate {
+		actionLabel = "update"
+	}
+
+	// the 概念页最少源数 compile rule gates CREATION, not just retrieval:
+	// without it every recurring compile turns long-tail single-source
+	// concepts into new pages (observed: ~1600 pages over a weekend of
+	// auto-approve runs on a 24-document KB)
+	if key.Kind == "concept" && item.Action == PlanCreate {
+		if min := projectionConceptMinSources(); min > 0 {
+			docs := map[string]bool{}
+			for _, st := range key.Statements {
+				if st.DocID != "" {
+					docs[st.DocID] = true
+				}
+			}
+			if len(docs) < min {
+				log.Debugf("wiki compiler: dropping concept [%s] — %d source(s) below the %d-source floor", key.Name, len(docs), min)
+				return false
+			}
+		}
+	}
+
+	// evidence chain: every statement with its document id
+	evidence := make([]interface{}, 0, len(key.Statements))
+	for _, s := range key.Statements {
+		evidence = append(evidence, util.MapStr{
+			"doc_id":  s.DocID,
+			"excerpt": s.Excerpt,
+			"claim":   s.Text,
+		})
+	}
+
+	proposal := &core.WikiGovernanceProposal{
+		KbID:         kb.ID,
+		Type:         compileProposalType,
+		Status:       core.WikiGovernanceOpen,
+		ArticleTitle: key.Name,
+		Reason:       fmt.Sprintf("%s %s page from %d source(s)", actionLabel, key.Kind, len(key.Statements)),
+	}
+	proposal.ID = core.AnchoredProposalID("compile:"+kb.ID+":"+key.NormKey, compileProposalType,
+		compileGeneration(ctx, kb.ID, key.NormKey))
+	proposal.Evidence = util.MapStr{
+		"cascade":     "knowledge-compile",
+		"kind":        key.Kind,
+		"norm_key":    key.NormKey,
+		"aliases":     aliasList(key.Aliases),
+		"statements":  evidence,
+		"existing_id": item.ExistingArticleID,
+		"model":       model.ProviderID + "/" + model.ID,
+	}
+	// placement planning (the multi-step discipline: read the structure,
+	// decide where the page lands BEFORE anything is written) — department
+	// from the cited documents' folder path, dimension from the entity type
+	if item.Action == PlanCreate {
+		if target := planTargetFolder(ctx, kb, item); target != "" {
+			proposal.Evidence["target_folder"] = target
+			proposal.Reason += " → " + target
+		}
+	}
+	if err := orm.Create(ctx, proposal); err != nil {
+		log.Debugf("wiki compiler: proposal create failed for [%s]: %v", key.Name, err)
+		return false
+	}
+	// the human gate needs to know the gate has a new item — the KB owner
+	// gets the same notification the scanner's proposals carry
+	if kb.GetOwnerID() != "" {
+		notifyOwner(kb.GetOwnerID(), "article", kb.ID, "governance",
+			fmt.Sprintf("知识编译:%s %s 页提议(来自 %d 条来源主张)", actionLabel, key.Name, len(key.Statements)))
+	}
+	return true
+}
+
+// dimensionDisplayName resolves a department's display name for a canonical
+// dimension slot (0=organization, 1=product, 2=topic); unset or blank slots
+// fall back to the shared defaults, so a department can rename just one.
+func dimensionDisplayName(dept *core.WikiTocLayoutFolder, slot int) string {
+	defaults := [...]string{"客户与组织", "产品与服务", "专题与概念"}
+	if slot < 0 || slot >= len(defaults) {
+		return ""
+	}
+	if dept != nil && slot < len(dept.Dimensions) && strings.TrimSpace(dept.Dimensions[slot]) != "" {
+		return strings.TrimSpace(dept.Dimensions[slot])
+	}
+	return defaults[slot]
+}
+
+// planTargetFolder resolves where a compiled page belongs under the KB's
+// department layout (the multi-step discipline: read the structure, decide
+// the placement before anything is written): department from the cited
+// documents' folder path, dimension from the entity type. Empty when the KB
+// has no layout — the page then stays unplaced until a tree_organize pass.
+func planTargetFolder(ctx *orm.Context, kb *core.WikiKnowledgeBase, item CompilePlanItem) string {
+	if len(kb.TocLayout) == 0 {
+		return ""
+	}
+	docIDs := make([]string, 0, len(item.Key.Statements))
+	for _, s := range item.Key.Statements {
+		if s.DocID != "" {
+			docIDs = append(docIDs, s.DocID)
+		}
+	}
+	dept, matchedDept := matchDeptByDocIDs(ctx, kb, docIDs)
+	// dimension slot from the entity type, display name from the matched
+	// department's own renames — 研发's org pages file under its "技术方案"
+	// folder, not the shared 客户与组织
+	slot := 2
+	if e := wikiEntityByName(ctx, item.Key.Name); e != nil {
+		switch strings.ToLower(e.Type) {
+		case "organization", "person":
+			slot = 0
+		case "product":
+			slot = 1
+		}
+	}
+	var deptPtr *core.WikiTocLayoutFolder
+	if matchedDept >= 0 {
+		deptPtr = &kb.TocLayout[matchedDept]
+	}
+	dim := dimensionDisplayName(deptPtr, slot)
+	if dept == "" {
+		return dim
+	}
+	return dept + "/" + dim
+}
+
+// matchDeptByDocIDs resolves the layout department a set of cited
+// documents belongs to: a layout folder matches when any doc's folder path
+// (or category) hits one of its path prefixes, case-insensitive, any level.
+// Returns the department title and its layout index; ("", -1) when nothing
+// matches — the caller files those under the catch-all.
+func matchDeptByDocIDs(ctx *orm.Context, kb *core.WikiKnowledgeBase, docIDs []string) (string, int) {
+	dept := ""
+	matchedDept := -1
+	if len(docIDs) == 0 {
+		return dept, matchedDept
+	}
+	octx := orm.NewContextWithParent(ctx)
+	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(octx, &core.Document{})
+	if res, err := orm.SearchV2(octx, orm.NewQuery().Size(50).
+		Filter(orm.TermsQuery("id", docIDs)).Include("id", "folder_path", "category")); err == nil && res != nil {
+		if docs, _, derr := elastic.DecodeHits[core.Document](res); derr == nil {
+			for i := range docs {
+				p := strings.Trim(docs[i].FolderPath, "/")
+				if p == "" {
+					p = strings.Trim(docs[i].Category, "/")
+				}
+				p = strings.ToLower(p)
+				for di := range kb.TocLayout {
+					deptFolder := &kb.TocLayout[di]
+					for _, prefix := range deptFolder.PathPrefixes {
+						prefix = strings.ToLower(strings.Trim(prefix, "/"))
+						if prefix != "" && (p == prefix || strings.HasPrefix(p, prefix+"/") ||
+							strings.Contains("/"+p+"/", "/"+prefix+"/")) {
+							dept = deptFolder.Title
+							matchedDept = di
+							break
+						}
+					}
+					if dept != "" {
+						break
+					}
+				}
+				if dept != "" {
+					break
+				}
+			}
+		}
+	}
+	return dept, matchedDept
+}
+
+func compileGeneration(ctx *orm.Context, kbID, normKey string) int {
+	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
+	// size must cover the KB's whole compile-proposal history: a truncated
+	// window undercounts the norm key, the anchored id collides with a
+	// filed proposal, and the create silently drops the draft (observed
+	// once the queue passed 100 entries)
+	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(2000).
+		Filter(orm.TermQuery("type", compileProposalType)))
+	if err != nil || res == nil {
+		return 0
+	}
+	proposals, _, derr := elastic.DecodeHits[core.WikiGovernanceProposal](res)
+	if derr != nil {
+		return 0
+	}
+	count := 0
+	for _, p := range proposals {
+		if p.KbID == kbID && p.Evidence["norm_key"] == normKey {
+			count++
+		}
+	}
+	return count
+}
+
+func aliasList(set map[string]bool) []string {
+	out := make([]string, 0, len(set))
+	for a := range set {
+		out = append(out, a)
+	}
+	sort.Strings(out)
+	return out
+}
+
+// batchChunkText splits long content into rune-budget batches on line
+// boundaries (falls back to hard cut).
+func batchChunkText(text string, budget int) []string {
+	if budget <= 0 || len([]rune(text)) <= budget {
+		return []string{text}
+	}
+	var out []string
+	current := strings.Builder{}
+	currentRunes := 0
+	for _, line := range strings.Split(text, "\n") {
+		lineRunes := len([]rune(line)) + 1
+		if currentRunes+lineRunes > budget && currentRunes > 0 {
+			out = append(out, current.String())
+			current.Reset()
+			currentRunes = 0
+		}
+		current.WriteString(line)
+		current.WriteString("\n")
+		currentRunes += lineRunes
+	}
+	if current.Len() > 0 {
+		out = append(out, current.String())
+	}
+	return out
+}
+
+func truncateCompile(s string, n int) string {
+	runes := []rune(s)
+	if len(runes) <= n {
+		return s
+	}
+	return string(runes[:n])
+}
+
+/* ---------------- incremental trigger (W9 → compileops.go) ----------------
+ * The KB dirty map + 5-minute in-memory debounce this section used to hold
+ * is replaced by the persistent document-level op queue in compileops.go
+ * (DESIGN-incremental-compile.md P1): producers enqueue ops, the consume
+ * lane settles them with the same trailing-edge cadence, and a restart can
+ * no longer lose a pending compile. */

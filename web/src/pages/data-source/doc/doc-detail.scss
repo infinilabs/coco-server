@@ -1,0 +1,33 @@
+/*
+ * 文档详情页布局（页面级真实 CSS，不依赖 UnoCSS 运行时生成）：
+ * 原子化工具类在 dev 模式按需异步注入，冷启动/重启 vite 后首帧可能只有部分规则生效
+ * （实测出现过 lg:items-start 已注入、lg:flex-row 未注入的中间态 → 卡片堆叠且收缩到内容宽）。
+ * 布局骨架是页面正确性的关键路径，必须与页面 chunk 原子加载 —— 故用本文件落地，
+ * JSX 上的同义工具类保留作冗余（值一致，无冲突）。
+ */
+.doc-detail-layout {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: stretch; /* 列布局（<1024px）下两张卡片占满宽度，不收缩 */
+  gap: 16px;
+  padding-bottom: 16px;
+
+  @media (min-width: 1024px) {
+    flex-direction: row;
+    align-items: flex-start; /* 行布局下顶对齐 + 自然高度 */
+  }
+}
+
+.doc-detail-main {
+  min-width: 0;
+}
+
+.doc-detail-aside {
+  width: 100%;
+  flex-shrink: 0;
+
+  @media (min-width: 1024px) {
+    width: 336px;
+  }
+}

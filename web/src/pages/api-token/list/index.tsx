@@ -1,4 +1,5 @@
-import Icon, { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
+import Icon, { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, KeyOutlined, PlusOutlined } from '@ant-design/icons';
+import PageHeaderTitle from '@/components/stateless/common/PageHeaderTitle';
 import { Button, Dropdown, Form, Input, Modal, Spin, Table, message } from 'antd';
 import SvgIcon from '@/components/stateless/custom/SvgIcon';
 import type { GetProp, MenuProps, TableColumnsType, TableProps } from 'antd';
@@ -248,13 +249,19 @@ export function Component() {
   return (
     <ListContainer>
       <ACard
-        bordered={false}
         className="flex-col-stretch sm:flex-1-hidden card-wrapper"
+        title={(
+          <PageHeaderTitle
+            description={t('page.apitoken.subtitle')}
+            icon={<KeyOutlined />}
+            title={t('page.apitoken.title')}
+          />
+        )}
       >
-        <div className="mb-4 mt-4 flex items-center justify-between">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-12px">
           <Search
             addonBefore={<FilterOutlined />}
-            className="max-w-500px"
+            className="w-full max-w-360px sm:!w-300px"
             enterButton={t('common.refresh')}
             onSearch={onSearchClick}
             value={keyword}
@@ -277,9 +284,10 @@ export function Component() {
           dataSource={data.data}
           loading={loading}
           rowKey="id"
+          scroll={{ x: 'max-content' }}
           size="middle"
           pagination={{
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+            showTotal: total => t('common.totalItems', { total: String(total) }),
             pageSize: queryParams.size,
             current: Math.floor(queryParams.from / queryParams.size) + 1,
             total: data.total?.value || data?.total,

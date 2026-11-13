@@ -119,7 +119,13 @@ const ModelForm = memo(({ form, name, modelProviderList, apiTokenCache }: { form
                 <Select
                   size="large"
                   options={(modelProvider?.models || [])
-                    .filter((item: any) => item.type === name)
+                    // compat taxonomy: language pools include vision-capable
+                    // models (legacy type=vision or support_vision flag)
+                    .filter((item: any) =>
+                      name === 'vision'
+                        ? item.type === 'vision' || item.support_vision
+                        : item.type === name || (name === 'language' && (item.type === 'vision' || item.support_vision))
+                    )
                     .map((item: any) => ({ label: item.name, value: item.name }))
                     .concat([{ label: t(`page.guide.labels.custom`), value: CUSTOM_MODEL_ID }])
                   }

@@ -47,3 +47,5 @@ export function renewAPIToken(id: string) {
     url: `/integration/${id}/_renew_token`
   });
 }
+// re-exported for consumers classifying assistants by search-integration usage
+export { collectSearchBoundAssistantIds } from './wiki';

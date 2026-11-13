@@ -35,7 +35,11 @@ const LAYOUT_MODE_HORIZONTAL: LayoutMode = 'horizontal';
 const LAYOUT_MODE_VERTICAL_MIX = 'vertical-mix';
 const LAYOUT_MODE_HORIZONTAL_MIX = 'horizontal-mix';
 
-configResponsive({ sm: 640 });
+// ahooks' configResponsive REPLACES the whole breakpoint map — keep the
+// default md/lg/xl keys (only retune sm) or every hook mounted after the
+// console chunk loads reads `md` as undefined and flips to mobile layout
+// (wiki shell rendered its floating drawer on desktop)
+configResponsive({ xs: 0, sm: 640, md: 768, lg: 992, xl: 1200 });
 
 const BaseLayout = () => {
   const siderCollapse = useAppSelector(getSiderCollapse);

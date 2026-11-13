@@ -8,6 +8,8 @@ export const SUGGESTION_FILTER_VALUES = "field_values"
 interface FilterValuesProps {
     filter?: { field?: { support_multi_select?: boolean }; value?: string[] } | null;
     onComplete?: () => void;
+    /** Tab commits the filter and returns focus to the main input */
+    onTabComplete?: () => void;
     data?: any[];
     onItemClick?: (item: any) => void;
     language?: string;
@@ -27,6 +29,7 @@ const FilterValues: FC<FilterValuesProps> = (props) => {
         <ListContainer
             type={SUGGESTION_FILTER_VALUES}
             title={t('labels.filterTitle')}
+            selectOnSpace
             {...rest}
             defaultRows={10}
             renderPrefix={(item) => {

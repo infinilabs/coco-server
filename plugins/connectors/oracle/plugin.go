@@ -22,7 +22,10 @@ const (
 )
 
 func init() {
-	pipeline.RegisterProcessorPlugin(ConnectorOracle, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(ConnectorOracle, New, nil)
+	// chain-root driver (batch scope): fetches from its datasource and
+	// emits into the indexing queue — no record contract beyond scope
+	pipeline.RegisterProcessorContract(ConnectorOracle, pipeline.RecordContract{Scope: pipeline.ScopeBatch})
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {

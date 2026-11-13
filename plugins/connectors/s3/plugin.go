@@ -8,9 +8,12 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
 
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/common/fingerprint"
 
 	log "github.com/cihub/seelog"
 	"github.com/minio/minio-go/v7"
@@ -29,7 +32,10 @@ type Plugin struct {
 }
 
 func init() {
-	pipeline.RegisterProcessorPlugin(ConnectorS3, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(ConnectorS3, New, nil)
+	// chain-root driver (batch scope): fetches from its datasource and
+	// emits into the indexing queue — no record contract beyond scope
+	pipeline.RegisterProcessorContract(ConnectorS3, pipeline.RecordContract{Scope: pipeline.ScopeBatch})
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
@@ -113,6 +119,10 @@ func (p *Plugin) Fetch(ctx *pipeline.Context, connector *core.Connector, datasou
 		// S3 not provides creation time
 		doc.Created = &obj.LastModified
 		doc.Updated = &obj.LastModified
+
+		// stamp source-side change signal (ETag + mtime + size): lets the
+		// collection skip gate drop unchanged objects before enrichment
+		doc.SourceFingerprint = fingerprint.SourceMeta("s3", obj.ETag, obj.LastModified.Format(time.RFC3339Nano), strconv.FormatInt(obj.Size, 10))
 
 		if global.Env().IsDebug {
 			data := util.MustToJSONBytes(doc)

@@ -1,5 +1,5 @@
 import type { FormProps } from 'antd';
-import { Button, Form, Input, Select, Spin, Switch, Typography, message } from 'antd';
+import { Alert, Button, Form, Input, Spin, Switch, Typography, message } from 'antd';
 import { useForm } from 'antd/es/form/Form';
 import { useEffect, useState } from 'react';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -11,6 +11,7 @@ import Clipboard from 'clipboard';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
 import { DataSync } from '@/components/datasource/data_sync';
+import PipelineDropdown from '@/components/datasource/pipeline_dropdown';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
 import { Types } from '@/components/datasource/type';
@@ -18,7 +19,7 @@ import { Types } from '@/components/datasource/type';
 // @ts-expect-error
 import { IconSelector } from '@/pages/connector/new/icon_selector';
 import { getConnectorIcons } from '@/service/api/connector';
-import { getDatasource, updateDatasource } from '@/service/api/data-source';
+import { getDatasource, triggerDatasourceSync, updateDatasource } from '@/service/api/data-source';
 
 import Confluence from '../new/confluence';
 import Gitea from '../new/gitea';
@@ -43,6 +44,7 @@ import Neo4j from "@/pages/data-source/new/neo4j.tsx";
 import { getServer } from '@/store/slice/server';
 import normalizeUrl from 'normalize-url';
 import { getEnablePipelines } from '@/service/api/pipeline';
+import { fetchSettings } from '@/service/api/server';
 import { formatESSearchResult } from '@/service/request/es';
 
 // eslint-disable-next-line complexity
@@ -52,6 +54,7 @@ export function Component() {
   const loaderData = useLoaderData();
   const datasourceID = loaderData?.id || '';
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [datasource, setDatasource] = useState<any>({
     id: datasourceID
   });
@@ -59,14 +62,17 @@ export function Component() {
   const server = useAppSelector(getServer);
   const [pipelineList, setPipelineList] = useState<any[]>([]);
 
-  const [webhookEnabled, setWebhookEnabled] = useState(false)
+  // Webhook URL 随 Form 值实时联动：无论用户手动点击开关，还是选中
+  // “实时同步”时程序化 setFieldsValue 打开，都能正确显示/隐藏 URL。
+  // 不能用本地 state + Switch onChange——程序化赋值不会触发 onChange。
+  const webhookEnabled = Form.useWatch(['webhook', 'enabled'], form) ?? false
+  // system default pipeline for document processing — prefills the 文档分析
+  // select when the switch is turned on; the backend no longer falls back
+  // to it server-side
+  const [defaultDocPipeline, setDefaultDocPipeline] = useState<string>('')
   const webhookUrl = useMemo(() => {
     return datasourceID ? normalizeUrl(`${server}/webhooks/${datasourceID}`) : ''
   }, [server, datasourceID])
-
-  useEffect(() => {
-    setWebhookEnabled(datasource?.webhook?.enabled)
-  }, [datasource?.webhook?.enabled])
 
   const fetchPipelines = async () => {
     const res = await getEnablePipelines()
@@ -78,6 +84,10 @@ export function Component() {
 
   useEffect(() => {
     fetchPipelines();
+    fetchSettings().then((res: any) => {
+      const d = res?.data ?? res;
+      setDefaultDocPipeline(d?.document_processing?.default_pipeline_for_document || '');
+    }).catch(() => {});
   }, [])
 
   useEffect(() => {
@@ -129,17 +139,23 @@ export function Component() {
           default:
             break;
         }
-        setDatasource({
+        const formValues = {
           ...(datasource || {}),
           sync_config: {
             enabled: datasource?.sync?.enabled || false,
             strategy: datasource?.sync?.strategy || 'interval',
-            interval: datasource?.sync?.interval || '1h'
+            interval: datasource?.sync?.interval || '1h',
+            crontab: datasource?.sync?.crontab || '0 0 0 * * *'
           },
           raw_config: datasource?.connector?.config? JSON.stringify(datasource?.connector?.config,null,4) : undefined,
           urls: datasource?.connector?.config?.urls || [''],
           enrichment_pipeline: datasource?.enrichment_pipeline ? JSON.stringify(datasource?.enrichment_pipeline, null,2) : ''
-        });
+        };
+        setDatasource(formValues);
+        // antd initialValues 只在 Form 首次挂载时生效，而 datasource 是异步
+        // 加载的——显式回填，保证 Form.useWatch（Webhook URL 联动等）拿到
+        // 存储值。
+        form.setFieldsValue(formValues);
       }
     });
   }, [datasourceID]);
@@ -310,9 +326,12 @@ export function Component() {
       description: values.description,
       tags: values.tags,
       sync: {
-        enabled: values.sync_config?.enabled || false,
+        // 推送模式（webhook 开启）下拉取调度已被隐藏，强制停用——
+        // 同时收敛存量"webhook 开 + 拉取也开"的双通道混乱配置
+        enabled: values.webhook?.enabled ? false : (values.sync_config?.enabled || false),
         strategy: values.sync_config?.strategy || 'interval',
-        interval: values.sync_config?.interval || '1h'
+        interval: values.sync_config?.interval || '1h',
+        crontab: values.sync_config?.strategy === 'cron' ? values.sync_config?.crontab : undefined
       },
       type: 'connector',
        webhook: values.webhook,
@@ -330,7 +349,8 @@ export function Component() {
   datasource.sync_config = {
     enabled: datasource?.sync?.enabled || false,
     strategy: datasource?.sync?.strategy || 'interval',
-    interval: datasource?.sync?.interval || '1h'
+    interval: datasource?.sync?.interval || '1h',
+    crontab: datasource?.sync?.crontab || '0 0 0 * * *'
   };
   const type = datasource?.connector?.id;
   if (!type) {
@@ -480,6 +500,22 @@ export function Component() {
             wrapperCol={{ span: 18 }}
             onFinish={onFinish}
             onFinishFailed={onFinishFailed}
+            onValuesChange={(changedValues, allValues) => {
+              // 文档分析开关打开且 pipeline 为空时，预填系统设置的默认 pipeline
+              if (changedValues.document_processing_config?.enabled === true) {
+                const dpc = allValues.document_processing_config || {};
+                if (!dpc.pipeline && defaultDocPipeline) {
+                  form.setFieldsValue({
+                    document_processing_config: { ...dpc, pipeline: defaultDocPipeline }
+                  });
+                }
+              }
+              // Webhook 开启即推送模式：拉取调度（启用同步/策略）整块隐藏，
+              // 保存时强制 sync.enabled=false（见 onFinish）
+              if (changedValues.webhook?.enabled === true) {
+                message.info(t('page.datasource.new.labels.push_mode_hint'));
+              }
+            }}
           >
             <Form.Item
               label={t('page.datasource.new.labels.name')}
@@ -509,12 +545,13 @@ export function Component() {
             <Form.Item
                 label={t('page.datasource.new.labels.webhook')}
                 name={["webhook", "enabled"]}
+                tooltip={t('page.datasource.new.labels.webhook_tooltip')}
               >
-                <Switch onChange={(checked) => setWebhookEnabled(checked)}/>
+                <Switch />
               </Form.Item>
               {
                 webhookEnabled && (
-                  <Form.Item label={`Webhook Url`}>
+                  <Form.Item label={t('page.datasource.new.labels.webhook_url')}>
                     <Typography.Text 
                       className="color-[var(--ant-color-text)] rounded-[var(--ant-border-radius)] bg-[var(--ant-color-border)] p-12px"
                       style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
@@ -523,10 +560,30 @@ export function Component() {
                   </Form.Item>
                 )
               }
+            <Form.Item
+              noStyle
+              shouldUpdate={(prev, curr) =>
+                prev.webhook?.enabled !== curr.webhook?.enabled ||
+                prev.enrichment_pipeline !== curr.enrichment_pipeline
+              }
+            >
+              {({ getFieldValue }) =>
+                getFieldValue(['webhook', 'enabled']) && !getFieldValue('enrichment_pipeline') ? (
+                  <Form.Item label=" " wrapperCol={{ span: 18 }} colon={false} className="mb-16px">
+                    <Alert
+                      type="warning"
+                      showIcon
+                      message={t('page.datasource.new.labels.webhook_needs_pipeline')}
+                    />
+                  </Form.Item>
+                ) : null
+              }
+            </Form.Item>
+
                <Form.Item
                 label={t('page.datasource.new.labels.enrichment_pipeline')}
                 name="enrichment_pipeline"
-                tooltip={t('page.connector.new.tooltip.config', 'Configurations in JSON format.')}
+                tooltip={t('page.datasource.new.labels.enrichment_pipeline_desc')}
               >
                <Input.TextArea autoSize={{ maxRows: 30, minRows: 2 }} />
               </Form.Item>
@@ -617,27 +674,40 @@ export function Component() {
             </Form.Item> */}
 
             <Form.Item
-              label={t('page.datasource.new.labels.sync_enabled')}
-              name={['sync_config', 'enabled']}
-              valuePropName="checked"
-            >
-              <Switch size="small" />
-            </Form.Item>
-
-            <Form.Item
-              shouldUpdate={(prev, curr) => prev.sync_config?.enabled !== curr.sync_config?.enabled}
               noStyle
+              shouldUpdate={(prev, curr) =>
+                prev.webhook?.enabled !== curr.webhook?.enabled ||
+                prev.sync_config?.enabled !== curr.sync_config?.enabled
+              }
             >
               {({ getFieldValue }) => {
+                const isPushMode = getFieldValue(['webhook', 'enabled']);
+                if (isPushMode) {
+                  return (
+                    <Form.Item label={t('page.datasource.new.labels.sync_enabled')}>
+                      <div className="text-gray-400">{t('page.datasource.new.labels.push_mode_hint')}</div>
+                    </Form.Item>
+                  );
+                }
                 const isSyncEnabled = getFieldValue(['sync_config', 'enabled']);
                 return (
-                  <Form.Item
-                    label={t('page.datasource.new.labels.data_sync')}
-                    name="sync_config"
-                    style={{ display: isSyncEnabled ? 'block' : 'none' }}
-                  >
-                    <DataSync />
-                  </Form.Item>
+                  <>
+                    <Form.Item
+                      label={t('page.datasource.new.labels.sync_enabled')}
+                      name={['sync_config', 'enabled']}
+                      valuePropName="checked"
+                    >
+                      <Switch size="small" />
+                    </Form.Item>
+                    <Form.Item
+                      label={t('page.datasource.new.labels.data_sync')}
+                      name="sync_config"
+                      style={{ display: isSyncEnabled ? 'block' : 'none' }}
+                      className="datasource-sync-item"
+                    >
+                      <DataSync />
+                    </Form.Item>
+                  </>
                 );
               }}
             </Form.Item>
@@ -657,16 +727,11 @@ export function Component() {
                 const isDocumentProcessingEnabled = getFieldValue(['document_processing_config', 'enabled']);
                 return (
                   <Form.Item
-                    label="Pipeline"
+                    label={t('page.datasource.new.labels.doc_pipeline')}
                     name={['document_processing_config', 'pipeline']}
                     style={{ display: isDocumentProcessingEnabled ? 'block' : 'none' }}
                   >
-                    <Select
-                      options={pipelineList.map(item => ({
-                        label: item.name,
-                        value: item.id
-                      }))}
-                    />
+                    <PipelineDropdown pipelineList={pipelineList} onRefresh={fetchPipelines} />
                   </Form.Item>
                 );
               }}
@@ -689,13 +754,31 @@ export function Component() {
 
 
             <Form.Item label=" ">
-              <Button
-                htmlType="submit"
-                loading={loading}
-                type="primary"
-              >
-                {t('common.save')}
-              </Button>
+              <div className="flex items-center gap-10px">
+                <Button
+                  htmlType="submit"
+                  loading={loading}
+                  type="primary"
+                >
+                  {t('common.save')}
+                </Button>
+                <Button
+                  loading={syncing}
+                  onClick={() => {
+                    setSyncing(true);
+                    triggerDatasourceSync(datasourceID)
+                      .then(() => {
+                        message.success(t('page.datasource.new.labels.immediate_sync', 'Sync triggered'));
+                      })
+                      .catch(() => {
+                        message.error(t('common.modifyFailed', 'Sync trigger failed'));
+                      })
+                      .finally(() => setSyncing(false));
+                  }}
+                >
+                  {t('page.datasource.new.labels.immediate_sync', 'Sync now')}
+                </Button>
+              </div>
             </Form.Item>
           </Form>
         </Spin>

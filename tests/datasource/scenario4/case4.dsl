@@ -20,7 +20,7 @@
 #// Log in to account admin
 POST /account/login
 {
-  "email": "admin@mail.com",
+  "login": "admin@mail.com",
   "password": "$[[env.ADMIN_PASSWORD]]"
 }
 # assert: (200, {status: "ok"}),
@@ -35,7 +35,7 @@ POST /account/login
 #// Log in to account a
 POST /account/login
 {
-  "email": "a@mail.com",
+  "login": "a@mail.com",
   "password": "$[[env.A_PASSWORD]]"
 }
 # assert: (200, {status: "ok"}),

@@ -203,5 +203,6 @@ func (h *APIHandler) cloneAssistant(w http.ResponseWriter, req *http.Request, ps
 		h.Error(w, err)
 		return
 	}
+	service.ClearAssistantsCache()
 	h.WriteCreatedOKJSON(w, obj.ID)
 }

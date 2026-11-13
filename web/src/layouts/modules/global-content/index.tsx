@@ -14,7 +14,11 @@ interface Props {
 const useGetCacheKey = () => {
   const location = useLocation();
 
-  const cacheKey = (location.pathname + location.search).slice(1).split('/').join('_');
+  // pathname only: pages driven by query params (the KB page's
+  // 概览/文章/图谱/实体/原材料/成员/设置 tabs) must keep ONE KeepAlive
+  // instance — keying on search remounted the whole page on every tab
+  // switch, flashing blank behind the page transition animation
+  const cacheKey = location.pathname.slice(1).split('/').join('_');
 
   return cacheKey;
 };

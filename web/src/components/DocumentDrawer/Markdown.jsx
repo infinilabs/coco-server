@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect, useMemo, forwardRef } from "react";
 import clsx from "clsx";
+import { Segmented } from "antd";
 import ReactMarkdown from "react-markdown";
 import RemarkMath from "remark-math";
 import RemarkBreaks from "remark-breaks";
@@ -9,14 +10,22 @@ import RehypeHighlight from "rehype-highlight";
 import RehypeRaw from "rehype-raw";
 import mermaid from "mermaid";
 import { useDebouncedCallback } from "use-debounce";
+import { useTranslation } from "react-i18next";
+
+import ProgressiveImage from "../common/ProgressiveImage";
 
 import "./markdown.scss";
 import "./highlight.css";
 
 // 8
+// NOTE: 本文件是 .jsx（非 TSX），不能用 useRef<HTMLDivElement>(null) 泛型写法 ——
+// esbuild 会把泛型解析成比较表达式 `useRef < HTMLDivElement > null`（= false），
+// 导致 ref 永远无效。此处沿用上游 NextChat 的 TSX 代码移植时遗留的坑。
 function Mermaid(props) {
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef(null);
   const [hasError, setHasError] = useState(false);
+  const [view, setView] = useState("diagram"); // diagram | code，默认图示
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (props.code && ref.current) {
@@ -24,6 +33,13 @@ function Mermaid(props) {
         .run({
           nodes: [ref.current],
           suppressErrors: true,
+        })
+        .then(() => {
+          // suppressErrors 时语法错误不 reject，而是插入 aria-roledescription="error" 的错误图
+          const svg = ref.current?.querySelector("svg");
+          const isErr = !svg || svg.getAttribute("aria-roledescription") === "error";
+          setHasError(isErr);
+          if (isErr) console.error("[Mermaid] diagram syntax error, kept as source");
         })
         .catch((e) => {
           setHasError(true);
@@ -33,45 +49,77 @@ function Mermaid(props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.code]);
 
-  function viewSvgInNewWindow() {
-    const svg = ref.current?.querySelector("svg");
-    if (!svg) return;
-    // const text = new XMLSerializer().serializeToString(svg);
-    // const blob = new Blob([text], { type: "image/svg+xml" });
-    // view img
-    // URL.createObjectURL(blob);
-  }
+  // 默认展示渲染后的图，Segmented 可在 图示/源码 间切换（与全局 Segmented 风格一致）
+  // 标题取自图表类型关键字（代码首词），如 mindmap → Mindmap
+  // NOTE: 必须保持在下方 hasError early-return 之前 —— hooks 数量在两次渲染
+  // 间必须一致，否则 React 报 "Rendered fewer hooks than expected"
+  const diagramTitle = useMemo(() => {
+    const m = (props.code || "").trimStart().match(/^[a-zA-Z]+/);
+    if (!m) return "Diagram";
+    const w = m[0];
+    return w.charAt(0).toUpperCase() + w.slice(1);
+  }, [props.code]);
 
   if (hasError) {
-    return null;
+    // mindmap 等图表语法对缩进敏感，LLM 输出解析失败时保留原始代码并给出可见提示，
+    // 不再静默隐藏（此前 hasError 直接 return null，用户只会看到图凭空消失）
+    return (
+      <div className={clsx("no-dark", "mermaid", "mermaid-error")}>
+        <div className="mermaid-error-banner">
+          {t("common.mermaidRenderError")}
+        </div>
+        <pre className="mermaid-error-code">{props.code}</pre>
+      </div>
+    );
   }
 
   return (
-    <div
-      className={clsx("no-dark", "mermaid")}
-      style={{
-        cursor: "pointer",
-        overflow: "auto",
-      }}
-      ref={ref}
-      onClick={() => viewSvgInNewWindow()}
-    >
-      {props.code}
+    <div className={clsx("no-dark", "mermaid", "mermaid-block")}>
+      <div className="mermaid-toolbar">
+        <span className="mermaid-title">{diagramTitle}</span>
+        <Segmented
+          size="small"
+          value={view}
+          onChange={(v) => setView(v)}
+          options={[
+            { label: t("common.diagram"), value: "diagram" },
+            { label: t("common.sourceCode"), value: "code" },
+          ]}
+        />
+      </div>
+      <div
+        className="mermaid-view-diagram"
+        style={{ display: view === "diagram" ? "block" : "none" }}
+        ref={ref}
+      >
+        {props.code}
+      </div>
+      <pre
+        className="mermaid-view-code"
+        style={{ display: view === "code" ? "block" : "none" }}
+      >
+        {props.code}
+      </pre>
     </div>
   );
 }
 
 // 7
-const PreCode = forwardRef((props, ref) => {
+// NOTE: react-markdown v10 (React 18) 不会向自定义组件转发 ref —— 此前的
+// forwardRef ref 恒为 null，mermaid 提取从未执行（图表永远停留在代码块）。
+// 改用组件内部 ref 挂真实 <pre> 节点；effect 依赖 props.children，
+// 内容变化（含流式输出）时也会重新扫描。
+const PreCode = forwardRef((props, _ref) => {
 
+  const preRef = useRef(null);
   const [mermaidCode, setMermaidCode] = useState("");
   // const [htmlCode, setHtmlCode] = useState("");
   // const { height } = useWindowSize();
   // console.log(htmlCode, height);
 
   const renderArtifacts = useDebouncedCallback(() => {
-    if (!ref?.current) return;
-    const mermaidDom = ref.current.querySelector("code.language-mermaid");
+    if (!preRef?.current) return;
+    const mermaidDom = preRef.current.querySelector("code.language-mermaid");
     if (mermaidDom) {
       setMermaidCode(mermaidDom.innerText);
     }
@@ -89,8 +137,8 @@ const PreCode = forwardRef((props, ref) => {
 
   //Wrap the paragraph for plain-text
   useEffect(() => {
-    if (ref?.current) {
-      const codeElements = ref.current.querySelectorAll("code");
+    if (preRef?.current) {
+      const codeElements = preRef.current.querySelectorAll("code");
       const wrapLanguages = [
         "",
         "md",
@@ -110,15 +158,16 @@ const PreCode = forwardRef((props, ref) => {
       });
       setTimeout(renderArtifacts, 1);
     }
-  }, [ref?.current]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.children]);
 
   return (
     <>
-      <pre ref={ref}>
+      <pre ref={preRef} style={mermaidCode ? { display: "none" } : undefined}>
         <span
           className="copy-code-button"
           onClick={() => {
-            if (ref?.current) {
+            if (preRef?.current) {
               //todo copyToClipboard
             }
           }}
@@ -228,6 +277,10 @@ function _MarkDownContent(props) {
     return tryWrapHtmlCode(escapeBrackets(props.content));
   }, [props.content]);
 
+  // renderLink, when provided, gets first refusal on every link — returning
+  // anything non-undefined replaces the anchor entirely (wiki capsules).
+  const renderLink = props.renderLink;
+
   return (
     <ReactMarkdown
       remarkPlugins={[RemarkMath, RemarkGfm, RemarkBreaks]}
@@ -246,7 +299,20 @@ function _MarkDownContent(props) {
         pre: PreCode,
         code: CustomCode,
         p: (pProps) => <p {...pProps} dir="auto" />,
+        // markdown images arrive without dimensions and without error
+        // handling — route them through the progressive tile so loading and
+        // broken sources both look designed instead of browser-default
+        img: (imgProps) => {
+          // wiki 约定:alt 尾部 "|像素" 指定显示宽度(编辑器尺寸工具条写入)
+          const widthFromAlt = (imgProps.alt || '').match(/\|(\d{2,4})$/);
+          const style = widthFromAlt ? { width: `${widthFromAlt[1]}px`, maxWidth: '100%', height: 'auto' } : undefined;
+          return <ProgressiveImage {...imgProps} className={imgProps.className} style={style} />;
+        },
         a: (aProps) => {
+          if (renderLink) {
+            const replaced = renderLink(aProps.href || "", aProps.children);
+            if (replaced !== undefined) return replaced;
+          }
           const href = aProps.href || "";
           if (/\.(aac|mp3|opus|wav)$/.test(href)) {
             return (
@@ -293,7 +359,7 @@ export default function Markdown(props) {
         onDoubleClickCapture={props.onDoubleClickCapture}
         dir="auto"
       >
-        { props.content ? <MarkdownContent content={props.content} /> : null}
+        { props.content ? <MarkdownContent content={props.content} renderLink={props.renderLink} /> : null}
       </div>
     </div>
   );

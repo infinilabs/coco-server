@@ -6,10 +6,12 @@ package fileproc
 
 import (
 	"archive/zip"
+	"bytes"
 	"context"
 	"encoding/xml"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -19,6 +21,28 @@ import (
 	"strings"
 	"time"
 )
+
+// tikaMediaTypeHint returns a Content-Type hint for text formats whose
+// detection Tika cannot do from bytes alone: Tika's byte sniffing answers
+// application/x-www-form-urlencoded for markup/text files without binary
+// magic, which routes them to the EmptyParser and empty output. Binary
+// formats (pdf/office) sniff reliably from magic bytes and stay unhinted.
+func tikaMediaTypeHint(path string) string {
+	mt := mime.TypeByExtension(strings.ToLower(filepath.Ext(path)))
+	if i := strings.Index(mt, ";"); i >= 0 {
+		mt = mt[:i]
+	}
+	switch {
+	case strings.HasPrefix(mt, "text/"), mt == "application/json",
+		mt == "application/xml", mt == "application/xhtml+xml":
+		return mt
+	}
+	switch strings.ToLower(filepath.Ext(path)) {
+	case ".md", ".markdown", ".rst", ".log", ".yaml", ".yml", ".toml":
+		return "text/plain"
+	}
+	return ""
+}
 
 // TikaGetTextPlain sends [path] to Tika and returns a text/plain reader.
 func TikaGetTextPlain(ctx context.Context, tikaEndpoint string, timeout int, path string) (io.ReadCloser, error) {
@@ -97,6 +121,9 @@ func TikaGetTextHtml(ctx context.Context, tikaEndpoint string, timeout int, path
 		return nil, fmt.Errorf("failed to create request for %s: %w", path, err)
 	}
 	req.Header.Set("Accept", "text/html")
+	if hint := tikaMediaTypeHint(path); hint != "" {
+		req.Header.Set("Content-Type", hint)
+	}
 	req.Header.Set("X-Tika-PDFextractInlineImages", "true")
 
 	client := &http.Client{Timeout: time.Duration(timeout) * time.Second}
@@ -111,7 +138,36 @@ func TikaGetTextHtml(ctx context.Context, tikaEndpoint string, timeout int, path
 		resp.Body.Close()
 		return nil, fmt.Errorf("tika returned status %d for %s: %s", resp.StatusCode, path, string(body))
 	}
-	return resp.Body, nil
+
+	// Tika serializes XHTML with XML-style self-closing tags, but consumers
+	// reparse the response through goquery's HTML5 tokenizer, where raw-text
+	// elements (iframe, script, style, ...) never self-close: `<iframe/>`
+	// opens an iframe that swallows every following byte as its text content.
+	// A mooncakes marketing page lost its whole body this way — the
+	// structured extractor then dropped the "iframe" and with it the page.
+	// Expand the self-closing form into explicit open+close pairs before the
+	// HTML parse. Full buffering matches the existing cost model: the caller
+	// parses the whole response with goquery anyway.
+	body, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read tika response for %s: %w", path, err)
+	}
+	return io.NopCloser(bytes.NewReader(fixSelfClosingRawTextTags(body))), nil
+}
+
+// selfClosingRawTextRe matches XML-style self-closing forms of the HTML
+// raw-text elements whose content the HTML5 tokenizer swallows. Attribute
+// values are safe: Tika escapes `>` inside them as &gt;, so [^>]* cannot
+// overrun the tag.
+var selfClosingRawTextRe = regexp.MustCompile(
+	`<\s*(script|style|textarea|title|iframe|noembed|noframes|noscript|xmp|plaintext)((?:[^>"']|"[^"]*"|'[^']*')*?)\s*/>`)
+
+func fixSelfClosingRawTextTags(xhtml []byte) []byte {
+	if !bytes.Contains(xhtml, []byte("/>")) {
+		return xhtml
+	}
+	return selfClosingRawTextRe.ReplaceAll(xhtml, []byte("<$1$2></$1>"))
 }
 
 // TikaUnpackAllTo unpacks all attachments of filePath to the directory to.

@@ -1,34 +1,8 @@
 # pipeline
-# Note: PipelineConfigV2 is defined in the framework and has no explicit MustRegisterSchemaWithIndexName call,
-# so its index name is derived from the lowercased Go type name without a version suffix (no -v2).
-PUT $[[SETUP_INDEX_PREFIX]]pipelineconfigv2
-{
-  "mappings": {
-    "properties": {
-      "id":                { "type": "keyword" },
-      "created":           { "type": "date" },
-      "updated":           { "type": "date" },
-      "_system":           { "type": "object" },
-      "name":              { "type": "keyword" },
-      "enabled":           { "type": "boolean" },
-      "singleton":         { "type": "boolean" },
-      "auto_start":        { "type": "boolean" },
-      "keep_running":      { "type": "boolean" },
-      "retry_delay_in_ms": { "type": "integer" },
-      "max_running_in_ms": { "type": "long" },
-      "logging": {
-        "properties": {
-          "enabled": { "type": "boolean" }
-        }
-      },
-      "processor": { "enabled": false },
-      "labels":    { "type": "object" },
-      "transient": { "type": "boolean" }
-    }
-  }
-}
-
-POST $[[SETUP_INDEX_PREFIX]]pipelineconfigv2/$[[SETUP_DOC_TYPE]]/enrich_documents
+# Note: PipelineConfigV2 is registered by the framework's pipeline module under the ORM index
+# name "pipeline-configs" (no schema suffix). The ORM schema registration creates the index and
+# applies its mappings at startup, so this template only seeds the default pipeline documents.
+POST $[[SETUP_INDEX_PREFIX]]pipeline-configs/$[[SETUP_DOC_TYPE]]/enrich_documents
 {
   "_system": {
     "owner_id": "$[[SETUP_OWNER_ID]]"
@@ -48,16 +22,12 @@ POST $[[SETUP_INDEX_PREFIX]]pipelineconfigv2/$[[SETUP_DOC_TYPE]]/enrich_document
       },
       {
         "document_text_attachment_extraction": {
-          "tika_endpoint": "http://127.0.0.1:9998",
-          "tika_timeout_in_seconds": 360,
           "chunk_size": 7000,
           "extract_attachments": true
         }
       },
       {
         "face_extraction": {
-          "tika_endpoint": "http://127.0.0.1:9998",
-          "tika_timeout_in_seconds": 360,
           "pigo_facefinder_path": "./config/ai/facefinder"
         }
       },
@@ -75,11 +45,16 @@ POST $[[SETUP_INDEX_PREFIX]]pipelineconfigv2/$[[SETUP_DOC_TYPE]]/enrich_document
       {
         "document_embedding": {
         }
+      },
+      {
+        "extract_entities": {
+          "model_context_length": 128000
+        }
       }
   ]
 }
 
-POST $[[SETUP_INDEX_PREFIX]]pipelineconfigv2/$[[SETUP_DOC_TYPE]]/enrich_attachments
+POST $[[SETUP_INDEX_PREFIX]]pipeline-configs/$[[SETUP_DOC_TYPE]]/enrich_attachments
 {
   "_system": {
     "owner_id": "$[[SETUP_OWNER_ID]]"
@@ -90,8 +65,6 @@ POST $[[SETUP_INDEX_PREFIX]]pipelineconfigv2/$[[SETUP_DOC_TYPE]]/enrich_attachme
   "processor": [
       {
         "attachment_text_extraction": {
-          "tika_endpoint": "http://127.0.0.1:9998",
-          "tika_timeout_in_seconds": 360
         }
       }
   ]

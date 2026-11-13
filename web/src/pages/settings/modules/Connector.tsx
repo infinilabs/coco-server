@@ -1,4 +1,5 @@
-import { Avatar, Button, Dropdown, Table, Tag, message } from 'antd';
+import { Avatar, Button, Card, Dropdown, Table, Tag, message } from 'antd';
+import PageHeaderTitle from '@/components/stateless/common/PageHeaderTitle';
 
 import '../index.scss';
 import type { MenuProps, TableColumnsType } from 'antd';
@@ -10,7 +11,7 @@ import { GoogleDriveSVG, HugoSVG, NotionSVG, YuqueSVG } from '@/components/icons
 import useQueryParams from '@/hooks/common/queryParams';
 import { deleteConnector, searchConnector } from '@/service/api/connector';
 
-import Icon, { EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
+import Icon, { ApiOutlined, EllipsisOutlined, ExclamationCircleOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
 
 import { formatESSearchResult } from '@/service/request/es';
 import { Api } from '@/types/api';
@@ -277,10 +278,14 @@ const ConnectorSettings = memo(() => {
 
   return (
     <ListContainer>
-      <div className='mb-4 mt-4 flex items-center justify-between'>
+      <Card
+        className='flex-col-stretch sm:flex-1-hidden card-wrapper'
+        title={<PageHeaderTitle description={t('page.connector.subtitle')} icon={<ApiOutlined />} title={t('page.connector.title')} />}
+      >
+      <div className='mb-4 flex items-center justify-between'>
         <Search
           addonBefore={<FilterOutlined />}
-          className='max-w-500px'
+          className='w-full max-w-360px sm:!w-300px'
           enterButton={t('common.refresh')}
           value={keyword}
           onChange={e => setKeyword(e.target.value)}
@@ -318,6 +323,7 @@ const ConnectorSettings = memo(() => {
         }}
         onChange={handleTableChange}
       />
+      </Card>
       <IntegratedStoreModal ref={integratedStoreModalRef} />
     </ListContainer>
   );

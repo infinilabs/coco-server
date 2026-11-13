@@ -41,10 +41,15 @@ export function getConnectorIcons() {
 }
 
 export function getConnector(ID: string) {
-  return request<Api.Datasource.Connector>({
-    method: 'get',
-    url: `/connector/${ID}`
-  });
+  return request<Api.Datasource.Connector>(
+    {
+      method: 'get',
+      url: `/connector/${ID}`,
+      // pseudo connectors (e.g. manual_upload for KB uploads) have no record —
+      // a 404 here is expected and must not pop an error toast
+      ignoreError: true
+    } as any
+  );
 }
 
 export function getConnectorByIDs(connectorIDs: string[]) {

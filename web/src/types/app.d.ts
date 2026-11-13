@@ -298,6 +298,7 @@ declare namespace App {
           batchDelete: string;
           cancel: string;
           check: string;
+          console: string;
           close: string;
           columnSetting: string;
           comingSoon: string;
@@ -312,6 +313,9 @@ declare namespace App {
           edit: string;
           error: string;
           errorHint: string;
+          mermaidRenderError: string;
+          diagram: string;
+          sourceCode: string;
           expandColumn: string;
           index: string;
           keywordSearch: string;
@@ -402,10 +406,20 @@ declare namespace App {
                 manual_sync: string;
                 manual_sync_desc: string;
                 name: string;
-                realtime_sync: string;
-                realtime_sync_desc: string;
+                push_mode_hint: string;
+                realtime_legacy_note: string;
+                webhook_url: string;
                 scheduled_sync: string;
                 scheduled_sync_desc: string;
+                cron_sync: string;
+                cron_sync_desc: string;
+                cron_freq_daily: string;
+                cron_freq_weekly: string;
+                cron_freq_monthly: string;
+                cron_preset_monthly_day: string;
+                cron_unmapped_hint: string;
+                doc_pipeline: string;
+                doc_pipeline_placeholder: string;
                 type: string;
                 [key: string]: any;
               };
@@ -507,6 +521,17 @@ declare namespace App {
           logoutWithModalMsg: string;
           refreshToken: string;
           tokenExpired: string;
+        };
+        menu: {
+          administration: string;
+          group: {
+            appChat: string;
+            appKb: string;
+            appSearch: string;
+            data: string;
+            others: string;
+            system: string;
+          };
         };
         route: Record<I18nRouteKey, string>;
         system: {

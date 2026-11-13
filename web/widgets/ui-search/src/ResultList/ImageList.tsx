@@ -1,9 +1,11 @@
 import { memo, useMemo, useRef, useState, useEffect, useCallback, type FC } from "react";
-import { Masonry, Skeleton, Spin } from "antd";
+import { Masonry, Tooltip } from "antd";
 import { ChevronRight, ImageOff } from "lucide-react";
 import { useInViewport, useSize } from "ahooks";
+import { useTranslation } from "react-i18next";
 import clsx from "clsx";
 import ResultDetail from "../ResultDetail";
+import LoadingIcon from "../components/LoadingIcon";
 import { AuthImage } from "./AuthImage";
 import { EndList } from "./EndList";
 
@@ -11,14 +13,19 @@ interface MasonryItemProps {
   data: Record<string, any>;
   onItemClick: (data: Record<string, any>) => void;
   apiConfig?: Record<string, any>;
+  /** the tile whose record is shown in the detail preview gets a selection ring */
+  isActive?: boolean;
 }
 
 const MasonryItem: FC<MasonryItemProps> = (props) => {
-  const { data, onItemClick, apiConfig } = props;
+  const { data, onItemClick, apiConfig, isActive } = props;
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const [inViewport] = useInViewport(imgRef);
-  const [loaded, setLoaded] = useState(true);
+  // starts hidden behind the skeleton; only the load event reveals the img, so
+  // a missing image never flashes the browser's broken-image icon
+  const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
 
   const aspectRatio = useMemo(() => {
@@ -33,21 +40,36 @@ const MasonryItem: FC<MasonryItemProps> = (props) => {
     return inViewport ? data?.thumbnail : void 0;
   }, [inViewport, loaded, data?.thumbnail]);
 
+  // a card with no thumbnail URL can never load — show the placeholder tile
+  // right away instead of an endlessly pulsing skeleton
+  const showPlaceholder = errored || !data?.thumbnail;
+
+  const sourceName = data?.source?.name;
+  const category = data?.category;
+
   return (
-    <div ref={containerRef} onClick={() => onItemClick(data)} className="group relative cursor-pointer">
+    <div
+      ref={containerRef}
+      onClick={() => onItemClick(data)}
+      className={clsx(
+        "group relative cursor-pointer rounded-lg transition-shadow",
+        isActive && "shadow-[0_0_0_2px_var(--ant-color-primary)]"
+      )}
+    >
       <div
         className="relative w-full rounded-lg overflow-hidden"
         style={{
           aspectRatio,
         }}
       >
-        <Skeleton.Node
-          active={!loaded && !errored}
-          classNames={{
-            root: "size-full!",
-            content: "size-full!",
-          }}
-        />
+        <div
+          className={clsx(
+            "flex size-full items-center justify-center",
+            !loaded && !showPlaceholder ? "bg-black/3 dark:bg-white/4" : ""
+          )}
+        >
+          {!loaded && !showPlaceholder && <LoadingIcon size={28} />}
+        </div>
 
         <AuthImage
           ref={imgRef}
@@ -56,8 +78,8 @@ const MasonryItem: FC<MasonryItemProps> = (props) => {
           className={clsx(
             "absolute inset-0 size-full object-cover transition",
             {
-              "opacity-100": loaded,
-              "opacity-0": !loaded
+              "opacity-100": loaded && !showPlaceholder,
+              "opacity-0": !loaded || showPlaceholder
             },
           )}
           onLoad={() => {
@@ -72,13 +94,14 @@ const MasonryItem: FC<MasonryItemProps> = (props) => {
 
         <div
           className={clsx(
-            "absolute inset-0 size-full flex items-center justify-center opacity-0",
+            "absolute inset-0 size-full flex flex-col items-center justify-center gap-8px bg-[#F7F8FA] text-[#BFBFBF] opacity-0 transition dark:bg-[#1F1F1F] dark:text-[#595959]",
             {
-              "opacity-100": errored,
+              "opacity-100": showPlaceholder,
             },
           )}
         >
-          <ImageOff className="text-[#999] dark:text-[#666]" />
+          <ImageOff className="size-8" />
+          <div className="text-12px">{t("labels.imageUnavailable")}</div>
         </div>
       </div>
 
@@ -90,13 +113,33 @@ const MasonryItem: FC<MasonryItemProps> = (props) => {
           },
         )}
       >
-        <div className="text-3.5">{data?.title}</div>
+        {data?.title ? (
+          // clamp to two lines so a long title can't push the overlay halfway
+          // up the image; the full text stays one hover away
+          <div className="line-clamp-2 break-words text-3.5 leading-20px" title={data?.title}>
+            {data?.title}
+          </div>
+        ) : null}
 
-        <div className="inline-flex items-center flex-wrap gap-0.5 text-12px">
-          <span>{data?.source?.name}</span>
-          <ChevronRight className="size-3" />
-          <span>{data?.category}</span>
-        </div>
+        {sourceName || category ? (
+          // same treatment as the list view's BreadcrumbsLine: crumbs shrink
+          // and ellipsize on one line, the full text on hover
+          <div className="mt-4px flex min-w-0 items-center gap-x-4px text-12px text-white/80">
+            {sourceName ? (
+              <Tooltip title={sourceName}>
+                <span className="min-w-0 cursor-default truncate">{sourceName}</span>
+              </Tooltip>
+            ) : null}
+            {sourceName && category ? (
+              <ChevronRight className="size-3 shrink-0 opacity-45" />
+            ) : null}
+            {category ? (
+              <Tooltip title={category}>
+                <span className="min-w-0 cursor-default truncate">{category}</span>
+              </Tooltip>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -111,12 +154,21 @@ interface ImageListProps {
   onLoadMore?: () => void;
   setDetailCollapse?: (v: boolean) => void;
   apiConfig?: Record<string, any>;
+  /** clicking a filterable meta entry (category, tag) in the detail drawer re-runs the search */
+  onMetaFilter?: (field: string, value: string) => void;
+  /**
+   * how the open detail renders — 'docked' pins a full-height pane to the
+   * right edge beside the grid (wide containers), 'page' takes over the whole
+   * area below the header (narrow containers / mobile). There is no floating
+   * card variant.
+   */
+  detailMode?: 'docked' | 'page';
   [key: string]: any;
 }
 
 export function ImageList(props: ImageListProps) {
-  const { getDetailContainer, data = [], isMobile, loading, hasMore, onLoadMore, setDetailCollapse, apiConfig } = props;
-  const { total, settings, onGenerateAnswer } = props;
+  const { getDetailContainer, data = [], isMobile, loading, hasMore, onLoadMore, setDetailCollapse, apiConfig, onMetaFilter, detailMode = 'page' } = props;
+  const { total, settings, onGenerateAnswer, theme } = props;
 
   const [open, setOpen] = useState(false);
   const [record, setRecord] = useState<Record<string, any> | undefined>();
@@ -219,30 +271,75 @@ export function ImageList(props: ImageListProps) {
   }, [listData]);
 
   const itemRender = useCallback((item: any) => {
-    return <MasonryItem data={item.data} onItemClick={(item) => onOpen(item)} apiConfig={apiConfig} />;
-  }, [onOpen, apiConfig]);
+    return (
+      <MasonryItem
+        data={item.data}
+        onItemClick={(item) => onOpen(item)}
+        apiConfig={apiConfig}
+        isActive={!!record?.id && item.data?.id === record.id}
+      />
+    );
+  }, [onOpen, apiConfig, record]);
+
+  const detail = open && record ? (
+    // mirrors the document list's preview: a docked full-height pane beside
+    // the grid on wide containers, a full page below the header on narrow
+    // ones — never a floating card over the grid
+    <div
+      className={
+        detailMode === 'docked'
+          ? 'right-0 bottom-0 fixed z-10 overflow-hidden border-l border-solid border-[var(--ant-color-border-secondary)] bg-[var(--ant-color-bg-container)]'
+          : 'left-0 right-0 bottom-0 fixed z-20 overflow-hidden bg-[var(--ant-color-bg-container)]'
+      }
+      style={detailMode === 'docked' ? { width: 820, top: 64 } : { top: isMobile ? 122 : 64 }}
+    >
+      <ResultDetail
+        inline
+        data={record}
+        apiConfig={apiConfig}
+        theme={theme}
+        onClose={onClose}
+        onMetaFilter={
+          onMetaFilter
+            ? (field, value) => {
+                // the detail covers the masonry grid — close it so the refreshed results show
+                onClose();
+                onMetaFilter(field, value);
+              }
+            : undefined
+        }
+      />
+    </div>
+  ) : null;
 
   return (
     <>
       <div ref={masonryContainerRef} style={{ width: '100%' }}>
-        <Masonry
-          columns={columns}
-          gutter={16}
-          items={masonryItems}
-          itemRender={itemRender}
-          fresh
-          styles={{
-            item: { transition: 'all 0.3s ease' },
-          }}
-          style={{ width: '100%' }}
-        />
+        {loading && masonryItems.length === 0 ? (
+          // first page in flight — unified loading icon until tiles land
+          <div className="flex justify-center py-48px">
+            <LoadingIcon size={64} />
+          </div>
+        ) : (
+          <Masonry
+            columns={columns}
+            gutter={16}
+            items={masonryItems}
+            itemRender={itemRender}
+            fresh
+            styles={{
+              item: { transition: 'all 0.3s ease' },
+            }}
+            style={{ width: '100%' }}
+          />
+        )}
         {loading && hasMore && (
           <div style={{
             textAlign: 'center',
             padding: '16px 0',
             marginTop: '8px',
           }}>
-            <Spin />
+            <LoadingIcon size={40} />
           </div>
         )}
         {!loading && !hasMore && masonryItems.length > 0 && (
@@ -254,15 +351,8 @@ export function ImageList(props: ImageListProps) {
           />
         )}
       </div>
-      
-      <ResultDetail 
-        getContainer={getDetailContainer}
-        open={open}
-        onClose={onClose}
-        data={record || {}}
-        isMobile={isMobile}
-        apiConfig={apiConfig}
-      />
+
+      {detail}
     </>
   );
 }

@@ -225,6 +225,7 @@ const ChatStartPage = memo((props) => {
                                 <AIAssistantSelect 
                                   assistants={assistants} 
                                   excluded={excludedAssistants}
+                                  filter={{ '!type': ['data_processing'] }}
                                   onChange={(item) => {
                                     const newExcluded = excludedAssistants.concat([])
                                     newExcluded[index] = item?.id

@@ -6,8 +6,10 @@ package connector
 
 import (
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/common"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/security"
+	"infini.sh/framework/core/util"
 )
 
 type APIHandler struct {
@@ -36,7 +38,13 @@ func init() {
 
 	api.HandleUIMethod(api.OPTIONS, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(core.FeatureCORS))
 	api.HandleUIMethod(api.GET, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(core.FeatureCORS),
-		api.Feature(core.FeatureMaskSensitiveField))
+		api.Feature(core.FeatureMaskSensitiveField),
+		api.MCPTool("search_connectors", "List or search the data connectors configured in Coco AI (GitHub, Confluence, local filesystem, ...). A connector defines where content is crawled from; use its ID with search_datasources to find the datasources it created."),
+		api.Label(api.MCPToolInputSchema, common.MCPQueryEnvelopeSchema(util.MapStr{
+			"query": util.MapStr{"type": "string", "description": "Optional keyword to filter connectors by name or description."},
+			"size":  util.MapStr{"type": "integer", "description": "Page size, default 10."},
+			"from":  util.MapStr{"type": "integer", "description": "Pagination offset."},
+		}, nil)))
 	api.HandleUIMethod(api.POST, "/connector/_search", handler.search, api.RequirePermission(searchPermission), api.Feature(core.FeatureCORS),
 		api.Feature(core.FeatureMaskSensitiveField))
 

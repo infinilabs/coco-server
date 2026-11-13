@@ -7,6 +7,7 @@ import (
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/common"
 	"infini.sh/coco/modules/document"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/orm"
@@ -51,9 +52,10 @@ func (t *EnterpriseSearchTool) Call(ctx context.Context, input string) (string, 
 
 	for i, result := range output {
 		log.Info("result[", i, "]:", result.Title)
+		// dynamic masking: scrub sensitive values before the content leaves for a model
 		results = append(results, fmt.Sprintf(
 			"[Result %d]\nTitle: %s\nURL: %s\nContent: %s\n",
-			i+1, result.Title, result.URL, result.Content,
+			i+1, result.Title, result.URL, common.MaskContent(result.Content),
 		))
 	}
 

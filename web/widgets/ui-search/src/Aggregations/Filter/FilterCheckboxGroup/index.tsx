@@ -38,7 +38,7 @@ const FilterCheckboxGroup: FC<FilterCheckboxGroupProps> = (props) => {
 
   const renderOptions = (options: FilterCheckboxGroupOption[]) => {
     return (
-      <div className="flex flex-col gap-16px">
+      <div className="flex flex-col gap-12px text-12px">
         {options.map((item) => {
           const { label, value, icon, count } = item;
 
@@ -68,7 +68,8 @@ const FilterCheckboxGroup: FC<FilterCheckboxGroupProps> = (props) => {
 
                   <Typography.Text
                     className={clsx(
-                      "min-w-0 max-w-full !text-[#666] dark:!text-white/80",
+                      // ! needed — antd stamps its own font-size on the checkbox wrapper
+                      "min-w-0 max-w-full !text-12px !text-[#4B5563] dark:!text-white/80",
                       classNames?.label
                     )}
                     ellipsis={{ tooltip: label }}
@@ -80,7 +81,7 @@ const FilterCheckboxGroup: FC<FilterCheckboxGroupProps> = (props) => {
 
               <span
                 className={clsx(
-                  "shrink-0 text-[#666] dark:text-white/80",
+                  "shrink-0 text-11px text-[#999] dark:text-white/50",
                   classNames?.count
                 )}
               >

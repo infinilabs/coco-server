@@ -10,6 +10,7 @@ Information about release notes of Coco Server is provided here.
 ## Latest (In development)  
 ### ❌ Breaking changes  
 ### 🚀 Features  
+- docs: the `document.*` / `attachment.*` record path contract is now frozen — paths written into pipeline configs and conditions (e.g. `document.content`, `document.lang`, `metadata.labels.datasource`, `tags`) are a stable public API: additive evolution only, hot-path names never renamed, removal/rename is a major-version event. See the [Record Path Contract](../references/path_contract) reference.
 ### 🐛 Bug fix  
 - fix: principal search filter field for managed mode #696
 - fix: default model provider mismatch in settings #698

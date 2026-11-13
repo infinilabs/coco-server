@@ -8,6 +8,7 @@ import (
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/modules/common/fingerprint"
 	"infini.sh/coco/modules/datasource"
 	"infini.sh/framework/core/api"
 	httprouter "infini.sh/framework/core/api/router"
@@ -15,6 +16,7 @@ import (
 	"infini.sh/framework/core/errors"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/kv"
+	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/param"
 	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/queue"
@@ -120,7 +122,43 @@ func (processor *ConnectorProcessorBase) BatchCollect(ctx *pipeline.Context, con
 			panic("datasource has been deleted, skip further collect")
 		}
 
+		// sync run journal (W8): per-document progress — the shared choke
+		// every connector passes through; the journal lives in
+		// modules/common (the neutral import floor). Counted before the
+		// skip gate: a fingerprint-skipped document was still seen and
+		// handled by this run.
+		common.RecordSyncBatch(datasource.ID, 1)
+
+		// deletion reconciliation: record the observed ID before the skip
+		// gate — a gate-dropped document still exists at the source
+		common.RecordSeenDocID(datasource.ID, doc.ID)
+
+		// sync skip gate: the deterministic doc id resolves the indexed
+		// copy, and a matching source fingerprint means the source has not
+		// changed since its last successful enrichment — drop the message
+		// here so the re-collect cycle neither re-runs the enrichment chain
+		// nor refills the queues. Failed or never-enriched documents always
+		// re-enter (retry); a deleted document no longer resolves and
+		// falls through to normal ingest.
+		if doc.ID != "" && doc.SourceFingerprint != "" && engineDocUnchanged(doc.ID, doc.SourceFingerprint, datasource.EnrichmentPipeline == nil) {
+			log.Infof("collect: skipping unchanged document [%v] [%v]", doc.ID, doc.URL)
+			continue
+		}
+
 		log.Infof("collect: [%v] [%v] [%v] [%v] [%v]", connector.Name, datasource.Name, doc.ID, doc.Category, doc.Title)
+
+		// stamp the dedup fingerprint at the source (D1.5): this queue
+		// feeds the framework's indexing_merge/bulk_indexing processors,
+		// which index straight to the engine and never touch orm — the
+		// document module's pre-hook cannot fire for connector-sourced
+		// documents. Same math as the hook (modules/common/fingerprint);
+		// !ok clears the fields so a shrunken re-ingest drops its stale
+		// fingerprint instead of keeping the previous write's
+		if h, s, ok := fingerprint.Compute(doc.Content); ok {
+			doc.ContentHash, doc.ContentSimhash = h, int64(s)
+		} else {
+			doc.ContentHash, doc.ContentSimhash = "", 0
+		}
 
 		data := util.MustToJSONBytes(doc)
 		err := queue.Push(processor.Queue, data)
@@ -130,18 +168,59 @@ func (processor *ConnectorProcessorBase) BatchCollect(ctx *pipeline.Context, con
 	}
 }
 
+// engineDocUnchanged reports whether the indexed copy of this document
+// completed enrichment with the same source fingerprint the connector just
+// observed. Errors and misses return false so collection falls through to
+// a normal ingest — the gate may skip work, never lose it.
+//
+// noPipeline: the datasource has no enrichment pipeline configured, so its
+// documents deterministically exit the chain via the passthrough outcome
+// (Processed stays false there, by design — the timeline records why). For
+// those sources a completed document is already terminal: without this,
+// the gate would never open and every re-collect cycle would re-ingest
+// every document forever. A pipeline added later still re-enriches via
+// _reprocess (which clears the stored fingerprint).
+func engineDocUnchanged(docID, sourceFingerprint string, noPipeline bool) bool {
+	ctx := orm.NewContext()
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(ctx, &core.Document{})
+
+	existing := core.Document{}
+	existing.ID = docID
+	exists, err := orm.GetV2(ctx, &existing)
+	if err != nil || !exists {
+		return false
+	}
+	if existing.SourceFingerprint != sourceFingerprint {
+		return false
+	}
+	// a failed or half-processed document must retry even though the
+	// source itself never changed
+	if existing.Status == core.DocumentStatusFailed {
+		return false
+	}
+	return existing.Processed || noPipeline
+}
+
+// incrementWatermarkKV is the kv bucket holding the per-datasource
+// last-modified watermark. This is the canonical key: /datasource/_sync_status
+// (modules/document) reads the same bucket, so keep them in sync.
+const incrementWatermarkKV = "/datasource/increment/lastModifiedTime"
+
 func (processor *ConnectorProcessorBase) SaveLastModifiedTime(datasourceID string, lastModifiedTime string) error {
-	err := kv.AddValue("/datasource/increment/lastModifiedTime", []byte(datasourceID), []byte(lastModifiedTime))
-	return err
+	return kv.AddValue(incrementWatermarkKV, []byte(datasourceID), []byte(lastModifiedTime))
 }
 
 func (processor *ConnectorProcessorBase) GetLastModifiedTime(datasourceID string) (string, error) {
-	data, err := kv.GetValue("/datasource/increment/lastModifiedTime", []byte(datasourceID))
+	data, err := kv.GetValue(incrementWatermarkKV, []byte(datasourceID))
 	if err != nil {
+		// a missing watermark is a normal first-sync state; callers treat
+		// "" as "no cursor" and fall back to a full scan
 		return "", err
 	}
-
-	return "", err
+	if len(data) == 0 {
+		return "", nil
+	}
 	return string(data), nil
 }
 
@@ -158,8 +237,14 @@ func reset(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	//check datasource's permission
 	v, err := datasource.GetDatasourceByID([]string{datasourceID})
 	if len(v) != 0 && err == nil {
-		err := kv.DeleteKey("/datasource/increments/lastModifiedTime", []byte(datasourceID))
-		if err != nil {
+		// legacy key (plural) cleanup, then the canonical ones:
+		// - lastModifiedTime: cloud-drive connectors' watermark (feishu etc.)
+		// - lastSyncValue: RDBMS scanners' source-side watermark (mysql/pg/mssql/oracle)
+		_ = kv.DeleteKey("/datasource/increments/lastModifiedTime", []byte(datasourceID))
+		if err := kv.DeleteKey(incrementWatermarkKV, []byte(datasourceID)); err != nil {
+			panic(err)
+		}
+		if err := kv.DeleteKey(lastSyncValueKV, []byte(datasourceID)); err != nil {
 			panic(err)
 		}
 		api.WriteJSON(w, api.NewAckJSON(true), 200)

@@ -41,7 +41,10 @@ type Processor struct {
 }
 
 func init() {
-	pipeline.RegisterProcessorPlugin(NAME, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(NAME, New, nil)
+	// chain-root driver (batch scope): fetches from its datasource and
+	// emits into the indexing queue — no record contract beyond scope
+	pipeline.RegisterProcessorContract(NAME, pipeline.RecordContract{Scope: pipeline.ScopeBatch})
 
 	// Register OAuth routes for Box Free Account
 	api.HandleUIMethod(api.GET, "/connector/:id/box/connect", connect, api.RequireLogin())

@@ -7,6 +7,7 @@ package datasource
 import (
 	"net/http"
 
+	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/modules/document"
@@ -15,6 +16,23 @@ import (
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 )
+
+// enqueueForIndexing feeds a freshly created document into the enrichment
+// pipeline (W0 write-path closure); swappable in tests.
+var enqueueForIndexing = common.EnqueueForIndexing
+
+// enqueueDocIfEnrichable mirrors the document API's entry closure: a
+// content-bearing document created through /datasource/:id/_doc must be
+// chunked/embedded like a connector-sourced one. Logged, never fatal —
+// the create already succeeded.
+func enqueueDocIfEnrichable(obj *core.Document) {
+	if obj == nil || len(obj.Content) == 0 {
+		return
+	}
+	if err := enqueueForIndexing(obj); err != nil {
+		log.Warnf("failed to enqueue datasource document [%s] for enrichment: %v", obj.ID, err)
+	}
+}
 
 func (h *APIHandler) createDatasource(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	var obj = &core.DataSource{}
@@ -96,10 +114,20 @@ func (h *APIHandler) deleteDatasource(w http.ResponseWriter, req *http.Request, 
 	ctx1 := orm.NewContextWithParent(req.Context())
 	orm.WithModel(ctx1, &core.Document{})
 
+	// collect ids before the delete: the W11 liaison needs them to mark
+	// citing wiki articles stale (evidence loss is marked, never removed)
+	var doomed []core.Document
+	err, _ = elastic.SearchV2WithResultItemMapper(ctx1, &doomed, orm.NewQuery().Size(1000).
+		Filter(orm.TermQuery("source.id", id)).Include("id"), nil)
+
 	_, err = orm.DeleteByQuery(ctx1, builder)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	for _, d := range doomed {
+		common.FireDocumentDeleted(d.ID)
 	}
 
 	err = orm.Delete(ctx, &obj)
@@ -143,25 +171,52 @@ func (h *APIHandler) updateDatasource(w http.ResponseWriter, req *http.Request, 
 	}
 
 	replace := h.GetBoolOrDefault(req, "replace", false)
-	var err error
 
-	obj := core.DataSource{}
-	err = h.DecodeJSON(req, &obj)
+	body, err := util.ReadBody(req)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	//protect
-	obj.ID = id
+	obj := core.DataSource{}
 	ctx := orm.NewContextWithParent(req.Context())
 	ctx.Refresh = orm.WaitForRefresh
 	ctx.Set(orm.SharingEnabled, true)
 	ctx.Set(orm.SharingResourceType, "datasource")
 
 	if replace {
+		// full replace: the request body is authoritative
+		if err := util.FromJSONBytes(body, &obj); err != nil {
+			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		obj.ID = id
 		err = orm.Upsert(ctx, &obj)
 	} else {
+		// patch semantics: load the stored document first, then overlay the
+		// request body onto it. JSON decoding only touches fields present in
+		// the body, so omitted fields keep their stored values — without the
+		// pre-load, omitted fields decode as zero values and are persisted
+		// (e.g. an interval-only PUT silently disabled the datasource by
+		// clearing `enabled`).
+		obj.ID = id
+		var exists bool
+		exists, err = orm.GetV2(ctx, &obj)
+		if err != nil {
+			panic(err)
+		}
+		if !exists {
+			h.WriteJSON(w, util.MapStr{
+				"_id":   id,
+				"found": false,
+			}, http.StatusNotFound)
+			return
+		}
+		if err := util.FromJSONBytes(body, &obj); err != nil {
+			h.WriteError(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		obj.ID = id // protect against body-supplied id drift
 		err = orm.Update(ctx, &obj)
 	}
 
@@ -237,6 +292,35 @@ func (h *APIHandler) searchDatasource(w http.ResponseWriter, req *http.Request, 
 		return
 	}
 
+	// Per-datasource document counts, one terms aggregation over the
+	// document index. The wiki KB datasources tab renders the count per
+	// row; best-effort — a failed aggregation returns counts of zero
+	// rather than failing the whole search.
+	if counts := document.DatasourceDocCounts(ctx); len(counts) > 0 {
+		var raw map[string]interface{}
+		if err := util.FromJSONBytes(res.Raw, &raw); err == nil && raw != nil {
+			if hits, ok := raw["hits"].(map[string]interface{}); ok {
+				if items, ok := hits["hits"].([]interface{}); ok {
+					for _, item := range items {
+						hit, ok := item.(map[string]interface{})
+						if !ok {
+							continue
+						}
+						src, ok := hit["_source"].(map[string]interface{})
+						if !ok {
+							continue
+						}
+						if id, ok := src["id"].(string); ok {
+							src["document_count"] = counts[id]
+						}
+					}
+				}
+			}
+			h.WriteJSON(w, raw, http.StatusOK)
+			return
+		}
+	}
+
 	_, err = h.Write(w, res.Raw)
 	if err != nil {
 		h.Error(w, err)
@@ -275,6 +359,10 @@ func (h *APIHandler) createDocInDatasource(w http.ResponseWriter, req *http.Requ
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Write-path closure (W0): same enrichment entry as connector-sourced
+	// documents — without this the _doc API lands chunk-less documents.
+	enqueueDocIfEnrichable(obj)
 
 	h.WriteJSON(w, util.MapStr{
 		"_id":    obj.ID,
@@ -316,6 +404,9 @@ func (h *APIHandler) createDocInDatasourceWithID(w http.ResponseWriter, req *htt
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Write-path closure (W0): the keyed variant deserves chunks too.
+	enqueueDocIfEnrichable(obj)
 
 	h.WriteJSON(w, util.MapStr{
 		"_id":    obj.ID,

@@ -59,11 +59,16 @@ func GetLLM(endpoint, apiType, model, token string, keepalive string) llms.Model
 }
 
 // GetEmbeddingLLM creates an LLM client optimized for embedding generation.
-// For OpenAI-compatible providers it requests the specified embedding dimension
-// from the model; for Ollama the dimension is ignored because the API does not
-// support changing output dimensions.
+//
+// The expected output dimension is intentionally NOT sent as the OpenAI
+// `dimensions` parameter: several OpenAI-compatible providers (e.g.
+// siliconflow's BAAI/bge-m3) reject the parameter outright with a 400 even
+// when the requested value equals the model's native dimension, which made
+// every document_embedding call fail. The native dimension is used instead
+// and callers validate the returned vector length (validateEmbeddingDimension
+// / the query-side equivalent), so a mismatch still fails loudly.
 func GetEmbeddingLLM(endpoint, apiType, model, token string, dimensions int) llms.Model {
-	return getLLMInternal(endpoint, apiType, model, token, "", dimensions)
+	return getLLMInternal(endpoint, apiType, model, token, "", 0)
 }
 
 // helper function to build an LLM client, optionally requesting a specific

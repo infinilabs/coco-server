@@ -4,7 +4,13 @@
 
 package core
 
-import "infini.sh/framework/core/pipeline"
+import (
+	"strings"
+	"time"
+
+	"infini.sh/framework/core/pipeline"
+	"infini.sh/framework/core/task/chrono"
+)
 
 type DataSource struct {
 	CombinedFullText
@@ -16,6 +22,12 @@ type DataSource struct {
 
 	Category string   `json:"category,omitempty" elastic_mapping:"category:{type:keyword}"`
 	Tags     []string `json:"tags,omitempty" elastic_mapping:"tags:{type:keyword}"`
+
+	// TagsVocab is the controlled vocabulary (W4): when set, the
+	// extract_tags processor may ONLY pick from this list — unknown model
+	// outputs are dropped, manual tags are never touched. Empty = free-form
+	// tagging (the historic behavior).
+	TagsVocab []string `json:"tags_vocab,omitempty" elastic_mapping:"tags_vocab:{type:keyword}"`
 
 	Connector ConnectorConfig `json:"connector,omitempty" elastic_mapping:"connector:{type:object}"` // Connector configuration
 
@@ -47,7 +59,63 @@ type SyncConfig struct {
 	Enabled  bool   `json:"enabled" elastic_mapping:"enabled:{type:boolean}"`
 	Strategy string `json:"strategy" elastic_mapping:"strategy:{type:keyword}"`
 	Interval string `json:"interval" elastic_mapping:"interval:{type:keyword}"`
+	Crontab  string `json:"crontab,omitempty" elastic_mapping:"crontab:{type:keyword}"`
 	PageSize int    `json:"page_size" config:"page_size"`
+}
+
+// Sync strategies: how a datasource is scheduled into runs. The dispatcher
+// branches on the effective value; the webhook handler drives realtime
+// sources by push.
+const (
+	// SyncStrategyInterval auto-dispatches on the configured interval (the
+	// historical default; empty or unknown values normalize to this).
+	SyncStrategyInterval = "interval"
+	// SyncStrategyManual never auto-dispatches — runs happen only through
+	// POST /datasource/:id/_sync.
+	SyncStrategyManual = "manual"
+	// SyncStrategyRealtime is push-driven: webhook deliveries carry the
+	// content, no interval polling.
+	SyncStrategyRealtime = "realtime"
+	// SyncStrategyCron auto-dispatches when a crontab slot has passed since
+	// the last run — e.g. "0 0 0 * * *" for every midnight. Crontabs use the
+	// framework's chrono 6-field format (second minute hour day-of-month
+	// month day-of-week). A missed slot (server down at fire time) runs once
+	// on the next tick, because the check anchors on the last run's time.
+	SyncStrategyCron = "cron"
+)
+
+// EffectiveStrategy normalizes the configured strategy: empty or unknown
+// values read as interval so existing records keep their behavior.
+func (c SyncConfig) EffectiveStrategy() string {
+	switch c.Strategy {
+	case SyncStrategyManual, SyncStrategyRealtime, SyncStrategyCron:
+		return c.Strategy
+	default:
+		return SyncStrategyInterval
+	}
+}
+
+// CronDue reports whether a cron-scheduled source should dispatch now: a
+// trigger slot has passed since lastAccess (exclusive) and is due at or
+// before now. lastAccess empty or unparsable (never ran / corrupt stamp)
+// means due immediately — the first sync should not wait for a slot. An
+// invalid or empty crontab is never due (the dispatcher logs it; manual
+// trigger still works). Parses the stamp locally instead of calling
+// util.ParseTimeWithLocalTZ, which panics on malformed input.
+func (c SyncConfig) CronDue(lastAccess string, now time.Time) bool {
+	expr, err := chrono.ParseCronExpression(strings.TrimSpace(c.Crontab))
+	if err != nil {
+		return false
+	}
+	lastAccess = strings.TrimSpace(lastAccess)
+	if lastAccess == "" {
+		return true
+	}
+	last, err := time.ParseInLocation("2006-01-02 15:04:05", lastAccess, time.Local)
+	if err != nil {
+		return true
+	}
+	return !expr.NextTime(last).After(now)
 }
 
 type ConnectorConfig struct {

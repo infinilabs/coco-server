@@ -15,12 +15,14 @@ import (
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/llms"
 	"infini.sh/coco/core"
+	"infini.sh/coco/core/codecs"
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
 	llmmodule "infini.sh/coco/modules/llm"
 	utils "infini.sh/coco/plugins/processors"
 	"infini.sh/coco/plugins/processors/fileproc"
 	"infini.sh/framework/core/config"
+	"infini.sh/framework/core/event"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/param"
@@ -32,7 +34,8 @@ import (
 const AttachmentProcessorName = "attachment_text_extraction"
 
 func init() {
-	pipeline.RegisterProcessorPlugin(AttachmentProcessorName, NewAttachmentProcessor)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(AttachmentProcessorName, NewAttachmentProcessor, AttachmentConfig{})
+	pipeline.RegisterProcessorContract(AttachmentProcessorName, utils.AttachmentRecordContract(pipeline.GranularityRecord))
 }
 
 // AttachmentTextExtractionProcessor extracts text from attachment files.
@@ -63,10 +66,8 @@ type AttachmentConfig struct {
 
 func NewAttachmentProcessor(c *config.Config) (pipeline.Processor, error) {
 	cfg := AttachmentConfig{
-		MessageField:         core.PipelineContextDocuments,
-		TikaEndpoint:         "http://127.0.0.1:9998",
-		TikaTimeoutInSeconds: 120,
-		ImageContentFormat:   "data_uri",
+		MessageField:       core.PipelineContextDocuments,
+		ImageContentFormat: "data_uri",
 	}
 	if err := c.Unpack(&cfg); err != nil {
 		return nil, fmt.Errorf("failed to unpack config of %s processor: %w", AttachmentProcessorName, err)
@@ -89,7 +90,53 @@ func (p *AttachmentTextExtractionProcessor) Name() string {
 	return AttachmentProcessorName
 }
 
+// ProcessBatch: record-convention channel (attachment namespace). The
+// record's attachment subtree is serialized into a synthetic message and
+// flows through the exact same processMessage path as the legacy
+// convention — one core, two doors.
+func (p *AttachmentTextExtractionProcessor) ProcessBatch(ctx *pipeline.Context, records []*event.Event) error {
+	for _, rec := range records {
+		if rec == nil {
+			continue
+		}
+		if global.ShuttingDown() {
+			return fmt.Errorf("shutting down")
+		}
+		v, err := rec.Fields.GetValue(codecs.FieldAttachment)
+		if err != nil || v == nil {
+			continue // not an attachment-family record
+		}
+		b, err := util.ToJSONBytes(v)
+		if err != nil {
+			continue
+		}
+		updated, err := p.processMessage(ctx.Context, queue.Message{Data: b})
+		if err != nil {
+			log.Errorf("processor [%s] failed to process attachment record: %v", p.Name(), err)
+			continue
+		}
+		if updated == nil {
+			continue // skipped
+		}
+		nb, err := util.ToJSONBytes(updated)
+		if err != nil {
+			continue
+		}
+		nm := util.MapStr{}
+		if err := util.FromJSONBytes(nb, &nm); err != nil {
+			continue
+		}
+		rec.Fields[codecs.FieldAttachment] = nm
+	}
+	return nil
+}
+
 func (p *AttachmentTextExtractionProcessor) Process(ctx *pipeline.Context) error {
+	// record-scope path (attachment family)
+	if rec, ok := pipeline.CurrentRecord(ctx); ok {
+		return p.ProcessBatch(ctx, []*event.Event{rec})
+	}
+
 	obj := ctx.Get(p.config.MessageField)
 	if obj == nil {
 		log.Warnf("processor [%s] receives an empty pipeline context", p.Name())
@@ -182,8 +229,16 @@ func (p *AttachmentTextExtractionProcessor) extractText(ctx context.Context, att
 // extractTextWithTika uses Apache Tika to extract text from a document file.
 // This method never extracts embedded attachments (images, etc.) from the document.
 func (p *AttachmentTextExtractionProcessor) extractTextWithTika(ctx context.Context, localPath string) (string, error) {
-	htmlReader, err := fileproc.TikaGetTextHtml(ctx, p.config.TikaEndpoint, p.config.TikaTimeoutInSeconds, localPath)
+	htmlReader, err := fileproc.TikaGetTextHtml(ctx, resolveTikaEndpoint(p.config.TikaEndpoint), resolveTikaTimeout(p.config.TikaTimeoutInSeconds), localPath)
 	if err != nil {
+		// Same PDFBox substitution crash as the document path — recover with
+		// poppler when the file is a PDF.
+		if strings.EqualFold(filepath.Ext(localPath), ".pdf") {
+			if pages, fbErr := fileproc.PdftotextPages(ctx, resolveTikaTimeout(p.config.TikaTimeoutInSeconds), localPath); fbErr == nil {
+				log.Warnf("processor [%s] tika failed for [%s], recovered text with pdftotext (%d pages): %v", p.Name(), localPath, len(pages), err)
+				return strings.Join(pages, " "), nil
+			}
+		}
 		return "", fmt.Errorf("failed to extract text using tika: %w", err)
 	}
 	defer fileproc.DeferClose(htmlReader)
@@ -243,6 +298,9 @@ func (p *AttachmentTextExtractionProcessor) extractTextFromImage(ctx context.Con
 	}
 
 	var description strings.Builder
+	llmCtx, llmCancel := utils.PipelineLLMContext(ctx)
+	defer llmCancel()
+	ctx = llmCtx
 	_, err = llm.GenerateContent(ctx, messages, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
 		if global.ShuttingDown() {
 			return fmt.Errorf("shutting down")

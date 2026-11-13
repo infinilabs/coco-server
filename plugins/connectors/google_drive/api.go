@@ -140,7 +140,7 @@ func oAuthRedirect(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 	log.Debugf("google drive authenticated user: ID=%s, Email=%s", userInfo.Sub, userInfo.Email)
 
 	datasource := core.DataSource{
-		SyncConfig: core.SyncConfig{Enabled: true, Interval: "30s"},
+		SyncConfig: core.SyncConfig{Enabled: true, Interval: "5m"},
 		Enabled:    true,
 	}
 	datasource.ID = util.MD5digest(fmt.Sprintf("%v,%v,%v,%v", "google_drive", connectorID, userInfo.Sub, userInfo.Email))

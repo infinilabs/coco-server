@@ -18,6 +18,8 @@ import (
 	utils "infini.sh/coco/plugins/processors"
 	"infini.sh/coco/plugins/processors/fileproc"
 	"infini.sh/framework/core/config"
+	"infini.sh/framework/core/errors"
+	"infini.sh/framework/core/event"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/param"
 	"infini.sh/framework/core/pipeline"
@@ -33,7 +35,8 @@ var supportedConnectors = map[string]bool{
 }
 
 func init() {
-	pipeline.RegisterProcessorPlugin(ProcessorName, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(ProcessorName, New, Config{})
+	pipeline.RegisterProcessorContract(ProcessorName, utils.DocumentRecordContract(pipeline.GranularityRecord))
 }
 
 type FileMetadataProcessor struct {
@@ -65,7 +68,44 @@ func (p *FileMetadataProcessor) Name() string {
 	return ProcessorName
 }
 
+// processDocumentGated gates on connector eligibility then delegates to
+// the shared per-document core. handled=false preserves skip semantics.
+func (p *FileMetadataProcessor) processDocumentGated(ctx context.Context, doc *core.Document) (bool, error) {
+	connectorID, err := utils.GetConnectorID(doc)
+	if err != nil {
+		log.Warnf("processor [%s] failed to get connector ID for document [%s]: %v", p.Name(), doc.ID, err)
+		return false, nil
+	}
+	if !supportedConnectors[connectorID] || doc.Type != connectors.TypeFile {
+		log.Debugf("processor [%s] skipping document [%s/%s]: not a supported file connector [%s]", p.Name(), doc.Title, doc.ID, connectorID)
+		return false, nil
+	}
+	log.Infof("processor [%s] processing file [%s/%s] from connector [%s]", p.Name(), doc.Title, doc.ID, connectorID)
+	if err := p.processDocument(ctx, doc, connectorID); err != nil {
+		log.Errorf("processor [%s] failed to process [%s/%s]: %s", p.Name(), doc.Title, doc.ID, err)
+		return false, nil
+	}
+	return true, nil
+}
+
+// ProcessBatch: record-convention batch channel.
+func (p *FileMetadataProcessor) ProcessBatch(ctx *pipeline.Context, records []*event.Event) error {
+	return utils.EachDocumentRecord(ctx.Context, records, func(dctx context.Context, doc *core.Document) (bool, error) {
+		if global.ShuttingDown() {
+			return false, errors.New("shutting down")
+		}
+		return p.processDocumentGated(dctx, doc)
+	})
+}
+
 func (p *FileMetadataProcessor) Process(ctx *pipeline.Context) error {
+	// record-scope path (deterministic processor, granularity=record)
+	if rec, ok := pipeline.CurrentRecord(ctx); ok {
+		return utils.EachDocumentRecord(ctx.Context, []*event.Event{rec}, func(dctx context.Context, doc *core.Document) (bool, error) {
+			return p.processDocumentGated(dctx, doc)
+		})
+	}
+
 	obj := ctx.Get(p.config.MessageField)
 	if obj == nil {
 		log.Warnf("processor [%s] receives an empty pipeline context", p.Name())

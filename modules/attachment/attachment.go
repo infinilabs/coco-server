@@ -5,7 +5,6 @@
 package attachment
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -273,7 +272,11 @@ var extMime = map[string]string{
 	".rar":  "application/vnd.rar",
 }
 
-func DetectMimeType(fileName string, file multipart.File, header *multipart.FileHeader) (string, error) {
+// DetectMimeType resolves the MIME type from (in order): multipart header,
+// 512-byte content sniff, file extension. The file argument only needs
+// ReadSeeker — multipart.File satisfies it, and so does a bytes.Reader over
+// already-consumed content (see UploadToBlobStore).
+func DetectMimeType(fileName string, file io.ReadSeeker, header *multipart.FileHeader) (string, error) {
 	// 1. Try MIME type from multipart headers
 	if header != nil {
 		if ct := header.Header.Get("Content-Type"); ct != "" {
@@ -281,16 +284,7 @@ func DetectMimeType(fileName string, file multipart.File, header *multipart.File
 		}
 	}
 	// 2. Try sniffing first 512 bytes
-	var rs io.ReadSeeker
-	var ok bool
-	if rs, ok = file.(io.ReadSeeker); !ok {
-		// if not seekable, wrap in bytes.Reader
-		data, err := io.ReadAll(file)
-		if err != nil {
-			return "", err
-		}
-		rs = bytes.NewReader(data)
-	}
+	rs := file
 
 	buffer := make([]byte, 512)
 	n, err := rs.Read(buffer)

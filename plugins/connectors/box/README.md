@@ -45,7 +45,7 @@ Box cloud storage connector is used to index files and folders from Box, support
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `sync.enabled` | bool | true | Enable synchronization |
-| `sync.interval` | string | "30s" | Sync interval per datasource |
+| `sync.interval` | string | "5m" | Sync interval per datasource |
 
 **Note**: Sync interval is configured at datasource level, not connector level. Each datasource can have different sync intervals.
 

@@ -28,10 +28,9 @@ const GlobalSider: FC<Props> = memo(({ headerHeight, inverted, isHorizontalMix, 
     >
       {showLogo && (
         <GlobalLogo
-          // showTitle={!siderCollapse}
           className="b-b-1px b-r-1px"
           darkMode={darkMode}
-          showTitle={false}
+          showTitle={!siderCollapse}
           siderCollapse={siderCollapse}
           style={{ borderColor, height: `${headerHeight}px` }}
         />

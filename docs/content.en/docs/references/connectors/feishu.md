@@ -339,7 +339,7 @@ curl -H 'Content-Type: application/json' -XPOST "http://localhost:9000/datasourc
 | Field         | Type   | Default | Description              |
 |---------------|--------|---------|--------------------------|
 | `page_size`   | int    | 100     | Number of files per page |
-| `interval`    | string | "30s"   | Synchronization interval |
+| `interval`    | string | "5m"   | Synchronization interval |
 
 ## Supported Document Types
 

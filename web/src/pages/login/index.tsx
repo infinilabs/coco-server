@@ -2,6 +2,7 @@ import bgZH from '@/assets/svg-icon/login-zh.svg';
 import bg from '@/assets/svg-icon/login.svg';
 import { getLocale } from '@/store/slice/app';
 import { getIsLogin } from '@/store/slice/auth';
+import { getAppearance } from '@/store/slice/server';
 import { getDarkMode } from '@/store/slice/theme';
 
 import CocoAI from './modules/CocoAI';
@@ -21,9 +22,13 @@ export function Component() {
     }
   });
   const darkMode = useAppSelector(getDarkMode);
+  const appearance = useAppSelector(getAppearance);
 
   const locale = useAppSelector(getLocale);
-  const backgroundImage = locale === 'zh-CN' ? bgZH : bg;
+  // configured login background wins; otherwise the bundled illustration
+  // follows the locale
+  const backgroundImage = appearance?.login?.background_image || (locale === 'zh-CN' ? bgZH : bg);
+  const backgroundColor = appearance?.login?.background_color || '#0087FF';
 
   const isToProvider = useMemo(() => {
     return Boolean(provider && requestID && product);
@@ -47,8 +52,8 @@ export function Component() {
         )
       }
       <div
-        className="h-100% w-1/3 bg-[#0087FF] bg-[size:contain] bg-center-left bg-no-repeat hidden lg:block"
-        style={{ backgroundImage: `url(${backgroundImage})` }}
+        className="h-100% w-1/3 bg-[size:contain] bg-center-left bg-no-repeat hidden lg:block"
+        style={{ backgroundColor, backgroundImage: `url(${backgroundImage})` }}
       />
       <div className="h-100% w-full lg:w-2/3">
         <div className="items-left size-full flex flex-col justify-center overflow-auto px-10%">

@@ -1,6 +1,7 @@
+import { useEffect, useRef } from 'react';
 import queryString from 'query-string';
 
-export default function useQueryParams(defaultParams: any = {}) {
+export default function useQueryParams(defaultParams: any = {}, options: { reactive?: boolean } = {}) {
   
   const getInitialParams = useCallback(() => {
     const currentUrl = new URL(window.location.href);
@@ -35,6 +36,21 @@ export default function useQueryParams(defaultParams: any = {}) {
   }, [defaultParams]);
 
   const [searchParams, setSearchParams] = useState<any>(getInitialParams);
+
+  // reactive mode (search app): the URL must stay the source of truth for
+  // EXTERNAL hash changes too — back/forward, another component assigning
+  // location.hash, or a deep link clicked while already on the page.
+  // setQueryParams itself pushState's, and pushState never fires hashchange,
+  // so this cannot loop on our own writes.
+  const parseRef = useRef(getInitialParams);
+  parseRef.current = getInitialParams;
+  useEffect(() => {
+    if (!options.reactive) return undefined;
+    const sync = () => setSearchParams(parseRef.current());
+    window.addEventListener('hashchange', sync);
+    return () => window.removeEventListener('hashchange', sync);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [options.reactive]);
 
   const queryParams = useMemo(() => {
     const filter: Record<string, any[]> = {};
