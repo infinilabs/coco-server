@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -1179,9 +1180,10 @@ func applyCompilePatchProposal(ctx *orm.Context, p *core.WikiGovernanceProposal)
 	if !ok {
 		return "", "", fmt.Errorf("article %s not found", p.ArticleID)
 	}
-	article.Content = content
+	article.Content = relinkEntityMentions(ctx, content, article.Title)
 	article.AIGenerated = true
 	article.Summary = deriveSummaryFromBody(content)
+	mergeCitedSources(ctx, p.KbID, &article, content)
 	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 	if err := orm.Update(ctx, &article); err != nil {
 		return "", "", err
@@ -1191,6 +1193,94 @@ func applyCompilePatchProposal(ctx *orm.Context, p *core.WikiGovernanceProposal)
 	snapshotPipelineWrite(&article, "compile agent revision: "+truncateRunes(rationale, 80))
 	SyncArticleProjection(&article)
 	return "编译修订已应用", article.ID, nil
+}
+
+/* agent-compiled revisions cite sources inline as `[Doc: <title>]` markers;
+   the reading surface anchors the numbered hover chips by matching those
+   names against article.Sources — so a patch apply must fold the cited
+   documents back into the source list, or every chip renders name-only
+   with no provenance link (the page's creation-time sources go stale the
+   first time the agent re-cites a different part of the corpus). */
+
+var (
+	// wikilink-wrapped citation names may carry the entity-type namespace
+	// (`[Doc: [[product:Neo4j]]]` from legacy mangled content) — the doc
+	// title is the label after the namespace
+	docCiteWrapped = regexp.MustCompile(`\[Doc:\s*\[\[(?:[A-Za-z0-9_-]+:)?([^\[\]]+)\]\]\]`)
+	docCiteName    = regexp.MustCompile(`\[Doc:\s*([^\]]+)\]`)
+)
+
+// citedDocNames extracts the distinct `[Doc: <title>]` citation names from
+// an agent-compiled body — wikilink-wrapped names (`[Doc: [[x]]]`) are
+// unwrapped first, mirroring the frontend's splitCitationBlock.
+func citedDocNames(body string) []string {
+	names := []string{}
+	seen := map[string]bool{}
+	for _, m := range docCiteName.FindAllStringSubmatch(docCiteWrapped.ReplaceAllString(body, "[Doc: $1]"), -1) {
+		name := strings.TrimSpace(m[1])
+		if name == "" || seen[name] {
+			continue
+		}
+		seen[name] = true
+		names = append(names, name)
+	}
+	return names
+}
+
+// mergeCitedSources resolves the cited doc names against the KB's
+// datasource corpus (exact title match, same contract the agent's
+// read_document tool uses) and appends every resolved source the article
+// does not carry yet. Unresolved names stay name-only — the frontend chip
+// still shows the doc title without a provenance link.
+func mergeCitedSources(ctx *orm.Context, kbID string, article *core.WikiArticle, body string) {
+	names := citedDocNames(body)
+	if len(names) == 0 {
+		return
+	}
+	kctx := orm.NewContextWithParent(ctx)
+	kctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	kb := core.WikiKnowledgeBase{}
+	kb.SetID(kbID)
+	orm.WithModel(kctx, &core.WikiKnowledgeBase{})
+	if ok, err := orm.GetV2(kctx, &kb); err != nil || !ok || len(kb.DatasourceIDs) == 0 {
+		return
+	}
+	octx := orm.NewContextWithParent(kctx)
+	orm.WithModel(octx, &core.Document{})
+	res, err := orm.SearchV2(octx, orm.NewQuery().Size(500).
+		Filter(orm.TermsQuery("source.id", kb.DatasourceIDs)).
+		Include("id", "title", "summary"))
+	if err != nil || res == nil {
+		return
+	}
+	docs, _, derr := elastic.DecodeHits[core.Document](res)
+	if derr != nil {
+		return
+	}
+	byTitle := map[string]*core.Document{}
+	for i := range docs {
+		if t := strings.TrimSpace(docs[i].Title); t != "" {
+			byTitle[t] = &docs[i]
+		}
+	}
+	carried := map[string]bool{}
+	for _, s := range article.Sources {
+		if s.DocID != "" {
+			carried[s.DocID] = true
+		}
+	}
+	for _, name := range names {
+		doc, ok := byTitle[name]
+		if !ok || doc.ID == "" || carried[doc.ID] {
+			continue
+		}
+		carried[doc.ID] = true
+		article.Sources = append(article.Sources, core.WikiSourceReference{
+			DocID:   doc.ID,
+			Title:   doc.Title,
+			Excerpt: truncateRunes(doc.Summary, 200),
+		})
+	}
 }
 
 // deriveSummaryFromBody takes the first readable paragraph of a markdown

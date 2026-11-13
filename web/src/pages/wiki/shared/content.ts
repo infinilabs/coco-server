@@ -227,8 +227,9 @@ export function splitCitationBlock(
     // agents sometimes wrap the doc name in wikilink syntax — `[Doc:
     // [[product:GitLab]]]`. The name match (and later the capsule rewrite)
     // would see `[[product:GitLab` and leak raw brackets into the prose:
-    // unwrap the inner wikilink before matching.
-    body = body.replace(/\[Doc:\s*\[\[([^\[\]]+)\]\]\]/g, '[Doc: $1]');
+    // unwrap the inner wikilink before matching, dropping the entity-type
+    // namespace (`product:`) — the doc title is the label after it.
+    body = body.replace(/\[Doc:\s*\[\[(?:[\w-]+:)?([^\[\]]+)\]\]\]/g, '[Doc: $1]');
     const byTitle = new Map((sources ?? []).map((s, i) => [s.title ?? '', s]));
     const docNum = new Map<string, number>();
     body = body.replace(/\[Doc:\s*([^\]]+)\]/g, (m, nameRaw: string) => {
