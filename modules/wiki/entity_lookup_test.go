@@ -82,7 +82,7 @@ func TestPromoteTopicEntities_AnchoredID(t *testing.T) {
 	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 
 	kbID := "kb-anchor"
-	n := promoteTopicEntities(ctx, kbID, []string{"Kepler Checker"}, nil)
+	n := promoteTopicEntities(ctx, kbID, []string{"Kepler Checker"}, nil, nil)
 	require.Equal(t, 1, n)
 
 	// the promoted row carries the same anchored id extraction would mint,

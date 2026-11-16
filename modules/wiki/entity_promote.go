@@ -21,9 +21,12 @@ import (
 // entity pool. Existing entities (name or alias match) are left alone —
 // their wikilink binding already covers the mention; new ones land as
 // proposed with the LLM-typed ontology type (concept fallback) so the
-// governance queue can review and enrich them. Per-entity failures log and
+// governance queue can review and enrich them. descriptions (may be nil)
+// ground a new entity's Description in the topic's own claims — promoted
+// entities used to land description-less and only healed when a later
+// extraction happened to re-hit the name. Per-entity failures log and
 // continue: promotion must never fail the governance apply.
-func promoteTopicEntities(ctx *orm.Context, kbID string, names []string, types map[string]string) int {
+func promoteTopicEntities(ctx *orm.Context, kbID string, names []string, types map[string]string, descriptions map[string]string) int {
 	if kbID == "" || len(names) == 0 {
 		return 0
 	}
@@ -46,6 +49,11 @@ func promoteTopicEntities(ctx *orm.Context, kbID string, names []string, types m
 			Name:       name,
 			Status:     core.WikiEntityProposed,
 			Confidence: 0.5,
+			// grounded in the topic's own claims (first statement naming
+			// the entity); extract_entities' merge backfill only writes
+			// into an EMPTY description, so this first-write wins and is
+			// never clobbered by later pipeline summaries
+			Description: strings.TrimSpace(descriptions[name]),
 		}
 		// name-anchored id (same scheme as extract_entities): promotion and
 		// extraction racing on the same name must land on ONE row — generated
@@ -89,6 +97,38 @@ func promoteTopicEntities(ctx *orm.Context, kbID string, names []string, types m
 		log.Infof("wiki entity promotion: %d entity(ies) promoted into kb %s", created, kbID)
 	}
 	return created
+}
+
+// entityDescriptionsFromStatements grounds a one-sentence description for
+// each promoted entity in the topic's own claims — the same philosophy as
+// extract_entities' per-document summary, minus the LLM call: the apply
+// path often runs inside the auto-approve sweep and must stay cheap and
+// deterministic. The first claim naming the entity (case-insensitive)
+// wins; unmatched names simply get no description.
+func entityDescriptionsFromStatements(names []string, statements []compileStatement) map[string]string {
+	if len(names) == 0 || len(statements) == 0 {
+		return nil
+	}
+	desc := make(map[string]string, len(names))
+	for _, name := range names {
+		n := strings.TrimSpace(name)
+		if n == "" || desc[n] != "" {
+			continue
+		}
+		lower := strings.ToLower(n)
+		for _, st := range statements {
+			claim := strings.TrimSpace(st.Claim)
+			if claim == "" || !strings.Contains(strings.ToLower(claim), lower) {
+				continue
+			}
+			if r := []rune(claim); len(r) > 160 {
+				claim = string(r[:160]) + "…"
+			}
+			desc[n] = claim
+			break
+		}
+	}
+	return desc
 }
 
 // kbOwnerID reads the KB's system owner so background-promoted entities

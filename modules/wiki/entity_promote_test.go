@@ -65,7 +65,13 @@ func TestPromoteTopicEntities(t *testing.T) {
 	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 
 	types := map[string]string{"奇华月饼": "product", "美心集团": "organization"}
-	n := promoteTopicEntities(ctx, kb.ID, []string{"美心集团", "奇华月饼", "  ", "陈锡培"}, types)
+	descs := entityDescriptionsFromStatements(
+		[]string{"美心集团", "奇华月饼", "陈锡培"},
+		[]compileStatement{
+			{DocID: "d1", Claim: "奇华月饼是美心集团旗下的港式月饼品牌，主打低端市场"},
+			{DocID: "d2", Claim: "与美心集团无关的其他主张"},
+		})
+	n := promoteTopicEntities(ctx, kb.ID, []string{"美心集团", "奇华月饼", "  ", "陈锡培"}, types, descs)
 	// 美心集团 exists (skipped), 奇华月饼 typed product, 陈锡培 untyped → concept
 	assert.Equal(t, 2, n)
 
@@ -74,6 +80,9 @@ func TestPromoteTopicEntities(t *testing.T) {
 	require.NotNil(t, typed, "typed entity must be promoted")
 	assert.Equal(t, "product", typed.Type)
 	assert.Equal(t, core.WikiEntityProposed, typed.Status)
+	// grounded description: the first claim naming the entity, not the
+	// later unrelated one
+	assert.Equal(t, "奇华月饼是美心集团旗下的港式月饼品牌，主打低端市场", typed.Description)
 
 	// untyped entity fell back to concept (person typing absent in this
 	// test because the map lacks the name — fallback covers LLM misses)
@@ -82,7 +91,7 @@ func TestPromoteTopicEntities(t *testing.T) {
 	assert.Equal(t, "concept", fallback.Type)
 
 	// duplicate guard: re-running the same promotion is a no-op
-	n2 := promoteTopicEntities(ctx, kb.ID, []string{"美心集团", "奇华月饼", "陈锡培"}, types)
+	n2 := promoteTopicEntities(ctx, kb.ID, []string{"美心集团", "奇华月饼", "陈锡培"}, types, descs)
 	assert.Equal(t, 0, n2, "second run must absorb every name")
 
 	// idempotent pool: exactly one row per name

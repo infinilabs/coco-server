@@ -1404,7 +1404,7 @@ func applyTopicProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (strin
 			if absorbed > 0 {
 				outcome += fmt.Sprintf("，收编 %d 个薄页", absorbed)
 			}
-			if n := promoteTopicEntities(ctx, p.KbID, article.KeyEntities, entityTypes); n > 0 {
+			if n := promoteTopicEntities(ctx, p.KbID, article.KeyEntities, entityTypes, entityDescriptionsFromStatements(article.KeyEntities, statements)); n > 0 {
 				outcome += fmt.Sprintf("，晋升 %d 个实体", n)
 			}
 			snapshotPipelineWrite(&article, fmt.Sprintf("知识编译更新主题页 %d 节（治理提案 %s）", len(sections), p.ID))
@@ -1464,7 +1464,7 @@ func applyTopicProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (strin
 	if absorbed > 0 {
 		outcome += fmt.Sprintf("，收编 %d 个薄页", absorbed)
 	}
-	if n := promoteTopicEntities(ctx, p.KbID, keyEntities, entityTypes); n > 0 {
+	if n := promoteTopicEntities(ctx, p.KbID, keyEntities, entityTypes, entityDescriptionsFromStatements(keyEntities, statements)); n > 0 {
 		outcome += fmt.Sprintf("，晋升 %d 个实体", n)
 	}
 	return outcome, article.ID, nil
