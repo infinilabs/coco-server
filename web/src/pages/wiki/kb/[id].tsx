@@ -195,7 +195,9 @@ const readKbPageCache = (kbId?: string): KbPageCache | null =>
       .finally(() => setConsolidating(false));
   };
   const [artKeyword, setArtKeyword] = useState('');
-  const [artStatus, setArtStatus] = useState<string>('all');
+  // default hides archived history (235 legacy entity stubs after the
+  // legacy-cleanup sweep live on as archived) — switch to 'all' to see them
+  const [artStatus, setArtStatus] = useState<string>('active');
   const [dsList, setDsList] = useState<Api.Wiki.DatasourceInfo[]>(cached?.dsList || []);
   // deep link from an article capsule: /wiki/kb/:id?tab=graph&entity=<id>
   // selects the entity and opens its card on the canvas. The tab lives in
@@ -269,7 +271,8 @@ const readKbPageCache = (kbId?: string): KbPageCache | null =>
 
   const visibleArticles = articles.filter(
     a =>
-      (artStatus === 'all' || a.status === artStatus) &&
+      (artStatus === 'all' ||
+        (artStatus === 'active' ? a.status !== 'archived' : a.status === artStatus)) &&
       (!artKeyword ||
         a.title.toLowerCase().includes(artKeyword.toLowerCase()) ||
         a.summary?.toLowerCase().includes(artKeyword.toLowerCase()))
@@ -381,6 +384,7 @@ const readKbPageCache = (kbId?: string): KbPageCache | null =>
                       className='w-140px'
                       value={artStatus}
                       options={[
+                        { value: 'active', label: t('page.wiki.articles.activeStatuses') },
                         { value: 'all', label: t('page.wiki.articles.allStatuses') },
                         ...['draft', 'reviewed', 'published', 'archived'].map(st => ({
                           value: st,

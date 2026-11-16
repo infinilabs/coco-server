@@ -116,7 +116,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     articles: {
       filterPlaceholder: '按标题或摘要筛选',
-      allStatuses: '全部状态',
+      activeStatuses: '在库（不含归档）',
+      allStatuses: '全部（含归档）',
       deleteConfirm: '删除这篇文章？版本、评论及其目录条目将一并移除。'
     },
     hub: {

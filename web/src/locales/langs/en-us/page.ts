@@ -116,7 +116,8 @@ const page: App.I18n.Schema['translation']['page'] = {
     },
     articles: {
       filterPlaceholder: 'Filter by title or summary',
-      allStatuses: 'All statuses',
+      activeStatuses: 'Active (excl. archived)',
+      allStatuses: 'All (incl. archived)',
       deleteConfirm: 'Delete this article? Versions, comments and its TOC entry are removed too.'
     },
     hub: {
