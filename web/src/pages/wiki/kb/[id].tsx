@@ -269,7 +269,15 @@ const readKbPageCache = (kbId?: string): KbPageCache | null =>
 
   const goArticle = (articleId: string) => nav(`/wiki/article/${articleId}?kb=${id}`);
 
-  const visibleArticles = articles.filter(
+  // pipeline entity stubs never belong to the article surface: the compile
+  // chain treats them as pre-topic-era residue (legacy-cleanup archives them
+  // wholesale) and the entity itself already lives in the ontology pool and
+  // the Entities tab — dedup there, not here
+  const listArticles = articles.filter(a => a.page_type !== 'entity');
+  // KB body = what the reader can actually use: no archived history, no stubs
+  const activeArticles = listArticles.filter(a => a.status !== 'archived');
+
+  const visibleArticles = listArticles.filter(
     a =>
       (artStatus === 'all' ||
         (artStatus === 'active' ? a.status !== 'archived' : a.status === artStatus)) &&
@@ -307,7 +315,7 @@ const readKbPageCache = (kbId?: string): KbPageCache | null =>
                 <div className='wiki-kb-meta'>
                   <span className='wiki-pill'>
                     <BookOutlined />
-                    {`${articles.length} ${t('page.wiki.hub.articlesUnit')}`}
+                    {`${activeArticles.length} ${t('page.wiki.hub.articlesUnit')}`}
                   </span>
                   {(kb?.datasource_ids?.length ?? 0) > 0 && (
                     <span className='wiki-pill'>
@@ -359,7 +367,7 @@ const readKbPageCache = (kbId?: string): KbPageCache | null =>
               label: t('page.wiki.kb.tabs.overview'),
               children: (
                 <KbOverview
-                  articles={articles}
+                  articles={activeArticles}
                   kb={kb as Api.Wiki.Kb}
                   onAiGenerate={() => setGenerateOpen(true)}
                   onNewArticle={() => setNewOpen(true)}
