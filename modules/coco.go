@@ -75,6 +75,10 @@ func (this *Coco) Setup() {
 
 func (this *Coco) Start() error {
 	integration.InitIntegrationOrigins()
+	// copy user pipelines out of the pre-registration fallback index
+	// (<prefix>pipelineconfigv2) into the registered one — one-time,
+	// idempotent, no-op on fresh installs
+	go migrateLegacyPipelineConfigs()
 	return nil
 }
 
