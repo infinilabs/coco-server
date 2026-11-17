@@ -121,8 +121,8 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
 
   return (
     <div className="w-full">
-      {/* one form spans both cards: the save button (end of the AI-guidance
-          card) persists everything below in a single PUT */}
+      {/* one form spans both cards: the page-level save button below the
+          cards persists everything in a single PUT */}
       <Form
         className="pt-12px"
         form={form}
@@ -301,14 +301,18 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
               showTemplate={false}
             />
           </Form.Item>
-          <Form.Item className="mb-0" wrapperCol={{ offset: 5 }}>
-            {canUpdate && (
-              <Button loading={saving} type="primary" onClick={onSave}>
-                {t('common.save')}
-              </Button>
-            )}
-          </Form.Item>
         </Card>
+
+        {/* page-level save: one form spans both cards and persists them in a
+            single PUT — keeping the button inside the AI-guidance card made
+            it read as scoped to that section only */}
+        {canUpdate && (
+          <div className="mt-4px mb-12px flex items-center gap-10px">
+            <Button loading={saving} type="primary" onClick={onSave}>
+              {t('common.save')}
+            </Button>
+          </div>
+        )}
       </Form>
 
       <Card bordered={false} className="wiki-panel" title={t('page.wiki.settings.danger')}>
