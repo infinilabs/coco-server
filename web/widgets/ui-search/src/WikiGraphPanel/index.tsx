@@ -481,6 +481,10 @@ export function WikiGraphPanel({ kbIds, hitArticleIds = {}, query, apiConfig, th
     if (node?.articleId) onOpenArticle?.(node.articleId, node.kbId);
   };
 
+  // the resolved KBs yield no graph data (empty KB, or the KB behind a stale
+  // hit was deleted) — hide the whole module instead of an empty-state card
+  if (!loading && nodes.length === 0) return null;
+
   // clicking the card's open-article action routes to the wiki page — wired
   // here so the card stays inside GraphCanvas while navigation stays host-side
   const canvas = (

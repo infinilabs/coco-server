@@ -453,6 +453,14 @@ func deleteKbChildren(kbID string) error {
 		if err := deleteByID(ctx, &core.WikiArticle{}, id); err != nil {
 			return err
 		}
+		// deleteByID bypasses the CRUD PostDelete hook, so the article's
+		// search projection and contribution rows are cleaned up here
+		// explicitly — otherwise a deleted KB keeps surfacing in AI search
+		// through stale projected documents
+		if err := removeArticleProjection(id); err != nil {
+			log.Debugf("wiki: projection removal on kb delete failed for [%s]: %v", id, err)
+		}
+		dropPageContributions(nil, id)
 		if err := deleteArticleChildren(ctx, id); err != nil {
 			return err
 		}

@@ -569,7 +569,7 @@ export function Component() {
                 name={['webhook', 'enabled']}
                 tooltip={t('page.datasource.new.labels.webhook_tooltip')}
               >
-                <Switch />
+                <Switch size='small' />
               </Form.Item>
               <Form.Item
                 noStyle
