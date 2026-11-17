@@ -1005,11 +1005,16 @@ export function getWikiTocOrganizeStatus(kbId: string) {
 }
 
 /** run one on-demand pass of the EINO compile agent (files at most one
- * compile_patch proposal per iteration); synchronous, LLM-slow */
+ * compile_patch proposal per iteration); synchronous, LLM-slow.
+ * Per-request timeout override: the agent runs up to 3 iterations with a
+ * 180s LLM budget each (worst case ~9min) while the global axios default
+ * is 10s — without this the UI reports a timeout while the server keeps
+ * running and the abort kills later iterations mid-flight. */
 export function runWikiCompileAgent(kbId: string) {
   return request<{ iterations: number; patches: number; no_action: boolean; notes?: string[] }>({
     method: 'post',
-    url: `/wiki/kb/${kbId}/_agent_compile`
+    url: `/wiki/kb/${kbId}/_agent_compile`,
+    timeout: 12 * 60 * 1000
   }).then(res => (res as any)?.data);
 }
 
