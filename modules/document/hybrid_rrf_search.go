@@ -245,15 +245,16 @@ func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrat
 		return out, e.note, e.rwApplied, nil
 	}
 
-	// resolve the rewrite first: its text feeds an extra keyword route, and
-	// cache hits return before any route runs
-	rw := rewriteResult{Query: query}
-	if cfg.weight(rrfRouteRewrite) > 0 {
-		rwStart := time.Now()
-		rw = rewriteSearchQuery(req.Context(), query)
-		if diag != nil {
-			diag.LegRewriteMS = time.Since(rwStart).Milliseconds()
-		}
+	// The rewrite only needs the query text, so it runs alongside the recall
+	// routes instead of in front of them: a slow model then costs at most the
+	// gap between its call and the route fan-out rather than the whole call.
+	// Its extra keyword route is appended once the result is in.
+	rewriteCh := make(chan rewriteResult, 1)
+	rewriteOn := cfg.weight(rrfRouteRewrite) > 0
+	if rewriteOn {
+		go func() {
+			rewriteCh <- rewriteSearchQuery(req.Context(), query)
+		}()
 	}
 
 	routes := []rrfRouteHits{}
@@ -330,6 +331,13 @@ func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrat
 					diag.LegRsaMS += sd.TookMS
 				}
 			}
+		}
+	}
+	rw := rewriteResult{Query: query}
+	if rewriteOn {
+		rw = <-rewriteCh
+		if diag != nil {
+			diag.LegRewriteMS = rw.TookMS
 		}
 	}
 	if rw.Applied {

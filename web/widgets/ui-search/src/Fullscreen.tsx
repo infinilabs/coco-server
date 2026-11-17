@@ -456,7 +456,11 @@ const Fullscreen = (props: FullscreenProps) => {
 
     if (onAggregation && shouldAggRef.current) {
       shouldAggRef.current = false;
-      // Fetch aggregations first, validate aggfilter, then search
+      // The facet rail and the result list are siblings, not a chain: the
+      // aggregation runs its own full recall pass server-side, so awaiting it
+      // before searching doubled the time until the list painted. Fire both;
+      // an aggfilter value pruned by validation re-triggers the search through
+      // queryParams, so the correction still lands.
       onAggregation({
         query: queryParams.query,
         search_type: normalizeSearchType(queryParams?.search_type || defaultSearchType || DEFAULT_SEARCH_TYPE),
@@ -506,8 +510,9 @@ const Fullscreen = (props: FullscreenProps) => {
             });
             // If aggfilter changed after validation, update URL and re-trigger
             if (JSON.stringify(validatedAggfilter) !== JSON.stringify(aggfilter)) {
+              // the search already in flight used the unvalidated filter; the
+              // corrected params re-run it via the queryParams effect
               setQueryParams?.({ ...queryParams, aggfilter: validatedAggfilter, t: new Date().valueOf() });
-              setLoading(false);
               return;
             }
           }
@@ -515,12 +520,11 @@ const Fullscreen = (props: FullscreenProps) => {
           setAggregationResult([]);
           setCategoryCounts(null);
         }
-        doSearch(validatedAggfilter);
       });
-    } else {
-      // No agg needed, search directly with aggfilter as-is
-      doSearch(aggfilter);
     }
+    // fired regardless of the aggregation's state — the list no longer waits
+    // for the facet pipeline, its skeleton is what the user sees in between
+    doSearch(aggfilter);
   }, [JSON.stringify(queryParams)]);
 
   useEffect(() => {

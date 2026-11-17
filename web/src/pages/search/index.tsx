@@ -235,6 +235,16 @@ export function Component() {
     const aggs = { aggs: filteredAggs };
     const body = JSON.stringify(aggs)
     const headers = { 'APP-INTEGRATION-ID': search_settings?.integration }
+    // the fused buckets and the leg-local aggs are independent requests —
+    // fired together, the rail costs one round instead of two
+    const fusedPromise = aggregationsDisabled
+      ? Promise.resolve(null)
+      : request({
+          method: 'get',
+          url: `/query/_aggregations?${queryString.stringify({ query, search_type, fuzziness })}`,
+          headers,
+          ignoreError: true
+        }).catch(() => null)
     const res = await querySearch(body, searchStr, { headers, ignoreError: true })
 
     // W15: the per-leg aggregation describes one recall leg, not the
@@ -243,17 +253,8 @@ export function Component() {
     // pipeline. Merge them over the leg-local buckets; content_category
     // (the image/doc tabs) keeps its own aggregation untouched.
     try {
-      if (aggregationsDisabled) {
-        // the aggregation endpoint is switched off server-side anyway — skip the
-        // pointless request; leg-local rail aggs are already stripped above
-      } else {
-        const fusedStr = queryString.stringify({ query, search_type, fuzziness })
-        const fusedRes = await request({
-          method: 'get',
-          url: `/query/_aggregations?${fusedStr}`,
-          headers,
-          ignoreError: true
-        })
+      if (!aggregationsDisabled) {
+        const fusedRes = await fusedPromise
         const fused = fusedRes?.data
         if (fused && res?.data?.aggregations) {
           const mergeBucket = (fieldName: string, buckets: { value: string; count: number }[] | undefined) => {

@@ -34,8 +34,11 @@ import (
 
 const (
 	// rewriteTimeout caps the model call; past it the leg degrades instead
-	// of stalling the search. Cache hits return in microseconds.
-	rewriteTimeout = 2500 * time.Millisecond
+	// of stalling the search. Cache hits return in microseconds. The call now
+	// overlaps the recall routes (see queryWithRRF), so this is the ceiling on
+	// the leg's *added* latency, not on its wall time — a query rewrite that
+	// cannot answer within 1.2s is not worth delaying every search for.
+	rewriteTimeout = 1200 * time.Millisecond
 	// rewriteCacheTTL keeps repeated colloquial phrasings from re-billing
 	// the model — the article's "cache the rewrite" discipline.
 	rewriteCacheTTL = 24 * time.Hour
