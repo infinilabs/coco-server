@@ -120,6 +120,7 @@ declare global {
   const markdownD: typeof import('../components/DocumentDrawer/Markdown.d')['default']
   const memo: typeof import('react')['memo']
   const notion: typeof import('../components/icons/notion.jsx')['default']
+  const pipelineDropdown: typeof import('../components/datasource/pipeline_dropdown.jsx')['default']
   const processorFieldKeys: typeof import('../components/common/ProcessorChainUI')['processorFieldKeys']
   const queryParams: typeof import('../hooks/common/queryParams')['default']
   const script: typeof import('../hooks/common/script')['default']
