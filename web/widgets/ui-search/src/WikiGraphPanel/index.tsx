@@ -95,6 +95,13 @@ function useWikiGraphData(
     .map(([kb, ids]) => `${kb}:${ids.join('+')}`)
     .join(',');
   const normalizedQuery = (query || '').trim();
+  // hosts rebuild their props object on every render — identity-comparing
+  // apiConfig would cancel-and-refetch on each one (fetch storms during AI
+  // overview streaming left the canvas stuck on stale data), so the effect
+  // keys off its serialized value and reads the object through a ref
+  const apiConfigRef = useRef(apiConfig);
+  apiConfigRef.current = apiConfig;
+  const apiConfigKey = useMemo(() => JSON.stringify(apiConfig || {}), [apiConfig]);
 
   useEffect(() => {
     if (!key) {
@@ -104,9 +111,10 @@ function useWikiGraphData(
     }
     let cancelled = false;
     setLoading(true);
-    const base = String(apiConfig?.BaseUrl || '').replace(/\/+$/, '');
-    const headers: Record<string, string> = { ...(apiConfig?.headers || {}) };
-    if (apiConfig?.Token) headers['X-API-TOKEN'] = String(apiConfig.Token);
+    const cfg = apiConfigRef.current || {};
+    const base = String(cfg?.BaseUrl || '').replace(/\/+$/, '');
+    const headers: Record<string, string> = { ...(cfg?.headers || {}) };
+    if (cfg?.Token) headers['X-API-TOKEN'] = String(cfg.Token);
 
     const loadOne = (kbId: string) => {
       // search-results scope: only the articles the current query actually
@@ -155,12 +163,17 @@ function useWikiGraphData(
     return () => {
       cancelled = true;
     };
-  }, [key, focusKey, normalizedQuery, apiConfig]);
+  }, [key, focusKey, normalizedQuery, apiConfigKey]);
 
   return { loading, nodes, edges };
 }
 
 /* ---------------- canvas ---------------- */
+
+// the lib swaps string endpoints for node-object references on the links
+// passed to graphData — comparisons against selection must normalize both
+const endpointId = (v: unknown): string =>
+  typeof v === 'object' && v !== null ? String((v as { id?: unknown }).id) : String(v);
 
 interface GraphCanvasProps {
   nodes: GNode[];
@@ -192,20 +205,26 @@ function GraphCanvas({ nodes, edges, selected, onSelect, expanded, onToggleExpan
     return map;
   }, [edges]);
 
+  const linksFor = ( nodeList: GNode[], edgeList: GEdge[] ) => {
+    const nodeIds = new Set(nodeList.map(n => n.id));
+    // copies, not the state objects: the engine mutates each link's string
+    // endpoints into node-object references in place, which would silently
+    // break every e.source === selection comparison held against the state
+    return edgeList.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target)).map(e => ({ ...e }));
+  };
+
   // build the 3D scene once per mount (the panel remounts the canvas when the
-  // expanded flag flips between sider card and fullscreen overlay)
+  // expanded flag flips between sider card and fullscreen overlay); the graph
+  // starts empty and the data effect below feeds it
   useEffect(() => {
     const host = hostRef.current;
-    if (!host || nodes.length === 0 || graphRef.current) return;
-
-    const nodeIds = new Set(nodes.map(n => n.id));
-    const links = edges.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
+    if (!host || graphRef.current) return;
 
     const graph = new ForceGraph3D(host)
       .backgroundColor('rgba(0,0,0,0)')
       .width(host.clientWidth)
       .height(host.clientHeight)
-      .graphData({ nodes, links })
+      .graphData({ nodes: [], links: [] })
       .nodeColor((n: any) => {
         const sel = selectedRef.current;
         if (sel && sel !== n.id && !neighborsRef.current?.has(n.id)) return 'rgba(140,140,140,0.22)';
@@ -221,16 +240,22 @@ function GraphCanvas({ nodes, edges, selected, onSelect, expanded, onToggleExpan
       })
       .linkColor((l: any) => {
         const sel = selectedRef.current;
-        if (sel && sel !== l.source && sel !== l.target) return 'rgba(140,140,140,0.10)';
+        const sid = endpointId(l.source);
+        const tid = endpointId(l.target);
+        if (sel && sel !== sid && sel !== tid) return 'rgba(140,140,140,0.10)';
         return l.kind === 'relation' ? 'rgba(22,119,255,0.55)' : 'rgba(160,160,160,0.3)';
       })
-      .linkWidth((l: any) =>
-        selectedRef.current && (selectedRef.current === l.source || selectedRef.current === l.target) ? 1.6 : 0.5
-      )
+      .linkWidth((l: any) => {
+        const sel = selectedRef.current;
+        const touches = sel && (sel === endpointId(l.source) || sel === endpointId(l.target));
+        return touches ? 1.6 : 0.5;
+      })
       .linkOpacity(0.5)
-      .linkDirectionalParticles((l: any) =>
-        selectedRef.current && (selectedRef.current === l.source || selectedRef.current === l.target) ? 2 : 0
-      )
+      .linkDirectionalParticles((l: any) => {
+        const sel = selectedRef.current;
+        const touches = sel && (sel === endpointId(l.source) || sel === endpointId(l.target));
+        return touches ? 2 : 0;
+      })
       .linkDirectionalParticleWidth(1.4)
       .onNodeClick((n: any) => {
         onSelect(n.id);
@@ -246,7 +271,7 @@ function GraphCanvas({ nodes, edges, selected, onSelect, expanded, onToggleExpan
       return s?.startsWith('article:') && t2?.startsWith('article:') ? 120 : 60;
     });
     graphRef.current = graph;
-    graph.onEngineStop(() => graph.zoomToFit(600, 40));
+    graph.onEngineStop(() => graphRef.current?.zoomToFit(600, 40));
 
     const ro = new ResizeObserver(() => {
       if (host.clientWidth > 0 && host.clientHeight > 0) {
@@ -260,6 +285,15 @@ function GraphCanvas({ nodes, edges, selected, onSelect, expanded, onToggleExpan
       graphRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // feed dataset changes into the live scene: a new search re-scopes the
+  // subgraph (different hit articles / query), and the old build-once
+  // behavior left the canvas showing the previous search's graph forever
+  useEffect(() => {
+    const graph = graphRef.current;
+    if (!graph) return;
+    graph.graphData({ nodes, links: linksFor(nodes, edges) });
   }, [nodes, edges]);
 
   // selection changes repaint accessors; camera stays where the click left it

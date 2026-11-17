@@ -806,4 +806,11 @@ declare module 'ui-search/source' {
   // filter clicks to filter on it (used by hosts building their own agg DSL)
   export const OWNER_FILTER_FIELD: '_system.owner_id';
   export const TIME_FILTER_FIELD: 'updated_range';
+  // shared knowledge-graph 3D canvas (KB page + search panel fullscreen)
+  export const KbGraphCanvas: any;
+  export type KbGraphCanvasHandle = {
+    flyTo: (id: string) => void;
+    zoomBy: (factor: number) => void;
+    fitAll: () => void;
+  };
 }

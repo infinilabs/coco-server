@@ -360,16 +360,23 @@ export default function Search({
     return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
   }, [data]);
 
-  // hit article ids per KB (projection rows carry metadata.article_id) — the
-  // graph panel scopes its canvas to these articles, so the graph reflects
-  // the actual query neighborhood instead of the whole knowledge base
+  // hit article ids per KB — projection rows carry metadata.article_id; the
+  // doc id is the fallback (ProjectionDocID prefixes "wikiproj_", older rows
+  // without it keep no recoverable article id and are skipped rather than
+  // feeding the graph a bogus scope). The graph panel scopes its canvas to
+  // these articles, so the graph reflects the actual query neighborhood
+  // instead of the whole knowledge base
   const wikiHitArticles = useMemo(() => {
     const byKb: Record<string, string[]> = {};
     (data || []).forEach(item => {
       if (!isWikiHit(item)) return;
       const meta = (item as any)?.metadata;
       const kbId = meta?.kb_id;
-      const articleId = meta?.article_id;
+      let articleId: string | undefined = meta?.article_id;
+      if (!articleId && typeof (item as any)?.id === 'string') {
+        const docId = (item as any).id as string;
+        if (docId.startsWith('wikiproj_')) articleId = docId.slice('wikiproj_'.length);
+      }
       if (typeof kbId === 'string' && kbId && typeof articleId === 'string' && articleId) {
         (byKb[kbId] ||= []).push(articleId);
       }

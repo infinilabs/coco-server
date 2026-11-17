@@ -13,6 +13,7 @@ import (
 	"github.com/cihub/seelog"
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
+	"infini.sh/framework/core/log"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 
@@ -79,6 +80,10 @@ func (h *APIHandler) kbGraph(w http.ResponseWriter, req *http.Request, ps httpro
 		}
 	}
 	query := strings.TrimSpace(req.URL.Query().Get("q"))
+	// request audit: the graph endpoint is cheap but callers fetch it on every
+	// search/query change — a one-line trace makes client-side fetch storms
+	// and scoping mistakes visible in the server log
+	log.Infof("wiki-graph: kb=%s articles=%v q=%q", kbID, focusIDs, query)
 	ctx := orm.NewContextWithParent(req.Context())
 	orm.WithModel(ctx, &core.WikiKnowledgeBase{})
 

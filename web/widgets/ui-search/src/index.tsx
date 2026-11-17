@@ -13,6 +13,11 @@ export { ensureFilenameExtension, extensionFromMime } from "./utils/media";
 // the compact search box (suggestions / filter chips / attachments) — embeddable
 // into a host page, e.g. a global search entry in the app shell header
 export { SearchBox } from "./SearchBox";
+// the shared knowledge-graph 3D canvas (entity-name overlay, fly-to-neighborhood)
+// — the wiki KB graph page and the search panel's fullscreen graph both render
+// through it so the two surfaces stay visually identical
+export { KbGraphCanvas } from "./KbGraphCanvas";
+export type { KbGraphCanvasHandle, KbGraphCanvasLabels } from "./KbGraphCanvas";
 // the widget's own i18n instance — hosts embedding standalone pieces (SearchBox)
 // must wrap them in <I18nextProvider i18n={searchWidgetI18n}> or keys render raw
 export { default as searchWidgetI18n } from "./i18n";
