@@ -34,6 +34,9 @@ const fmtTime = (iso?: string) => {
   return Number.isNaN(d.getTime()) ? iso : d.toISOString().slice(0, 16).replace('T', ' ');
 };
 
+/* fixed timestamp keeps 'YYYY-MM-DD HH:mm' on one line at any column width */
+const timeCell = (v: string) => <span className='whitespace-nowrap'>{fmtTime(v) || '—'}</span>;
+
 /**
  * The KB's LLM-wiki loop at a glance: captured experiences (chat votes,
  * corrections, gaps) with a manual distill entry point, and the append-only
@@ -108,7 +111,7 @@ export function KbEvolution({ kb }: { readonly kb: Api.Wiki.Kb }) {
   };
 
   const expColumns = [
-    { title: t('page.wiki.evolution.time'), dataIndex: 'created', width: 130, render: (v: string) => fmtTime(v) || '—' },
+    { title: t('page.wiki.evolution.time'), dataIndex: 'created', width: 160, render: timeCell },
     {
       title: t('page.wiki.evolution.kind'),
       dataIndex: 'kind',
@@ -155,7 +158,7 @@ export function KbEvolution({ kb }: { readonly kb: Api.Wiki.Kb }) {
   ];
 
   const logColumns = [
-    { title: t('page.wiki.evolution.time'), dataIndex: 'created', width: 130, render: (v: string) => fmtTime(v) || '—' },
+    { title: t('page.wiki.evolution.time'), dataIndex: 'created', width: 160, render: timeCell },
     {
       title: t('page.wiki.evolution.kind'),
       dataIndex: 'kind',
