@@ -10,6 +10,7 @@ import (
 
 	httprouter "infini.sh/framework/core/api/router"
 	"infini.sh/framework/core/elastic"
+	"infini.sh/framework/core/log"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
 
@@ -198,30 +199,45 @@ func mergeEntityRows(ctx *orm.Context, canonical *core.WikiEntity, absorbed []*c
 	}
 
 	// retarget typed relations across the whole pool: entities pointing at
-	// an absorbed id now point at the canonical row
+	// an absorbed id now point at the canonical row. The relations mapping
+	// is enabled:false, so a relations.target_id terms scan here is a
+	// silent no-op — edges held by OTHER rows pointing at an absorbed id
+	// would dangle after the delete below. Scan the KB pool and the
+	// kb-less pool instead and rewrite edges in memory (full-row Update,
+	// the only write path that survives the enabled:false mapping).
 	absorbedIDs := make([]string, 0, len(absorbed))
 	absorbedSet := map[string]bool{}
 	for _, e := range absorbed {
 		absorbedIDs = append(absorbedIDs, e.ID)
 		absorbedSet[e.ID] = true
 	}
-	if res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1000).
-		Filter(orm.TermsQuery("relations.target_id", absorbedIDs))); err == nil && res != nil {
-		if others, _, derr := elastic.DecodeHits[core.WikiEntity](res); derr == nil {
-			for _, other := range others {
-				if absorbedSet[other.ID] || other.ID == canonical.ID {
-					continue
-				}
-				changed := false
-				for i := range other.Relations {
-					if absorbedSet[other.Relations[i].TargetID] {
-						other.Relations[i].TargetID = canonical.ID
-						changed = true
-					}
-				}
-				if changed {
-					_ = orm.Update(ctx, &other)
-				}
+	scans := []*orm.QueryBuilder{}
+	if canonical.KbID != "" {
+		scans = append(scans, orm.NewQuery().Size(reconcileScanSize).
+			Filter(orm.TermQuery("kb_id", canonical.KbID)))
+	}
+	// kb-less holders: edges written before a datasource was bound to a KB
+	scans = append(scans, orm.NewQuery().Size(reconcileScanSize).
+		Filter(orm.MustNotQuery(orm.ExistsQuery("kb_id"))))
+	for _, builder := range scans {
+		rows, err := scanEntities(ctx, builder)
+		if err != nil {
+			log.Warnf("[entity_merge] retarget scan: %v", err)
+			continue
+		}
+		for i := range rows {
+			other := &rows[i]
+			if absorbedSet[other.ID] || other.ID == canonical.ID {
+				continue
+			}
+			next, changed := retargetEdgeList(other.Relations, absorbedSet, canonical.ID, canonical.Type)
+			if !changed {
+				continue
+			}
+			other.Relations = next
+			orm.WithModel(ctx, &core.WikiEntity{})
+			if err := orm.Update(ctx, other); err != nil {
+				log.Warnf("[entity_merge] retarget edges of %s: %v", other.ID, err)
 			}
 		}
 	}
@@ -292,6 +308,44 @@ func mergeEntityRows(ctx *orm.Context, canonical *core.WikiEntity, absorbed []*c
 		return err
 	}
 	return nil
+}
+
+// retargetEdgeList rewrites edges pointing at absorbed ids so they point at
+// the canonical row (target_type follows the canonical row's type), then
+// drops the ones that would duplicate an edge the holder already has
+// towards the canonical row. Returns the kept slice (non-destructive) and
+// whether anything changed.
+func retargetEdgeList(rels []core.WikiEntityRelation, absorbedSet map[string]bool, canonicalID, canonicalType string) ([]core.WikiEntityRelation, bool) {
+	if len(rels) == 0 {
+		return rels, false
+	}
+	// pre-existing direct edges to canonical occupy the dedup space
+	seen := map[string]bool{}
+	for _, r := range rels {
+		if !absorbedSet[r.TargetID] && r.TargetID == canonicalID {
+			seen[r.Relation+"|"+r.TargetID] = true
+		}
+	}
+	out := make([]core.WikiEntityRelation, 0, len(rels))
+	changed := false
+	for _, r := range rels {
+		if !absorbedSet[r.TargetID] {
+			out = append(out, r)
+			continue
+		}
+		changed = true
+		r.TargetID = canonicalID
+		if canonicalType != "" {
+			r.TargetType = canonicalType
+		}
+		key := r.Relation + "|" + r.TargetID
+		if seen[key] {
+			continue // the holder already cites canonical via this relation
+		}
+		seen[key] = true
+		out = append(out, r)
+	}
+	return out, changed
 }
 
 // aliasListSorted returns the sorted keys of an alias set.
