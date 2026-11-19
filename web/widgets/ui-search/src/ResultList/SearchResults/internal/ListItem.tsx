@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { SquareArrowOutUpRight } from "lucide-react";
 
-import { WikiBadge } from "../../../components/WikiBadge";
+import { EntityTypeBadge, WikiBadge } from "../../../components/WikiBadge";
 import { AuthImage } from "./AuthImage";
 import { AuthorDate } from "./AuthorDate";
 import { BreadcrumbsLine } from "./BreadcrumbsLine";
@@ -45,7 +45,13 @@ export function ListItem({
           title={item.title}
           titleIcon={titleIcon}
           source={item.source}
-          badge={item.fromWiki ? <WikiBadge className="ml-2px" /> : undefined}
+          badge={
+            item.fromWiki ? (
+              <WikiBadge className="ml-2px" />
+            ) : item.entityType ? (
+              <EntityTypeBadge label={item.entityType} className="ml-2px" />
+            ) : undefined
+          }
           titleClassName="truncate text-[#1A0CAB] dark:text-[#8AB4F8]"
         />
       </div>

@@ -43,6 +43,9 @@ export type SearchResultListItem = SearchResultCommon & {
   source?: string;
   /** hit comes from the curated knowledge-base layer (W16a projection / wiki leg) */
   fromWiki?: boolean;
+  /** entity hit's ontology type label ("产品", "技术" …) — rendered as a
+   * type badge, the entity counterpart of the Wiki badge */
+  entityType?: string;
   leading?: React.ReactNode;
   trailing?: React.ReactNode;
   onClick?: () => void;

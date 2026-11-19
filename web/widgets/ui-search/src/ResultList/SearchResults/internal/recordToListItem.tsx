@@ -1,6 +1,6 @@
 import { AuthImage } from "./AuthImage";
 import { normalizeFileType } from "./normalizeFileType";
-import { isWikiHit } from "../../../components/WikiBadge";
+import { isEntityHit, isWikiHit } from "../../../components/WikiBadge";
 
 import type { SearchResultListItem, SearchResultsRecord } from "../types";
 import { cleanHighlightFragment, cleanSummary, decodeHtmlEntities, isImageUrlLike } from "../../../utils/utils"
@@ -54,6 +54,15 @@ export function recordToListItem(
     if (parts.length) chunkPrefix = `[${parts.join(" · ")}] `;
   }
 
+  // entity pseudo-hits carry their ontology type (localized label via the
+  // entity leg's entity_type_label, raw type name as fallback) — the list
+  // renders it as a type badge, the entity counterpart of the Wiki badge
+  const entityType = isEntityHit(record)
+    ? ((record.metadata?.entity_type_label as string) ||
+      (record.metadata?.entity_type as string) ||
+      undefined)
+    : undefined;
+
   return {
     type: "result",
     id: `${record.source?.id ?? record.url ?? record.title}-${index}`,
@@ -64,6 +73,7 @@ export function recordToListItem(
     fileType,
     typeIcon,
     fromWiki: isWikiHit(record),
+    entityType,
     breadcrumbs: breadcrumbs.length ? breadcrumbs : undefined,
     author,
     date,

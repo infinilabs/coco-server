@@ -218,6 +218,25 @@ func loadOntologySchemaForKB(ctx context.Context, kbID string) *OntologySchemaDo
 	return loadOntologySchema(ctx, ontologyTenantScope)
 }
 
+// EntityTypeLabelsFor resolves the display labels of one KB's entity types
+// (KB schema first, tenant fallback — same precedence as the graph endpoint).
+// Cross-module consumers (the search entity leg tagging result rows) use this
+// instead of re-deriving the schema query; a type without a declared label is
+// simply absent and the caller falls back to the raw type name.
+func EntityTypeLabelsFor(ctx context.Context, kbID string) map[string]string {
+	doc := loadOntologySchemaForKB(ctx, kbID)
+	if doc == nil {
+		return nil
+	}
+	out := make(map[string]string, len(doc.EntityTypes))
+	for i := range doc.EntityTypes {
+		if doc.EntityTypes[i].Label != "" {
+			out[doc.EntityTypes[i].Name] = doc.EntityTypes[i].Label
+		}
+	}
+	return out
+}
+
 func loadOntologySchema(ctx context.Context, scope string) *OntologySchemaDoc {
 	ormCtx := orm.NewContextWithParent(ctx)
 	ormCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
@@ -639,8 +658,10 @@ func ResolveOntologySchema(ctx context.Context, kbID string) *OntologySchemaDoc 
 // conform. Dropped items are reported as human-readable strings for logging.
 // Untyped entities or types missing from the schema pass through untouched
 // (lenient by design — extraction proposes, the vocabulary constrains what
-// it knows about).
-func SanitizeEntityAgainstSchema(entity *core.WikiEntity, doc *OntologySchemaDoc) []string {
+// it knows about). ctx flows into the relation-target type lookup; the
+// pipeline paths pass their own context so the check runs with the caller's
+// trace instead of a bare background context.
+func SanitizeEntityAgainstSchema(ctx context.Context, entity *core.WikiEntity, doc *OntologySchemaDoc) []string {
 	if doc == nil || entity == nil {
 		return nil
 	}
@@ -682,7 +703,7 @@ func SanitizeEntityAgainstSchema(entity *core.WikiEntity, doc *OntologySchemaDoc
 			seenCardinality[rel.Relation] = true
 		}
 		if def.TargetType != "*" && rel.TargetID != "" {
-			if targetType := entityTypeByID(context.Background(), rel.TargetID); targetType != "" && targetType != def.TargetType {
+			if targetType := entityTypeByID(ctx, rel.TargetID); targetType != "" && targetType != def.TargetType {
 				dropped = append(dropped, fmt.Sprintf("relation %s: target type %s != %s", rel.Relation, targetType, def.TargetType))
 				continue
 			}

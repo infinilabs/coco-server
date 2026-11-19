@@ -254,7 +254,7 @@ func TestSanitizeEntityAgainstSchema(t *testing.T) {
 			{Relation: "made_by", TargetID: "e3"}, // cardinality overflow
 			{Relation: "hates", TargetID: "e4"},   // undeclared
 		}}
-	dropped := SanitizeEntityAgainstSchema(entity, doc)
+	dropped := SanitizeEntityAgainstSchema(context.Background(), entity, doc)
 	assert.Len(t, entity.Relations, 2, "keeps depends_on + first made_by")
 	assert.Equal(t, "e2", entity.Relations[1].TargetID)
 	assert.Equal(t, "c1", entity.Properties["code"])
@@ -266,16 +266,16 @@ func TestSanitizeEntityAgainstSchema(t *testing.T) {
 	// value-type violations are stripped
 	entity = &core.WikiEntity{Type: "product", Name: "Y",
 		Properties: map[string]interface{}{"code": "c", "rank": "high"}}
-	dropped = SanitizeEntityAgainstSchema(entity, doc)
+	dropped = SanitizeEntityAgainstSchema(context.Background(), entity, doc)
 	assert.NotContains(t, entity.Properties, "rank")
 	assert.NotEmpty(t, dropped)
 
 	// untyped / unknown-type entities pass untouched
 	entity = &core.WikiEntity{Type: "legacy_free", Name: "Z",
 		Relations: []core.WikiEntityRelation{{Relation: "whatever"}}}
-	assert.Nil(t, SanitizeEntityAgainstSchema(entity, doc))
+	assert.Nil(t, SanitizeEntityAgainstSchema(context.Background(), entity, doc))
 	assert.Len(t, entity.Relations, 1)
-	assert.Nil(t, SanitizeEntityAgainstSchema(entity, nil))
+	assert.Nil(t, SanitizeEntityAgainstSchema(context.Background(), entity, nil))
 }
 
 func TestFileEntityGovernanceProposal(t *testing.T) {
