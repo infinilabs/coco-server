@@ -9,6 +9,9 @@ import ResultHeader from '../ResultHeader';
 import SearchBox from '../SearchBox';
 import RelatedSearches from '../RelatedSearches';
 import WikiGraphPanel from '../WikiGraphPanel';
+// search-page knowledge-graph panel is temporarily disabled (quality below bar);
+// flip back to true to restore panel + toolbar toggle.
+const WIKI_GRAPH_ENABLED = false;
 import { isWikiHit } from '../components/WikiBadge';
 import { LIST_TYPES } from '../ResultList';
 import { EmptyList } from '../ResultList/EmptyList';
@@ -633,7 +636,7 @@ export default function Search({
         setRecommendsCollapse={setRecommendsCollapse}
         setSiderCollapse={setSiderCollapse}
         siderCollapse={siderCollapse}
-        showWikiGraphToggle={wikiKbIds.length > 0}
+        showWikiGraphToggle={WIKI_GRAPH_ENABLED && wikiKbIds.length > 0}
         wikiGraphOpen={wikiGraphOpen}
         onToggleWikiGraph={() => setWikiGraphOpen(v => !v)}
         toolbar={toolbar}
@@ -746,7 +749,7 @@ export default function Search({
         setRecommendsCollapse={setRecommendsCollapse}
         aggregations={aggregationsNode}
         wikiGraph={
-          wikiKbIds.length > 0 ? (
+          WIKI_GRAPH_ENABLED && wikiKbIds.length > 0 ? (
             <WikiGraphPanel
               apiConfig={commonProps?.apiConfig}
               kbIds={wikiKbIds}
@@ -757,7 +760,7 @@ export default function Search({
             />
           ) : null
         }
-        wikiGraphOpen={wikiGraphOpen && wikiKbIds.length > 0}
+        wikiGraphOpen={WIKI_GRAPH_ENABLED && wikiGraphOpen && wikiKbIds.length > 0}
         aiOverview={
           listType?.showAIOverview && aiOverview?.enabled ? (
             <AIOverviewWrapper
