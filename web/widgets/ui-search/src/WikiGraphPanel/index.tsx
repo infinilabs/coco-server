@@ -104,7 +104,13 @@ function useWikiGraphData(
   const apiConfigKey = useMemo(() => JSON.stringify(apiConfig || {}), [apiConfig]);
 
   useEffect(() => {
-    if (!key) {
+    // the panel only makes sense scoped to the search: hit articles or the
+    // query itself must narrow the canvas. Neither present (browse mode,
+    // pre-handoff mount) — stay empty so the module hides instead of
+    // dumping a whole-KB graph that says nothing about the search
+    const hasScope =
+      normalizedQuery !== '' || Object.values(hitArticleIds).some(ids => (ids || []).length > 0);
+    if (!key || !hasScope) {
       setNodes([]);
       setEdges([]);
       return;
@@ -232,6 +238,7 @@ function GraphCanvas({ nodes, edges, selected, onSelect, expanded, onToggleExpan
       })
       .nodeOpacity(0.92)
       .nodeRelSize(4.2)
+      .nodeVal((n: any) => (n.queryMatch ? 3 : 1))
       .nodeLabel((n: any) => {
         const bits = [n.label];
         if (n.typeLabel || n.type) bits.push(`<i>${n.typeLabel || n.type}</i>`);

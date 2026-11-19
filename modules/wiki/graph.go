@@ -32,9 +32,15 @@ const (
 	graphMaxEntities     = 800
 	graphMaxEdges        = 2000
 	graphEntityChunkSize = 200 // ES terms-query safe batch
-	// graphMaxQueryEntities caps the ?q= focus entity pull: the canvas
-	// surfaces the query's own entities first, relations stay one hop.
-	graphMaxQueryEntities = 8
+// graphMaxQueryEntities caps the ?q= focus entity pull: the canvas
+// surfaces the query's own entities first, relations stay one hop.
+graphMaxQueryEntities = 8
+// graphQueryCitedArticles bounds the article pull when the scope comes
+// from the query alone (search-page transient states keep the panel
+// alive with article_ids empty — entity-only hits). Without the cap a
+// hub entity cited by hundreds of pages would drag the whole KB back
+// onto the canvas. Title-sorted first N keeps output stable.
+graphQueryCitedArticles = 30
 )
 
 type GraphNode struct {
@@ -69,8 +75,11 @@ type GraphEdge struct {
 // just WHICH knowledge base) — each id still has to belong to this KB.
 // Optional ?q= additionally pulls in the entities whose name/aliases match
 // the query (wikilink-driven focus alone misses "search the thing itself":
-// the voucher page may never wikilink the voucher entity). Status is not
-// filtered here — proposed drafts already enter the canvas via wikilinks.
+// the voucher page may never wikilink the voucher entity). When the query is
+// present but no hit articles are, the canvas hangs off the articles citing
+// the query-matched entities — the whole KB is served only when the caller
+// passes no scope at all (the wiki app's graph page). Status is not filtered
+// here — proposed drafts already enter the canvas via wikilinks.
 func (h *APIHandler) kbGraph(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	kbID := ps.ByName("id")
 	var focusIDs []string
@@ -110,6 +119,13 @@ func (h *APIHandler) kbGraph(w http.ResponseWriter, req *http.Request, ps httpro
 			return
 		}
 	}
+	// query with neither entity matches nor hit articles: the query has no
+	// wiki footprint in this KB — an empty graph hides the panel on the
+	// search page instead of dumping an unscoped whole-KB canvas
+	if query != "" && len(focusEntityIDs) == 0 && len(focusIDs) == 0 {
+		h.WriteOKJSON(w, &knowledgeGraph{Nodes: []GraphNode{}, Edges: []GraphEdge{}})
+		return
+	}
 
 	graph, err := buildKnowledgeGraph(req.Context(), kbID, focusIDs, focusEntityIDs)
 	if err != nil {
@@ -137,19 +153,25 @@ var graphSearchConfig = func() (cfg core.Config) {
 // kbEntityIDsByQuery resolves the entities of one KB whose name or aliases
 // match the query text (the search page's ?q=). Match semantics follow the
 // configured search match_operator — the focus answers "the searched thing
-// itself", junk OR-matches would only crowd the 8-slot canvas. Best-effort
-// by design: on an index without the combined_fulltext sink (pre-migration
-// mapping) the match finds nothing and the graph falls back to wikilink
-// scope.
+// itself", junk OR-matches would only crowd the 8-slot canvas. name.text /
+// name.pinyin are queried before combined_fulltext so kb-less rows (which
+// never got the fulltext sink backfilled) still resolve.
+//
+// Dynamic scope (plan D): legacy rows pin kb_id at write time; kb-less rows
+// belong through their source documents (DocIDsForKB). The two memberships
+// are unioned in the application — the framework bool renders should clauses
+// as score-only boosts when must/filter coexist, so a DSL-level OR is not
+// expressible without touching the framework.
 func kbEntityIDsByQuery(ctx *orm.Context, kbID, query string) ([]string, error) {
 	readCtx := orm.NewContextWithParent(ctx)
 	readCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	orm.WithModel(readCtx, &core.WikiEntity{})
 
-	builder := orm.NewQuery().From(0).Size(graphMaxQueryEntities)
-	builder.Filter(orm.TermQuery("kb_id", kbID))
-	builder.SkipFuzziness()
-	clauses, err := orm.BuildFuzzinessQueryClauses(query, 0, []string{"combined_fulltext"})
+	// name.text/name.pinyin first: kb-less entities written by
+	// extract_entities carry no combined_fulltext (that sink is only
+	// backfilled by the index rebuild), so name-only matches must not
+	// depend on it. combined_fulltext covers alias/subtype text matches.
+	clauses, err := orm.BuildFuzzinessQueryClauses(query, 0, []string{"name.text", "name.pinyin", "combined_fulltext"})
 	if err != nil {
 		return nil, err
 	}
@@ -160,24 +182,80 @@ func kbEntityIDsByQuery(ctx *orm.Context, kbID, query string) ([]string, error) 
 			}
 		}
 	}
-	for _, c := range clauses {
-		builder.Must(c)
-	}
-	builder.Exclude("relations", "sources", "properties")
 
-	res, err := orm.SearchV2(readCtx, builder)
+	scope := core.KBDocIDsFor(ctx, kbID)
+
+	// One score-ranked scan, membership filtered in the app: the entity
+	// index stores sources with enabled:false — sources.doc_id is NOT
+	// queryable — so dynamic attribution cannot be an ES filter. Explicit
+	// kb_id rows and kb-less rows compete on the same match score (same
+	// index, same clauses), so a strong name match like a searched kb-less
+	// entity outranks weak combined_fulltext mentions instead of being
+	// starved by an ES-level kb_id leg that always fills the slots first.
+	entities, err := queryGraphEntities(readCtx, clauses, graphQueryEntityScan)
 	if err != nil {
 		return nil, err
 	}
-	entities, _, err := elastic.DecodeHits[core.WikiEntity](res)
-	if err != nil {
-		return nil, err
+	scopeSet := make(map[string]bool, len(scope))
+	for _, id := range scope {
+		scopeSet[id] = true
 	}
-	ids := make([]string, 0, len(entities))
+	seen := map[string]bool{}
+	ids := make([]string, 0, graphMaxQueryEntities)
 	for i := range entities {
-		ids = append(ids, entities[i].ID)
+		e := &entities[i]
+		if seen[e.ID] {
+			continue
+		}
+		owns := e.KbID == kbID
+		if !owns && e.KbID == "" {
+			// kb-less rows belong through their source documents; rows
+			// scoped to a DIFFERENT KB never enter this canvas
+			for _, src := range e.Sources {
+				if scopeSet[src.DocID] {
+					owns = true
+					break
+				}
+			}
+		}
+		if !owns {
+			continue
+		}
+		seen[e.ID] = true
+		ids = append(ids, e.ID)
+		if len(ids) >= graphMaxQueryEntities {
+			break
+		}
 	}
 	return ids, nil
+}
+
+// graphQueryEntityScan bounds the app-side membership scan: enough
+// top-scored rows to cover hot-word matches before the filter, cheap at
+// this corpus size.
+const graphQueryEntityScan = 60
+
+func queryGraphEntities(ctx *orm.Context, clauses []*orm.Clause, size int) ([]core.WikiEntity, error) {
+	builder := orm.NewQuery().From(0).Size(size)
+	builder.SkipFuzziness()
+	if len(clauses) == 1 {
+		builder.Must(clauses[0])
+	} else {
+		// multiple fields/fuzziness tiers: per BuildFuzzinessQueryClauses
+		// contract these are alternatives, must-match would demand every
+		// field to hit
+		builder.Must(orm.ShouldQuery(clauses...))
+	}
+
+	res, err := orm.SearchV2(ctx, builder)
+	if err != nil {
+		return nil, err
+	}
+	entities, _, derr := elastic.DecodeHits[core.WikiEntity](res)
+	if derr != nil {
+		return nil, derr
+	}
+	return entities, nil
 }
 
 // buildKnowledgeGraph assembles the KB subgraph: articles and their
@@ -196,6 +274,12 @@ func buildKnowledgeGraph(ctx context.Context, kbID string, focusIDs []string, fo
 	var err error
 	if len(focusIDs) > 0 {
 		articles, err = kbArticlesForGraphIDs(readCtx, kbID, focusIDs)
+	} else if len(focusEntityIDs) > 0 {
+		// query-only scope (search page, entity-only hits): the canvas
+		// hangs off the articles that cite the query-matched entities —
+		// never the whole KB, or the panel would show everything and
+		// nothing about what was searched
+		articles, err = kbArticlesCitingEntities(readCtx, kbID, focusEntityIDs)
 	} else {
 		articles, err = kbArticlesForGraph(readCtx, kbID)
 	}
@@ -455,6 +539,36 @@ func kbArticlesForGraphIDs(ctx *orm.Context, kbID string, ids []string) ([]core.
 	}
 	articles, _, err := elastic.DecodeHits[core.WikiArticle](res)
 	return articles, err
+}
+
+// kbArticlesCitingEntities keeps only the KB articles whose wikilinks
+// resolve to one of the given entities — the query-only scope for the
+// search page, where the canvas must hang off WHAT was searched. LinkedPages
+// is stored inline and unindexed, so the filter runs in the application over
+// the (bounded) article list; graphQueryCitedArticles caps the worst case of
+// a hub entity cited by most of the KB.
+func kbArticlesCitingEntities(ctx *orm.Context, kbID string, entityIDs []string) ([]core.WikiArticle, error) {
+	articles, err := kbArticlesForGraph(ctx, kbID)
+	if err != nil {
+		return nil, err
+	}
+	want := make(map[string]bool, len(entityIDs))
+	for _, id := range entityIDs {
+		want[id] = true
+	}
+	out := make([]core.WikiArticle, 0, len(articles))
+	for i := range articles {
+		for _, lp := range articles[i].LinkedPages {
+			if lp.EntityID != "" && want[lp.EntityID] {
+				out = append(out, articles[i])
+				break
+			}
+		}
+	}
+	if len(out) > graphQueryCitedArticles {
+		out = out[:graphQueryCitedArticles]
+	}
+	return out, nil
 }
 
 // loadEntitiesCapped fetches entities by id in terms-query-safe chunks.

@@ -263,13 +263,48 @@ func TestKbGraph_QueryMatchFocus(t *testing.T) {
 	require.True(t, hasZoe, "query-matched entity should join the canvas")
 	assert.Equal(t, true, zoeNode["query_match"])
 
-	// alice is already cited via wikilink: no query_match badge
-	aliceNode, hasAlice := nodeByID["entity:graph-alice"]
-	require.True(t, hasAlice)
-	assert.NotContains(t, aliceNode, "query_match")
+	// alice is cited via wikilink from an article zoe has nothing to do
+	// with: the query-only scope keeps her OFF the canvas (the old
+	// whole-KB fallback is exactly what made the search graph useless)
+	assert.NotContains(t, nodeByID, "entity:graph-alice")
 
-	// a query matching nothing degrades to the plain wikilink canvas
+	// a query matching nothing degrades to an empty graph — the search page
+	// hides the panel instead of showing an unscoped whole-KB canvas
 	w, out = callGraph(t, h, "/wiki/kb/"+kbID+"/_graph?q=nonexistent-thing", kbID)
+	require.Equal(t, http.StatusOK, w.Code)
+	nodes, _ = out["nodes"].([]interface{})
+	assert.Empty(t, nodes, "no match: empty graph, never the whole-KB fallback")
+	edges, _ := out["edges"].([]interface{})
+	assert.Empty(t, edges)
+}
+
+func TestKbGraph_QueryOnlyScope(t *testing.T) {
+	h := graphSetup(t)
+	kbID, _, acmeID := graphFixture(t)
+
+	// zoe is cited by no article: the query-only scope yields no article
+	// nodes — just zoe and the one-hop relation target acme
+	w, out := callGraph(t, h, "/wiki/kb/"+kbID+"/_graph?q=Zoe", kbID)
+	require.Equal(t, http.StatusOK, w.Code)
+	nodes, _ := out["nodes"].([]interface{})
+	require.NotNil(t, nodes)
+	nodeByID := map[string]map[string]interface{}{}
+	for _, n := range nodes {
+		node, _ := n.(map[string]interface{})
+		nodeByID[node["id"].(string)] = node
+	}
+	require.NotContains(t, nodeByID, "article:graph-article", "zoe is cited nowhere: no article joins the canvas")
+	require.Contains(t, nodeByID, "entity:graph-zoe")
+	assert.Equal(t, true, nodeByID["entity:graph-zoe"]["query_match"])
+	require.Contains(t, nodeByID, "entity:"+acmeID, "one-hop relation target stays reachable")
+	edges, _ := out["edges"].([]interface{})
+	require.Len(t, edges, 1, "only the typed relation edge remains")
+	edge, _ := edges[0].(map[string]interface{})
+	assert.Equal(t, "relation", edge["kind"])
+
+	// latte IS cited: its citing article joins the canvas with the whole
+	// wikilink neighborhood it carries
+	w, out = callGraph(t, h, "/wiki/kb/"+kbID+"/_graph?q=Latte", kbID)
 	require.Equal(t, http.StatusOK, w.Code)
 	nodes, _ = out["nodes"].([]interface{})
 	require.NotNil(t, nodes)
@@ -278,7 +313,10 @@ func TestKbGraph_QueryMatchFocus(t *testing.T) {
 		node, _ := n.(map[string]interface{})
 		nodeByID[node["id"].(string)] = node
 	}
-	assert.NotContains(t, nodeByID, "entity:graph-zoe", "no match: the canvas falls back to the wikilink scope")
+	require.Contains(t, nodeByID, "article:graph-article", "the citing article anchors the canvas")
+	require.Contains(t, nodeByID, "entity:graph-latte")
+	require.Contains(t, nodeByID, "entity:graph-alice", "fellow entities cited by the same article stay on the canvas")
+	assert.NotContains(t, nodeByID["entity:graph-latte"], "query_match", "latte is wikilink-cited: no badge")
 }
 
 func TestEntityNeighbors_InverseRelations(t *testing.T) {
