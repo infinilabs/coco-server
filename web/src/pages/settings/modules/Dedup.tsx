@@ -22,6 +22,9 @@ interface DedupMember {
   size?: number;
   updated?: number;
   disabled?: boolean;
+  /** this member's own strongest edge — set only when it diverges from the group header */
+  edge_tier?: number;
+  edge_sim?: number;
 }
 
 interface DedupGroup {
@@ -49,6 +52,15 @@ interface DedupReport {
 }
 
 const tierColor: Record<number, string> = { 1: 'red', 2: 'volcano', 3: 'orange', 4: 'gold' };
+
+// i18n key per tier number — the group header carries tier_label, member
+// edge fields only carry the tier number
+const tierKeyByNum: Record<number, string> = {
+  1: 'identical_content',
+  2: 'near_identical',
+  3: 'highly_similar',
+  4: 'suspected_versions'
+};
 
 const formatTime = (ms?: number) => (ms ? new Date(ms).toLocaleString() : '-');
 
@@ -294,9 +306,19 @@ const Dedup = memo(() => {
                   title: t('page.settings.dedup.columns.title'),
                   dataIndex: 'title',
                   render: (v: string, r: DedupMember) => (
-                    <Space>
+                    <Space wrap>
                       {r.id === g.keep_id && <Tag color="green">{t('page.settings.dedup.keepTag')}</Tag>}
                       <span>{v || r.id}</span>
+                      {r.edge_tier !== undefined && r.edge_tier !== g.tier && (
+                        <Tooltip title={t('page.settings.dedup.memberEdgeTip')}>
+                          <Tag color={tierColor[r.edge_tier] ?? 'default'}>
+                            {t(`page.settings.dedup.tiers.${tierKeyByNum[r.edge_tier] ?? ''}`)}
+                            {r.edge_sim !== undefined && r.edge_sim > 0
+                              ? ` ${Math.round(r.edge_sim * 100)}%`
+                              : ''}
+                          </Tag>
+                        </Tooltip>
+                      )}
                     </Space>
                   )
                 },

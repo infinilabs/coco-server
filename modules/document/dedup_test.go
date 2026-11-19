@@ -60,6 +60,13 @@ func TestBuildDedupReportTiers(t *testing.T) {
 	if g.KeepID != "c" {
 		t.Fatalf("keeper = %s, want newest (c)", g.KeepID)
 	}
+	// exact members all match at the group's own level — no per-member edge
+	// fields, the payload stays lean and the header speaks for everyone
+	for _, m := range g.Members {
+		if m.EdgeTier != 0 || m.EdgeSim != 0 {
+			t.Fatalf("exact member %s must not carry per-member edge fields: %+v", m.ID, m)
+		}
+	}
 
 	g = findGroup(t, report, "d")
 	if g == nil || g.Tier != dedupTierNear || len(g.Members) != 3 {
@@ -67,6 +74,19 @@ func TestBuildDedupReportTiers(t *testing.T) {
 	}
 	if findGroup(t, report, "i") != g {
 		t.Fatal("the bigger edit (i) belongs to the same cluster")
+	}
+	// mixed-group invariant: whenever a member's own best edge is weaker
+	// than the group header's, the per-member fields are present and never
+	// stronger than the header; members matching the header stay clean
+	for _, m := range g.Members {
+		if m.EdgeTier != 0 {
+			if m.EdgeTier < g.Tier {
+				t.Fatalf("member %s edge tier %d stronger than group tier %d", m.ID, m.EdgeTier, g.Tier)
+			}
+			if m.EdgeSim > g.Similarity {
+				t.Fatalf("member %s edge sim %v above group sim %v", m.ID, m.EdgeSim, g.Similarity)
+			}
+		}
 	}
 
 	g = findGroup(t, report, "f")

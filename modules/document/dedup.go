@@ -55,6 +55,16 @@ type dedupMember struct {
 	Size       int    `json:"size,omitempty"`
 	Updated    int64  `json:"updated,omitempty"`
 	Disabled   bool   `json:"disabled,omitempty"`
+	// Per-member review signal: the strongest edge this document itself
+	// participates in. A mixed group (an identical core plus a near-duplicate
+	// that joined via simhash+containment) wears its best edge's tier in the
+	// header — without these fields the header's "identical_content 100%"
+	// overstates members that only matched loosely (the r03 case: a re-edited
+	// compilation of the same FAQ landed in an identical trio's group and the
+	// header read as "100% identical" for all four). Set only when the
+	// member's own best edge differs from the group-level one.
+	EdgeTier int     `json:"edge_tier,omitempty"`
+	EdgeSim  float64 `json:"edge_sim,omitempty"`
 }
 
 // dedupGroup is one connected cluster of suspected duplicates.
@@ -295,6 +305,8 @@ func buildDedupReport(docs []dedupDocMeta, dismissed map[string]bool) *dedupRepo
 	// aggregate edges and members per final root (roots no longer change)
 	edgeTier := map[int]int{}
 	edgeSim := map[int]float64{}
+	memberTier := map[int]int{}
+	memberSim := map[int]float64{}
 	for _, e := range joined {
 		root := find(e.a)
 		if t, ok := edgeTier[root]; !ok || e.tier < t {
@@ -303,27 +315,45 @@ func buildDedupReport(docs []dedupDocMeta, dismissed map[string]bool) *dedupRepo
 		if e.sim > edgeSim[root] {
 			edgeSim[root] = e.sim
 		}
-	}
-	groupDocs := map[int][]dedupDocMeta{}
-	for i, f := range fps {
-		root := find(i)
-		if _, has := edgeTier[root]; has {
-			groupDocs[root] = append(groupDocs[root], f.meta)
+		// per-doc best edge: what THIS document itself matched on, surfaced
+		// so the reviewer can tell an identical core from loosely-joined
+		// members without reading the group header as "all 100%"
+		for _, idx := range []int{e.a, e.b} {
+			if t, ok := memberTier[idx]; !ok || e.tier < t {
+				memberTier[idx] = e.tier
+			}
+			if e.sim > memberSim[idx] {
+				memberSim[idx] = e.sim
+			}
 		}
 	}
-	for root, metas := range groupDocs {
-		if len(metas) < 2 {
+	groupDocs := map[int][]int{}
+	for i := range fps {
+		root := find(i)
+		if _, has := edgeTier[root]; has {
+			groupDocs[root] = append(groupDocs[root], i)
+		}
+	}
+	for root, idxs := range groupDocs {
+		if len(idxs) < 2 {
 			continue
 		}
 		g := dedupGroup{
 			Tier:       edgeTier[root],
 			TierLabel:  dedupTierLabel(edgeTier[root]),
 			Similarity: edgeSim[root],
-			Members:    make([]dedupMember, 0, len(metas)),
+			Members:    make([]dedupMember, 0, len(idxs)),
 		}
-		ids := make([]string, 0, len(metas))
-		for _, m := range metas {
-			g.Members = append(g.Members, toDedupMember(m))
+		ids := make([]string, 0, len(idxs))
+		for _, idx := range idxs {
+			m := toDedupMember(fps[idx].meta)
+			// keep the payload lean: only divergent members carry the fields,
+			// the rest inherit the group header's tier/similarity
+			if mt, ok := memberTier[idx]; ok && (mt != edgeTier[root] || memberSim[idx] != edgeSim[root]) {
+				m.EdgeTier = mt
+				m.EdgeSim = memberSim[idx]
+			}
+			g.Members = append(g.Members, m)
 			ids = append(ids, m.ID)
 		}
 		sort.Slice(g.Members, func(a, b int) bool { return dedupKeeperLess(g.Members[a], g.Members[b]) })

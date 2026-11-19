@@ -2726,6 +2726,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         highly_similar: 'Highly similar',
         suspected_versions: 'Suspected versions'
       },
+      memberEdgeTip: 'This document\'s actual match level within the group (the header shows the strongest pair in the group)',
       columns: {
         title: 'Title',
         source: 'Source',
