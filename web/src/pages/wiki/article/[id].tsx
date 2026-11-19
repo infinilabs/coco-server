@@ -90,6 +90,7 @@ import {
 import { WikiLinkTag, renderInlineWikiLinks } from '../shared/WikiLinkTag';
 import { EntityHoverCard } from '../shared/EntityHoverCard';
 import { EntityArticleSections } from '../components/EntityArticleSections';
+import { EntityDetailDrawer } from '../components/EntityDetailDrawer';
 import { WikiVditorEditor } from '../components/WikiVditorEditor';
 import { diffLines } from '../shared/diff';
 import { AIEditModal } from '../components/AIEditModal';
@@ -680,6 +681,9 @@ export function Component() {
   );
   const [repairOpen, setRepairOpen] = useState(false);
   const [repairing, setRepairing] = useState(false);
+  // entity capsules without a curated page open the detail drawer in place
+  // (the graph deep-link sent readers off mid-article context)
+  const [capsuleEntityId, setCapsuleEntityId] = useState<string | null>(null);
 
   const runRepair = async () => {
     if (!article?.id || unresolvedLinks.length === 0) return;
@@ -774,8 +778,9 @@ export function Component() {
         if (entity?.article_id) {
           nav(`/wiki/article/${entity.article_id}?kb=${kbId || article?.kb_id || ''}`);
         } else {
-          const targetKb = kbId || article?.kb_id || '';
-          nav(`/wiki/kb/${targetKb}?tab=graph&entity=${lp.entity_id}`);
+          // no curated page yet: open the entity detail drawer in place —
+          // the graph stays reachable from the drawer's header actions
+          setCapsuleEntityId(lp.entity_id);
         }
       });
     },
@@ -1735,6 +1740,14 @@ export function Component() {
             </div>
           )}
         </Spin>
+
+        <EntityDetailDrawer
+          entityId={capsuleEntityId}
+          kbId={kbId || article?.kb_id || ''}
+          open={!!capsuleEntityId}
+          onClose={() => setCapsuleEntityId(null)}
+          onOpenEntity={id => setCapsuleEntityId(id)}
+        />
 
         <Modal
           cancelText={t('common.cancel')}

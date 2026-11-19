@@ -35,12 +35,16 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export function EntityArticleSections({
   entityId,
   kbId,
-  typeDescription
+  typeDescription,
+  onOpenEntity
 }: {
   entityId: string;
   kbId?: string;
   /** the ontology type's definition, shown as a tooltip on the type chip */
   typeDescription?: string;
+  /** when provided, related-entity chips hand over to the host (the detail
+   * drawer swaps in place); absent, they deep-link the KB graph tab */
+  onOpenEntity?: (entityId: string) => void;
 }) {
   const { t } = useTranslation();
   const nav = useNavigate();
@@ -141,7 +145,9 @@ export function EntityArticleSections({
                 <Tag className="m-0">{rel.label || rel.relation}</Tag>
                 <a
                   className="cursor-pointer"
-                  onClick={() => nav(`/wiki/kb/${kbId || ''}?tab=graph&entity=${rel.target_id}`)}
+                  onClick={() =>
+                    onOpenEntity ? onOpenEntity(rel.target_id) : nav(`/wiki/kb/${kbId || ''}?tab=graph&entity=${rel.target_id}`)
+                  }
                 >
                   {rel.target_name}
                 </a>
@@ -158,7 +164,9 @@ export function EntityArticleSections({
                 <Tag className="m-0">{rel.inverse_label || rel.label || rel.relation}</Tag>
                 <a
                   className="cursor-pointer"
-                  onClick={() => nav(`/wiki/kb/${kbId || ''}?tab=graph&entity=${rel.source_id}`)}
+                  onClick={() =>
+                    onOpenEntity ? onOpenEntity(rel.source_id) : nav(`/wiki/kb/${kbId || ''}?tab=graph&entity=${rel.source_id}`)
+                  }
                 >
                   {rel.source_name}
                 </a>
