@@ -508,6 +508,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       edit: '编辑',
       versions: '版本历史',
       versionView: '查看',
+      versionRestore: '恢复此版本',
+      versionRestoreConfirm: '将正文恢复到 v{{version}}？当前内容会先自动存入版本历史，可再次恢复。',
+      versionRestoreDone: '已恢复到 v{{version}}',
       keyEntities: '关键实体',
       meta: {
         aliases: '别名',

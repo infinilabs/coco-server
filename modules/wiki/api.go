@@ -567,6 +567,83 @@ func (h *APIHandler) articleVersionDetail(w http.ResponseWriter, req *http.Reque
 	h.WriteGetOKJSON(w, versions[0].ID, versions[0])
 }
 
+// restoreArticleVersion rolls the live article's content back to a
+// historical version. The current body is snapshotted BEFORE the overwrite
+// — the same guarantee the governance rebuild path carries — so a restore
+// is itself always revertable. Publication status is untouched: restoring
+// content is not a review action, and a published page must not drop to
+// draft and vanish from the TOC.
+func (h *APIHandler) restoreArticleVersion(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+	articleID := ps.ByName("id")
+	versionNo, err := strconv.Atoi(ps.ByName("version"))
+	if err != nil {
+		h.Error400(w, "version must be a number")
+		return
+	}
+
+	ctx := orm.NewContextWithParent(req.Context())
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.Refresh = orm.WaitForRefresh
+
+	article := core.WikiArticle{}
+	article.ID = articleID
+	orm.WithModel(ctx, &core.WikiArticle{})
+	ok, err := orm.GetV2(ctx, &article)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if !ok {
+		h.WriteOpRecordNotFoundJSON(w, articleID)
+		return
+	}
+
+	orm.WithModel(ctx, &core.WikiVersion{})
+	builder := orm.NewQuery().
+		Size(1).
+		Filter(orm.TermQuery("article_id", articleID), orm.TermQuery("version", versionNo))
+	res, err := orm.SearchV2(ctx, builder)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	versions, _, err := elastic.DecodeHits[core.WikiVersion](res)
+	if err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if len(versions) == 0 {
+		h.WriteOpRecordNotFoundJSON(w, fmt.Sprintf("%s/v%d", articleID, versionNo))
+		return
+	}
+	target := versions[0]
+
+	if target.Content == article.Content {
+		h.WriteOKJSON(w, util.MapStr{"restored": false, "message": fmt.Sprintf("content is already at v%d", versionNo)})
+		return
+	}
+
+	// snapshot the live body first — the only revert path if the user
+	// regrets the restore
+	if err := writeVersionIfChanged(&article); err != nil {
+		log.Warnf("wiki: pre-restore snapshot of %q failed: %v", article.Title, err)
+	}
+
+	article.Content = target.Content
+	if err := orm.Update(ctx, &article); err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := writeVersionSnapshot(&article, nextVersionNumber(article.ID), core.WikiChangeHumanEdited,
+		fmt.Sprintf("恢复至 v%d", versionNo)); err != nil {
+		log.Warnf("wiki: restore version snapshot failed for [%s]: %v", article.Title, err)
+	}
+	syncArticleContributions(&article)
+
+	h.WriteOKJSON(w, util.MapStr{"restored": true, "version": versionNo})
+}
+
 /* ---------------- status machine ---------------- */
 
 func (h *APIHandler) updateArticleStatus(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {

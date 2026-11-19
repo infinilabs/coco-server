@@ -196,6 +196,14 @@ export function getWikiArticleVersions(articleId: string) {
   }).then(res => (res?.data?.data || []).map(normalizeVersion));
 }
 
+/** roll the article's content back to a historical version; the live body is snapshotted first */
+export function restoreWikiArticleVersion(articleId: string, version: number) {
+  return request<{ restored?: boolean; message?: string }>({
+    method: 'post',
+    url: `/wiki/article/${articleId}/versions/${version}/_restore`
+  }).then(res => res?.data);
+}
+
 /* ---------------- TOC ---------------- */
 
 /** toc nodes plus the server-derived article_id→page_type map used for tree icons */

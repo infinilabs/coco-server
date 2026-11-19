@@ -143,6 +143,11 @@ func init() {
 		api.RequireLogin(), api.RequirePermission(readArticlePermission))
 	api.HandleUIMethod(api.GET, "/wiki/article/:id/versions/:version", handler.articleVersionDetail,
 		api.RequireLogin(), api.RequirePermission(readArticlePermission))
+	// restore content to a historical version; the live body is snapshotted
+	// first so the restore itself is revertable, status is untouched
+	api.HandleUIMethod(api.POST, "/wiki/article/:id/versions/:version/_restore", handler.restoreArticleVersion,
+		api.MCPTool("restore_article_version", "Restore a wiki article's content to a historical version (current content is snapshotted first, so the restore is revertable)"),
+		api.RequireLogin(), api.RequirePermission(updateArticlePermission))
 
 	// status machine, see statusTransitions
 	api.HandleUIMethod(api.PUT, "/wiki/article/:id/status", handler.updateArticleStatus,

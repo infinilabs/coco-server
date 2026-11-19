@@ -508,6 +508,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       edit: 'Edit',
       versions: 'Versions',
       versionView: 'View',
+      versionRestore: 'Restore',
+      versionRestoreConfirm: 'Restore the body to v{{version}}? The current content is snapshotted into version history first, so this is revertible.',
+      versionRestoreDone: 'Restored to v{{version}}',
       keyEntities: 'Key entities',
       meta: {
         aliases: 'Aliases',

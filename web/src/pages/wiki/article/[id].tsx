@@ -4,6 +4,7 @@ import {
   CheckOutlined,
   ClusterOutlined,
   CopyOutlined,
+  DiffOutlined,
   DownloadOutlined,
   EditOutlined,
   EyeOutlined,
@@ -24,7 +25,8 @@ import {
   TableOutlined,
   FileTextOutlined,
   FileSyncOutlined,
-  PaperClipOutlined} from '@ant-design/icons';
+  PaperClipOutlined,
+  RollbackOutlined} from '@ant-design/icons';
 import {
   Avatar,
   Button,
@@ -63,6 +65,7 @@ import {
   getArticleBacklinks,
   getWikiArticle,
   getWikiArticleVersions,
+  restoreWikiArticleVersion,
   getWikiArticleMaterials,
   getWikiArticleAttachments,
   getWikiEntity,
@@ -774,13 +777,14 @@ export function Component() {
         setRepairOpen(true);
         return;
       }
-      getWikiEntity(lp.entity_id).then(entity => {
+      const entityId = lp.entity_id;
+      getWikiEntity(entityId).then(entity => {
         if (entity?.article_id) {
           nav(`/wiki/article/${entity.article_id}?kb=${kbId || article?.kb_id || ''}`);
         } else {
           // no curated page yet: open the entity detail drawer in place —
           // the graph stays reachable from the drawer's header actions
-          setCapsuleEntityId(lp.entity_id);
+          setCapsuleEntityId(entityId);
         }
       });
     },
@@ -1770,48 +1774,73 @@ export function Component() {
         <Drawer
           open={versionsOpen}
           title={t('page.wiki.article.versions')}
-          width={480}
+          width={560}
           onClose={() => setVersionsOpen(false)}
         >
           <List
             dataSource={versions}
             renderItem={(v, idx) => (
-              <List.Item
-                actions={[
-                  <Button
-                    key='view'
-                    size='small'
-                    type='link'
-                    onClick={() => {
-                      setVersionView(v);
-                    }}
-                  >
-                    {t('page.wiki.article.versionView')}
-                  </Button>,
-                  idx < versions.length - 1 ? (
-                    <Button
-                      key='diff'
-                      size='small'
-                      type='link'
-                      onClick={() => {
-                        setDiffPair({ older: versions[idx + 1], newer: v });
-                      }}
-                    >
-                      {t('page.wiki.diff.view')}
-                    </Button>
-                  ) : null
-                ]}
-              >
-                {/* explicit flex column — List.Item.Meta plus a trailing block
-                    sibling collapses into one overlapping box on antd v6 */}
-                <div className='min-w-0 flex-1'>
-                  <div className='flex flex-wrap items-center gap-2'>
-                    <Tag color={CHANGE_TYPE_COLOR[v.change_type]}>{t(`page.wiki.changeType.${v.change_type}`)}</Tag>
-                    <span className='text-sm font-medium'>{`v${v.version}`}</span>
-                    <span className='text-xs text-gray-400'>{v.created_at}</span>
-                    <span className='text-xs text-gray-400'>{v.created_by}</span>
+              <List.Item>
+                <div className='flex w-full items-center gap-2'>
+                  <div className='min-w-0 flex-1'>
+                    <div className='flex flex-wrap items-center gap-2'>
+                      <Tag color={CHANGE_TYPE_COLOR[v.change_type]}>{t(`page.wiki.changeType.${v.change_type}`)}</Tag>
+                      <span className='text-sm font-medium'>{`v${v.version}`}</span>
+                      <span className='text-xs text-gray-400'>{v.created_at}</span>
+                      <span className='text-xs text-gray-400'>{v.created_by}</span>
+                    </div>
+                    {v.change_summary && <div className='mt-1 text-xs text-gray-500'>{v.change_summary}</div>}
                   </div>
-                  {v.change_summary && <div className='mt-1 text-xs text-gray-500'>{v.change_summary}</div>}
+                  {/* icon actions inline on the row right edge — antd's
+                      List actions slot pads each item ~16px per side, which
+                      ate a third of the 480px drawer row */}
+                  <div className='flex shrink-0 items-center gap-0.5'>
+                    <Tooltip title={t('page.wiki.article.versionView')}>
+                      <Button
+                        size='small'
+                        type='text'
+                        className='px-1'
+                        icon={<EyeOutlined />}
+                        onClick={() => {
+                          setVersionView(v);
+                        }}
+                      />
+                    </Tooltip>
+                    {idx < versions.length - 1 && (
+                      <Tooltip title={t('page.wiki.diff.view')}>
+                        <Button
+                          size='small'
+                          type='text'
+                          className='px-1'
+                          icon={<DiffOutlined />}
+                          onClick={() => {
+                            setDiffPair({ older: versions[idx + 1], newer: v });
+                          }}
+                        />
+                      </Tooltip>
+                    )}
+                    {/* the newest version is the live content — nothing to
+                        restore back to */}
+                    {idx > 0 && (
+                      <Popconfirm
+                        title={t('page.wiki.article.versionRestoreConfirm', { version: v.version })}
+                        onConfirm={() => {
+                          if (!id) return;
+                          restoreWikiArticleVersion(id, v.version).then(res => {
+                            if (res?.restored) {
+                              window.$message?.success(t('page.wiki.article.versionRestoreDone', { version: v.version }));
+                            }
+                            openVersions();
+                            fetchArticle();
+                          });
+                        }}
+                      >
+                        <Tooltip title={t('page.wiki.article.versionRestore')}>
+                          <Button size='small' type='text' className='px-1' icon={<RollbackOutlined />} />
+                        </Tooltip>
+                      </Popconfirm>
+                    )}
+                  </div>
                 </div>
               </List.Item>
             )}
