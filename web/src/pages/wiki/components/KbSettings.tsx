@@ -124,7 +124,6 @@ export function KbSettings({ kb, onSaved }: { kb: Api.Wiki.Kb; onSaved: () => vo
       {/* one form spans both cards: the page-level save button below the
           cards persists everything in a single PUT */}
       <Form
-        className="pt-12px"
         form={form}
         initialValues={{
           name: kb.name,
