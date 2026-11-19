@@ -233,6 +233,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         },
 
         entityManager: {
+          danglingTip: '{{count}} more relations point at targets that were deleted or merged; hidden from the detail view — clean them up in the edit drawer',
           merge: 'Merge selected',
           mergeConfirm: 'Merge {{count}} entities into one? Absorbed names become aliases; sources and relations are preserved',
           merged: 'Merged — kept "{{name}}"',

@@ -15,6 +15,7 @@ import (
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/api/crud"
 	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
@@ -297,6 +298,15 @@ func registerEntityCRUD() {
 			}
 			return nil
 		},
+		// list rows report only resolvable relations: the relations column
+		// must agree with the detail view (neighbors endpoint drops edges
+		// whose target no longer resolves — same-name dedup deletes old
+		// rows and the enabled:false mapping made retargeting a no-op, so
+		// a large share of stored edges dangle). Dropped edges are counted
+		// per row as relations_dangling so the UI can hint at the gap.
+		PostSearch: func(res *elastic.SearchResponse) error {
+			return resolveSearchHitRelations(res)
+		},
 		MCP: true,
 		MCPDescs: map[string]string{
 			crud.ActionSearch: "Search ontology entities by name, alias or type",
@@ -323,6 +333,83 @@ func registerEntityCRUD() {
 		},
 		ProtectedFields: []string{"created", "sources"}, // sources are pipeline provenance (B2/B3)
 	})
+}
+
+// resolveSearchHitRelations filters every hit's stored relations down to the
+// edges whose target entity still resolves, mirroring the neighbors
+// endpoint's drop rule. Stored edges accumulate dangling targets because the
+// same-name dedup deletes superseded rows while the enabled:false relations
+// mapping made retargeting a no-op; without this, the list shows a relation
+// count the detail view contradicts ("暂无关系记录"). The dropped count lands
+// per hit as relations_dangling so the UI can surface the gap; the raw edges
+// stay on single-entity reads (get) for the editor to clean up.
+func resolveSearchHitRelations(res *elastic.SearchResponse) error {
+	targets := map[string]bool{}
+	for _, hit := range res.Hits.Hits {
+		rels, _ := hit.Source["relations"].([]interface{})
+		for _, rv := range rels {
+			r, _ := rv.(map[string]interface{})
+			if id, _ := r["target_id"].(string); id != "" && id != hit.ID {
+				targets[id] = true
+			}
+		}
+	}
+	if len(targets) == 0 {
+		return nil
+	}
+
+	ids := make([]string, 0, len(targets))
+	for id := range targets {
+		ids = append(ids, id)
+	}
+	ctx := orm.NewContext()
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(ctx, &core.WikiEntity{})
+	// existence check only; a page's rows reference few targets but clamp
+	// anyway so a pathological payload can't blow the window
+	if len(ids) > 1000 {
+		ids = ids[:1000]
+	}
+	builder := orm.NewQuery().From(0).Size(len(ids)).Filter(orm.TermsQuery("id", ids))
+	res2, err := orm.SearchV2(ctx, builder)
+	if err != nil {
+		// transient lookup failure: keep the raw edges (counts may read
+		// high) rather than zeroing the column on a flaky backend
+		log.Warnf("wiki entity list: resolve relation targets: %v", err)
+		return nil
+	}
+	live := map[string]bool{}
+	entities, _, err2 := elastic.DecodeHits[core.WikiEntity](res2)
+	if err2 != nil {
+		log.Warnf("wiki entity list: decode relation targets: %v", err2)
+		return nil
+	}
+	for _, e := range entities {
+		live[e.ID] = true
+	}
+
+	for _, hit := range res.Hits.Hits {
+		rels, _ := hit.Source["relations"].([]interface{})
+		if len(rels) == 0 {
+			continue
+		}
+		kept := make([]interface{}, 0, len(rels))
+		dangling := 0
+		for _, rv := range rels {
+			r, _ := rv.(map[string]interface{})
+			id, _ := r["target_id"].(string)
+			if id != "" && id != hit.ID && live[id] {
+				kept = append(kept, r)
+			} else {
+				dangling++
+			}
+		}
+		hit.Source["relations"] = kept
+		if dangling > 0 {
+			hit.Source["relations_dangling"] = dangling
+		}
+	}
+	return nil
 }
 
 // applyEntityCreateDefaults applies the required-field and status defaults

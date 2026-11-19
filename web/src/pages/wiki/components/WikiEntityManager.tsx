@@ -335,7 +335,23 @@ export function WikiEntityManager({ kbId }: { kbId: string }) {
       title: t('page.wiki.entityManager.columns.relations'),
       dataIndex: 'relations',
       width: 90,
-      render: (rels: { target_id: string }[] | undefined) => rels?.length ?? 0
+      render: (rels: { target_id: string }[] | undefined, row: Api.Wiki.EntityInfo) => {
+        const n = rels?.length ?? 0;
+        const dangling = row.relations_dangling ?? 0;
+        if (dangling > 0) {
+          return (
+            <Tooltip title={t('page.wiki.entityManager.danglingTip', { count: dangling })}>
+              <span>
+                {n}
+                <span className="ml-2px text-11px text-[var(--ant-color-text-quaternary)]">
+                  (+{dangling})
+                </span>
+              </span>
+            </Tooltip>
+          );
+        }
+        return n;
+      }
     },
     {
       title: t('common.operation'),

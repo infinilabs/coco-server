@@ -233,6 +233,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         },
 
         entityManager: {
+          danglingTip: '另有 {{count}} 条关系的目标已被删除或合并，详情中不显示；可在编辑抽屉里清理',
           merge: '合并所选',
           mergeConfirm: '将 {{count}} 个实体合并为一个？被并入的名称转为别名，来源与关系全部保留',
           merged: '已合并，保留「{{name}}」',

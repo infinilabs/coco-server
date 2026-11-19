@@ -637,6 +637,8 @@ declare namespace Api {
       article_id?: string;
       properties?: Record<string, unknown>;
       relations?: { target_id: string; relation: string }[];
+      /** stored edges whose target no longer resolves — excluded from relations, shown as a hint */
+      relations_dangling?: number;
       updated?: string;
     }
 
