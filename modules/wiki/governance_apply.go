@@ -5,6 +5,7 @@ package wiki
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -550,10 +551,13 @@ func tocRemove(nodes []core.WikiTocNode, articleID string) []core.WikiTocNode {
 	return out
 }
 
-// applyRebuildProposal rebuilds a stale page from its own provenance —
-// entity pages from their entity record, everything else from the article's
-// source claims. The rebuild is deterministic (quotes, no LLM), lands as a
-// draft for human review, and clears the pending-version signal.
+// applyRebuildProposal rebuilds a stale page: when the proposal references
+// a pending auto-updated version (the usual case — the scan filed it
+// because that version awaits review), that version's content is folded
+// into the live page; otherwise the page is rebuilt deterministically from
+// its own provenance (entity record / source claims, no LLM). Either way
+// the pre-apply live body is snapshotted into version history first, so an
+// applied rebuild can always be reverted.
 func applyRebuildProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (string, error) {
 	if p.ArticleID == "" {
 		return "", nil
@@ -568,17 +572,31 @@ func applyRebuildProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 		return "", fmt.Errorf("article %s not found", p.ArticleID)
 	}
 
+	// the reviewer approved folding a specific regenerated version — land
+	// that version's content, not a synthetic claims list. Applying the
+	// proposal IS the review, so a published page stays published (it must
+	// not vanish from the TOC and read as lost content); a draft stays draft.
+	if pending := pendingVersionFromEvidence(p.Evidence); pending > 0 {
+		if content := versionContent(ctx, article.ID, pending); content != "" {
+			outcome := fmt.Sprintf("「%s」已采纳自动更新版本 v%d", article.Title, pending)
+			if article.Status == core.WikiArticlePublished {
+				outcome += "（保持发布）"
+			} else {
+				outcome += "（草稿）"
+			}
+			return foldRebuildContent(ctx, &article, content, outcome, p.ID, article.Status)
+		}
+		log.Warnf("wiki: pending version %d of article %s missing, falling back to provenance rebuild",
+			pending, article.ID)
+	}
+
 	if article.EntityID != "" {
 		ent := core.WikiEntity{}
 		ent.ID = article.EntityID
 		if ok, err := orm.GetV2(ctx, &ent); err == nil && ok {
-			article.Content = DraftEntityContentFor(ctx, article.KbID, &ent)
-			article.Status = core.WikiArticleDraft
-			if err := orm.Update(ctx, &article); err != nil {
-				return "", err
-			}
-			snapshotPipelineWrite(&article, fmt.Sprintf("治理重建：按 %d 条来源主张重排页面（提案 %s）", len(ent.Sources), p.ID))
-			return fmt.Sprintf("「%s」已按 %d 条来源主张重建(草稿)", article.Title, len(ent.Sources)), nil
+			content := DraftEntityContentFor(ctx, article.KbID, &ent)
+			return foldRebuildContent(ctx, &article, content,
+				fmt.Sprintf("「%s」已按 %d 条来源主张重建(草稿)", article.Title, len(ent.Sources)), p.ID, core.WikiArticleDraft)
 		}
 	}
 
@@ -601,13 +619,49 @@ func applyRebuildProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (str
 			fmt.Fprintf(&sb, "%d. **%s** — %s\n", i+1, title, line)
 		}
 	}
-	article.Content = sb.String()
-	article.Status = core.WikiArticleDraft
-	if err := orm.Update(ctx, &article); err != nil {
+	return foldRebuildContent(ctx, &article, sb.String(),
+		fmt.Sprintf("「%s」已按来源引用重建(草稿)", article.Title), p.ID, core.WikiArticleDraft)
+}
+
+// pendingVersionFromEvidence reads evidence.pending_version across storage
+// encodings (live int, ES round-trip float64/json.Number).
+func pendingVersionFromEvidence(evidence util.MapStr) int {
+	switch v := evidence["pending_version"].(type) {
+	case int:
+		return v
+	case int64:
+		return int(v)
+	case float64:
+		return int(v)
+	case json.Number:
+		n, _ := v.Int64()
+		return int(n)
+	}
+	return 0
+}
+
+// foldRebuildContent lands rebuilt content on the live article. The live
+// body is snapshotted into version history BEFORE the overwrite whenever
+// the newest version doesn't already carry it — without this guard an
+// applied rebuild silently destroyed the published body (28 pages lost in
+// one auto-approve sweep; recoverable only by luck of prior snapshots).
+// landAs decides the resulting status: folding a reviewed pending version
+// preserves the article's current status (a published page must not drop
+// to draft and vanish from the TOC), while the synthetic fallback rebuilds
+// always land as draft awaiting human work.
+func foldRebuildContent(ctx *orm.Context, article *core.WikiArticle, content, outcome, proposalID, landAs string) (string, error) {
+	if err := writeVersionIfChanged(article); err != nil {
+		// snapshot failure must not block the apply, but it must be loud —
+		// the overwrite still happens and this is the only revert path
+		log.Warnf("wiki: pre-rebuild snapshot of %q failed: %v", article.Title, err)
+	}
+	article.Content = content
+	article.Status = landAs
+	if err := orm.Update(ctx, article); err != nil {
 		return "", err
 	}
-	snapshotPipelineWrite(&article, fmt.Sprintf("治理重建：按 %d 条来源引用重排页面（提案 %s）", len(article.Sources), p.ID))
-	return fmt.Sprintf("「%s」已按来源引用重建(草稿)", article.Title), nil
+	snapshotPipelineWrite(article, fmt.Sprintf("治理重建（提案 %s）", proposalID))
+	return outcome, nil
 }
 
 // applyEntityConflictProposal adopts the newly extracted type — the human

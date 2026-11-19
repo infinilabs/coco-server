@@ -22,9 +22,12 @@ import (
 // knowledge base without the human gate. Two hooks:
 //   - entities: resolveOrCreateEntity publishes new extractions directly
 //   - proposals: this sweep applies open governance proposals of
-//     auto-approve KBs (compile drafts land published; the tree applies;
-//     rebuilds run) — corrections and knowledge-gap signals stay manual
-//     in every mode, they are work signals, not KB updates.
+//     auto-approve KBs (compile drafts land published; the tree applies)
+//     — corrections, knowledge-gap signals AND page rebuilds stay manual
+//     in every mode. A rebuild wholesale replaces a published page's body
+//     (observed: an auto-approve KB lost 28 published articles' content in
+//     one sweep, each swapped for a thin source-claims list); that is a
+//     work signal needing judgment, not a routine KB update.
 
 // KBAutoApprove reports the KB's auto-approve flag; false on any error —
 // the gate stays closed unless the KB explicitly opened it.
@@ -146,8 +149,12 @@ func autoApproveSweep(ctx context.Context) {
 	skipGated, skipManualKB, skipThin := 0, 0, 0
 	for i := range proposals {
 		p := &proposals[i]
-		// work signals stay human-gated in every mode
-		if p.Type == core.WikiGovernanceCorrection || p.Type == core.WikiGovernanceKnowledgeGap {
+		// work signals stay human-gated in every mode: corrections and
+		// knowledge gaps are work queues, and stale/refresh rebuilds
+		// wholesale replace a published page's body — a mass auto-rebuild
+		// once overwrote 28 published articles with thin claims lists
+		if p.Type == core.WikiGovernanceCorrection || p.Type == core.WikiGovernanceKnowledgeGap ||
+			p.Type == core.WikiGovernanceStale || p.Type == core.WikiGovernanceArticleRefresh {
 			skipped++
 			skipGated++
 			continue
