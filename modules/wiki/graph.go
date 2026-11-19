@@ -40,7 +40,12 @@ graphMaxQueryEntities = 8
 // alive with article_ids empty — entity-only hits). Without the cap a
 // hub entity cited by hundreds of pages would drag the whole KB back
 // onto the canvas. Title-sorted first N keeps output stable.
-graphQueryCitedArticles = 30
+graphQueryCitedArticles = 12
+// graphQueryNeighborCap bounds the one-hop relation expansion of the
+// query-matched seeds: the transient canvas answers "what did I hit and
+// what directly touches it" — a hub's whole neighborhood would swell it
+// right back. Sorted-id truncation keeps output stable.
+graphQueryNeighborCap = 24
 )
 
 type GraphNode struct {
@@ -76,10 +81,13 @@ type GraphEdge struct {
 // Optional ?q= additionally pulls in the entities whose name/aliases match
 // the query (wikilink-driven focus alone misses "search the thing itself":
 // the voucher page may never wikilink the voucher entity). When the query is
-// present but no hit articles are, the canvas hangs off the articles citing
-// the query-matched entities — the whole KB is served only when the caller
-// passes no scope at all (the wiki app's graph page). Status is not filtered
-// here — proposed drafts already enter the canvas via wikilinks.
+// present but no hit articles are, the canvas is strictly one hop: the
+// query-matched seeds, their direct typed-relation neighbors, and the
+// articles that directly cite them — pulling every wikilink target of every
+// citing article re-rendered the whole KB behind the query's back. The whole
+// KB is served only when the caller passes no scope at all (the wiki app's
+// graph page). Status is not filtered here — proposed drafts already enter
+// the canvas via wikilinks.
 func (h *APIHandler) kbGraph(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	kbID := ps.ByName("id")
 	var focusIDs []string
@@ -301,7 +309,8 @@ func buildKnowledgeGraph(ctx context.Context, kbID string, focusIDs []string, fo
 		return ""
 	}
 
-	// entities the KB's wikilinks resolve to, then one-hop relation targets
+	// entities the KB's wikilinks resolve to; in query-only mode the canvas
+	// is the seeds plus their direct relation neighbors instead
 	citedIDs := map[string]bool{}
 	for i := range articles {
 		for _, lp := range articles[i].LinkedPages {
@@ -310,41 +319,98 @@ func buildKnowledgeGraph(ctx context.Context, kbID string, focusIDs []string, fo
 			}
 		}
 	}
-	// query-matched entities join the canvas at the same priority as
-	// wikilink-cited ones; the flag tells the frontend to badge them
+	queryOnly := len(focusIDs) == 0 && len(focusEntityIDs) > 0
 	queryMatch := map[string]bool{}
-	for _, id := range focusEntityIDs {
-		if !citedIDs[id] {
-			queryMatch[id] = true
+	var entities []core.WikiEntity
+	if queryOnly {
+		// Search-page transient state (entity-only hits): the canvas is the
+		// matched entities plus ONE hop — their typed-relation targets and
+		// the articles that directly cite them. The old scope (every
+		// wikilink target of every citing article) dragged ~30 articles'
+		// whole entity sets back: q=coco rendered the KB's full graph,
+		// which reads as "the panel ignores the query".
+		seedSet := make(map[string]bool, len(focusEntityIDs))
+		for _, id := range focusEntityIDs {
+			seedSet[id] = true
 		}
-		citedIDs[id] = true
-	}
-	entities, err := loadEntitiesCapped(readCtx, citedIDs, graphMaxEntities)
-	if err != nil {
-		return nil, err
+		seeds, serr := loadEntitiesCapped(readCtx, seedSet, len(seedSet))
+		if serr != nil {
+			return nil, serr
+		}
+		neighborIDs := map[string]bool{}
+		for i := range seeds {
+			for _, rel := range seeds[i].Relations {
+				if rel.TargetID != "" && !seedSet[rel.TargetID] {
+					neighborIDs[rel.TargetID] = true
+				}
+			}
+		}
+		if len(neighborIDs) > graphQueryNeighborCap {
+			keys := make([]string, 0, len(neighborIDs))
+			for id := range neighborIDs {
+				keys = append(keys, id)
+			}
+			sort.Strings(keys)
+			for _, id := range keys[graphQueryNeighborCap:] {
+				delete(neighborIDs, id)
+			}
+		}
+		neighbors, nerr := loadEntitiesCapped(readCtx, neighborIDs, len(neighborIDs))
+		if nerr != nil {
+			return nil, nerr
+		}
+		entities = append(entities, seeds...)
+		entities = append(entities, neighbors...)
+		// badge seeds no pulled article wikilinks (the "search the thing
+		// itself" face); citedIDs stays wikilink-only so sort priority and
+		// ViaRelation keep their article-grounded meaning
+		for _, id := range focusEntityIDs {
+			if !citedIDs[id] {
+				queryMatch[id] = true
+			}
+		}
+	} else {
+		// query-matched entities join the canvas at the same priority as
+		// wikilink-cited ones; the flag tells the frontend to badge them
+		for _, id := range focusEntityIDs {
+			if !citedIDs[id] {
+				queryMatch[id] = true
+			}
+			citedIDs[id] = true
+		}
+		var lerr error
+		entities, lerr = loadEntitiesCapped(readCtx, citedIDs, graphMaxEntities)
+		if lerr != nil {
+			return nil, lerr
+		}
 	}
 	entityByID := map[string]*core.WikiEntity{}
 	for i := range entities {
 		entityByID[entities[i].ID] = &entities[i]
 	}
 
-	expandedIDs := map[string]bool{}
-	for _, entity := range entities {
-		for _, rel := range entity.Relations {
-			if rel.TargetID != "" && entityByID[rel.TargetID] == nil {
-				expandedIDs[rel.TargetID] = true
+	// one-hop relation expansion: query-only canvases are already exactly
+	// one hop (seeds + direct neighbors), expanding again would grow the
+	// transient canvas to two hops behind the user's back
+	if !queryOnly {
+		expandedIDs := map[string]bool{}
+		for _, entity := range entities {
+			for _, rel := range entity.Relations {
+				if rel.TargetID != "" && entityByID[rel.TargetID] == nil {
+					expandedIDs[rel.TargetID] = true
+				}
 			}
 		}
-	}
-	if remaining := graphMaxEntities - len(entities); remaining > 0 && len(expandedIDs) > 0 {
-		expanded, err := loadEntitiesCapped(readCtx, expandedIDs, remaining)
-		if err != nil {
-			return nil, err
-		}
-		for i := range expanded {
-			if entityByID[expanded[i].ID] == nil {
-				entityByID[expanded[i].ID] = &expanded[i]
-				entities = append(entities, expanded[i])
+		if remaining := graphMaxEntities - len(entities); remaining > 0 && len(expandedIDs) > 0 {
+			expanded, err := loadEntitiesCapped(readCtx, expandedIDs, remaining)
+			if err != nil {
+				return nil, err
+			}
+			for i := range expanded {
+				if entityByID[expanded[i].ID] == nil {
+					entityByID[expanded[i].ID] = &expanded[i]
+					entities = append(entities, expanded[i])
+				}
 			}
 		}
 	}
@@ -438,6 +504,11 @@ func buildKnowledgeGraph(ctx context.Context, kbID string, focusIDs []string, fo
 					Label:    typeLabel(lp.Type),
 					Relation: lp.Type,
 				})
+				continue
+			}
+			if queryOnly {
+				// strict one-hop canvas: placeholders for wikilinks to
+				// entities off the canvas are noise on the search panel
 				continue
 			}
 			target := "lp:" + lp.Type + ":" + lp.Name

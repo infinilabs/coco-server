@@ -302,8 +302,11 @@ func TestKbGraph_QueryOnlyScope(t *testing.T) {
 	edge, _ := edges[0].(map[string]interface{})
 	assert.Equal(t, "relation", edge["kind"])
 
-	// latte IS cited: its citing article joins the canvas with the whole
-	// wikilink neighborhood it carries
+	// latte IS cited: its citing article joins the canvas. The scope stays
+	// strictly one hop — latte has no typed relations, so fellow wikilink
+	// targets of the citing article (alice) and unresolved placeholders
+	// (Missing Thing) stay OFF the canvas: they are what re-rendered the
+	// whole KB on the search panel under the old article-pull scope
 	w, out = callGraph(t, h, "/wiki/kb/"+kbID+"/_graph?q=Latte", kbID)
 	require.Equal(t, http.StatusOK, w.Code)
 	nodes, _ = out["nodes"].([]interface{})
@@ -315,8 +318,14 @@ func TestKbGraph_QueryOnlyScope(t *testing.T) {
 	}
 	require.Contains(t, nodeByID, "article:graph-article", "the citing article anchors the canvas")
 	require.Contains(t, nodeByID, "entity:graph-latte")
-	require.Contains(t, nodeByID, "entity:graph-alice", "fellow entities cited by the same article stay on the canvas")
+	assert.Len(t, nodeByID, 2, "one hop only: the seed, its citing article, nothing else")
+	assert.NotContains(t, nodeByID, "entity:graph-alice", "fellow wikilink targets are not one hop from the seed")
+	assert.NotContains(t, nodeByID, "lp:topic:Missing Thing", "unresolved placeholders stay off the search canvas")
 	assert.NotContains(t, nodeByID["entity:graph-latte"], "query_match", "latte is wikilink-cited: no badge")
+	edges, _ = out["edges"].([]interface{})
+	require.Len(t, edges, 1, "only the article->latte wikilink remains")
+	edge, _ = edges[0].(map[string]interface{})
+	assert.Equal(t, "wikilink", edge["kind"])
 }
 
 func TestEntityNeighbors_InverseRelations(t *testing.T) {
