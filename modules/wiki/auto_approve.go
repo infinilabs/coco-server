@@ -130,23 +130,31 @@ func autoApproveSweep(ctx context.Context) {
 		Filter(orm.ExistsQuery("kb_id")).
 		SortBy(orm.Sort{Field: "created", SortType: "asc"}))
 	if err != nil || res == nil {
+		log.Errorf("wiki: auto-approve sweep search failed: %v (res nil: %v)", err, res == nil)
 		return
 	}
 	proposals, _, derr := elastic.DecodeHits[core.WikiGovernanceProposal](res)
-	if derr != nil || len(proposals) == 0 {
+	if derr != nil {
+		log.Errorf("wiki: auto-approve sweep decode failed: %v", derr)
+		return
+	}
+	if len(proposals) == 0 {
 		return
 	}
 
 	applied, skipped, failed := 0, 0, 0
+	skipGated, skipManualKB, skipThin := 0, 0, 0
 	for i := range proposals {
 		p := &proposals[i]
 		// work signals stay human-gated in every mode
 		if p.Type == core.WikiGovernanceCorrection || p.Type == core.WikiGovernanceKnowledgeGap {
 			skipped++
+			skipGated++
 			continue
 		}
 		if !KBAutoApprove(octx, p.KbID) {
 			skipped++
+			skipManualKB++
 			continue
 		}
 		if applied >= autoApproveBatch {
@@ -169,6 +177,7 @@ func autoApproveSweep(ctx context.Context) {
 		// in auto-approve KBs (they stay open in the queue, nothing lost)
 		if p.Type == compileProposalType && autoApproveBodyChars(&full) < autoApproveMinBodyChars {
 			skipped++
+			skipThin++
 			continue
 		}
 		if _, _, aerr := applyOneProposal(actx, &full, "auto-approve"); aerr != nil {
@@ -181,6 +190,11 @@ func autoApproveSweep(ctx context.Context) {
 	if applied > 0 || failed > 0 {
 		log.Infof("wiki: auto-approve sweep — applied %d, skipped %d, failed %d (took %s)",
 			applied, skipped, failed, time.Since(start).Round(time.Second))
+	} else if skipped > 0 {
+		// full-skip ticks used to be completely silent, which made stuck
+		// queues indistinguishable from a dead sweep — say why, once
+		log.Infof("wiki: auto-approve sweep — nothing applied (%d queued): gated=%d manual-kb=%d thin=%d (took %s)",
+			len(proposals), skipGated, skipManualKB, skipThin, time.Since(start).Round(time.Second))
 	}
 	return
 }

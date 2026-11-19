@@ -23,6 +23,7 @@ const TYPE_COLOR: Record<string, string> = {
   correction: 'geekblue',
   entity_conflict: 'error',
   entity_duplicate: 'purple',
+  entity_enrich: 'gold',
   knowledge_compile: 'geekblue',
   tree_organize: 'cyan'
 };
@@ -35,6 +36,7 @@ const APPLICABLE = new Set([
   'stale',
   'article_refresh',
   'entity_conflict',
+  'entity_enrich',
   'knowledge_compile',
   'tree_organize'
 ]);

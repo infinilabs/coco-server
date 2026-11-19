@@ -138,6 +138,8 @@ func applyAction(p *core.WikiGovernanceProposal) string {
 		return "重建页面"
 	case core.WikiGovernanceEntityConflict:
 		return "采纳新类型"
+	case core.WikiGovernanceEntityEnrich:
+		return "认领同名实体"
 	case core.WikiGovernanceKnowledgeCompile:
 		return "生成页面"
 	case core.WikiGovernanceTreeOrganize:
@@ -352,6 +354,8 @@ func applyOneProposal(ctx *orm.Context, proposal *core.WikiGovernanceProposal, u
 		applied, err = applyRebuildProposal(ctx, proposal)
 	case core.WikiGovernanceEntityConflict:
 		applied, err = applyEntityConflictProposal(ctx, proposal)
+	case core.WikiGovernanceEntityEnrich:
+		applied, err = applyEntityEnrichProposal(ctx, proposal)
 	case core.WikiGovernanceKnowledgeCompile:
 		applied, articleID, err = applyCompileProposal(ctx, proposal)
 		if err == nil && articleID != "" {
@@ -628,6 +632,66 @@ func applyEntityConflictProposal(ctx *orm.Context, p *core.WikiGovernanceProposa
 		return "", err
 	}
 	return fmt.Sprintf("「%s」类型已从 %s 改为 %s", entity.Name, old, newType), nil
+}
+
+// applyEntityEnrichProposal heals a bare entity shell (filed by
+// sweepEntityShells): if a same-name unbound entity — the legacy kb-less
+// rows left by the pre-binding era — carries a description, adopt it with
+// its aliases; if the human already filled the description the proposal
+// just resolves. Without an adoptable twin the apply fails with guidance:
+// the shell needs a human-written description in the entity editor.
+func applyEntityEnrichProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (string, error) {
+	if p.ArticleID == "" {
+		return "", nil
+	}
+	entity := core.WikiEntity{}
+	entity.ID = p.ArticleID
+	ok, err := orm.GetV2(ctx, &entity)
+	if err != nil {
+		return "", err
+	}
+	if !ok {
+		return "", fmt.Errorf("entity %s not found", p.ArticleID)
+	}
+	if strings.TrimSpace(entity.Description) != "" {
+		return fmt.Sprintf("「%s」已有描述，无需处理", entity.Name), nil
+	}
+
+	// scan the unbound pool for an adoptable same-name twin: KB-scoped
+	// entity lookups never see these rows (that is exactly why the shell
+	// exists), so the adoption widens the search to kb-less entities only
+	readCtx := orm.NewContextWithParent(ctx)
+	readCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(readCtx, &core.WikiEntity{})
+	res, err := orm.SearchV2(readCtx, orm.NewQuery().Size(100).
+		Must(orm.MustNotQuery(orm.ExistsQuery("kb_id"))))
+	if err != nil {
+		return "", err
+	}
+	others, _, derr := elastic.DecodeHits[core.WikiEntity](res)
+	if derr != nil {
+		return "", derr
+	}
+	for i := range others {
+		twin := &others[i]
+		if !strings.EqualFold(strings.TrimSpace(twin.Name), strings.TrimSpace(entity.Name)) {
+			continue
+		}
+		if strings.TrimSpace(twin.Description) == "" {
+			continue
+		}
+		entity.Description = strings.TrimSpace(twin.Description)
+		for _, a := range twin.Aliases {
+			if a != "" && !util.AnyInArrayEquals(entity.Aliases, a) {
+				entity.Aliases = append(entity.Aliases, a)
+			}
+		}
+		if err := orm.Update(ctx, &entity); err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("「%s」已从同名游离实体认领描述与别名", entity.Name), nil
+	}
+	return "", fmt.Errorf("未找到「%s」的可认领同名实体，请在实体编辑页手动补充描述", entity.Name)
 }
 
 // applyCompileProposal materializes the compiled draft: every statement in
@@ -1246,6 +1310,10 @@ func mergeCitedSources(ctx *orm.Context, kbID string, article *core.WikiArticle,
 		return
 	}
 	octx := orm.NewContextWithParent(kctx)
+	// NewContextWithParent starts an empty parameter store — it does NOT
+	// inherit the parent's flags. Without this the security search hook
+	// demands a session user and panics in background sweeps (no user).
+	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	orm.WithModel(octx, &core.Document{})
 	res, err := orm.SearchV2(octx, orm.NewQuery().Size(500).
 		Filter(orm.TermsQuery("source.id", kb.DatasourceIDs)).
@@ -1404,7 +1472,7 @@ func applyTopicProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (strin
 			if absorbed > 0 {
 				outcome += fmt.Sprintf("，收编 %d 个薄页", absorbed)
 			}
-			if n := promoteTopicEntities(ctx, p.KbID, article.KeyEntities, entityTypes, entityDescriptionsFromStatements(article.KeyEntities, statements)); n > 0 {
+			if n := promoteTopicEntities(ctx, p.KbID, article.KeyEntities, entityTypes, entityDescriptionsFromStatements(article.KeyEntities, statements, article.Summary)); n > 0 {
 				outcome += fmt.Sprintf("，晋升 %d 个实体", n)
 			}
 			snapshotPipelineWrite(&article, fmt.Sprintf("知识编译更新主题页 %d 节（治理提案 %s）", len(sections), p.ID))
@@ -1464,7 +1532,7 @@ func applyTopicProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (strin
 	if absorbed > 0 {
 		outcome += fmt.Sprintf("，收编 %d 个薄页", absorbed)
 	}
-	if n := promoteTopicEntities(ctx, p.KbID, keyEntities, entityTypes, entityDescriptionsFromStatements(keyEntities, statements)); n > 0 {
+	if n := promoteTopicEntities(ctx, p.KbID, keyEntities, entityTypes, entityDescriptionsFromStatements(keyEntities, statements, article.Summary)); n > 0 {
 		outcome += fmt.Sprintf("，晋升 %d 个实体", n)
 	}
 	return outcome, article.ID, nil

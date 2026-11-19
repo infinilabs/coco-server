@@ -42,6 +42,11 @@ const (
 	governanceMaxArticlesPerKB   = 10000
 	governanceMaxProposalsPerRun = 100
 	governanceMaxDuplicatePairs  = 20
+	// entityShellProposalsPerRun caps how many bare-shell entity proposals
+	// one sweep may file per KB — a KB imported with hundreds of unenriched
+	// entities must not flood the queue in a single pass; the next sweep
+	// (24h cadence) picks up the rest, and adoption resolves them steadily
+	entityShellProposalsPerRun = 10
 )
 
 func init() {
@@ -102,6 +107,9 @@ func governanceSweep(ctx context.Context, llm llms.Model) governanceStats {
 			break
 		}
 		kb := &kbs[i]
+		// entity pool health runs before the article gates: an entity-only
+		// KB (datasource bound, compile pending) still needs the shell audit
+		stats.filed += sweepEntityShells(orm.NewContextWithParent(ctx), kb)
 		articles := kbArticles(ctx, kb.ID)
 		if len(articles) == 0 {
 			continue
@@ -641,6 +649,11 @@ func fileProposal(kb *core.WikiKnowledgeBase, article *core.WikiArticle, pType, 
 // become (or always was) a draft — the queue must not nag about pages that
 // are still awaiting their human review.
 func sweepDraftOrphans(ctx *orm.Context, kbID string, articles []core.WikiArticle) {
+	// this sweep runs from a background task: the caller's child context
+	// carries no session user, and NewContextWithParent does not inherit
+	// the parent's flags — set both directly or the security hooks panic
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 	draftByID := map[string]bool{}
 	for i := range articles {
 		if articles[i].Status == core.WikiArticleDraft {
@@ -650,6 +663,9 @@ func sweepDraftOrphans(ctx *orm.Context, kbID string, articles []core.WikiArticl
 	if len(draftByID) == 0 {
 		return
 	}
+	// the child context carries no model either (see note above) — bind the
+	// proposal schema explicitly for the search below
+	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1000).
 		Filter(orm.TermQuery("kb_id", kbID),
 			orm.TermQuery("type", core.WikiGovernanceOrphan),
@@ -692,6 +708,7 @@ func sweepDeadTocNodes(ctx *orm.Context, kbID string, articles []core.WikiArticl
 	for i := range articles {
 		alive[articles[i].ID] = true
 	}
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
 	orm.WithModel(ctx, &core.WikiToc{})
 	toc, found, err := findToc(ctx, kbID)
@@ -722,6 +739,59 @@ func sweepDeadTocNodes(ctx *orm.Context, kbID string, articles []core.WikiArticl
 	log.Infof("wiki: governance sweep pruned %d dead toc nodes for kb [%s]", len(toc.Nodes)-len(kept), kbID)
 }
 
+// sweepEntityShells audits one KB's entity pool: logs a one-line health
+// summary and files entity_enrich proposals for bare shells — entities
+// carrying neither a description nor any source provenance. Shells used to
+// sit silently forever: the search route already filters them out as recall
+// noise, but the graph and the entity tab kept showing them (live case: 19
+// promoted shells nobody noticed for weeks). Filing makes them visible and
+// one-click adoptable from an unbound same-name entity when one exists.
+func sweepEntityShells(ctx *orm.Context, kb *core.WikiKnowledgeBase) int {
+	readCtx := orm.NewContextWithParent(ctx)
+	readCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(readCtx, &core.WikiEntity{})
+
+	res, err := orm.SearchV2(readCtx, orm.NewQuery().Size(1000).
+		Filter(orm.TermQuery("kb_id", kb.ID)))
+	if err != nil {
+		log.Warnf("wiki: entity health scan failed for kb [%s]: %v", kb.ID, err)
+		return 0
+	}
+	entities, _, derr := elastic.DecodeHits[core.WikiEntity](res)
+	if derr != nil {
+		log.Warnf("wiki: entity health scan decode failed for kb [%s]: %v", kb.ID, derr)
+		return 0
+	}
+
+	noDesc, noSources, filed := 0, 0, 0
+	for i := range entities {
+		e := &entities[i]
+		hasDesc := strings.TrimSpace(e.Description) != ""
+		hasSources := len(e.Sources) > 0
+		if !hasDesc {
+			noDesc++
+		}
+		if !hasSources {
+			noSources++
+		}
+		// bare shell: nothing grounds what this entity even is — neither a
+		// description nor a source document reference. An unbound same-name
+		// twin (legacy kb-less rows from the pre-binding era) may carry the
+		// text; the apply action adopts it, otherwise a human writes one.
+		if hasDesc || hasSources || filed >= entityShellProposalsPerRun {
+			continue
+		}
+		if FileEntityGovernanceProposal(kb.ID, e, core.WikiGovernanceEntityEnrich,
+			fmt.Sprintf("实体「%s」缺少描述与来源，无法参与搜索与引用", e.Name),
+			util.MapStr{"name": e.Name, "type": e.Type}) {
+			filed++
+		}
+	}
+	log.Infof("wiki: entity health [%s/%s]: %d entities, %d without description, %d without sources, %d shell proposals filed",
+		kb.Name, kb.ID, len(entities), noDesc, noSources, filed)
+	return filed
+}
+
 func governanceTypeLabel(pType string) string {
 	switch pType {
 	case core.WikiGovernanceStale:
@@ -746,6 +816,8 @@ func governanceTypeLabel(pType string) string {
 		return "distilled skill (new)"
 	case core.WikiGovernanceSkillPatch:
 		return "distilled skill (update)"
+	case core.WikiGovernanceEntityEnrich:
+		return "entity needs description"
 	}
 	return pType
 }

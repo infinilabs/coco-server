@@ -79,6 +79,7 @@ const (
 	// human gate, different subject
 	WikiGovernanceEntityDuplicate = "entity_duplicate" // same name/alias, looks like one entity
 	WikiGovernanceEntityConflict  = "entity_conflict"  // same name/alias but conflicting types
+	WikiGovernanceEntityEnrich    = "entity_enrich"    // bare shell: no description, no provenance
 
 	// the compiler's suggested TOC organization (dimension folders: 客户与组织,
 	// 产品与服务, 专题与概念). Confirming the proposal in the governance queue
