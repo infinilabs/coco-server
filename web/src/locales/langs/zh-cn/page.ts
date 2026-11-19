@@ -2358,7 +2358,7 @@ const page: App.I18n.Schema['translation']['page'] = {
         highly_similar: '内容高度相似',
         suspected_versions: '疑似新旧版本'
       },
-      memberEdgeTip: '该文档与组内其他文档的实际匹配级别（组标题显示的是组内最强的一对）',
+      memberEdgeTip: '该文档自身与组内其他文档的实际匹配级别（组标题按成员档位计数展示）',
       columns: {
         title: '标题',
         source: '来源',

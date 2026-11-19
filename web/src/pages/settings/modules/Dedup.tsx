@@ -173,7 +173,11 @@ const Dedup = memo(() => {
     setActing(null);
   };
 
-  const tierLabel = (g: DedupGroup) => t(`page.settings.dedup.tiers.${g.tier_label}`);
+  // a member's effective tier/similarity: divergent members carry their own
+// edge fields, the rest inherit the group header's values
+const memberTier = (m: DedupMember, g: DedupGroup) => m.edge_tier ?? g.tier;
+const memberSim = (m: DedupMember, g: DedupGroup) =>
+  m.edge_sim !== undefined && m.edge_sim > 0 ? m.edge_sim : g.similarity;
 
   return (
     <div>
@@ -245,16 +249,39 @@ const Dedup = memo(() => {
           <Alert className="m-b-16px" message={t('page.settings.dedup.scanError')} showIcon type="error" />
         )}
 
-        {(report?.groups ?? []).map((g) => (
+        {(report?.groups ?? []).map((g) => {
+          // group composition: the header must describe the WHOLE group, not
+          // its strongest pair — a mixed group (identical core + a member
+          // joined by a weaker edge) with a bare "identical 100%" header
+          // contradicts the per-member tags and misleads the reviewer
+          const tierCounts = new Map<number, number>();
+          g.members.forEach((m) => {
+            const tier = memberTier(m, g);
+            tierCounts.set(tier, (tierCounts.get(tier) ?? 0) + 1);
+          });
+          const mixed = tierCounts.size > 1;
+          const sims = g.members.map((m) => memberSim(m, g));
+          const minSim = Math.min(...sims);
+          const maxSim = Math.max(...sims);
+          const sortedTiers = [...tierCounts.keys()].sort((a, b) => a - b);
+          return (
           <Card
             key={g.key}
             size="small"
             className="m-b-12px"
             title={
-              <Space>
-                <Tag color={tierColor[g.tier]}>{tierLabel(g)}</Tag>
+              <Space wrap>
+                {sortedTiers.map((tier) => (
+                  <Tag key={tier} color={tierColor[tier]}>
+                    {t(`page.settings.dedup.tiers.${tierKeyByNum[tier] ?? ''}`)}
+                    {mixed ? ` ×${tierCounts.get(tier)}` : ''}
+                  </Tag>
+                ))}
                 <span>
-                  {t('page.settings.dedup.similarity')}: {(g.similarity * 100).toFixed(0)}%
+                  {t('page.settings.dedup.similarity')}:
+                  {minSim !== maxSim
+                    ? ` ${(minSim * 100).toFixed(0)}%~${(maxSim * 100).toFixed(0)}%`
+                    : ` ${(maxSim * 100).toFixed(0)}%`}
                 </span>
                 <span className="color-[var(--ant-color-text-tertiary)]">
                   {t('page.settings.dedup.keep')}: {g.members.find((m) => m.id === g.keep_id)?.title ?? g.keep_id}
@@ -376,7 +403,8 @@ const Dedup = memo(() => {
               size="small"
             />
           </Card>
-        ))}
+          );
+        })}
 
         {report && report.group_count === 0 && (
           <div className="color-[var(--ant-color-text-tertiary)]">{t('page.settings.dedup.clean')}</div>
