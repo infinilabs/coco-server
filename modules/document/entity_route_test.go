@@ -34,7 +34,7 @@ func TestEntityToHitWrapsEntity(t *testing.T) {
 	e.ArticleID = "art-9"
 	e.Sources = []core.WikiSourceReference{{DocID: "doc-7", Title: "架构说明", Locator: "page/3"}}
 
-	hit := entityToHit(&e, 42)
+	hit := entityToHit(&e, 42, nil, map[string]string{"product": "产品"})
 	assert.Equal(t, "ent-1", hit.ID)
 	assert.Equal(t, "wiki_entity", hit.Index)
 	assert.Equal(t, "支付网关", hit.Source.Title)
@@ -43,6 +43,7 @@ func TestEntityToHitWrapsEntity(t *testing.T) {
 	assert.Contains(t, hit.Source.URL, "/wiki/article/art-9", "an entity with a curated article links there")
 	assert.Equal(t, true, hit.Source.Metadata["entity"])
 	assert.Equal(t, "product", hit.Source.Metadata["entity_type"])
+	assert.Equal(t, "产品", hit.Source.Metadata["entity_type_label"], "ontology label drives the type badge")
 
 	refs, ok := hit.Source.Metadata["entity_sources"].([]interface{})
 	require.True(t, ok)
@@ -58,9 +59,21 @@ func TestEntityToHitWithoutArticle(t *testing.T) {
 	e.ID = "ent-2"
 	e.Name = "孤立实体"
 	e.Status = core.WikiEntityPublished
-	hit := entityToHit(&e, 1)
+	hit := entityToHit(&e, 1, nil, nil)
 	assert.Empty(t, hit.Source.URL, "card-only hit when no article backs the entity")
 	assert.Empty(t, hit.Source.Metadata["entity_sources"])
+	assert.NotContains(t, hit.Source.Metadata, "entity_type_label", "typeless entity renders no badge")
+}
+
+func TestEntityToHitTypeLabelFallback(t *testing.T) {
+	swapAppConfigForTest(t)
+	e := core.WikiEntity{}
+	e.ID = "ent-3"
+	e.Name = "未声明实体"
+	e.Type = "uncatalogued_thing"
+	e.Status = core.WikiEntityPublished
+	hit := entityToHit(&e, 1, nil, map[string]string{"product": "产品"})
+	assert.Equal(t, "uncatalogued_thing", hit.Source.Metadata["entity_type_label"], "no declared label: raw type name as badge text")
 }
 
 func TestEntityRouteFusionMath(t *testing.T) {

@@ -354,8 +354,13 @@ export default function Search({
     (data || []).forEach(item => {
       const meta = (item as any)?.metadata;
       if (!isWikiHit(item) && !meta?.entity) return;
-      const kbId = meta?.kb_id;
-      if (typeof kbId === 'string' && kbId) counts.set(kbId, (counts.get(kbId) || 0) + 1);
+      // entity hits carry kb_ids[] (dynamic attribution may put one entity
+      // under several KBs); older rows only have the single kb_id
+      let kbIds = meta?.kb_ids;
+      if (!Array.isArray(kbIds) || !kbIds.length) {
+        kbIds = typeof meta?.kb_id === 'string' && meta.kb_id ? [meta.kb_id] : [];
+      }
+      kbIds.forEach((id: string) => counts.set(id, (counts.get(id) || 0) + 1));
     });
     return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
   }, [data]);

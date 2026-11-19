@@ -86,7 +86,18 @@ func kbConfig() crud.Config[core.WikiKnowledgeBase] {
 			return nil
 		},
 		ProtectedFields: []string{"article_count"},
+		PostUpdate: func(obj *core.WikiKnowledgeBase) error {
+			// datasource rebindings must reach the enrich pipeline's
+			// extraction target immediately, not after restart/TTL
+			InvalidateKBBindingsForKB(obj.ID, obj.DatasourceIDs...)
+			// the dynamic entity scope (plan D) reads the same binding:
+			// a stale doc scope would keep deleted datasources visible
+			core.InvalidateKBDocScope(obj.ID)
+			return nil
+		},
 		PostDelete: func(obj *core.WikiKnowledgeBase) error {
+			InvalidateKBBindingsForKB(obj.ID, obj.DatasourceIDs...)
+			core.InvalidateKBDocScope(obj.ID)
 			return deleteKbChildren(obj.ID)
 		},
 	}
