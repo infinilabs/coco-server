@@ -67,6 +67,13 @@ const (
 	// while multi-leg accumulators still win). Override per request with
 	// the wiki_weight parameter.
 	defaultWikiRRFWeight = 2.0
+	// defaultEntityRRFWeight boosts the entity leg like the curated wiki
+	// tier: entities are precision assets (status gate + description gate +
+	// a tiny recall window), so a single-leg entity rank-1 at 2/(k+1)
+	// outranks any one-leg raw hit — searching "Poppler" meets the Poppler
+	// entity itself without needing a second leg to co-recall it. Override
+	// per request with the entity_weight parameter.
+	defaultEntityRRFWeight = 2.0
 	// maxRRFWindow bounds how many candidates each route fetches before
 	// fusion, so a hostile from/size cannot turn one search into several
 	// unbounded scans.
@@ -98,19 +105,23 @@ func (c RRFConfig) normalized() RRFConfig {
 			c.Weights[name] = defaultRRFWeight
 		}
 		c.Weights[rrfRouteWiki] = defaultWikiRRFWeight
+		c.Weights[rrfRouteEntity] = defaultEntityRRFWeight
 	}
 	return c
 }
 
 // weight returns the route's weight; routes absent from the map default to
-// the neutral weight, except the wiki leg which carries the curated-layer
-// boost. New routes join without touching every caller.
+// the neutral weight, except the wiki and entity legs which carry the
+// curated-layer boost. New routes join without touching every caller.
 func (c RRFConfig) weight(route string) float64 {
 	if w, ok := c.Weights[route]; ok {
 		return w
 	}
 	if route == rrfRouteWiki {
 		return defaultWikiRRFWeight
+	}
+	if route == rrfRouteEntity {
+		return defaultEntityRRFWeight
 	}
 	return defaultRRFWeight
 }

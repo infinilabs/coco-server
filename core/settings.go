@@ -284,14 +284,16 @@ type PinnedRule struct {
 }
 
 // SearchRouteWeights mirrors the five studio-facing RRF routes (text /
-// semantic / wiki / graph / rewrite). The entity and chunk legs keep their
-// built-in neutral weight — the chunk leg is gray-switched by chunk_route.
+// semantic / wiki / graph / rewrite) plus the entity leg. The chunk leg
+// keeps its built-in neutral weight — it is gray-switched by chunk_route.
+// A zero/absent value keeps the leg's built-in default.
 type SearchRouteWeights struct {
 	Text     float64 `json:"text"`
 	Semantic float64 `json:"semantic"`
 	Wiki     float64 `json:"wiki"`
 	Graph    float64 `json:"graph"`
 	Rewrite  float64 `json:"rewrite"`
+	Entity   float64 `json:"entity"`
 }
 
 // Historic defaults + hard ceilings for the pagination/facet knobs. The

@@ -31,6 +31,9 @@ func TestRRFConfigNormalized(t *testing.T) {
 		if name == rrfRouteWiki {
 			want = defaultWikiRRFWeight
 		}
+		if name == rrfRouteEntity {
+			want = defaultEntityRRFWeight
+		}
 		if got.weight(name) != want {
 			t.Fatalf("route %s should default to weight %v, got %+v", name, want, got.Weights)
 		}

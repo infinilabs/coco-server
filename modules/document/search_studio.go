@@ -257,7 +257,10 @@ func (h *APIHandler) searchStudioTest(w http.ResponseWriter, req *http.Request, 
 	{
 		result := &studioRouteResult{Name: rrfRouteEntity, Hits: []studioRouteHit{}}
 		started := nowMilli()
-		resp, err := h.entityRoute(req, query, size)
+		// the studio mirrors production: production fuses at most
+		// entityRecallWindow entities (precision cap), so the tuning
+		// surface must show the same list, not a wider one
+		resp, err := h.entityRoute(req, query, min(size, entityRecallWindow))
 		result.TookMS = nowMilli() - started
 		if err != nil {
 			result.Error = err.Error()

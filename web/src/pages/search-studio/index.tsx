@@ -30,6 +30,7 @@ const ROUTE_META: { name: string; color: string; bg: string; weightKey: string; 
   { name: 'semantic', color: 'purple', bg: 'bg-[#722ED1]', weightKey: 'semantic_weight', labelKey: 'page.searchStudio.semanticRoute' },
   { name: 'wiki', color: 'green', bg: 'bg-[#52C41A]', weightKey: 'wiki_weight', labelKey: 'page.searchStudio.wikiRoute' },
   { name: 'graph', color: 'orange', bg: 'bg-[#FA8C16]', weightKey: 'graph_weight', labelKey: 'page.searchStudio.graphRoute' },
+  { name: 'entity', color: 'geekblue', bg: 'bg-[#2F54EB]', weightKey: 'entity_weight', labelKey: 'page.searchStudio.entityRoute' },
   { name: 'rewrite', color: 'cyan', bg: 'bg-[#13C2C2]', weightKey: 'rewrite_weight', labelKey: 'page.searchStudio.rewriteRoute' }
 ];
 
@@ -46,7 +47,7 @@ export function Component() {
   const [size, setSize] = useState(10);
   const [fuzziness, setFuzziness] = useState(3);
   const [rrfK, setRrfK] = useState(60);
-  const [weights, setWeights] = useState<Record<string, number>>({ text: 1, semantic: 1, wiki: 1, graph: 1, rewrite: 1 });
+  const [weights, setWeights] = useState<Record<string, number>>({ text: 1, semantic: 1, wiki: 1, graph: 1, entity: 2, rewrite: 1 });
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<SearchStudioResult | null>(null);
   const [activeTab, setActiveTab] = useState('playground');
@@ -84,6 +85,7 @@ export function Component() {
           semantic_weight: weights.semantic,
           wiki_weight: weights.wiki,
           graph_weight: weights.graph,
+          entity_weight: weights.entity,
           rewrite_weight: weights.rewrite
         }
       });

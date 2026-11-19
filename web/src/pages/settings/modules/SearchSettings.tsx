@@ -234,7 +234,8 @@ const SearchSettings = memo(() => {
         semantic: Number(params.route_weights?.semantic) || 0,
         wiki: Number(params.route_weights?.wiki) || 0,
         graph: Number(params.route_weights?.graph) || 0,
-        rewrite: Number(params.route_weights?.rewrite) || 0
+        rewrite: Number(params.route_weights?.rewrite) || 0,
+        entity: Number(params.route_weights?.entity) || 0
       },
       rerank_disabled: !params.rerank_enabled,
       // result intervention
@@ -325,7 +326,7 @@ const SearchSettings = memo(() => {
         // 0 reads as "keep the built-in default" — show an empty input with
         // the placeholder instead of a meaningless 0.0
         route_weights: Object.fromEntries(
-          ['text', 'semantic', 'wiki', 'graph', 'rewrite'].map((k) => [
+          ['text', 'semantic', 'wiki', 'graph', 'rewrite', 'entity'].map((k) => [
             k,
             payload.search_settings.route_weights?.[k] || undefined
           ])
@@ -663,6 +664,12 @@ const SearchSettings = memo(() => {
                       name={['route_weights', 'rewrite']}
                     >
                       <InputNumber className="w-520px" max={10} min={0} step={0.1} placeholder="1" />
+                    </Form.Item>
+                    <Form.Item
+                      label={t('page.settings.search_settings.labels.route_weights_entity')}
+                      name={['route_weights', 'entity']}
+                    >
+                      <InputNumber className="w-520px" max={10} min={0} step={0.1} placeholder="2" />
                     </Form.Item>
                     <Form.Item
                       label={t('page.settings.search_settings.labels.rerank_enabled')}

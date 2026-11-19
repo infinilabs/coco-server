@@ -84,7 +84,7 @@ export function testSearchStudio(data: {
   rich_category?: string;
   fuzziness?: number;
   size?: number;
-  rrf?: Partial<{ k: number; text_weight: number; semantic_weight: number; wiki_weight: number; graph_weight: number; rewrite_weight: number }>;
+  rrf?: Partial<{ k: number; text_weight: number; semantic_weight: number; wiki_weight: number; graph_weight: number; entity_weight: number; rewrite_weight: number }>;
 }) {
   return request({
     data,

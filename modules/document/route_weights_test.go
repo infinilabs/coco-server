@@ -18,7 +18,7 @@ import (
 func TestParseRRFParamsRouteWeightsFromSettings(t *testing.T) {
 	h := &APIHandler{}
 
-	// no stored section: built-in defaults (wiki 2, rest 1)
+	// no stored section: built-in defaults (wiki 2, entity 2, rest 1)
 	searchSettingsSnapshotFn = func() *core.SearchSettings { return nil }
 	cfg := h.parseRRFParams(httptest.NewRequest("GET", "/search/?q=x", nil))
 	if w := cfg.weight(rrfRouteWiki); w != defaultWikiRRFWeight {
@@ -26,6 +26,9 @@ func TestParseRRFParamsRouteWeightsFromSettings(t *testing.T) {
 	}
 	if w := cfg.weight(rrfRouteText); w != defaultRRFWeight {
 		t.Fatalf("text weight = %v, want built-in %v", w, defaultRRFWeight)
+	}
+	if w := cfg.weight(rrfRouteEntity); w != defaultEntityRRFWeight {
+		t.Fatalf("entity weight = %v, want built-in %v", w, defaultEntityRRFWeight)
 	}
 
 	// stored wiki=3, text=0 (0 = keep built-in): wiki applies, text does not
@@ -39,10 +42,27 @@ func TestParseRRFParamsRouteWeightsFromSettings(t *testing.T) {
 	if w := cfg.weight(rrfRouteText); w != defaultRRFWeight {
 		t.Fatalf("text weight = %v, want built-in %v (stored 0 means default)", w, defaultRRFWeight)
 	}
+	if w := cfg.weight(rrfRouteEntity); w != defaultEntityRRFWeight {
+		t.Fatalf("entity weight = %v, want built-in %v (stored 0 means default)", w, defaultEntityRRFWeight)
+	}
 
 	// an explicit request weight still wins over the stored default
 	cfg = h.parseRRFParams(httptest.NewRequest("GET", "/search/?q=x&wiki_weight=0.5", nil))
 	if w := cfg.weight(rrfRouteWiki); w != 0.5 {
 		t.Fatalf("wiki weight = %v, want 0.5 from the request", w)
+	}
+
+	// the entity leg follows the same chain: stored value applies, the
+	// request override wins over it
+	searchSettingsSnapshotFn = func() *core.SearchSettings {
+		return &core.SearchSettings{RouteWeights: &core.SearchRouteWeights{Entity: 3}}
+	}
+	cfg = h.parseRRFParams(httptest.NewRequest("GET", "/search/?q=x", nil))
+	if w := cfg.weight(rrfRouteEntity); w != 3 {
+		t.Fatalf("entity weight = %v, want 3 from settings", w)
+	}
+	cfg = h.parseRRFParams(httptest.NewRequest("GET", "/search/?q=x&entity_weight=0.5", nil))
+	if w := cfg.weight(rrfRouteEntity); w != 0.5 {
+		t.Fatalf("entity weight = %v, want 0.5 from the request", w)
 	}
 }

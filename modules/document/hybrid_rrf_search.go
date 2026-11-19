@@ -134,7 +134,7 @@ func (h *APIHandler) parseRRFParams(req *http.Request) RRFConfig {
 			rrfRouteSemantic: defaultRRFWeight,
 			rrfRouteWiki:     defaultWikiRRFWeight, // curated layer outranks single-leg raw hits
 			rrfRouteGraph:    defaultRRFWeight,
-			rrfRouteEntity:   defaultRRFWeight,
+			rrfRouteEntity:   defaultEntityRRFWeight,
 			rrfRouteChunk:    defaultRRFWeight,
 			rrfRouteRewrite:  defaultRRFWeight,
 			rrfRouteRSA:      defaultRRFWeight,
@@ -155,6 +155,7 @@ func (h *APIHandler) parseRRFParams(req *http.Request) RRFConfig {
 		applyRouteWeight(rrfRouteWiki, sw.Wiki)
 		applyRouteWeight(rrfRouteGraph, sw.Graph)
 		applyRouteWeight(rrfRouteRewrite, sw.Rewrite)
+		applyRouteWeight(rrfRouteEntity, sw.Entity)
 	}
 	if v := h.GetParameterOrDefault(req, "rrf_k", ""); v != "" {
 		if f, err := strconv.ParseFloat(strings.TrimSpace(v), 64); err == nil {
@@ -304,7 +305,10 @@ func (h *APIHandler) queryWithRRF(req *http.Request, query, datasource, integrat
 	addRoute(rrfRouteWiki, resp, err)
 	graphResp, _, err := h.graphRoute(req, query, window)
 	addRoute(rrfRouteGraph, graphResp, err)
-	entityResp, err := h.entityRoute(req, query, window)
+	// the entity leg recalls only its top matches: entities are precision
+	// assets and a wide window would feed weak combined_fulltext mentions
+	// into the fusion (see entityRecallWindow)
+	entityResp, err := h.entityRoute(req, query, entityRecallWindow)
 	addRoute(rrfRouteEntity, entityResp, err)
 	// W3 方案 c gray switch: the chunk-index leg runs alongside the
 	// document-level text leg — both feed the fusion, chunk hits carry
