@@ -28,7 +28,8 @@ import { OWNER_FILTER_FIELD } from '../../../Aggregations';
 import { AuthImage } from '../../../ResultList/AuthImage';
 import { TypeBadge } from '../../../ResultList/SearchResults/internal/TypeBadge';
 import { normalizeFileType } from '../../../ResultList/SearchResults/internal/normalizeFileType';
-import { isWikiHit, WikiBadge } from '../../../components/WikiBadge';
+import { isEntityHit, isWikiHit, WikiBadge } from '../../../components/WikiBadge';
+import EntityDetail from '../../../components/EntityDetail';
 import { isImageUrlLike } from '../../../utils/utils';
 import loadingFailedSvg from '../../../icons/file-loading-failed.svg';
 
@@ -96,6 +97,9 @@ export interface DocDetailProps extends HTMLAttributes<HTMLDivElement> {
       raw_content?: string;
       /** W16a: hit comes from the curated knowledge-base projection */
       wiki_article?: boolean;
+      /** entity leg: the hit wraps a wiki entity row — full identity in the entity detail view */
+      entity?: boolean;
+      entity_id?: string;
     };
     source?: {
       type?: string;
@@ -162,6 +166,8 @@ export interface DocDetailProps extends HTMLAttributes<HTMLDivElement> {
     };
   };
   readonly requestHeaders?: Record<string, string>;
+  /** apiConfig passthrough for widget-internal fetches (BaseUrl + auth headers); entity detail uses it */
+  readonly apiConfig?: Record<string, any>;
   readonly actionButtons?: ReactNode[];
   /**
    * fired when the user clicks a filterable meta entry (category path, tag, type, owner) — the host re-runs the search
@@ -173,9 +179,14 @@ export interface DocDetailProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const DocDetail: FC<DocDetailProps> = props => {
-  const { data, i18n, actionButtons, requestHeaders, onMetaFilter, className, mode, theme, ...rest } = props;
+  const { data, i18n, actionButtons, requestHeaders, apiConfig, onMetaFilter, className, mode, theme, ...rest } = props;
 
   const [expandMore, setExpandMore] = useState(false);
+
+  // entity hits: the "detail" is the entity's full face (description,
+  // properties, relations, citing articles) fetched live, not the doc body
+  const isEntity = isEntityHit(data);
+  const entityId = isEntity ? data?.metadata?.entity_id : undefined;
 
   const ownerName = data?.owner?.title ?? data?.owner?.username ?? data?.owner?.name;
   // title icon: only URL-like values (connector assets, /assets/…) can go
@@ -561,6 +572,15 @@ const DocDetail: FC<DocDetailProps> = props => {
       </motion.div>
 
       <div className='flex flex-col flex-1 gap-4 overflow-auto'>
+        {isEntity ? (
+          // entity face replaces every doc-body branch: the hit's summary is
+          // one sentence, the real content lives in the entity endpoints
+          <EntityDetail
+            apiConfig={apiConfig}
+            entityId={entityId}
+          />
+        ) : (
+          <>
         {isInlinePreview && (
           // images don't need the whole pane, but a strict quarter felt
           // cramped — cap at ~45% while sections below stay visible, or take
@@ -635,6 +655,8 @@ const DocDetail: FC<DocDetailProps> = props => {
               )}
             </div>
           </div>
+        )}
+          </>
         )}
       </div>
     </div>

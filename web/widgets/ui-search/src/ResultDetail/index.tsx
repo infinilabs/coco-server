@@ -102,6 +102,7 @@ export const ResultDetail: FC<ResultDetailProps> = props => {
         data={detailData}
         mode='embedded'
         requestHeaders={apiConfig?.headers}
+        apiConfig={apiConfig}
         theme={theme}
         actionButtons={[
           <ActionButton
