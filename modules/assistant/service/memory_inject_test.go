@@ -7,11 +7,13 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/memory"
 )
 
 func withRecall(t *testing.T, fn func(ctx context.Context, user, query string, limit int) []core.MemoryRecord) {
@@ -24,16 +26,20 @@ func withRecall(t *testing.T, fn func(ctx context.Context, user, query string, l
 func TestBuildMemorySectionRenders(t *testing.T) {
 	withRecall(t, func(_ context.Context, user, query string, limit int) []core.MemoryRecord {
 		assert.Equal(t, "u-1", user)
+		asOf := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+		fact := core.MemoryRecord{Kind: core.MemoryKindFact, Content: "负责支付网关"}
+		fact.Updated = &asOf
 		return []core.MemoryRecord{
 			{Kind: core.MemoryKindPreference, Content: "偏好中文回复"},
-			{Kind: core.MemoryKindFact, Content: "负责支付网关"},
+			fact,
 		}
 	})
 
 	out := buildMemorySection("u-1", "支付网关的负责人")
 	require.True(t, strings.Contains(out, "Long-term Memory"))
+	// resident kinds render undated; recalled kinds carry the as-of month
 	assert.Contains(t, out, "[preference] 偏好中文回复")
-	assert.Contains(t, out, "[fact] 负责支付网关")
+	assert.Contains(t, out, "[fact] (as of 2026-03) 负责支付网关")
 }
 
 func TestBuildMemorySectionEmptyWhenNoMemories(t *testing.T) {
@@ -51,5 +57,5 @@ func TestBuildMemorySectionBudget(t *testing.T) {
 	})
 	out := buildMemorySection("u-1", "query")
 	require.NotEmpty(t, out)
-	assert.LessOrEqual(t, len(out), memorySectionMaxChars+40, "section respects the budget cap")
+	assert.LessOrEqual(t, len(out), memory.PromptSectionMaxChars+40, "section respects the budget cap")
 }
