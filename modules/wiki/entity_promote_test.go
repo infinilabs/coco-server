@@ -70,7 +70,7 @@ func TestPromoteTopicEntities(t *testing.T) {
 		[]compileStatement{
 			{DocID: "d1", Claim: "奇华月饼是美心集团旗下的港式月饼品牌，主打低端市场"},
 			{DocID: "d2", Claim: "与美心集团无关的其他主张"},
-		})
+		}, "奇华月饼专题摘要")
 	n := promoteTopicEntities(ctx, kb.ID, []string{"美心集团", "奇华月饼", "  ", "陈锡培"}, types, descs)
 	// 美心集团 exists (skipped), 奇华月饼 typed product, 陈锡培 untyped → concept
 	assert.Equal(t, 2, n)

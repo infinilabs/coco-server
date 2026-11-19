@@ -156,6 +156,11 @@ func init() {
 	// sources/relations union, references retarget to the canonical row
 	api.HandleUIMethod(api.POST, "/wiki/entity/_merge", handler.mergeEntities,
 		api.RequireLogin(), api.RequirePermission(security.GetSimplePermission(Category, entityResource, string(security.Update))))
+	// fold kb-less same-name entity twins into the KB's cited rows
+	// (provenance + review status inherit); also runs automatically after
+	// every entity promotion pass
+	api.HandleUIMethod(api.POST, "/wiki/kb/:id/_reconcile_entities", handler.reconcileKbEntities,
+		api.RequireLogin(), api.RequirePermission(security.GetSimplePermission(Category, entityResource, string(security.Update))))
 	api.HandleUIMethod(api.GET, "/wiki/entity/lookup", handler.entityLookup,
 		api.RequireLogin(), api.RequirePermission(searchEntityPermission),
 		api.MCPTool("entity_lookup", "Resolve an ontology entity by exact name or alias; returns the entity with relations, or not_found"))

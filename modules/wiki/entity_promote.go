@@ -96,6 +96,21 @@ func promoteTopicEntities(ctx *orm.Context, kbID string, names []string, types m
 	if created > 0 {
 		log.Infof("wiki entity promotion: %d entity(ies) promoted into kb %s", created, kbID)
 	}
+
+	// twin reconcile: promote shells and pre-bind extraction rows coexist
+	// when a datasource was ingested before KB binding (resolveKB found no
+	// KB then) — the shell gets cited while relations/sources stay on the
+	// kb-less twin and the graph loses its typed edges. Fold the twins in
+	// after every promotion pass so identity converges without a pipeline
+	// re-run. Idempotent: a clean pool short-circuits on the twin scan.
+	rctx := orm.NewContextWithParent(ctx)
+	rctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	rctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	if n, rerr := ReconcileEntityTwins(rctx, kbID); rerr != nil {
+		log.Warnf("wiki entity promotion: twin reconcile kb %s: %v", kbID, rerr)
+	} else if n > 0 {
+		log.Infof("wiki entity promotion: reconciled %d kb-less twin(s) into kb %s", n, kbID)
+	}
 	return created
 }
 
@@ -104,10 +119,17 @@ func promoteTopicEntities(ctx *orm.Context, kbID string, names []string, types m
 // extract_entities' per-document summary, minus the LLM call: the apply
 // path often runs inside the auto-approve sweep and must stay cheap and
 // deterministic. The first claim naming the entity (case-insensitive)
-// wins; unmatched names simply get no description.
-func entityDescriptionsFromStatements(names []string, statements []compileStatement) map[string]string {
-	if len(names) == 0 || len(statements) == 0 {
+// wins; names no claim mentions fall back to the topic's own summary, so
+// promotion never lands a bare shell (live data: 4 promoted entities with
+// no description at all, invisible to the description-bearing search
+// route until a later extraction happened to re-hit the name).
+func entityDescriptionsFromStatements(names []string, statements []compileStatement, fallback string) map[string]string {
+	if len(names) == 0 {
 		return nil
+	}
+	fallback = strings.TrimSpace(fallback)
+	if r := []rune(fallback); len(r) > 160 {
+		fallback = string(r[:160]) + "…"
 	}
 	desc := make(map[string]string, len(names))
 	for _, name := range names {
@@ -126,6 +148,13 @@ func entityDescriptionsFromStatements(names []string, statements []compileStatem
 			}
 			desc[n] = claim
 			break
+		}
+		// no claim names this entity: the topic summary is still grounded
+		// provenance (KeyEntities were extracted from this very page) and
+		// merge-extract deliberately never overwrites a non-empty
+		// description, so leaving it blank would freeze the shell forever
+		if desc[n] == "" && fallback != "" {
+			desc[n] = fallback
 		}
 	}
 	return desc

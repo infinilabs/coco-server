@@ -88,6 +88,24 @@ func (h *APIHandler) mergeEntities(w http.ResponseWriter, req *http.Request, ps 
 	canonical := entities[0]
 	absorbed := entities[1:]
 
+	if err := mergeEntityRows(ctx, canonical, absorbed); err != nil {
+		h.WriteError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	h.WriteOKJSON(w, util.MapStr{
+		"merged":    len(absorbed),
+		"canonical": canonical.ID,
+		"name":      canonical.Name,
+	})
+}
+
+// mergeEntityRows folds absorbed rows into canonical and persists the
+// result: names become aliases, sources/relations/properties union,
+// review status only moves up, references retarget, absorbed rows are
+// deleted. Shared by the manual merge endpoint and the automatic
+// kb-less-twin reconcile — the handler only adds HTTP concerns and the
+// canonical-choice policy on top of this.
+func mergeEntityRows(ctx *orm.Context, canonical *core.WikiEntity, absorbed []*core.WikiEntity) error {
 	// names of the absorbed rows become aliases
 	aliasSet := map[string]bool{}
 	for _, a := range canonical.Aliases {
@@ -240,22 +258,25 @@ func (h *APIHandler) mergeEntities(w http.ResponseWriter, req *http.Request, ps 
 	}
 
 	// absorbed wikilink references in articles: linked_pages entity_id
-	// retargets (in-memory scan over the KB's articles, bounded)
+	// retargets (in-memory scan over the KB's articles, bounded). Skipped
+	// for kb-less rows — articles only cite kb-scoped rows.
 	orm.WithModel(ctx, &core.WikiArticle{})
-	if res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1000).
-		Filter(orm.TermQuery("kb_id", kbID)).Include("id", "linked_pages")); err == nil && res != nil {
-		if arts, _, derr := elastic.DecodeHits[core.WikiArticle](res); derr == nil {
-			for i := range arts {
-				a := &arts[i]
-				changed := false
-				for j := range a.LinkedPages {
-					if absorbedSet[a.LinkedPages[j].EntityID] {
-						a.LinkedPages[j].EntityID = canonical.ID
-						changed = true
+	if canonical.KbID != "" {
+		if res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1000).
+			Filter(orm.TermQuery("kb_id", canonical.KbID)).Include("id", "linked_pages")); err == nil && res != nil {
+			if arts, _, derr := elastic.DecodeHits[core.WikiArticle](res); derr == nil {
+				for i := range arts {
+					a := &arts[i]
+					changed := false
+					for j := range a.LinkedPages {
+						if absorbedSet[a.LinkedPages[j].EntityID] {
+							a.LinkedPages[j].EntityID = canonical.ID
+							changed = true
+						}
 					}
-				}
-				if changed {
-					_ = orm.Update(ctx, a)
+					if changed {
+						_ = orm.Update(ctx, a)
+					}
 				}
 			}
 		}
@@ -264,19 +285,13 @@ func (h *APIHandler) mergeEntities(w http.ResponseWriter, req *http.Request, ps 
 	// absorbed rows are subsumed — their content lives on in the canonical
 	for _, e := range absorbed {
 		if err := orm.Delete(ctx, e); err != nil {
-			h.WriteError(w, err.Error(), http.StatusInternalServerError)
-			return
+			return err
 		}
 	}
 	if err := orm.Update(ctx, canonical); err != nil {
-		h.WriteError(w, err.Error(), http.StatusInternalServerError)
-		return
+		return err
 	}
-	h.WriteOKJSON(w, util.MapStr{
-		"merged":    len(absorbed),
-		"canonical": canonical.ID,
-		"name":      canonical.Name,
-	})
+	return nil
 }
 
 // aliasListSorted returns the sorted keys of an alias set.
