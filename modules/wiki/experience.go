@@ -157,16 +157,31 @@ func ResolveKBByDatasource(parent *orm.Context, datasourceID string) string {
 	ctx := orm.NewContextWithParent(parent)
 	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	orm.WithModel(ctx, &core.WikiKnowledgeBase{})
-	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1).
-		Filter(orm.TermQuery("datasource_ids", datasourceID)))
-	if err != nil || res == nil {
+	// A transient lookup error here must not read as "no binding": callers
+	// fall back to kb-less writes, the same-name dedup later folds those
+	// rows away and every edge pointing at them dangles (seen live: 49
+	// kb-less twins during one re-run burst). Retry once; only a clean
+	// "no rows" answer means unbound.
+	var kbID string
+	for attempt := 0; attempt < 2; attempt++ {
+		res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1).
+			Filter(orm.TermQuery("datasource_ids", datasourceID)))
+		if err != nil || res == nil {
+			continue
+		}
+		kbs, _, derr := elastic.DecodeHits[core.WikiKnowledgeBase](res)
+		if derr != nil {
+			continue
+		}
+		if len(kbs) == 0 {
+			return "" // definitive: no KB binds this datasource
+		}
+		kbID = kbs[0].ID
+		break
+	}
+	if kbID == "" {
 		return ""
 	}
-	kbs, _, derr := elastic.DecodeHits[core.WikiKnowledgeBase](res)
-	if derr != nil || len(kbs) == 0 {
-		return ""
-	}
-	kbID := kbs[0].ID
 	kbBindingCacheMu.Lock()
 	kbBindingCache[datasourceID] = kbBindingEntry{kbID: kbID, cached: time.Now()}
 	kbBindingCacheMu.Unlock()

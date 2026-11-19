@@ -662,6 +662,13 @@ func writeRelationEdges(ctx *orm.Context, resolved []*core.WikiEntity, extracted
 			byName[strings.ToLower(a)] = e
 		}
 	}
+	// ids this batch just resolved or created — alive by construction. The
+	// prune step below spares them even though a same-second ES refresh may
+	// not yet expose the just-written rows to a search.
+	batchAlive := make(map[string]bool, len(resolved))
+	for _, e := range resolved {
+		batchAlive[e.ID] = true
+	}
 
 	for i := range extracted {
 		src := byName[strings.ToLower(strings.TrimSpace(extracted[i].Name))]
@@ -669,6 +676,26 @@ func writeRelationEdges(ctx *orm.Context, resolved []*core.WikiEntity, extracted
 			continue
 		}
 		changed := false
+		// Self-heal on re-extraction: stored edges accumulate dangling
+		// targets (same-name dedup deletes superseded rows while the
+		// enabled:false relations mapping made retargeting a no-op — 189
+		// of 224 live edges dangled at the time of writing). Re-running the
+		// source document is the natural cleanup window: prune targets that
+		// no longer resolve before appending fresh edges. On a lookup
+		// failure edges are kept — 宁多勿零, same rule as the list resolver.
+		if stale := staleRelationTargets(src.Relations, batchAlive); len(stale) > 0 {
+			dead, err := resolveDeadEntityIDs(stale)
+			if err != nil {
+				log.Warnf("[%s] relation prune skipped for %q: %v", ProcessorName, src.Name, err)
+			} else {
+				var dropped int
+				src.Relations, dropped = dropDeadRelations(src.Relations, dead)
+				if dropped > 0 {
+					log.Warnf("[%s] pruned %d dangling relation edges from %q", ProcessorName, dropped, src.Name)
+					changed = true
+				}
+			}
+		}
 		for _, r := range extracted[i].Relations {
 			relation := strings.TrimSpace(r.Relation)
 			target := byName[strings.ToLower(strings.TrimSpace(r.Target))]
@@ -708,6 +735,73 @@ func hasRelationEdge(e *core.WikiEntity, targetID, relation, provenance string) 
 		}
 	}
 	return false
+}
+
+// staleRelationTargets returns the relation target ids that are neither
+// empty nor members of this batch's resolved set — the only ids whose
+// liveness a store lookup can decide. Deduped; the batchAlive pass already
+// covers self-references (the source row is always in the resolved set).
+func staleRelationTargets(rels []core.WikiEntityRelation, batchAlive map[string]bool) []string {
+	seen := map[string]bool{}
+	out := []string{}
+	for _, r := range rels {
+		id := r.TargetID
+		if id == "" || batchAlive[id] || seen[id] {
+			continue
+		}
+		seen[id] = true
+		out = append(out, id)
+	}
+	return out
+}
+
+// dropDeadRelations removes the edges whose target no longer resolves and
+// returns the kept slice plus the drop count. It never mutates the input —
+// callers keep a reference to the original edges.
+func dropDeadRelations(rels []core.WikiEntityRelation, dead map[string]bool) ([]core.WikiEntityRelation, int) {
+	if len(dead) == 0 {
+		return rels, 0
+	}
+	kept := make([]core.WikiEntityRelation, 0, len(rels))
+	dropped := 0
+	for _, r := range rels {
+		if dead[r.TargetID] {
+			dropped++
+			continue
+		}
+		kept = append(kept, r)
+	}
+	return kept, dropped
+}
+
+// resolveDeadEntityIDs looks the candidate ids up in the entity store and
+// returns the subset that no longer resolves to any row. A fresh context
+// mirrors the entity list's PostSearch resolver (DirectRead, explicit
+// model): the pipeline context's permission scope must not clip the lookup.
+func resolveDeadEntityIDs(ids []string) (map[string]bool, error) {
+	ctx := orm.NewContext()
+	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(ctx, &core.WikiEntity{})
+	builder := orm.NewQuery().From(0).Size(len(ids)).Filter(orm.TermsQuery("id", ids))
+	res, err := orm.SearchV2(ctx, builder)
+	if err != nil {
+		return nil, err
+	}
+	entities, _, err2 := elastic.DecodeHits[core.WikiEntity](res)
+	if err2 != nil {
+		return nil, err2
+	}
+	alive := map[string]bool{}
+	for _, e := range entities {
+		alive[e.ID] = true
+	}
+	dead := map[string]bool{}
+	for _, id := range ids {
+		if !alive[id] {
+			dead[id] = true
+		}
+	}
+	return dead, nil
 }
 
 // appendEntitySource back-links the document onto a matched entity without
