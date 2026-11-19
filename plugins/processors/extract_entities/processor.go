@@ -193,16 +193,22 @@ func (processor *ExtractEntitiesProcessor) ProcessBatch(ctx *pipeline.Context, r
 	}
 	llmCtx, cancelFunc := context.WithCancel(ctx.Context)
 	defer cancelFunc()
-	// ontology schema resolves lazily too — skip-only batches must not
-	// require ORM availability
-	var schema *wiki.OntologySchemaDoc
-	schemaResolved := false
-	getSchema := func() *wiki.OntologySchemaDoc {
-		if schemaResolved {
+	// ontology vocabulary (phase O2): resolve per distinct target KB, same
+	// as the message path below. The schema must follow the SAME binding
+	// the entity write uses (resolveKB → datasource→KB), not config
+	// WikiKbID: in datasource-bound mode the config field is empty and a
+	// config-scoped resolve silently degrades every KB override to the
+	// tenant vocabulary (live bug: KB-level vocabularies never applied on
+	// the batch path). Resolved lazily per KB so skip-only batches still
+	// don't require ORM availability.
+	schemaByKB := map[string]*wiki.OntologySchemaDoc{}
+	resolveSchema := func(dctx context.Context, doc *core.Document) *wiki.OntologySchemaDoc {
+		kbID := processor.resolveKB(dctx, doc)
+		if schema, ok := schemaByKB[kbID]; ok {
 			return schema
 		}
-		schema = wiki.ResolveOntologySchema(ctx.Context, processor.config.WikiKbID)
-		schemaResolved = true
+		schema := wiki.ResolveOntologySchema(dctx, kbID)
+		schemaByKB[kbID] = schema
 		return schema
 	}
 	return utils.EachDocumentRecord(llmCtx, records, func(dctx context.Context, doc *core.Document) (bool, error) {
@@ -216,7 +222,7 @@ func (processor *ExtractEntitiesProcessor) ProcessBatch(ctx *pipeline.Context, r
 		if err != nil {
 			return false, err
 		}
-		return processor.extract(dctx, m, getSchema(), doc)
+		return processor.extract(dctx, m, resolveSchema(dctx, doc), doc)
 	})
 }
 
@@ -428,7 +434,7 @@ func (processor *ExtractEntitiesProcessor) extractAndLink(ctx context.Context, l
 
 	// second pass: relation targets are names — resolve them against the
 	// batch we just resolved, then persist typed edges
-	if err := writeRelationEdges(ormCtx, resolved, result.Entities, doc.ID); err != nil {
+	if err := writeRelationEdges(ormCtx, resolved, result.Entities, doc.ID, schema); err != nil {
 		log.Warnf("[%s] failed to write relation edges for document %s: %v", ProcessorName, doc.ID, err)
 	}
 
@@ -539,7 +545,7 @@ func resolveOrCreateEntity(ctx *orm.Context, extracted *extractedEntity, doc *co
 		Sources:     []core.WikiSourceReference{documentSourceRef(doc, extracted.Evidence)},
 	}
 	if schema != nil {
-		if dropped := wiki.SanitizeEntityAgainstSchema(entity, schema); len(dropped) > 0 {
+		if dropped := wiki.SanitizeEntityAgainstSchema(ctx, entity, schema); len(dropped) > 0 {
 			// Warn, not Debug: silent drops made declared properties vanish
 			// invisibly (live data showed 0/363 entities with properties).
 			log.Warnf("[%s] schema sanitize dropped from %q: %v", ProcessorName, extracted.Name, dropped)
@@ -644,8 +650,11 @@ func decodeArticleHits(res *orm.SearchResult) ([]core.WikiArticle, int64, error)
 
 // writeRelationEdges resolves each relation's target name to a batch entity
 // and upserts the typed edge on the source entity (dedup by
-// target+relation+provenance).
-func writeRelationEdges(ctx *orm.Context, resolved []*core.WikiEntity, extracted []extractedEntity, docID string) error {
+// target+relation+provenance). The vocabulary sanitizes the accumulated
+// edge set before persistence — the create-time sanitize never sees these
+// edges (Relations is empty until this pass), so skipping it here would let
+// undeclared relations bypass the vocabulary entirely.
+func writeRelationEdges(ctx *orm.Context, resolved []*core.WikiEntity, extracted []extractedEntity, docID string, schema *wiki.OntologySchemaDoc) error {
 	byName := map[string]*core.WikiEntity{}
 	for _, e := range resolved {
 		byName[strings.ToLower(e.Name)] = e
@@ -678,6 +687,11 @@ func writeRelationEdges(ctx *orm.Context, resolved []*core.WikiEntity, extracted
 			changed = true
 		}
 		if changed {
+			if schema != nil {
+				if dropped := wiki.SanitizeEntityAgainstSchema(ctx, src, schema); len(dropped) > 0 {
+					log.Warnf("[%s] schema sanitize dropped relation edges from %q: %v", ProcessorName, src.Name, dropped)
+				}
+			}
 			orm.WithModel(ctx, &core.WikiEntity{})
 			if err := orm.Update(ctx, src); err != nil {
 				return err

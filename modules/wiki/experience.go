@@ -101,13 +101,43 @@ func KBsByAssistant(parent *orm.Context, assistantID string) []string {
 }
 
 // kbBindingCache short-circuits the datasource→KB lookup: the enrich
-// pipeline resolves it once per document, and datasource bindings change
-// at human speed. Entries live for the process lifetime — a rebinding
-// applies after restart, which is fine for a pipeline default.
+// pipeline resolves it once per document. Entries carry a TTL so a stale
+// binding self-heals even without an explicit invalidation, and KB
+// rebinding/deletion invalidates eagerly via InvalidateKBBindingsForKB —
+// "rebinding applies after restart" silently kept writing entities and
+// relation edges into the OLD kb (live bug).
+const (
+	kbBindingCacheTTL = 5 * time.Minute
+)
+
+type kbBindingEntry struct {
+	kbID   string
+	cached time.Time
+}
+
 var (
 	kbBindingCacheMu sync.RWMutex
-	kbBindingCache   = map[string]string{}
+	kbBindingCache   = map[string]kbBindingEntry{}
 )
+
+// InvalidateKBBindingsForKB drops cached datasource→KB entries affected by
+// a KB rebinding or delete: every entry currently resolving to kbID (the
+// OLD binding, whatever datasource held it) plus the datasource ids of the
+// new binding, so a stale foreign target cannot survive the update.
+func InvalidateKBBindingsForKB(kbID string, datasourceIDs ...string) {
+	kbBindingCacheMu.Lock()
+	defer kbBindingCacheMu.Unlock()
+	for ds, entry := range kbBindingCache {
+		if entry.kbID == kbID {
+			delete(kbBindingCache, ds)
+		}
+	}
+	for _, ds := range datasourceIDs {
+		if ds != "" {
+			delete(kbBindingCache, ds)
+		}
+	}
+}
 
 // ResolveKBByDatasource returns the id of the wiki KB whose datasource
 // binding contains datasourceID — the entity-extraction target resolution
@@ -118,9 +148,9 @@ func ResolveKBByDatasource(parent *orm.Context, datasourceID string) string {
 		return ""
 	}
 	kbBindingCacheMu.RLock()
-	if cached, ok := kbBindingCache[datasourceID]; ok {
+	if entry, ok := kbBindingCache[datasourceID]; ok && time.Since(entry.cached) < kbBindingCacheTTL {
 		kbBindingCacheMu.RUnlock()
-		return cached
+		return entry.kbID
 	}
 	kbBindingCacheMu.RUnlock()
 
@@ -138,7 +168,7 @@ func ResolveKBByDatasource(parent *orm.Context, datasourceID string) string {
 	}
 	kbID := kbs[0].ID
 	kbBindingCacheMu.Lock()
-	kbBindingCache[datasourceID] = kbID
+	kbBindingCache[datasourceID] = kbBindingEntry{kbID: kbID, cached: time.Now()}
 	kbBindingCacheMu.Unlock()
 	return kbID
 }
