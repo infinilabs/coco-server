@@ -119,8 +119,10 @@ func buildDedupReport(docs []dedupDocMeta, dismissed map[string]bool) *dedupRepo
 
 	type fp struct {
 		meta dedupDocMeta
+		text string // the exact text fingerprinted (content or title fallback)
 		hash string
 		sim  uint64
+		rare map[uint64]struct{} // bigrams that are not corpus stop words
 	}
 	fps := make([]fp, 0, len(docs))
 	byHash := map[string][]int{}
@@ -136,8 +138,37 @@ func buildDedupReport(docs []dedupDocMeta, dismissed map[string]bool) *dedupRepo
 		}
 		report.Fingerprinted++
 		idx := len(fps)
-		fps = append(fps, fp{meta: d, hash: hash, sim: sim})
+		fps = append(fps, fp{meta: d, text: text, hash: hash, sim: sim})
 		byHash[hash] = append(byHash[hash], idx)
+	}
+
+	// corpus stop words: bigrams appearing in many documents are template /
+	// boilerplate, not duplication evidence. Short pages sharing a site
+	// template reached 0.8+ raw jaccard while being entirely different
+	// articles, chaining the whole site into one "identical" group. The
+	// verification below runs on rare bigrams only, so boilerplate drops
+	// out of the comparison. Keep the map bounded: the scan caps itself at
+	// a few tens of thousands of docs, and a bigram set is per-doc bounded.
+	df := make(map[uint64]int, len(fps)*64)
+	sets := make([]map[uint64]struct{}, len(fps))
+	for i, f := range fps {
+		sets[i] = bigramSet(f.text)
+		for k := range sets[i] {
+			df[k]++
+		}
+	}
+	maxDF := len(fps) / 50 // 2% of the corpus, floored below
+	if maxDF < 5 {
+		maxDF = 5
+	}
+	for i := range fps {
+		rare := make(map[uint64]struct{}, len(sets[i]))
+		for k := range sets[i] {
+			if df[k] <= maxDF {
+				rare[k] = struct{}{}
+			}
+		}
+		fps[i].rare = rare
 	}
 
 	// union-find over document indexes; edges are collected first and
@@ -183,9 +214,9 @@ func buildDedupReport(docs []dedupDocMeta, dismissed map[string]bool) *dedupRepo
 	// cover radius > 3 (the pigeonhole only holds for one clean block among
 	// four), and the scan is capped at a few tens of thousands of docs — a
 	// direct O(n^2) pass is a few hundred million cheap ops at the cap and
-	// misses nothing. Simhash only nominates; the exact bigram overlap
-	// decides — short unrelated texts routinely land within hamming 8 and
-	// must not become edges.
+	// misses nothing. Simhash only nominates; rare-bigram containment
+	// decides (see the stop-word pass above) — template-sharing pages and
+	// short unrelated texts must not become edges.
 	const simhashMaxNear, simhashMaxSimilar = 3, 8
 	for a := 0; a < len(fps); a++ {
 		for c := a + 1; c < len(fps); c++ {
@@ -196,14 +227,18 @@ func buildDedupReport(docs []dedupDocMeta, dismissed map[string]bool) *dedupRepo
 			if dist > simhashMaxSimilar {
 				continue
 			}
-			jac := bigramJaccard(fps[a].meta.Content, fps[c].meta.Content)
-			if jac < 0.5 {
+			ar, cr := fps[a].rare, fps[c].rare
+			if len(ar) < dedupMinRareBigrams || len(cr) < dedupMinRareBigrams {
+				continue // not enough rare evidence to judge
+			}
+			contain := bigramContainment(ar, cr)
+			if contain < dedupMinContainment {
 				continue
 			}
 			if dist <= simhashMaxNear {
-				edge(a, c, dedupTierNear, jac)
+				edge(a, c, dedupTierNear, contain)
 			} else {
-				edge(a, c, dedupTierSimilar, jac)
+				edge(a, c, dedupTierSimilar, contain)
 			}
 		}
 	}
@@ -320,6 +355,13 @@ const (
 	dedupScanDefaultMax = 5000
 	dedupScanTimeout    = 10 * time.Minute
 	dedupReportTTL      = time.Minute
+	// tier-2/3 edge gates: a pair needs enough rare (non-boilerplate)
+	// bigrams on both sides to judge, and the shorter rare set must sit
+	// almost fully inside the longer one. Real copies/re-collections land
+	// ~0.95+; template-sharing pages top out far below even though their
+	// raw jaccard clears 0.8.
+	dedupMinRareBigrams = 20
+	dedupMinContainment = 0.85
 	// one-shot load bound for the dismissal set; query-time filtering is
 	// the scaled fix, this cap keeps the in-memory map bounded until then
 	dedupDismissalCap = 10000

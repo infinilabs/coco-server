@@ -212,3 +212,56 @@ func TestDedupVersionEdgeDoesNotChainStrongGroups(t *testing.T) {
 		t.Fatalf("isolated same-title doc must not join the identical pair: %+v", r.Groups)
 	}
 }
+
+func TestBuildDedupReportTemplateCorpus(t *testing.T) {
+	// 10 pages share one documentation template (the Coco server docs case:
+	// raw bigram jaccard between DIFFERENT pages hit 0.8+ and union-find
+	// chained the whole site into one "identical_content 140-member" blob)
+	boiler := strings.Repeat("parameter type required default description message field string pipeline context key "+
+		"output queue object queue to push generated documents into configuration example model provider openai "+
+		"model context length tokens minimum llm generation language tag for generated content application settings ", 3)
+	article := func(unique string) string {
+		return boiler + unique
+	}
+	var docs []dedupDocMeta
+	for i := 0; i < 10; i++ {
+		docs = append(docs, dedupDoc(fmt.Sprintf("tpl-%d", i),
+			fmt.Sprintf("Processor Guide %d", i),
+			article(fmt.Sprintf("unique article section number %d covers deployment steps for cluster node %d with dedicated configuration flags", i, i)),
+			int64(1000+i)))
+	}
+	// two genuine re-collections: same article body, different titles/sources
+	docs = append(docs,
+		dedupDoc("dup-a", "Service Notes", article("the quarterly maintenance window covers saturday nights database failover rehearsal"), 5000),
+		dedupDoc("dup-b", "Service Notes (mirror)", article("the quarterly maintenance window covers sunday nights database failover rehearsal runbook update"), 5001),
+	)
+	// title-only docs (ingestion produced no content) must not chain
+	docs = append(docs,
+		dedupDoc("bare-1", "Standalone Heading One", "", 6000),
+		dedupDoc("bare-2", "Standalone Heading Two", "", 6001),
+	)
+
+	report := buildDedupReport(docs, nil)
+	if findGroup(t, report, "tpl-0") != nil {
+		t.Fatalf("template-sharing pages must not group: %+v", report.Groups)
+	}
+	g := findGroup(t, report, "dup-a")
+	if g == nil || len(g.Members) != 2 || g.Tier != dedupTierNear {
+		t.Fatalf("re-collection pair must stay grouped: %+v", report.Groups)
+	}
+	if findGroup(t, report, "bare-1") != nil || findGroup(t, report, "bare-2") != nil {
+		t.Fatal("title-only docs with different titles must not group")
+	}
+}
+
+func TestBuildDedupReportTitleOnlySameContent(t *testing.T) {
+	// same (empty) content falls back to the title: identical titles stay a
+	// tier-1 exact group — the title IS the text here
+	report := buildDedupReport([]dedupDocMeta{
+		dedupDoc("t1", "Deploy Guide Chapter Three", "", 1000),
+		dedupDoc("t2", "Deploy Guide Chapter Three", "", 1001),
+	}, nil)
+	if report.GroupCount != 1 || len(report.Groups[0].Members) != 2 || report.Groups[0].Tier != dedupTierExact {
+		t.Fatalf("same-title title-only docs must group as exact: %+v", report.Groups)
+	}
+}

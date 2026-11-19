@@ -29,37 +29,42 @@ func contentFingerprint(text string) (hashHex string, sim uint64, ok bool) {
 	return fingerprint.Compute(text)
 }
 
-// bigramJaccard is the verification stage: the Jaccard similarity of the
-// two texts' unicode-bigram sets. Simhash buckets candidates cheaply, but
-// short unrelated texts can still land within hamming 8 — this second,
-// exact check kills those false positives before an edge is accepted.
-func bigramJaccard(a, b string) float64 {
-	setOf := func(s string) map[uint64]struct{} {
-		runes := []rune(normalizeFingerprintText(s))
-		out := make(map[uint64]struct{}, len(runes))
-		h := fnv.New64a()
-		for i := 0; i+1 < len(runes); i++ {
-			h.Reset()
-			h.Write([]byte(string(runes[i : i+2])))
-			out[h.Sum64()] = struct{}{}
-		}
-		return out
+// bigramSet hashes the text's normalized unicode-bigram set (fnv-64a per
+// bigram) — the vocabulary the verification stage works on.
+func bigramSet(text string) map[uint64]struct{} {
+	runes := []rune(normalizeFingerprintText(text))
+	out := make(map[uint64]struct{}, len(runes))
+	h := fnv.New64a()
+	for i := 0; i+1 < len(runes); i++ {
+		h.Reset()
+		h.Write([]byte(string(runes[i : i+2])))
+		out[h.Sum64()] = struct{}{}
 	}
-	sa, sb := setOf(a), setOf(b)
+	return out
+}
+
+// bigramContainment is the verification stage: how much of the SMALLER
+// bigram set is present in the larger one. Containment (unlike jaccard)
+// tolerates length asymmetry — a near-copy embedded in a longer page still
+// reads ~1 — and, run over rare bigrams only (see the scan's corpus stop
+// words), resists template boilerplate: pages sharing a documentation
+// template kept 0.8+ raw jaccard while their rare-bigram containment sat
+// near zero.
+func bigramContainment(sa, sb map[uint64]struct{}) float64 {
 	if len(sa) == 0 || len(sb) == 0 {
 		return 0
 	}
+	small, large := sa, sb
+	if len(small) > len(large) {
+		small, large = large, small
+	}
 	inter := 0
-	for k := range sa {
-		if _, ok := sb[k]; ok {
+	for k := range small {
+		if _, ok := large[k]; ok {
 			inter++
 		}
 	}
-	union := len(sa) + len(sb) - inter
-	if union == 0 {
-		return 0
-	}
-	return float64(inter) / float64(union)
+	return float64(inter) / float64(len(small))
 }
 
 // hammingDistance64 counts differing bits.
