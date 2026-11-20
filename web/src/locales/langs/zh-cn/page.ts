@@ -1638,7 +1638,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         modelDesc: '连接 LLM 以启用 AI 聊天与智能搜索。',
         pipeline: '创建解析管道',
         pipelineDesc: '为数据源配置文档加工流程。',
-        title: '开始配置'
+        title: '开始配置',
+        dismiss: '不再显示'
       },
       greeting: '欢迎回来，{{user}}',
       activity: {

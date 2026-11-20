@@ -1653,7 +1653,8 @@ const page: App.I18n.Schema['translation']['page'] = {
         modelDesc: 'Connect an LLM to enable AI chat and intelligent search.',
         pipeline: 'Create a pipeline',
         pipelineDesc: 'Set up document processing for your data sources.',
-        title: 'Get started'
+        title: 'Get started',
+        dismiss: "Don't show again"
       },
       greeting: 'Welcome back, {{user}}',
       activity: {

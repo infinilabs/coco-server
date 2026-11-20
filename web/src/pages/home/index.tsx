@@ -11,7 +11,8 @@ import {
   Inbox,
   MessagesSquare,
   RefreshCw,
-  Search
+  Search,
+  X
 } from 'lucide-react';
 
 import { fetchChatSessionCount, searchAssistant } from '@/service/api/assistant';
@@ -103,6 +104,9 @@ const EMPTY_ACTIVITY: WorkbenchActivity = {
 /** Segment colors for the stacked trend chart, assigned per datasource name. */
 const TREND_PALETTE = ['#1677ff', '#389e0d', '#faad14', '#722ed1', '#13c2c2', '#eb2f96', '#fa8c16', '#2f54eb'];
 
+/** localStorage flag set when the user dismisses the "Get started" checklist card. */
+const CHECKLIST_DISMISSED_KEY = 'home:checklist-dismissed';
+
 /** Icon + color for each feed event kind. */
 const KIND_META: Record<FeedEvent['kind'], { cls: string; icon: React.ReactNode }> = {
   assistant: { cls: 'bg-[var(--ant-color-warning-bg)] color-[var(--ant-color-warning)]', icon: <Bot size={13} /> },
@@ -129,6 +133,13 @@ export function Component() {
   const [stats, setStats] = useState<WorkbenchStats>(EMPTY_STATS);
   const [activity, setActivity] = useState<WorkbenchActivity>(EMPTY_ACTIVITY);
   const [loading, setLoading] = useState(true);
+  const [checklistDismissed, setChecklistDismissed] = useState(() => localStorage.getItem(CHECKLIST_DISMISSED_KEY) === '1');
+
+  /** Hide the "Get started" card for good (persisted per-browser). */
+  const dismissChecklist = () => {
+    setChecklistDismissed(true);
+    localStorage.setItem(CHECKLIST_DISMISSED_KEY, '1');
+  };
 
   const loadStats = useCallback(async () => {
     setLoading(true);
@@ -597,8 +608,23 @@ export function Component() {
         ))}
       </div>
 
-      {!loading && !allDone && (
-      <Card className="m-b-16px" title={t('page.home.workbench.checklist.title')}>
+      {!loading && !allDone && !checklistDismissed && (
+      <Card
+        className="m-b-16px"
+        title={t('page.home.workbench.checklist.title')}
+        extra={
+          <Tooltip title={t('page.home.workbench.checklist.dismiss')}>
+            <Button
+              aria-label={t('page.home.workbench.checklist.dismiss')}
+              size="small"
+              type="text"
+              onClick={dismissChecklist}
+            >
+              <X size={14} />
+            </Button>
+          </Tooltip>
+        }
+      >
         <div className="flex flex-col gap-12px">
             {checklist.map(item => (
               <div className="flex items-center gap-12px" key={item.title}>
