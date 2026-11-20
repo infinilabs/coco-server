@@ -3,7 +3,7 @@ import { Alert, Button, Empty, Popconfirm, Space, Table, Tag, message } from 'an
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { distillWikiKb, getWikiEvolutionLog, listWikiExperience, proposeWikiSkills } from '@/service/api';
+import { distillWikiKb, fmtDate, getWikiEvolutionLog, listWikiExperience, proposeWikiSkills } from '@/service/api';
 import { useAuth } from '@/hooks/business/auth';
 
 /* raw enums → locale key suffixes; unknown values fall back to the raw string */
@@ -28,11 +28,8 @@ const KIND_LABEL: Record<string, string> = {
 const EXP_KIND_LABEL: Record<string, string> = { chat: 'expChat', correction: 'expCorrection', gap: 'expGap' };
 const FEEDBACK_LABEL: Record<string, string> = { positive: 'fbPositive', negative: 'fbNegative' };
 
-const fmtTime = (iso?: string) => {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toISOString().slice(0, 16).replace('T', ' ');
-};
+/* local-timezone rendering shared from the API layer (never UTC) */
+const fmtTime = fmtDate;
 
 /* fixed timestamp keeps 'YYYY-MM-DD HH:mm' on one line at any column width */
 const timeCell = (v: string) => <span className='whitespace-nowrap'>{fmtTime(v) || '—'}</span>;

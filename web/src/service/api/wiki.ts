@@ -22,10 +22,14 @@ import { localStg } from '@/utils/storage';
 
 const unwrapSource = <T>(res: any): T | null => res?.data?._source ?? null;
 
-const fmtDate = (iso?: string): string => {
+/** Render an ISO timestamp in the viewer's LOCAL timezone as 'YYYY-MM-DD HH:mm'.
+ *  Never use toISOString() here — it emits UTC and shifts CN times by -8h. */
+export const fmtDate = (iso?: string): string => {
   if (!iso) return '';
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toISOString().slice(0, 16).replace('T', ' ');
+  if (Number.isNaN(d.getTime())) return iso;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
 /* ---------------- normalization (server _source -> UI types) ---------------- */

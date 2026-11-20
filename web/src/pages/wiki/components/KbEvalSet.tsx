@@ -7,17 +7,15 @@ import {
   deleteWikiEvalCase,
   fetchWikiEvalCases,
   fetchWikiEvalRuns,
+  fmtDate,
   runWikiEval,
   saveWikiEvalCase,
   searchWikiArticles
 } from '@/service/api';
 import { useAuth } from '@/hooks/business/auth';
 
-const fmtTime = (iso?: string) => {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toISOString().slice(0, 16).replace('T', ' ');
-};
+/* local-timezone rendering shared from the API layer (never UTC) */
+const fmtTime = fmtDate;
 
 const pct = (v?: number) => `${((v ?? 0) * 100).toFixed(1)}%`;
 

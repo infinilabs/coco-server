@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import Markdown from '@/components/DocumentDrawer/Markdown';
-import { clearWikiCompileDeadLetters, createWikiArticle, fetchWikiCompileDeadLetters, getWikiCompanyMap, runWikiCompileAgent } from '@/service/api';
+import { clearWikiCompileDeadLetters, createWikiArticle, fetchWikiCompileDeadLetters, fmtDate, getWikiCompanyMap, runWikiCompileAgent } from '@/service/api';
 import { useAuth } from '@/hooks/business/auth';
 
 const STATUS_COLOR: Record<string, string> = {
@@ -124,11 +124,7 @@ export function KbOverview({
               {t('page.wiki.companyMap.title')}
             </span>
             <Space>
-              <span className='text-12px color-[var(--wiki-text-3)]'>
-                {companyMap.map?.updated
-                  ? new Date(companyMap.map.updated).toISOString().slice(0, 16).replace('T', ' ')
-                  : ''}
-              </span>
+              <span className='text-12px color-[var(--wiki-text-3)]'>{fmtDate(companyMap.map?.updated)}</span>
               <Button
                 size='small'
                 onClick={() => setMapOpen(true)}

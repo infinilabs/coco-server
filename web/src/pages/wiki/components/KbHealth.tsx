@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-import { createWikiArticle, fetchKbHealth } from '@/service/api';
+import { createWikiArticle, fetchKbHealth, fmtDate } from '@/service/api';
 
 const CODE_COLOR: Record<string, string> = {
   orphan: 'orange',
@@ -13,11 +13,8 @@ const CODE_COLOR: Record<string, string> = {
   missing_provenance: 'purple'
 };
 
-const fmtTime = (iso?: string) => {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toISOString().slice(0, 16).replace('T', ' ');
-};
+/* local-timezone rendering shared from the API layer (never UTC) */
+const fmtTime = fmtDate;
 
 /**
  * KB health report (LLM-wiki 体检, whole-KB counterpart of the per-page
