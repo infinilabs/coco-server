@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/common/secretbox"
 	"infini.sh/framework/core/orm"
 )
 
@@ -31,6 +32,9 @@ func GetModelProvider(providerID string) (*core.ModelProvider, error) {
 	if err != nil {
 		return nil, err
 	}
+	// S1: stored encrypted, used plaintext — decrypt before caching so
+	// every consumer (langchain/embedding/rerank/engine-AI) gets the key
+	provider.APIKey = secretbox.Decrypt(provider.APIKey)
 	// Cache the provider object
 	GeneralObjectCache.Set(ModelProviderCachePrimary, providerID, provider, time.Duration(30)*time.Minute)
 	return provider, nil

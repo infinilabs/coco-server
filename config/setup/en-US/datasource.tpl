@@ -78,3 +78,45 @@ POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/
   },
   "enabled" : true
 }
+POST $[[SETUP_INDEX_PREFIX]]datasource$[[SETUP_SCHEMA_VER]]/$[[SETUP_DOC_TYPE]]/gitlab_webhook_datasource
+{
+  "_system": {
+    "owner_id": "$[[SETUP_OWNER_ID]]"
+  },
+  "webhook": {
+    "enabled": true
+  },
+  "enrichment_pipeline": {
+    "name": "gitlab_merge_events",
+    "enabled": true,
+    "processor": [
+      {
+        "gitlab_incoming_message": {
+          "token": "TOKEN",
+          "endpoint": "http://xxx.com/",
+          "report_assistant": "gitlab_ai_reviewer",
+          "summary_assistant": "gitlab_ai_pr_summary",
+          "max_batch_size": 10,
+          "max_input_length": 10240,
+          "page_size": 10
+        }
+      }
+    ]
+  },
+  "connector": {
+    "id": "gitlab_webhook_receiver"
+  },
+  "created": "2025-11-05T16:48:21.692002+08:00",
+  "name": "Gitlab CI Webhook",
+  "id": "gitlab_webhook_datasource",
+  "icon": "font_gitlab",
+  "type": "connector",
+  "updated": "2025-11-05T17:05:52.885677+08:00",
+  "sync": {
+    "interval": "1h",
+    "strategy": "interval",
+    "enabled": false,
+    "page_size": 0
+  },
+  "enabled": true
+}

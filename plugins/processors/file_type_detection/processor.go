@@ -5,6 +5,7 @@
 package file_type_detection
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
 
@@ -18,6 +19,7 @@ import (
 	utils "infini.sh/coco/plugins/processors"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
+	"infini.sh/framework/core/event"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/param"
 	"infini.sh/framework/core/pipeline"
@@ -37,7 +39,8 @@ var supportedConnectors = map[string]bool{
 }
 
 func init() {
-	pipeline.RegisterProcessorPlugin(ProcessorName, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(ProcessorName, New, Config{})
+	pipeline.RegisterProcessorContract(ProcessorName, utils.DocumentRecordContract(pipeline.GranularityRecord))
 }
 
 type FileTypeDetectionProcessor struct {
@@ -71,7 +74,54 @@ func (p *FileTypeDetectionProcessor) Name() string {
 	return ProcessorName
 }
 
+// processDocument is the per-document core shared by both conventions.
+func (p *FileTypeDetectionProcessor) processDocument(doc *core.Document) (bool, error) {
+	// Only process documents from s3 or local_fs connectors
+	connectorID, err := utils.GetConnectorID(doc)
+	if err != nil {
+		log.Warnf("processor [%s] failed to get connector ID for document [%s/%s]: %v", p.Name(), doc.Title, doc.ID, err)
+		return false, nil
+	}
+	if !supportedConnectors[connectorID] || doc.Type != connectors.TypeFile {
+		log.Debugf("processor [%s] skipping document [%s/%s] as it is not a [file] that come from [local_fs/s3], connector [%s]", p.Name(), doc.Title, doc.ID, connectorID)
+		return false, nil
+	}
+	if doc.Metadata == nil {
+		doc.Metadata = make(map[string]interface{})
+	}
+	if isMetadataEmpty(doc.Metadata, FieldMimeType) || isMetadataEmpty(doc.Metadata, FieldContentType) {
+		mimeType, contentType := detectFileTypes(doc.Title)
+		doc.Metadata[FieldMimeType] = mimeType
+		doc.Metadata[FieldContentType] = contentType
+		log.Infof("processor [%s] detected mime_type=%s, content_type=%s for document [%s/%s]", p.Name(), mimeType, contentType, doc.Title, doc.ID)
+	}
+	if isMetadataEmpty(doc.Metadata, FieldContentCategory) {
+		contentCategory := categorizeContentType(getStringFromMetadata(doc.Metadata, FieldContentType))
+		doc.Metadata[FieldContentCategory] = contentCategory
+		log.Infof("processor [%s] detected content_category=%s for document [%s/%s]", p.Name(), contentCategory, doc.Title, doc.ID)
+	}
+	return true, nil
+}
+
+// ProcessBatch: record-convention batch channel (detection is pure CPU —
+// batch runs carry no extra benefit, so this simply shares the core).
+func (p *FileTypeDetectionProcessor) ProcessBatch(ctx *pipeline.Context, records []*event.Event) error {
+	return utils.EachDocumentRecord(ctx.Context, records, func(dctx context.Context, doc *core.Document) (bool, error) {
+		if global.ShuttingDown() {
+			return false, errors.New("shutting down")
+		}
+		return p.processDocument(doc)
+	})
+}
+
 func (p *FileTypeDetectionProcessor) Process(ctx *pipeline.Context) error {
+	// record-scope path (deterministic processor, granularity=record)
+	if rec, ok := pipeline.CurrentRecord(ctx); ok {
+		return utils.EachDocumentRecord(ctx.Context, []*event.Event{rec}, func(dctx context.Context, doc *core.Document) (bool, error) {
+			return p.processDocument(doc)
+		})
+	}
+
 	obj := ctx.Get(p.config.MessageField)
 	if obj == nil {
 		log.Warnf("processor [%s] receives an empty pipeline context", p.Name())
@@ -102,38 +152,14 @@ func (p *FileTypeDetectionProcessor) Process(ctx *pipeline.Context) error {
 			continue
 		}
 
-		// Only process documents from s3 or local_fs connectors
-		connectorID, err := utils.GetConnectorID(&doc)
+		handled, err := p.processDocument(&doc)
 		if err != nil {
-			log.Warnf("processor [%s] failed to get connector ID for document [%s/%s]: %v", p.Name(), doc.Title, doc.ID, err)
+			log.Errorf("processor [%s] failed to process document: %v", p.Name(), err)
 			continue
 		}
-
-		if !supportedConnectors[connectorID] || doc.Type != connectors.TypeFile {
-			log.Debugf("processor [%s] skipping document [%s/%s] as it is not a [file] that come from [local_fs/s3], connector [%s]", p.Name(), doc.Title, doc.ID, connectorID)
-			continue
+		if handled {
+			messages[i].Data = util.MustToJSONBytes(doc)
 		}
-
-		// Initialize Metadata map if nil
-		if doc.Metadata == nil {
-			doc.Metadata = make(map[string]interface{})
-		}
-
-		// Set MIME type/content type/content category if needed
-		if isMetadataEmpty(doc.Metadata, FieldMimeType) || isMetadataEmpty(doc.Metadata, FieldContentType) {
-			mimeType, contentType := detectFileTypes(doc.Title)
-			doc.Metadata[FieldMimeType] = mimeType
-			doc.Metadata[FieldContentType] = contentType
-			log.Infof("processor [%s] detected mime_type=%s, content_type=%s for document [%s/%s]", p.Name(), mimeType, contentType, doc.Title, doc.ID)
-		}
-		if isMetadataEmpty(doc.Metadata, FieldContentCategory) {
-			contentCategory := categorizeContentType(getStringFromMetadata(doc.Metadata, FieldContentType))
-			doc.Metadata[FieldContentCategory] = contentCategory
-			log.Infof("processor [%s] detected content_category=%s for document [%s/%s]", p.Name(), contentCategory, doc.Title, doc.ID)
-		}
-
-		// Update message data in-place
-		messages[i].Data = util.MustToJSONBytes(doc)
 
 		// Enqueue immediately after processing
 		if p.outputQueue != nil {
@@ -195,6 +221,16 @@ func getContentType(ext string) string {
 	// XLSX (includes .xls for backward compatibility)
 	case ".xls", ".xlsx":
 		return "xlsx"
+	// Web archives and ebook/mindmap documents (W2 L0.5): native or Tika
+	// routes exist; without this mapping they carried no content category
+	case ".epub":
+		return "epub"
+	case ".xmind":
+		return "xmind"
+	case ".mhtml", ".mht":
+		return "mhtml"
+	case ".html", ".htm", ".xhtml":
+		return "html"
 	default:
 		return ""
 	}
@@ -208,7 +244,8 @@ func categorizeContentType(contentType string) string {
 	case "video":
 		return "video"
 	// Markdown
-	case "markdown", "pdf", "docx", "pptx", "xlsx":
+	case "markdown", "pdf", "docx", "pptx", "xlsx",
+		"epub", "xmind", "mhtml", "html":
 		return "doc"
 	default:
 		return ""

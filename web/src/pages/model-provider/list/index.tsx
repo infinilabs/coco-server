@@ -1,9 +1,11 @@
+import PageHeaderTitle from '@/components/stateless/common/PageHeaderTitle';
 import {
   EllipsisOutlined,
   ExclamationCircleOutlined,
   ExportOutlined,
   FilterOutlined,
   PlusOutlined,
+  RobotOutlined,
   SettingOutlined
 } from '@ant-design/icons';
 import { Avatar, Button, Dropdown, Form, Input, List, Modal, Spin, Switch, Table, message } from 'antd';
@@ -43,6 +45,8 @@ export function Component() {
   const applicationSetting = useAppSelector(getApplicationSetting);
 
   const { hasAuth } = useAuth();
+
+  const { scrollConfig, tableWrapperRef } = useTableScroll();
 
   const permissions = {
     read: hasAuth('coco#model_provider/read'),
@@ -269,7 +273,7 @@ export function Component() {
     {
       dataIndex: 'owner',
       title: t('page.datasource.labels.owner'),
-      width: 200,
+      minWidth: 120,
       render: (value, record) => {
         if (!value) return '-';
         return (
@@ -290,7 +294,7 @@ export function Component() {
     {
       dataIndex: 'shares',
       title: t('page.datasource.labels.shares'),
-      width: 150,
+      minWidth: 110,
       render: (value, record) => {
         if (!value) return '-';
         return (
@@ -346,26 +350,25 @@ export function Component() {
       }
     }
   ];
-  // rowSelection object indicates the need for row selection
-  const rowSelection = {
-    getCheckboxProps: record => ({
-      name: record.name
-    }),
-    onChange: (selectedRowKeys: React.Key[], selectedRows) => { }
-  };
-
   const integratedStoreModalRef = useRef<IntegratedStoreModalRef>(null);
 
   return (
     <ListContainer>
       <ACard
-        bordered={false}
         className='flex-col-stretch sm:flex-1-hidden card-wrapper'
+        ref={tableWrapperRef}
+        title={(
+          <PageHeaderTitle
+            description={t('page.modelprovider.subtitle')}
+            icon={<RobotOutlined />}
+            title={t('page.modelprovider.title')}
+          />
+        )}
       >
-        <div className='mb-4 mt-4 flex items-center justify-between'>
+        <div className='mb-4 flex flex-wrap items-center justify-between gap-12px'>
           <Search
             addonBefore={<FilterOutlined />}
-            className='max-w-500px'
+            className='w-full max-w-360px sm:!w-300px'
             enterButton={t('common.refresh')}
             value={keyword}
             onChange={e => setKeyword(e.target.value)}
@@ -393,10 +396,10 @@ export function Component() {
             dataSource={data.data}
             loading={loading}
             rowKey='id'
-            rowSelection={{ ...rowSelection }}
+          scroll={{ ...scrollConfig, x: 'max-content' }}
             size='middle'
             pagination={{
-              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+              showTotal: total => t('common.totalItems', { total: String(total) }),
               pageSize: queryParams.size,
               current: Math.floor(queryParams.from / queryParams.size) + 1,
               total: data.total?.value || data?.total,
@@ -411,7 +414,7 @@ export function Component() {
             loading={loading}
             pagination={{
               onChange: onPageChange,
-              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+              showTotal: total => t('common.totalItems', { total: String(total) }),
               pageSize: queryParams.size,
               current: Math.floor(queryParams.from / queryParams.size) + 1,
               total: data.total?.value || data?.total,

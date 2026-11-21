@@ -31,6 +31,17 @@ const local: App.I18n.Schema['translation'] = {
     unpin: '取消固定',
     about: '关于'
   },
+  menu: {
+    administration: '管理',
+    group: {
+      appChat: 'AI 对话',
+      appKb: '知识库',
+      appSearch: 'AI 搜索',
+      data: '知识加工',
+      others: '其他',
+      system: '系统管理'
+    }
+  },
   page,
   request: {
     logout: '请求失败后登出用户',

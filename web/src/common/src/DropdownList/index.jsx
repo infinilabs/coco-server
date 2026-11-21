@@ -48,6 +48,9 @@ const DropdownList = (props) => {
     onGroupVisibleChange = () => {},
     autoAdjustOverflow = {
       adjustX: 1,
+      // Y 向自适应关闭：上下选边与高度封顶由 handleVisible 的预判定统一决定，
+      // 避免 antd 量出溢出后自行翻转造成开箱跳动。
+      adjustY: 0,
     },
     getPopupContainer = (triggerNode) => triggerNode.parentNode,
     extraData = [],
@@ -59,13 +62,46 @@ const DropdownList = (props) => {
   const [showGroup, setShowGroup] = useState(defaultGroupVisible);
   const [searchValue, setSearchValue] = useState();
   const [fixedDropdownWidth, setFixedDropdownWidth] = useState();
+  // 空间不足时的稳定定位：打开前先量视口剩余空间，决定放上方还是下方，
+  // 并把弹层高度封顶到该空间（内部滚动）。判定与首帧同批完成，避免
+  // antd 默认的「先按 placement 渲染、量出溢出再翻转」造成的开箱跳动。
+  const [popupFit, setPopupFit] = useState(null); // { side: 'bottom' | 'top', cap: number }
   const domRef = useRef(null);
 
   const isMultiple = useMemo(() => {
     return mode === "multiple" && (value === undefined || Array.isArray(value));
   }, [mode, value]);
 
+  // 打开前先量视口剩余空间：决定放上方还是下方，并把弹层高度封顶到该空间
+  // （内部滚动）。
+  const computeFit = () => {
+    if (!domRef.current) return;
+    const rect = domRef.current.getBoundingClientRect();
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    // antd Popover 定位自带 12px 箭头间距（触发器与弹层之间），量空间必须扣除，
+    // 否则 cap 后的弹层仍溢出几像素、antd 会自行翻转到另一侧（跳动根源）。
+    const GAP = 14;
+    const spaceBelow = vh - rect.bottom - GAP;
+    const spaceAbove = rect.top - GAP;
+    // 任一侧有基本可用空间（≥160px）就选它；都不够时选空间较大的一侧。
+    const MIN_USABLE = 160;
+    const side = spaceBelow >= MIN_USABLE || spaceBelow >= spaceAbove ? "bottom" : "top";
+    const cap = Math.max(side === "bottom" ? spaceBelow : spaceAbove, 120);
+    setPopupFit({ side, cap });
+  };
+
+  // 打开状态下窗口尺寸变化时重算，保证弹层不溢出、不翻转。
+  useEffect(() => {
+    if (!visible) return;
+    const onResize = () => computeFit();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [visible]);
+
   const handleVisible = (visible) => {
+    if (visible) {
+      computeFit();
+    }
     onDropdownVisibleChange && onDropdownVisibleChange(visible)
     setVisible(visible);
   };
@@ -191,6 +227,16 @@ const DropdownList = (props) => {
 
   const formatValue = renderValue();
 
+  const defaultMaxHeight = 16 + 32 + 8 + 18 + 12 + 40 + (pagination?.pageSize || 10) * 32;
+  const maxHeight = popupFit ? Math.min(defaultMaxHeight, popupFit.cap) : defaultMaxHeight;
+  let placement = popoverPlacement;
+  if (popupFit) {
+    const wantsTop = popupFit.side === "top";
+    const isTop = popoverPlacement.startsWith("top");
+    if (wantsTop && !isTop) placement = popoverPlacement.replace("bottom", "top");
+    if (!wantsTop && isTop) placement = popoverPlacement.replace("top", "bottom");
+  }
+
   return (
     <div
       className={`${styles.dropdownList} ${className}`}
@@ -200,14 +246,13 @@ const DropdownList = (props) => {
       <Popover
         open={disabled ? false : visible}
         onOpenChange={handleVisible}
-        placement={popoverPlacement}
+        placement={placement}
         content={renderContent()}
         trigger={"click"}
         overlayClassName={`${styles.popover} ${popoverClassName}`}
         overlayStyle={{
           width: overlayWidth,
-          maxHeight:
-            16 + 32 + 8 + 18 + 12 + 40 + (pagination?.pageSize || 10) * 32,
+          maxHeight,
         }}
         autoAdjustOverflow={autoAdjustOverflow}
         getPopupContainer={getPopupContainer}

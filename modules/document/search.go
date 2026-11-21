@@ -11,9 +11,11 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
+	"infini.sh/coco/modules/attachment"
 	"infini.sh/coco/modules/common"
 	"infini.sh/coco/modules/connector"
 	"infini.sh/framework/core/api"
@@ -24,7 +26,128 @@ import (
 	"infini.sh/framework/core/util"
 )
 
+// maxSearchPageSize bounds one interactive search page: search serves
+// humans and widgets; bulk export has dedicated APIs.
+const maxSearchPageSize = 100
+
+// Multimodal search: attachments posted alongside the query (images the
+// vision pipeline described, documents with extracted text) join the query
+// text so a picture can be searched by what it shows.
+const (
+	// multimodalAttachmentTextCap limits each attachment's contribution —
+	// vision descriptions can run long and the keyword leg turns every term
+	// into a clause
+	multimodalAttachmentTextCap = 400
+	// multimodalQueryTextCap bounds the combined attachment text
+	multimodalQueryTextCap = 1000
+	// multimodalWaitTimeout bounds how long the search waits for an
+	// attachment's background text extraction (vision model) to finish;
+	// chat waits far longer, a search must stay interactive
+	multimodalWaitTimeout = 10 * time.Second
+)
+
+// enrichQueryFromAttachments merges the extracted text of the given
+// attachment IDs into the user query (multimodal search). It waits briefly
+// for in-flight extraction, skips attachments with no usable text (pending,
+// failed, or owned by someone else — attachment IDs are unguessable UUIDs,
+// this is a cheap consistency guard, not the security boundary), and returns
+// the enriched query plus a human-readable note for the Warning header when
+// something was skipped.
+func enrichQueryFromAttachments(ctx context.Context, query string, attachmentsParam string, userID string) (string, string) {
+	return enrichQuery(ctx, query, attachmentsParam, userID,
+		func(ctx context.Context, ids []string) error {
+			_, err := attachment.WaitForAttachmentsCompletion(ctx, ids, multimodalWaitTimeout, nil)
+			return err
+		},
+		attachment.LoadAttachmentsForChat)
+}
+
+// enrichQuery is enrichQueryFromAttachments with the extraction wait and the
+// attachment loader as seams, so the merge rules are unit-testable without a
+// live engine.
+func enrichQuery(ctx context.Context, query string, attachmentsParam string, userID string,
+	wait func(ctx context.Context, ids []string) error,
+	load func(ids []string) []*core.Attachment) (string, string) {
+
+	ids := make([]string, 0, 4)
+	for _, id := range strings.Split(attachmentsParam, ",") {
+		if id = strings.TrimSpace(id); id != "" {
+			ids = append(ids, id)
+		}
+	}
+	if len(ids) == 0 {
+		return query, ""
+	}
+
+	// an image submitted right after upload may still be describing; wait a
+	// bounded moment so its text makes it into this search. A timeout or
+	// client cancel is not fatal: search with whatever text is ready.
+	if err := wait(ctx, ids); err != nil {
+		log.Debugf("multimodal search: attachment wait ended early: %v", err)
+	}
+
+	var parts []string
+	skipped := 0
+	for _, att := range load(ids) {
+		if owner := att.GetOwnerID(); owner != "" && owner != userID {
+			skipped++
+			continue
+		}
+		text := strings.TrimSpace(att.Text)
+		if text == "" {
+			skipped++
+			continue
+		}
+		parts = append(parts, util.SubString(text, 0, multimodalAttachmentTextCap))
+	}
+
+	note := ""
+	if skipped > 0 {
+		note = fmt.Sprintf("multimodal: %d of %d attachments had no usable text (extraction pending, failed, or unavailable); searched without them", skipped, len(ids))
+	}
+	if len(parts) == 0 {
+		return query, note
+	}
+
+	combined := strings.Join(parts, " ")
+	combined = util.SubString(combined, 0, multimodalQueryTextCap)
+	if strings.TrimSpace(query) == "" {
+		return combined, note
+	}
+	return query + " " + combined, note
+}
+
+// stripHighlightWithoutQuery drops the highlight section a client posted in
+// the request body when the search carries no query term. Pure-filter
+// browsing has nothing to mark, and the empty text clauses the keyword leg
+// builds for an empty query (an empty prefix matches every term) would
+// light whole fragments up instead.
+func stripHighlightWithoutQuery(builder *orm.QueryBuilder, query string) {
+	if strings.TrimSpace(query) != "" {
+		return
+	}
+	body := builder.RequestBodyBytesVal()
+	if len(body) == 0 {
+		return
+	}
+	var dsl map[string]interface{}
+	if err := util.FromJSONBytes(body, &dsl); err != nil || dsl == nil {
+		return
+	}
+	if _, ok := dsl["highlight"]; !ok {
+		return
+	}
+	delete(dsl, "highlight")
+	builder.SetRequestBodyBytes(util.MustToJSONBytes(dsl))
+}
+
 func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+
+	// connector facet filters arrive as source.connector_id terms; documents
+	// carry no such field — rewrite them into datasource terms before any
+	// query builder (keyword/semantic legs, RRF routes, aggregations) reads
+	// the request
+	translateConnectorFilters(req)
 
 	var (
 		query        = h.GetParameterOrDefault(req, "query", "")
@@ -32,49 +155,273 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 		category     = h.GetParameterOrDefault(req, "category", "")
 		subcategory  = h.GetParameterOrDefault(req, "subcategory", "")
 		richCategory = h.GetParameterOrDefault(req, "rich_category", "")
-		searchType   = h.GetParameterOrDefault(req, "search_type", "keyword")
-		fuzzinessStr = h.GetParameterOrDefault(req, "fuzziness", "3")
+		searchType   = h.GetParameterOrDefault(req, "search_type", "")
+		// 搜索设置 · 高级: the operator-configured fuzziness is the default;
+		// an explicit ?fuzziness= on the request always wins
+		fuzzinessStr = h.GetParameter(req, "fuzziness")
+		// multimodal search: uploaded attachments (images/documents) whose
+		// extracted text joins the query, comma-separated IDs
+		attachmentsParam = h.GetParameterOrDefault(req, "attachments", "")
 	)
+
+	if fuzzinessStr == "" {
+		fuzzinessStr = strconv.Itoa(searchSettingsSnapshot().EffectiveFuzziness())
+	}
 
 	// Parse fuzziness
 	var fuzziness = 3 // default to 3
 	if fuzzinessStr != "" {
 		parsed, err := strconv.Atoi(fuzzinessStr)
-		if err != nil && parsed >= 0 && parsed <= 5 {
+		if err == nil && parsed >= 0 && parsed <= 5 {
 			fuzziness = parsed
 		}
 	}
 
+	if searchType == "" {
+		// no explicit strategy: the operator's configured default decides
+		// (search_settings.search_type) — this is the switch that puts the
+		// hybrid pipeline the studio evaluates in front of the app search
+		// and the widget without URL surgery; keyword when unset
+		searchType = common.AppConfig().SearchSettings.DefaultType()
+	}
+
+	reqUser := security.MustGetUserFromRequest(req)
+
+	// multimodal search: enrich the query with attachment text BEFORE the
+	// empty-query gate below so an image-only search (no typed query) still
+	// searches — the enrichment output is what "the query" means from here on
+	multimodalNote := ""
+	if attachmentsParam != "" {
+		query, multimodalNote = enrichQueryFromAttachments(req.Context(), query, attachmentsParam, reqUser.UserID)
+	}
+
 	query = util.CleanUserQuery(query)
+
+	// 搜索设置 · 安全: an operator-blocked query pattern (RE2 regex)
+	// short-circuits the search — empty result, no engine roundtrip
+	if query != "" && isBlockedQuery(query) {
+		h.WriteJSON(w, elastic.SearchResponse{Hits: elastic.Hits{Total: elastic.TotalHits{Value: 0, Relation: "eq"}}}, http.StatusOK)
+		return
+	}
+
+	searchStarted := time.Now()
+	// per-leg diagnostics for the search log: nil-safe, only the /query/_search
+	// face fills it — facets and eval reuse the same legs without logging
+	diag := &searchDiagnostics{}
+	// the UI fires a second /query/_search per keystroke-search just for the
+	// sidebar facet counts (aggs-only body). Logging it would double-count
+	// every search in the ops aggregates and skew the latency percentiles
+	// with cheap facet scans — callers opt out with ?skip_log=true.
+	logEnabled := h.GetParameter(req, "skip_log") != "true"
+	record := func(query, searchType, userID string, total int64, took time.Duration, rewritten bool, diag *searchDiagnostics) {
+		if !logEnabled {
+			return
+		}
+		go recordSearchLog(context.WithoutCancel(req.Context()), query, searchType, userID, total, took, rewritten, diag)
+	}
 
 	//try to collect assistants
 	if query != "" || h.GetParameter(req, "filter") != "" {
-		builder, err := orm.NewQueryBuilderFromRequest(req)
-
-		if err != nil {
-			panic(err)
-		}
-		builder.EnableBodyBytes()
-
-		reqUser := security.MustGetUserFromRequest(req)
 		integrationID := req.Header.Get(core.HeaderIntegrationID)
 
 		result := elastic.SearchResponseWithMeta[core.Document]{}
-		resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, searchType, fuzziness, nil)
-		if err != nil {
-			panic(err)
+		rerankNote := ""
+
+		// settings-driven pagination (搜索设置 · 结果呈现/高级): the
+		// operator's default page size fills in when the request carries
+		// none, the configured per-page cap clamps oversized ?size=, and
+		// the from+size window keeps deep pagination inside the engine's
+		// max_result_window (clamped, not errored). hybrid_rrf sizes its
+		// own recall window downstream and reuses these for the tail.
+		searchCfg := searchSettingsSnapshot()
+		pageFrom := h.GetIntOrDefault(req, "from", 0)
+		pageSize := h.GetIntOrDefault(req, "size", searchCfg.EffectivePageSize())
+		if pageFrom < 0 {
+			pageFrom = 0
 		}
-		util.MustFromJSONBytes(resp.Raw, &result)
+		if pageSize < 1 {
+			pageSize = searchCfg.EffectivePageSize()
+		}
+		if pageSize > searchCfg.EffectiveMaxPageSize() {
+			pageSize = searchCfg.EffectiveMaxPageSize()
+		}
+		if window := searchCfg.EffectiveMaxResultWindow(); pageFrom+pageSize > window {
+			pageFrom = window - pageSize
+			if pageFrom < 0 {
+				pageFrom = 0
+			}
+		}
+
+		// note travels to the client in the Warning header: the semantic
+		// leg is transparent about which route actually ran.
+		note := ""
+		// rewritten: the D8 query-rewrite leg fired for this search
+		rewritten := false
+		if searchType == "hybrid_rrf" {
+			fused, fusedNote, rwApplied, err := h.queryWithRRF(req, query, datasource, integrationID, category, subcategory, richCategory, fuzziness, diag)
+			if err != nil {
+				// with hybrid_rrf as the configured default, an engine
+				// hiccup here would otherwise crash every plain search
+				record(query, searchType, reqUser.UserID,
+					0, time.Since(searchStarted), false, &searchDiagnostics{Error: fmt.Sprintf("hybrid search failed: %v", err)})
+				h.WriteError(w, fmt.Sprintf("hybrid search failed: %v", err), http.StatusInternalServerError)
+				return
+			}
+			result = *fused
+			rerankNote = fusedNote
+			rewritten = rwApplied
+		} else {
+			builder, err := orm.NewQueryBuilderFromRequest(req)
+			if err != nil {
+				record(query, searchType, reqUser.UserID,
+					0, time.Since(searchStarted), false, &searchDiagnostics{Error: fmt.Sprintf("invalid search filter: %v", err)})
+				h.WriteError(w, fmt.Sprintf("invalid search filter: %v", err), http.StatusBadRequest)
+				return
+			}
+			builder.EnableBodyBytes()
+			stripHighlightWithoutQuery(builder, query)
+			// ?tags= controlled-vocabulary facet filter (W4): the legs'
+			// recall respects the same facets the UI offers
+			applyTagsFilter(builder, h.GetParameterOrDefault(req, "tags", ""))
+			// the normalized page rides on the builder: the request args
+			// parser already read from/size, re-assert the clamped values
+			// (one interactive page can never drag unbounded rows out of
+			// the engine — bulk export has dedicated APIs)
+			builder.From(pageFrom)
+			builder.Size(pageSize)
+
+			writeResult := func(resp *orm.SimpleResult) {
+				util.MustFromJSONBytes(resp.Raw, &result)
+			}
+
+			if searchType == "semantic" || searchType == "hybrid" {
+				// the normalized page: same defaults and clamps as the
+				// keyword leg above
+				from, size := pageFrom, pageSize
+
+				switch plan := planSemantic(req.Context()); plan.Route {
+				case semanticRouteEngine:
+					legStart := time.Now()
+					resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, searchType, fuzziness, nil)
+					diag.LegSemanticMS = time.Since(legStart).Milliseconds()
+					if err != nil {
+						record(query, searchType, reqUser.UserID,
+							0, time.Since(searchStarted), false, &searchDiagnostics{Error: fmt.Sprintf("search failed: %v", err)})
+						h.WriteError(w, fmt.Sprintf("search failed: %v", err), http.StatusInternalServerError)
+						return
+					}
+					writeResult(resp)
+					diag.EngineTookMS = int64(result.Took)
+				case semanticRouteClient:
+					builder.From(0)
+					// FIXED recall window, NOT from+size: the rerank order is
+					// not prefix-stable across window sizes (best-chunk
+					// refinement rescoring reorders docs as the candidate set
+					// grows), so slicing [from:from+size] out of a from-dependent
+					// window made scroll pages overlap/repeat. One fixed window
+					// + one slice keeps every page disjoint and stable.
+					builder.Size(maxRRFWindow)
+					legStart := time.Now()
+					reranked, clientNote, err := clientSemanticRecall(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, fuzziness)
+					diag.LegSemanticMS = time.Since(legStart).Milliseconds()
+					if err != nil {
+						record(query, searchType, reqUser.UserID,
+							0, time.Since(searchStarted), false, &searchDiagnostics{Error: fmt.Sprintf("search failed: %v", err)})
+						h.WriteError(w, fmt.Sprintf("search failed: %v", err), http.StatusInternalServerError)
+						return
+					}
+					// 搜索设置 · 语义与 AI: the semantic threshold drops
+					// reranked hits scoring below it (client cosine scores)
+					if sms := searchCfg.SemanticMinScore; sms > 0 {
+						kept := reranked.Hits.Hits[:0]
+						for _, hit := range reranked.Hits.Hits {
+							if float64(hit.Score) >= sms {
+								kept = append(kept, hit)
+							}
+						}
+						reranked.Hits.Hits = kept
+					}
+					paginateHits(reranked, from, size)
+					result = *reranked
+					note = clientNote
+				default:
+					note = plan.Reason
+					legStart := time.Now()
+					resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, "keyword", fuzziness, nil)
+					diag.LegKeywordMS = time.Since(legStart).Milliseconds()
+					if err != nil {
+						record(query, searchType, reqUser.UserID,
+							0, time.Since(searchStarted), false, &searchDiagnostics{Error: fmt.Sprintf("search failed: %v", err)})
+						h.WriteError(w, fmt.Sprintf("search failed: %v", err), http.StatusInternalServerError)
+						return
+					}
+					writeResult(resp)
+					diag.EngineTookMS = int64(result.Took)
+				}
+			} else {
+				legStart := time.Now()
+				resp, err := QueryDocuments(req.Context(), builder, query, datasource, integrationID, category, subcategory, richCategory, searchType, fuzziness, nil)
+				diag.LegKeywordMS = time.Since(legStart).Milliseconds()
+				if err != nil {
+					record(query, searchType, reqUser.UserID,
+						0, time.Since(searchStarted), false, &searchDiagnostics{Error: fmt.Sprintf("search failed: %v", err)})
+					h.WriteError(w, fmt.Sprintf("search failed: %v", err), http.StatusInternalServerError)
+					return
+				}
+				writeResult(resp)
+				diag.EngineTookMS = int64(result.Took)
+			}
+
+		}
+
+		// both branches may carry a note: the semantic plan (which route
+		// actually ran), the rerank verdict (applied/degraded), and the
+		// multimodal verdict (attachments actually searched or not)
+		for _, n := range []string{note, rerankNote, multimodalNote} {
+			if n != "" {
+				w.Header().Add("Warning", n)
+			}
+		}
+
+		// same-content copies collapse onto the highest-ranked hit with a
+		// "N more copies" note (D1.5); deep cleanup stays in the dedup report
+		result.Hits.Hits = foldDuplicateHits(result.Hits.Hits, dismissedPairsCached(req.Context()))
 
 		docsSize := len(result.Hits.Hits)
 		//update icon
 		if docsSize > 0 {
 			for i := range result.Hits.Hits {
+				// wiki hits are curated pages: they carry their own article
+				// URL and provenance, the document refinement would clobber both
+				if result.Hits.Hits[i].Source.Source.ID == "wiki" {
+					continue
+				}
 				RefineDocument(req.Context(), &result.Hits.Hits[i].Source)
 			}
 		}
 
-		size := h.GetIntOrDefault(req, "size", 10)
+		// the datasource facet labels its buckets via top_hits carrying the
+		// indexed source.name — stale after a datasource rename, so refresh
+		// it the same way the hits above are refreshed
+		if agg, ok := result.Aggregations["source.id"]; ok {
+			refreshDatasourceFacetLabels(req.Context(), agg)
+		}
+
+		// 搜索设置 · 安全: run the Data Security masking rules over the
+		// returned hits when the operator opts in (the assistants prepended
+		// below are synthetic and carry no sensitive content)
+		if cfg := searchSettingsSnapshot(); cfg != nil && cfg.ApplyMaskingToResults {
+			for i := range result.Hits.Hits {
+				doc := &result.Hits.Hits[i].Source
+				doc.Title = common.MaskContent(doc.Title)
+				doc.Summary = common.MaskContent(doc.Summary)
+				if doc.Content != "" {
+					doc.Content = common.MaskContent(doc.Content)
+				}
+			}
+		}
+
+		size := pageSize
 		assistantSearchPermission := security.GetSimplePermission(Category, Assistant, string(QuickAISearchAction))
 		perID := security.GetOrInitPermissionKey(assistantSearchPermission)
 
@@ -112,6 +459,60 @@ func (h APIHandler) search(w http.ResponseWriter, req *http.Request, ps httprout
 				result.Hits.Hits = append(newHits, result.Hits.Hits...)
 			}
 		}
+
+		// 搜索设置 · 结果干预: exact-matched pinned rules ride on top of
+		// everything (assistants included) — the operator's curation wins.
+		// First page only: re-prepending on every page would duplicate the
+		// pinned docs each time the client appends the next scroll page
+		// (they can't be deduped against hits from earlier pages here).
+		if pageFrom == 0 {
+			if pinned := h.pinnedHits(req, query, integrationID); len(pinned) > 0 {
+				// 搜索设置 · 安全: pinned hits are fetched and merged AFTER the
+				// masking pass above, so they would bypass it — mask them here
+				// too, curation must not leak what the operator asked to mask
+				if cfg := searchSettingsSnapshot(); cfg != nil && cfg.ApplyMaskingToResults {
+					for i := range pinned {
+						doc := &pinned[i].Source
+						doc.Title = common.MaskContent(doc.Title)
+						doc.Summary = common.MaskContent(doc.Summary)
+						if doc.Content != "" {
+							doc.Content = common.MaskContent(doc.Content)
+						}
+					}
+				}
+				seen := map[string]bool{}
+				for i := range result.Hits.Hits {
+					seen[result.Hits.Hits[i].ID] = true
+				}
+				fresh := make([]elastic.DocumentWithMeta[core.Document], 0, len(pinned))
+				for i := range pinned {
+					if !seen[pinned[i].ID] {
+						fresh = append(fresh, pinned[i])
+					}
+				}
+				result.Hits.Hits = append(fresh, result.Hits.Hits...)
+			}
+		}
+
+		// telemetry (P2/D5): what was asked, which strategy ran, what came
+		// back and how long it took — the overview and the knowledge-gap
+		// loop are built on it; async so the search never waits on it.
+		// WithoutCancel: the goroutine outlives the request, a canceled
+		// request context would kill the log write and the gap check.
+		// The total must also count the hits appended above (assistants,
+		// wiki): GetTotal only reflects the engine count, so a search whose
+		// only hits are appended would otherwise log total=0 / zero_hit
+		// while the user clearly saw results — a false recall signal.
+		if len(result.Hits.Hits) > 0 {
+			diag.TopHit = result.Hits.Hits[0].Source.Title
+			diag.TopScore = float64(result.Hits.Hits[0].Score)
+		}
+		logTotal := result.GetTotal()
+		if hs := int64(len(result.Hits.Hits)); hs > logTotal {
+			logTotal = hs
+		}
+		record(query, searchType, reqUser.UserID,
+			logTotal, time.Since(searchStarted), rewritten, diag)
 
 		api.WriteJSON(w, result, 200)
 	} else {
@@ -156,13 +557,80 @@ func ResolveIcon(
 	return ""
 }
 
+// refreshDatasourceFacetLabels rewrites the top_hits-carried source.name of a
+// "source.id" terms aggregation with the live datasource name. Buckets are
+// keyed by datasource id, so each label is one cached config lookup.
+func refreshDatasourceFacetLabels(ctx context.Context, agg elastic.AggregationResponse) {
+	if len(agg.Buckets) == 0 {
+		return
+	}
+	ctx1 := orm.NewContextWithParent(ctx)
+	ctx1.DirectReadAccess()
+	ctx1.PermissionScope(security.PermissionScopePlatform)
+
+	for _, bucket := range agg.Buckets {
+		datasourceID, ok := bucket["key"].(string)
+		if !ok || datasourceID == "" {
+			continue
+		}
+		datasourceConfig, err := common.GetDatasourceConfig(ctx1, datasourceID)
+		if err != nil || datasourceConfig == nil || datasourceConfig.Name == "" {
+			continue
+		}
+		rewriteBucketDatasourceName(bucket, datasourceConfig.Name)
+	}
+}
+
+// rewriteBucketDatasourceName walks a terms bucket's top_hits payload and
+// replaces the indexed source.name snapshot with the given live name. The
+// payload is generic JSON, so every level is guarded; a bucket without the
+// expected shape is left alone.
+func rewriteBucketDatasourceName(bucket elastic.BucketBase, name string) {
+	top, ok := bucket["top"].(map[string]interface{})
+	if !ok {
+		return
+	}
+	hitsObj, ok := top["hits"].(map[string]interface{})
+	if !ok {
+		return
+	}
+	hits, ok := hitsObj["hits"].([]interface{})
+	if !ok || len(hits) == 0 {
+		return
+	}
+	hit, ok := hits[0].(map[string]interface{})
+	if !ok {
+		return
+	}
+	source, ok := hit["_source"].(map[string]interface{})
+	if !ok {
+		return
+	}
+	if docSource, ok := source["source"].(map[string]interface{}); ok {
+		docSource["name"] = name
+	}
+}
+
 func RefineIcon(ctx context.Context, doc *core.Document) {
 	ctx1 := orm.NewContextWithParent(ctx)
 	ctx1.DirectReadAccess()
 	ctx1.PermissionScope(security.PermissionScopePlatform)
 
 	datasourceConfig, err := common.GetDatasourceConfig(ctx1, doc.Source.ID)
-	if err != nil || datasourceConfig == nil || datasourceConfig.Connector.ConnectorID == "" {
+	if err != nil || datasourceConfig == nil {
+		return
+	}
+
+	// The indexed source.name is an ingestion-time snapshot: after a rename,
+	// every already-indexed document still carries the previous name and the
+	// results list keeps showing it. Refresh from the live config (cached,
+	// invalidation happens on datasource update) — same read-time pattern as
+	// the connector fields below.
+	if datasourceConfig.Name != "" {
+		doc.Source.Name = datasourceConfig.Name
+	}
+
+	if datasourceConfig.Connector.ConnectorID == "" {
 		return
 	}
 
@@ -179,6 +647,23 @@ func RefineIcon(ctx context.Context, doc *core.Document) {
 	// Update doc.Source.Icon
 	if icon := ResolveIcon(connectorConfig, datasourceConfig, doc.Source.Icon); icon != "" {
 		doc.Source.Icon = icon
+	}
+
+	// Stamp the connector reference (read-time only, never persisted): the
+	// detail views render the datasource and its connector as filterable
+	// entity cards, and both configs are already in hand here — no extra
+	// lookups. Guarded so a doc that ever carries the values (e.g. stamped at
+	// ingestion in the future) keeps its own.
+	if doc.Source.ConnectorID == "" {
+		doc.Source.ConnectorID = connectorConfig.ID
+	}
+	if doc.Source.ConnectorName == "" {
+		doc.Source.ConnectorName = connectorConfig.Name
+	}
+	if doc.Source.ConnectorIcon == "" {
+		if icon := common.ParseAndGetIcon(connectorConfig, connectorConfig.Icon); icon != "" {
+			doc.Source.ConnectorIcon = icon
+		}
 	}
 }
 

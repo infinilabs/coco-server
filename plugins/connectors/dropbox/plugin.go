@@ -38,7 +38,10 @@ type Processor struct {
 }
 
 func init() {
-	pipeline.RegisterProcessorPlugin(NAME, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(NAME, New, nil)
+	// chain-root driver (batch scope): fetches from its datasource and
+	// emits into the indexing queue — no record contract beyond scope
+	pipeline.RegisterProcessorContract(NAME, pipeline.RecordContract{Scope: pipeline.ScopeBatch})
 	api.HandleUIMethod(api.GET, "/connector/:id/dropbox/connect", connect, api.RequireLogin())
 	api.HandleUIMethod(api.GET, "/connector/:id/dropbox/oauth_redirect", oAuthRedirect, api.RequireLogin())
 }

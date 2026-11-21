@@ -25,7 +25,7 @@ func (p *FaceExtractionProcessor) extractFacesAndRecognizeNames(ctx context.Cont
 
 	log.Infof("[%s] starting face extraction for document [%s/%s]", p.Name(), doc.Title, doc.ID)
 
-	surroundingTextMap, err := extractSurroundingText(ctx, p.config.TikaEndpoint, p.config.TikaTimeoutInSeconds, localPath, doc, contentType)
+	surroundingTextMap, err := extractSurroundingText(ctx, resolveTikaEndpoint(p.config.TikaEndpoint), resolveTikaTimeout(p.config.TikaTimeoutInSeconds), localPath, doc, contentType)
 	if err != nil {
 		return fmt.Errorf("failed to extract surrounding text: %w", err)
 	}
@@ -129,7 +129,7 @@ func (p *FaceExtractionProcessor) extractFacesAndRecognizeNames(ctx context.Cont
 // extractEmbeddedImages unpacks all embedded images from localPath using Tika
 // and returns their paths in tempDir.
 func (p *FaceExtractionProcessor) extractEmbeddedImages(ctx context.Context, localPath, tempDir string) ([]string, error) {
-	if err := fileproc.TikaUnpackAllTo(ctx, p.config.TikaEndpoint, localPath, tempDir, p.config.TikaTimeoutInSeconds); err != nil {
+	if err := fileproc.TikaUnpackAllTo(ctx, resolveTikaEndpoint(p.config.TikaEndpoint), localPath, tempDir, resolveTikaTimeout(p.config.TikaTimeoutInSeconds)); err != nil {
 		return nil, fmt.Errorf("tika unpack failed: %w", err)
 	}
 

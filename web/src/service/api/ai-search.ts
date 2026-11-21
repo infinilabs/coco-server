@@ -35,6 +35,24 @@ export function fetchRecommends(tag: string | undefined, options?: any) {
   });
 }
 
+export function fetchHotSearches(options?: any) {
+  return request({
+    ...(options || {}),
+    method: 'get',
+    url: `/query/_hot`
+  });
+}
+
+// 相关搜索 (方案 B · 词面关联): GET /query/_related?q= — search-log
+// lexical neighbors for the result-page sidebar
+export function fetchRelatedSearches(query: string, options?: any) {
+  return request({
+    ...(options || {}),
+    method: 'get',
+    url: `/query/_related?q=${encodeURIComponent(query)}`
+  });
+}
+
 export function fetchFieldsMeta(fields: string[], options?: any) {
   return request({
     ...(options || {}),

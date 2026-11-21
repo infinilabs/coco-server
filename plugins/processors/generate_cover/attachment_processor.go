@@ -12,9 +12,12 @@ import (
 
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
+	"infini.sh/coco/core/codecs"
 	"infini.sh/coco/modules/attachment"
+	utils "infini.sh/coco/plugins/processors"
 	"infini.sh/coco/plugins/processors/fileproc"
 	fwconfig "infini.sh/framework/core/config"
+	"infini.sh/framework/core/event"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/kv"
 	"infini.sh/framework/core/orm"
@@ -28,7 +31,8 @@ import (
 const AttachmentProcessorName = "generate_attachment_cover"
 
 func init() {
-	pipeline.RegisterProcessorPlugin(AttachmentProcessorName, NewAttachmentProcessor)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(AttachmentProcessorName, NewAttachmentProcessor, AttachmentCoverConfig{})
+	pipeline.RegisterProcessorContract(AttachmentProcessorName, utils.AttachmentRecordContract(pipeline.GranularityRecord))
 }
 
 // AttachmentCoverConfig holds the configuration for GenerateAttachmentCoverProcessor.
@@ -57,7 +61,53 @@ func (p *GenerateAttachmentCoverProcessor) Name() string {
 	return AttachmentProcessorName
 }
 
+// ProcessBatch: record-convention channel (attachment namespace). The
+// record's attachment subtree is serialized into a synthetic message and
+// flows through the exact same processMessage path as the legacy
+// convention — one core, two doors.
+func (p *GenerateAttachmentCoverProcessor) ProcessBatch(ctx *pipeline.Context, records []*event.Event) error {
+	for _, rec := range records {
+		if rec == nil {
+			continue
+		}
+		if global.ShuttingDown() {
+			return fmt.Errorf("shutting down")
+		}
+		v, err := rec.Fields.GetValue(codecs.FieldAttachment)
+		if err != nil || v == nil {
+			continue // not an attachment-family record
+		}
+		b, err := util.ToJSONBytes(v)
+		if err != nil {
+			continue
+		}
+		updated, err := p.processMessage(ctx.Context, queue.Message{Data: b})
+		if err != nil {
+			log.Errorf("processor [%s] failed to process attachment record: %v", p.Name(), err)
+			continue
+		}
+		if updated == nil {
+			continue // skipped
+		}
+		nb, err := util.ToJSONBytes(updated)
+		if err != nil {
+			continue
+		}
+		nm := util.MapStr{}
+		if err := util.FromJSONBytes(nb, &nm); err != nil {
+			continue
+		}
+		rec.Fields[codecs.FieldAttachment] = nm
+	}
+	return nil
+}
+
 func (p *GenerateAttachmentCoverProcessor) Process(ctx *pipeline.Context) error {
+	// record-scope path (attachment family)
+	if rec, ok := pipeline.CurrentRecord(ctx); ok {
+		return p.ProcessBatch(ctx, []*event.Event{rec})
+	}
+
 	obj := ctx.Get(p.config.MessageField)
 	if obj == nil {
 		log.Warnf("processor [%s] receives an empty pipeline context", p.Name())

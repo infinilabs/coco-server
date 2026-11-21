@@ -66,6 +66,12 @@ export type MappedType<R extends ResponseType, JsonType = any> = R extends keyof
 
 export type CustomAxiosRequestConfig<R extends ResponseType = 'json'> = Omit<AxiosRequestConfig, 'responseType'> & {
   responseType?: R;
+  /**
+   * Suppress the app-level error toast for this request — the error
+   * interceptor (see src/service/request/error.ts) skips message display
+   * and rejects as usual, so the caller handles the failure itself.
+   */
+  ignoreError?: boolean;
 };
 
 export interface RequestInstanceCommon<T> {

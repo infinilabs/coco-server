@@ -9,7 +9,7 @@
 #// Log in to account admin
 POST /account/login
 {
-  "email": "admin@mail.com",
+  "login": "admin@mail.com",
   "password": "$[[env.ADMIN_PASSWORD]]"
 }
 # assert: (200, {status: "ok"}),
@@ -339,7 +339,7 @@ POST /resources/document/$[[env.DATASOURCE_2_DOCUMENT_FILE_D_ID]]/share
 #// Log in to account a
 POST /account/login
 {
-  "email": "a@mail.com",
+  "login": "a@mail.com",
   "password": "$[[env.A_PASSWORD]]"
 }
 # assert: (200, {status: "ok"}),
@@ -431,7 +431,7 @@ POST /query/_search?query=file_a&size=100
 #// Log in to account b
 POST /account/login
 {
-  "email": "b@mail.com",
+  "login": "b@mail.com",
   "password": "$[[env.B_PASSWORD]]"
 }
 # assert: (200, {status: "ok"}),
@@ -524,7 +524,7 @@ POST /query/_search?query=file_a&size=100
 #// Log in to account c
 POST /account/login
 {
-  "email": "c@mail.com",
+  "login": "c@mail.com",
   "password": "$[[env.C_PASSWORD]]"
 }
 # assert: (200, {status: "ok"}),
@@ -617,7 +617,7 @@ POST /query/_search?query=file_a&size=100
 #// Log in to account d
 POST /account/login
 {
-  "email": "d@mail.com",
+  "login": "d@mail.com",
   "password": "$[[env.D_PASSWORD]]"
 }
 # assert: (200, {status: "ok"}),

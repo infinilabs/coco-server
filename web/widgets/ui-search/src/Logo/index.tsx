@@ -28,7 +28,7 @@ export const Logo: FC<LogoProps> = (props) => {
     }
 
     return (
-        <div className={`w-full h-full flex items-center justify-left max-w-inherit max-h-inherit object-contain`}>
+        <div className={`w-full h-full flex items-center justify-center max-w-inherit max-h-inherit object-contain`}>
             <img
                 src={isMobile && !isHome ? logos.mobile : logos.logo}
                 className={`${isMobile ? 'w-full h-full' : 'h-full w-auto'} cursor-pointer object-contain`}

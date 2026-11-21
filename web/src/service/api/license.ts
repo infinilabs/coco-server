@@ -3,7 +3,10 @@ import { request } from '../request';
 export function fetchLicense() {
   return request({
     method: 'get',
-    url: `/_license/info`
+    url: `/_license/info`,
+    // The backend may not provide a license module (e.g. coco server);
+    // fail silently so the License dialog just shows empty info.
+    ignoreError: true
   });
 }
 
@@ -13,7 +16,8 @@ export function applyLicense(code: string) {
       license: code
     },
     method: 'post',
-    url: `/_license/apply`
+    url: `/_license/apply`,
+    ignoreError: true
   });
 }
 

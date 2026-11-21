@@ -19,7 +19,10 @@ type Plugin struct {
 }
 
 func init() {
-	pipeline.RegisterProcessorPlugin(ConnectorName, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(ConnectorName, New, nil)
+	// chain-root driver (batch scope): fetches from its datasource and
+	// emits into the indexing queue — no record contract beyond scope
+	pipeline.RegisterProcessorContract(ConnectorName, pipeline.RecordContract{Scope: pipeline.ScopeBatch})
 }
 
 // New creates a new instance of the Milvus connector plugin.

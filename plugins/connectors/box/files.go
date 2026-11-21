@@ -6,11 +6,13 @@ package box
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/modules/common/fingerprint"
 	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/util"
 
@@ -217,6 +219,10 @@ func (processor *Processor) processFile(
 		doc.Created = &now
 		doc.Updated = &now
 	}
+
+	// Stamp source-side change signal (date + size): lets the collection
+	// skip gate drop unchanged files before enrichment
+	doc.SourceFingerprint = fingerprint.SourceMeta("box", file.Date.Format(time.RFC3339Nano), strconv.FormatInt(file.ItemSize, 10))
 
 	// Set content - use description if available
 	doc.Content = file.Description

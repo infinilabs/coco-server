@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import {
+  BookmarkPlus,
   Check,
   Copy,
+  Flag,
   ThumbsUp,
   ThumbsDown,
   Volume,
@@ -10,6 +12,7 @@ import {
   Volume2,
   RotateCcw,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { copyToClipboard } from "../utils";
 
@@ -20,6 +23,12 @@ interface MessageActionsProps {
   actionIconSize?: number;
   copyButtonId?: string;
   onResend?: () => void;
+  /** host hook: persist this answer into a knowledge base as a draft article */
+  onSaveToWiki?: (payload: { content: string; id: string }) => void;
+  /** host hook: report this answer as wrong/outdated (governance correction) */
+  onCorrectAnswer?: (payload: { content: string; id: string }) => void;
+  /** host hook: thumbs-up/down capture (wiki experience layer) */
+  onVoteAnswer?: (payload: { id: string; content: string; feedback: 'positive' | 'negative' }) => void;
 }
 
 const RefreshOnlyIds = ["timedout", "error"];
@@ -31,7 +40,11 @@ export const MessageActions = ({
   actionIconSize,
   copyButtonId,
   onResend,
+  onSaveToWiki,
+  onCorrectAnswer,
+  onVoteAnswer,
 }: MessageActionsProps) => {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
@@ -90,13 +103,19 @@ export const MessageActions = ({
   };
 
   const handleLike = () => {
-    setLiked(!liked);
+    const next = !liked;
+    setLiked(next);
     setDisliked(false);
+    // only an ACTIVE vote is a signal — un-voting is a retract, not a
+    // reverse vote, and the experience layer has no retract yet
+    if (next) onVoteAnswer?.({ id, content, feedback: 'positive' });
   };
 
   const handleDislike = () => {
-    setDisliked(!disliked);
+    const next = !disliked;
+    setDisliked(next);
     setLiked(false);
+    if (next) onVoteAnswer?.({ id, content, feedback: 'negative' });
   };
 
   const handleSpeak = () => {
@@ -189,6 +208,36 @@ export const MessageActions = ({
               }}
             />
           )}
+        </button>
+      )}
+      {!isRefreshOnly && content && onSaveToWiki && (
+        <button
+          onClick={() => onSaveToWiki({ content, id })}
+          title={t("labels.saveToWiki")}
+          className="bg-transparent border-0 cursor-pointer p-4px hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+        >
+          <BookmarkPlus
+            className="w-4 h-4 text-[#666666] dark:text-[#A3A3A3] hover:text-[#1990FF] dark:hover:text-[#1990FF]"
+            style={{
+              width: actionIconSize,
+              height: actionIconSize,
+            }}
+          />
+        </button>
+      )}
+      {!isRefreshOnly && content && onCorrectAnswer && (
+        <button
+          onClick={() => onCorrectAnswer({ content, id })}
+          title={t("labels.correctAnswer")}
+          className="bg-transparent border-0 cursor-pointer p-4px hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+        >
+          <Flag
+            className="w-4 h-4 text-[#666666] dark:text-[#A3A3A3] hover:text-[#FA8C16] dark:hover:text-[#FA8C16]"
+            style={{
+              width: actionIconSize,
+              height: actionIconSize,
+            }}
+          />
         </button>
       )}
       {onResend && (
