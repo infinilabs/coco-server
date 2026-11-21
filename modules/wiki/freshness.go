@@ -6,8 +6,11 @@ package wiki
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -76,17 +79,18 @@ func freshnessCheck(ctx context.Context) {
 
 	since := readFreshnessWatermark()
 	sweep := freshnessSweep(ctx, llm, since)
-	log.Infof("wiki: freshness check found %d changed documents, regenerated %d pages, notified %d",
-		sweep.changedDocs, sweep.regenerated, sweep.notified)
+	log.Infof("wiki: freshness check found %d changed documents, regenerated %d pages, skipped %d (source material unchanged), notified %d",
+		sweep.changedDocs, sweep.regenerated, sweep.skippedUnchanged, sweep.notified)
 
 	writeFreshnessWatermark(sweep.highWater)
 }
 
 type freshnessStats struct {
-	changedDocs int
-	regenerated int
-	notified    int
-	highWater   time.Time
+	changedDocs      int
+	regenerated      int
+	skippedUnchanged int
+	notified         int
+	highWater        time.Time
 }
 
 // freshnessSweep is the testable core of the loop: it walks changed
@@ -125,9 +129,29 @@ func freshnessSweep(ctx context.Context, llm llms.Model, since time.Time) freshn
 				break
 			}
 			article := &articles[j]
-			if err := regenerateStaleArticle(ctx, llm, article, mergeArticleDocs(ctx, article, kbChanged), kb.GenerationLanguage); err != nil {
+
+			// source-material fingerprint guard: some connectors re-stamp
+			// every document's `updated` on each sync even when the content
+			// is byte-identical, so the watermark alone keeps "finding"
+			// unchanged sources every run — each hit used to cost a full
+			// LLM regeneration plus a pending-review snapshot. Compare the
+			// material this article would regenerate from against the last
+			// regeneration's fingerprint and skip when identical.
+			docs := mergeArticleDocs(ctx, article, kbChanged)
+			fp := mergedDocsFingerprint(docs)
+			if fp != "" && fp == readArticleSourceFingerprint(article.ID) {
+				log.Debugf("wiki: freshness skip %q, source material unchanged", article.Title)
+				processed++
+				stats.skippedUnchanged++
+				continue
+			}
+
+			if err := regenerateStaleArticle(ctx, llm, article, docs, kb.GenerationLanguage); err != nil {
 				log.Warnf("wiki: freshness regeneration of %q failed: %v", article.Title, err)
 				continue
+			}
+			if fp != "" {
+				writeArticleSourceFingerprint(article.ID, fp)
 			}
 			processed++
 			stats.regenerated++
@@ -357,6 +381,65 @@ func writeAutoUpdatedVersion(article *core.WikiArticle, content, summary string)
 		pruneOldVersions(article.ID)
 	}
 	return nil
+}
+
+/* ---------------- source-material fingerprint ---------------- */
+
+// mergedDocsFingerprint hashes the exact material a regeneration would
+// consume: document ids + full content, order-independent. Two sweeps
+// seeing the same material must not regenerate twice.
+func mergedDocsFingerprint(docs []core.Document) string {
+	if len(docs) == 0 {
+		return ""
+	}
+	contents := make(map[string]string, len(docs))
+	ids := make([]string, 0, len(docs))
+	for i := range docs {
+		if docs[i].ID == "" {
+			continue
+		}
+		ids = append(ids, docs[i].ID)
+		contents[docs[i].ID] = docs[i].Content
+	}
+	if len(ids) == 0 {
+		return ""
+	}
+	sort.Strings(ids)
+	h := sha256.New()
+	for _, id := range ids {
+		h.Write([]byte(id))
+		h.Write([]byte{0})
+		h.Write([]byte(contents[id]))
+		h.Write([]byte{0})
+	}
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// readArticleSourceFingerprint returns the fingerprint stored at the last
+// successful regeneration, or "" when never regenerated (or kv unavailable
+// — a missing store degrades to always-regenerate, never to data loss).
+func readArticleSourceFingerprint(articleID string) string {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Warnf("wiki: freshness fingerprint read unavailable, kv not ready: %v", r)
+		}
+	}()
+	value, err := kv.GetValue(freshnessKVBucket, []byte("fp/"+articleID))
+	if err != nil || len(value) == 0 {
+		return ""
+	}
+	return string(value)
+}
+
+func writeArticleSourceFingerprint(articleID, fp string) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Warnf("wiki: freshness fingerprint write skipped, kv unavailable: %v", r)
+		}
+	}()
+	if err := kv.AddValue(freshnessKVBucket, []byte("fp/"+articleID), []byte(fp)); err != nil {
+		log.Warnf("wiki: freshness fingerprint write failed for %s: %v", articleID, err)
+	}
 }
 
 /* ---------------- watermark ---------------- */

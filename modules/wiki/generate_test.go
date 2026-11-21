@@ -366,6 +366,10 @@ func TestWikiFlow_Freshness(t *testing.T) {
 	kbH, artH, h := setupFlow(t)
 	_ = h
 
+	// the fingerprint guard persists per-article state in kv — register the
+	// in-memory store so the skip path is exercised (shared with compileops)
+	setupCompileOpsKV(t)
+
 	// isolate this test's datasources from the other flow tests (shared store)
 	w, out := call(t, kbH.Create, "POST", "/wiki/kb/", `{"name":"Fresh KB","datasource_ids":["ds-fresh"]}`)
 	require.Equal(t, http.StatusOK, w.Code)
@@ -407,6 +411,15 @@ func TestWikiFlow_Freshness(t *testing.T) {
 	assert.Equal(t, core.WikiChangeAutoUpdated, latest["change_type"])
 	assert.Contains(t, latest["content"], "## Overview")
 	assert.Contains(t, latest["change_summary"], "freshness")
+
+	// fingerprint guard: an immediate re-sweep sees the same source material
+	// (documents unchanged, connector only re-stamped their timestamps) and
+	// must skip regeneration — no second snapshot, no second LLM call
+	stats2 := freshnessSweep(context.Background(), fake, now.Add(-time.Hour))
+	assert.Greater(t, stats2.changedDocs, 0, "watermark still finds the re-stamped docs")
+	assert.Equal(t, 0, stats2.regenerated, "unchanged source material must not regenerate")
+	assert.Equal(t, 1, stats2.skippedUnchanged)
+	assert.Len(t, listVersions(t, h, artID), 4, "no extra version row on skip")
 }
 
 func TestSanitizeAIArtifactDebris(t *testing.T) {
