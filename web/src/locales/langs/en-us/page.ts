@@ -508,6 +508,9 @@ const page: App.I18n.Schema['translation']['page'] = {
       edit: 'Edit',
       versions: 'Versions',
       versionView: 'View',
+      versionPending: 'Pending',
+      versionPendingTip:
+        'Freshness-check snapshot awaiting review — never applied to the live page; the diff skips it and compares with the previous live version',
       versionRestore: 'Restore',
       versionRestoreConfirm: 'Restore the body to v{{version}}? The current content is snapshotted into version history first, so this is revertible.',
       versionRestoreDone: 'Restored to v{{version}}',

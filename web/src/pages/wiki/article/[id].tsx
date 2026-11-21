@@ -1785,6 +1785,11 @@ export function Component() {
                   <div className='min-w-0 flex-1'>
                     <div className='flex flex-wrap items-center gap-2'>
                       <Tag color={CHANGE_TYPE_COLOR[v.change_type]}>{t(`page.wiki.changeType.${v.change_type}`)}</Tag>
+                      {v.change_type === 'auto-updated' && v.pending && (
+                        <Tooltip title={t('page.wiki.article.versionPendingTip')}>
+                          <Tag color='orange'>{t('page.wiki.article.versionPending')}</Tag>
+                        </Tooltip>
+                      )}
                       <span className='text-sm font-medium'>{`v${v.version}`}</span>
                       <span className='text-xs text-gray-400'>{v.created_at}</span>
                       <span className='text-xs text-gray-400'>{v.created_by}</span>
@@ -1806,19 +1811,29 @@ export function Component() {
                         }}
                       />
                     </Tooltip>
-                    {idx < versions.length - 1 && (
-                      <Tooltip title={t('page.wiki.diff.view')}>
-                        <Button
-                          size='small'
-                          type='text'
-                          className='px-1'
-                          icon={<DiffOutlined />}
-                          onClick={() => {
-                            setDiffPair({ older: versions[idx + 1], newer: v });
-                          }}
-                        />
-                      </Tooltip>
-                    )}
+                    {(() => {
+                      // diff against the previous *live* lineage step — skip
+                      // freshness snapshots still awaiting review (their
+                      // content never reached the live page, so diffing
+                      // against them shows a misleading full rewrite)
+                      const older = versions
+                        .slice(idx + 1)
+                        .find(p => !(p.change_type === 'auto-updated' && p.pending));
+                      if (!older) return null;
+                      return (
+                        <Tooltip title={t('page.wiki.diff.view')}>
+                          <Button
+                            size='small'
+                            type='text'
+                            className='px-1'
+                            icon={<DiffOutlined />}
+                            onClick={() => {
+                              setDiffPair({ older, newer: v });
+                            }}
+                          />
+                        </Tooltip>
+                      );
+                    })()}
                     {/* the newest version is the live content — nothing to
                         restore back to */}
                     {idx > 0 && (

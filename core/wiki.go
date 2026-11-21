@@ -467,6 +467,11 @@ type WikiVersion struct {
 	ChangeSummary string `json:"change_summary,omitempty" elastic_mapping:"change_summary:{type:text}"`
 	Content       string `json:"content,omitempty" elastic_mapping:"content:{enabled:false}"`
 	CreatedBy     string `json:"created_by,omitempty" elastic_mapping:"created_by:{type:keyword}"`
+	// Pending marks an auto-updated freshness snapshot that is still awaiting
+	// review — its content never reached the live page. Response-only flag
+	// (never persisted: the version writers leave it false and omitempty drops
+	// it), the version list API sets it so the diff can skip unadopted drafts.
+	Pending bool `json:"pending,omitempty"`
 }
 
 // WikiArticleAttachment is the resolved metadata of one file hung on a wiki

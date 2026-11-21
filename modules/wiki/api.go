@@ -530,6 +530,29 @@ func (h *APIHandler) articleVersions(w http.ResponseWriter, req *http.Request, p
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// freshness review snapshots (change_type=auto-updated) whose content
+	// never reached the live page — flag them so the version diff skips them
+	// as the "previous" base instead of showing a full-rewrite diff against
+	// an unadopted draft. Adoption always lands the folded content as a new
+	// version row (foldRebuildContent → snapshotPipelineWrite), so a snapshot
+	// is "never live" iff no later row carries the same content. A snapshot
+	// whose content IS live (folded, or restored via _restore) must NOT be
+	// skipped — it is part of the live lineage then.
+	for i := range versions {
+		if versions[i].ChangeType != core.WikiChangeAutoUpdated {
+			continue
+		}
+		adopted := false
+		for j := range versions {
+			if versions[j].Version > versions[i].Version && versions[j].Content == versions[i].Content {
+				adopted = true
+				break
+			}
+		}
+		versions[i].Pending = !adopted
+	}
+
 	h.WriteOKJSON(w, util.MapStr{
 		"data":  versions,
 		"total": len(versions),

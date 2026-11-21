@@ -98,7 +98,8 @@ const normalizeVersion = (src: any): Api.Wiki.Version => ({
   change_summary: src?.change_summary,
   content: src?.content ?? '',
   created_by: src?.created_by ?? '',
-  created_at: fmtDate(src?.created)
+  created_at: fmtDate(src?.created),
+  pending: Boolean(src?.pending)
 });
 
 /* ---------------- KBs ---------------- */

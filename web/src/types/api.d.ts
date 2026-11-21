@@ -500,6 +500,8 @@ declare namespace Api {
       content: string;
       created_by: string;
       created_at: string;
+      /** freshness snapshot still awaiting review — never reached live content */
+      pending?: boolean;
     }
 
     interface LinkedPage {
