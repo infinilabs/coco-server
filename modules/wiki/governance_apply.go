@@ -1072,7 +1072,7 @@ func findArticleByTitle(ctx *orm.Context, kbID, title string) *core.WikiArticle 
 	}
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1).
 		Filter(orm.TermQuery("kb_id", kbID), orm.TermQuery("title", title)).
-		Include("id", "title"))
+		Include("id", "title", "summary", "content", "outline"))
 	if err != nil || res == nil {
 		return nil
 	}
