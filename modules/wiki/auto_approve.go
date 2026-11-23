@@ -92,6 +92,32 @@ func autoApproveBodyChars(p *core.WikiGovernanceProposal) int {
 	return n
 }
 
+// currentArticleBodyChars returns the rune length of the article's live
+// content, 0 when the article is missing or unreadable (no shrink guard).
+func currentArticleBodyChars(parent context.Context, articleID string) int {
+	acx := orm.NewContextWithParent(parent)
+	acx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	orm.WithModel(acx, &core.WikiArticle{})
+	var cur core.WikiArticle
+	cur.SetID(articleID)
+	ok, err := orm.GetV2(acx, &cur)
+	if err != nil || !ok {
+		return 0
+	}
+	return len([]rune(cur.Content))
+}
+
+// compilePatchBodyChars returns the rune length of a compile_patch's full
+// replacement body (Evidence["content"]); 0 when absent — such proposals
+// fall back to the gate, never bypass it.
+func compilePatchBodyChars(p *core.WikiGovernanceProposal) int {
+	if p == nil || p.Evidence == nil {
+		return 0
+	}
+	s, _ := p.Evidence["content"].(string)
+	return len([]rune(strings.TrimSpace(s)))
+}
+
 func init() {
 	interval := strings.TrimSpace(os.Getenv("WIKI_AUTO_APPROVE_INTERVAL"))
 	if interval == "" {
@@ -146,7 +172,7 @@ func autoApproveSweep(ctx context.Context) {
 	}
 
 	applied, skipped, failed := 0, 0, 0
-	skipGated, skipManualKB, skipThin := 0, 0, 0
+	skipGated, skipManualKB, skipThin, skipShrink := 0, 0, 0, 0
 	for i := range proposals {
 		p := &proposals[i]
 		// work signals stay human-gated in every mode: corrections and
@@ -187,6 +213,23 @@ func autoApproveSweep(ctx context.Context) {
 			skipThin++
 			continue
 		}
+		// shrink guard: an agent compile_patch that would replace a
+		// substantially longer live body with a fraction of it is almost
+		// always a mis-read (the agent perceived an empty page) — hand it
+		// to a human instead of silently overwriting a full article with a
+		// stub. compile_patch has no thin-page floor (evidence carries the
+		// full replacement body in "content", not sections), so this is its
+		// only automatic quality gate.
+		if p.Type == core.WikiGovernanceCompilePatch && p.ArticleID != "" {
+			newChars := compilePatchBodyChars(&full)
+			if curChars := currentArticleBodyChars(ctx, p.ArticleID); curChars > 0 && newChars*2 < curChars {
+				skipped++
+				skipShrink++
+				log.Warnf("wiki: auto-approve shrink guard [%s/%s]: new=%d current=%d chars — gated for manual review",
+					p.Type, p.ID, newChars, curChars)
+				continue
+			}
+		}
 		if _, _, aerr := applyOneProposal(actx, &full, "auto-approve"); aerr != nil {
 			failed++
 			log.Warnf("wiki: auto-approve apply [%s/%s] failed: %v", p.Type, p.ID, aerr)
@@ -194,9 +237,9 @@ func autoApproveSweep(ctx context.Context) {
 		}
 		applied++
 	}
-	if applied > 0 || failed > 0 {
-		log.Infof("wiki: auto-approve sweep — applied %d, skipped %d, failed %d (took %s)",
-			applied, skipped, failed, time.Since(start).Round(time.Second))
+	if applied > 0 || failed > 0 || skipShrink > 0 {
+		log.Infof("wiki: auto-approve sweep — applied %d, skipped %d (gated %d, manual-kb %d, thin %d, shrink %d), failed %d (took %s)",
+			applied, skipped, skipGated, skipManualKB, skipThin, skipShrink, failed, time.Since(start).Round(time.Second))
 	} else if skipped > 0 {
 		// full-skip ticks used to be completely silent, which made stuck
 		// queues indistinguishable from a dead sweep — say why, once
