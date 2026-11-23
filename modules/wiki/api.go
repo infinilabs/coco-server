@@ -658,6 +658,10 @@ func (h *APIHandler) restoreArticleVersion(w http.ResponseWriter, req *http.Requ
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	// the restored body can carry different wikilinks than the live one —
+	// re-derive linked_pages/lint/mentions or capsules resolve against the
+	// superseded link set (same gap fixed in foldRebuildContent)
+	persistLinkedPages(&article)
 	if err := writeVersionSnapshot(&article, nextVersionNumber(article.ID), core.WikiChangeHumanEdited,
 		fmt.Sprintf("恢复至 v%d", versionNo)); err != nil {
 		log.Warnf("wiki: restore version snapshot failed for [%s]: %v", article.Title, err)

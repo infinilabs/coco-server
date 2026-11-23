@@ -660,6 +660,10 @@ func foldRebuildContent(ctx *orm.Context, article *core.WikiArticle, content, ou
 	if err := orm.Update(ctx, article); err != nil {
 		return "", err
 	}
+	// the rebuild rewrites the body — linked_pages/lint/mentions must be
+	// re-derived or capsules resolve against the pre-rebuild link set while
+	// the content carries new wikilinks (gray capsules, empty repair modal)
+	persistLinkedPages(article)
 	snapshotPipelineWrite(article, fmt.Sprintf("治理重建（提案 %s）", proposalID))
 	return outcome, nil
 }
