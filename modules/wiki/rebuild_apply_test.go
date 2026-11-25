@@ -13,8 +13,8 @@ import (
 
 	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
-	"infini.sh/framework/modules/sqlite"
 	"infini.sh/framework/core/util"
+	"infini.sh/framework/modules/sqlite"
 
 	"infini.sh/coco/core"
 )

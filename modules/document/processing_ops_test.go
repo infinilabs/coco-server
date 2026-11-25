@@ -39,7 +39,7 @@ func seedStatusDoc(t *testing.T, id, status, errMsg string, datasource string) {
 	t.Helper()
 	w0Capture(t) // swallow create-path enqueue
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
 	doc := core.Document{}
 	doc.ID = id
@@ -102,7 +102,7 @@ func TestDocumentChunksListing(t *testing.T) {
 	w0Capture(t)
 	// seed a doc with structured chunks directly
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
 	doc := core.Document{}
 	doc.ID = "chk-1"

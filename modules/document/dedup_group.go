@@ -70,7 +70,7 @@ func (h *APIHandler) dedupGroupConfirmHandler(w http.ResponseWriter, req *http.R
 	key := DedupGroupKey(ids)
 
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(ctx, &core.DocumentDedupGroup{})
 
@@ -104,7 +104,7 @@ func (h *APIHandler) dedupGroupRemoveHandler(w http.ResponseWriter, req *http.Re
 		return
 	}
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(ctx, &core.DocumentDedupGroup{})
 

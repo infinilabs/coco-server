@@ -63,7 +63,7 @@ func KBDocIDsFor(parent *orm.Context, kbID string) []string {
 	kbDocScopeMu.RUnlock()
 
 	ctx := orm.NewContextWithParent(parent)
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 
 	orm.WithModel(ctx, &WikiKnowledgeBase{})
 	var kb WikiKnowledgeBase
@@ -176,7 +176,7 @@ var (
 
 func buildKBDocReverse(parent *orm.Context) (map[string][]string, error) {
 	ctx := orm.NewContextWithParent(parent)
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &WikiKnowledgeBase{})
 	res, err := orm.SearchV2(ctx, orm.NewQuery().From(0).Size(100))
 	if err != nil || res == nil {

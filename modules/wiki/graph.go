@@ -32,20 +32,20 @@ const (
 	graphMaxEntities     = 800
 	graphMaxEdges        = 2000
 	graphEntityChunkSize = 200 // ES terms-query safe batch
-// graphMaxQueryEntities caps the ?q= focus entity pull: the canvas
-// surfaces the query's own entities first, relations stay one hop.
-graphMaxQueryEntities = 8
-// graphQueryCitedArticles bounds the article pull when the scope comes
-// from the query alone (search-page transient states keep the panel
-// alive with article_ids empty — entity-only hits). Without the cap a
-// hub entity cited by hundreds of pages would drag the whole KB back
-// onto the canvas. Title-sorted first N keeps output stable.
-graphQueryCitedArticles = 12
-// graphQueryNeighborCap bounds the one-hop relation expansion of the
-// query-matched seeds: the transient canvas answers "what did I hit and
-// what directly touches it" — a hub's whole neighborhood would swell it
-// right back. Sorted-id truncation keeps output stable.
-graphQueryNeighborCap = 24
+	// graphMaxQueryEntities caps the ?q= focus entity pull: the canvas
+	// surfaces the query's own entities first, relations stay one hop.
+	graphMaxQueryEntities = 8
+	// graphQueryCitedArticles bounds the article pull when the scope comes
+	// from the query alone (search-page transient states keep the panel
+	// alive with article_ids empty — entity-only hits). Without the cap a
+	// hub entity cited by hundreds of pages would drag the whole KB back
+	// onto the canvas. Title-sorted first N keeps output stable.
+	graphQueryCitedArticles = 12
+	// graphQueryNeighborCap bounds the one-hop relation expansion of the
+	// query-matched seeds: the transient canvas answers "what did I hit and
+	// what directly touches it" — a hub's whole neighborhood would swell it
+	// right back. Sorted-id truncation keeps output stable.
+	graphQueryNeighborCap = 24
 )
 
 type GraphNode struct {

@@ -13,8 +13,8 @@ import (
 
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/api"
-	"infini.sh/framework/core/elastic"
 	httprouter "infini.sh/framework/core/api/router"
+	"infini.sh/framework/core/elastic"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
@@ -302,4 +302,3 @@ func truncateTail(s string, n int) string {
 	}
 	return s[:n] + "..."
 }
-

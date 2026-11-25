@@ -47,7 +47,7 @@ func projectionSetup(t *testing.T) {
 	t.Cleanup(func() { projectionConfigFn = restore })
 	projectionConfigFn = func() core.Config {
 		return core.Config{
-			ServerInfo:    &core.ServerInfo{Endpoint: "http://coco.test"},
+			ServerInfo:     &core.ServerInfo{Endpoint: "http://coco.test"},
 			SearchSettings: &core.SearchSettings{WikiProjection: true},
 		}
 	}

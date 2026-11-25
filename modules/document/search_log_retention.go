@@ -73,8 +73,7 @@ func sweepSearchLogs(ctx context.Context) {
 	cutoff := searchLogRetentionCutoff(time.Now(), days)
 
 	octx := orm.NewContextWithParent(ctx)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	octx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	octx.DirectAccess()
 	orm.WithModel(octx, &core.SearchLog{})
 
 	resp, err := orm.DeleteByQuery(octx, orm.NewQuery().Size(searchLogScanLimit).

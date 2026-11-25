@@ -61,7 +61,7 @@ func (h *APIHandler) hotSearchesHandler(w http.ResponseWriter, req *http.Request
 	}
 
 	octx := orm.NewContextWithParent(req.Context())
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.SearchLog{})
 	query := orm.NewQuery().Size(hotSearchScanLimit).
 		Filter(orm.TermQuery("zero_hit", false), orm.Range("created").Gte("now-"+strconv.Itoa(days)+"d")).

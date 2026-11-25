@@ -43,13 +43,13 @@ func ProjectDocumentChunks(ctx context.Context, doc *core.Document) error {
 	}
 
 	octx := orm.NewContextWithParent(ctx)
-	octx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	octx.DirectAccess()
 	octx.Refresh = orm.WaitForRefresh
 	orm.WithModel(octx, &core.KnowledgeChunk{})
 
 	// clear this document's previous projection
 	delCtx := orm.NewContextWithParent(ctx)
-	delCtx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	delCtx.DirectAccess()
 	orm.WithModel(delCtx, &core.KnowledgeChunk{})
 	if _, err := orm.DeleteByQuery(delCtx, orm.NewQuery().Size(10000).
 		Filter(orm.TermQuery("doc_id", doc.ID))); err != nil {

@@ -504,8 +504,7 @@ func (h *APIHandler) reprocessDatasourceDocs(w http.ResponseWriter, req *http.Re
 	force := isTruthlyQuery(req.URL.Query().Get("force"))
 
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.DirectReadAccess()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 
 	reprocessed, skipped, total := 0, 0, 0
 	for from := 0; from < reprocessBatchCap; from += 100 {

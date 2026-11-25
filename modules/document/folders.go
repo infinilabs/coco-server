@@ -112,7 +112,7 @@ func (h *APIHandler) moveFolderHandler(w http.ResponseWriter, req *http.Request,
 		}
 		batch := ids[from:end]
 		ctx := orm.NewContextWithParent(req.Context())
-		ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+		ctx.DirectAccess()
 		ctx.Refresh = orm.WaitForRefresh
 		orm.WithModel(ctx, &core.Document{})
 		for _, id := range batch {
@@ -193,7 +193,7 @@ func countDocs(ctx context.Context, datasourceID string, extra *orm.Clause) int6
 // in its bound set (WikiKnowledgeBase.DatasourceIDs).
 func wikiKBBindsDatasource(ctx context.Context, datasourceID string) bool {
 	octx := orm.NewContextWithParent(ctx)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.WikiKnowledgeBase{})
 	res, err := orm.SearchV2(octx, orm.NewQuery().Size(1).
 		Filter(orm.TermQuery("datasource_ids", datasourceID)))

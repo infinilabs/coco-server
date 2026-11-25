@@ -33,10 +33,10 @@ type RemoteSource struct {
 	// search_settings.rsa_max_sources_per_query allows — higher first.
 	Priority int `json:"priority,omitempty" elastic_mapping:"priority:{type:integer}"`
 
-	Connection RSAConnection    `json:"connection" elastic_mapping:"connection:{enabled:false}"`
-	Query      RSAQuery         `json:"query" elastic_mapping:"query:{enabled:false}"`
+	Connection RSAConnection      `json:"connection" elastic_mapping:"connection:{enabled:false}"`
+	Query      RSAQuery           `json:"query" elastic_mapping:"query:{enabled:false}"`
 	Mapping    RSADocumentMapping `json:"mapping" elastic_mapping:"mapping:{enabled:false}"`
-	Controls   RSAControls      `json:"controls" elastic_mapping:"controls:{enabled:false}"`
+	Controls   RSAControls        `json:"controls" elastic_mapping:"controls:{enabled:false}"`
 }
 
 // RSAConnection is adapter-agnostic addressing plus auth. Credentials are

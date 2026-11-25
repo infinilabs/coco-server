@@ -80,10 +80,10 @@ func (a *AdapterEsCompatible) buildBody(src *core.RemoteSource, q Query) (map[st
 		"size": q.Size,
 		"query": map[string]interface{}{
 			"multi_match": map[string]interface{}{
-				"query":     q.Text,
-				"fields":    []string{"title^3", "name^2", "tags^2", "content", "summary", "message"},
-				"type":      "best_fields",
-				"operator":  "or",
+				"query":    q.Text,
+				"fields":   []string{"title^3", "name^2", "tags^2", "content", "summary", "message"},
+				"type":     "best_fields",
+				"operator": "or",
 			},
 		},
 		"sort": []interface{}{
@@ -153,14 +153,14 @@ func (a *AdapterEsCompatible) Search(ctx context.Context, src *core.RemoteSource
 	}
 
 	var esResp struct {
-		Took  int64 `json:"took"`
-		Hits  struct {
+		Took int64 `json:"took"`
+		Hits struct {
 			Total map[string]interface{} `json:"total"`
 			Hits  []struct {
-				ID      string                 `json:"_id"`
-				Index   string                 `json:"_index"`
-				Score   float64                `json:"_score"`
-				Source  map[string]interface{} `json:"_source"`
+				ID     string                 `json:"_id"`
+				Index  string                 `json:"_index"`
+				Score  float64                `json:"_score"`
+				Source map[string]interface{} `json:"_source"`
 			} `json:"hits"`
 		} `json:"hits"`
 	}

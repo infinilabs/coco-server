@@ -45,7 +45,7 @@ func w1SeedDoc(t *testing.T, h APIHandler, mutate func(*core.Document)) string {
 
 	if mutate != nil {
 		ctx := orm.NewContext()
-		ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+		ctx.DirectAccess()
 		ctx.Refresh = orm.WaitForRefresh
 		doc := core.Document{}
 		doc.ID = id

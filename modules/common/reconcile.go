@@ -5,10 +5,11 @@ package common
 
 import (
 	"fmt"
+	"time"
+
 	"infini.sh/coco/core"
 	"infini.sh/framework/core/orm"
 	"infini.sh/framework/core/util"
-	"time"
 
 	log "github.com/cihub/seelog"
 )
@@ -145,8 +146,7 @@ func patchDocTombstone(doc *core.Document, marked bool, markedAt ...string) erro
 	// both flags: the update hook checks DirectWrite..., but saveOrUpdate
 	// also fetches the previous object (OpGet) with the same context,
 	// which checks DirectRead... — missing either panics in the hook
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	delta := util.MapStr{"source_deleted": marked}
 	if marked && len(markedAt) > 0 {
 		delta["source_deleted_at"] = markedAt[0]

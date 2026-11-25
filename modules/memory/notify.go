@@ -32,7 +32,7 @@ func NotifyPendingMemories(userID string, count int) {
 	}
 
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(ctx, &core.WikiNotification{})
 

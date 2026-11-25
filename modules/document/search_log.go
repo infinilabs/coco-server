@@ -80,7 +80,7 @@ func recordSearchLog(ctx context.Context, query, searchType, userID string, tota
 	}
 	failed := diag != nil && diag.Error != ""
 	octx := orm.NewContextWithParent(ctx)
-	octx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	octx.DirectAccess()
 	// refresh: the knowledge-gap check below reads the log it just wrote —
 	// an un-refreshed read would under-count and miss the threshold
 	octx.Refresh = orm.WaitForRefresh
@@ -121,7 +121,7 @@ func recordSearchLog(ctx context.Context, query, searchType, userID string, tota
 // is the durable record, the log scan here only decides whether to write it.
 func maybeFileKnowledgeGap(ctx *orm.Context, query string) {
 	rctx := orm.NewContextWithParent(ctx)
-	rctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	rctx.DirectReadAccess()
 	orm.WithModel(rctx, &core.SearchLog{})
 	res, err := orm.SearchV2(rctx, orm.NewQuery().Size(1000).
 		Filter(orm.TermQuery("query", query), orm.TermQuery("zero_hit", true)))
@@ -135,8 +135,7 @@ func maybeFileKnowledgeGap(ctx *orm.Context, query string) {
 
 	gapID := searchQueryHash(query)
 	wctx := orm.NewContextWithParent(ctx)
-	wctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	wctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	wctx.DirectAccess()
 	// refresh: the governance queue must reflect the proposal immediately —
 	// a reviewer looking right after the search that filed it should see it
 	wctx.Refresh = orm.WaitForRefresh
@@ -189,7 +188,7 @@ func maybeFileKnowledgeGap(ctx *orm.Context, query string) {
 // latency — the operator's half of the iteration loop.
 func (h *APIHandler) searchOpsOverview(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	octx := orm.NewContextWithParent(req.Context())
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.SearchLog{})
 	query := orm.NewQuery().Size(searchLogScanLimit).
 		SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
@@ -242,7 +241,7 @@ func markFiledGaps(ctx context.Context, stats *searchOpsStats) {
 		return
 	}
 	octx := orm.NewContextWithParent(ctx)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.WikiGovernanceProposal{})
 	for i := range stats.LowRecall {
 		res, err := orm.SearchV2(octx, orm.NewQuery().Size(1).
@@ -437,7 +436,7 @@ func (h *APIHandler) searchOpsLogs(w http.ResponseWriter, req *http.Request, _ h
 	}
 
 	octx := orm.NewContextWithParent(req.Context())
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.SearchLog{})
 	query := orm.NewQuery().Size(size).SortBy(orm.Sort{Field: "created", SortType: orm.DESC})
 	if len(clauses) > 0 {
@@ -467,7 +466,7 @@ func (h *APIHandler) searchOpsLogs(w http.ResponseWriter, req *http.Request, _ h
 	}
 	if len(ids) > 0 {
 		uctx := orm.WithModel(orm.NewContextWithParent(req.Context()), &security.UserAccount{})
-		uctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+		uctx.DirectReadAccess()
 		ures, err := orm.SearchV2(uctx, orm.NewQuery().Size(len(ids)).Filter(orm.TermsQuery("id", ids)))
 		if err != nil {
 			log.Warnf("search ops: resolve user names failed: %v", err)

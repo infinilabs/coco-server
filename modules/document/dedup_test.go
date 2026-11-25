@@ -208,9 +208,9 @@ func TestDedupVersionEdgeDoesNotChainStrongGroups(t *testing.T) {
 	large := "a much larger json catalog holding the full product catalog with hundreds of entries, extended descriptions, prices, categories and stock levels"
 	docs := []dedupDocMeta{
 		dedupDoc("s1", "products.json", small, 1000),
-		dedupDoc("s2", "products.json", strings.ToUpper(small), 1001),   // same text, formatting noise
+		dedupDoc("s2", "products.json", strings.ToUpper(small), 1001), // same text, formatting noise
 		dedupDoc("l1", "products.json", large, 2000),
-		dedupDoc("l2", "products.json", large+"\n", 2001),               // trailing newline
+		dedupDoc("l2", "products.json", large+"\n", 2001), // trailing newline
 	}
 	r := buildDedupReport(docs, nil)
 	if r.GroupCount != 2 {

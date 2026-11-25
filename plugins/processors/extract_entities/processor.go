@@ -392,8 +392,7 @@ func (processor *ExtractEntitiesProcessor) extractAndLink(ctx context.Context, l
 	ormCtx := orm.NewContext()
 	// pipeline context has no session user: the write flag passes create/update
 	// hooks, the read flag passes the search hooks (entity lookups below)
-	ormCtx.Set(orm.DirectWriteWithoutPermissionCheck, true)
-	ormCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ormCtx.DirectAccess()
 
 	kbID := processor.resolveKB(ctx, doc)
 	// orphan guard: a kb-less write is invisible to every KB-scoped view and
@@ -504,11 +503,11 @@ func resolveOrCreateEntity(ctx *orm.Context, extracted *extractedEntity, doc *co
 		if existing := findEntityByName(ctx, kbID, alias); existing != nil {
 			if existing.Type != "" && extractedType != "" && existing.Type != extractedType {
 				wiki.FileEntityGovernanceProposal(kbID, existing, core.WikiGovernanceEntityConflict,
-				fmt.Sprintf("document %q mentions alias %q of %q as %q, existing entity is %q", doc.Title, alias, extracted.Name, extractedType, existing.Type),
-				util.MapStr{"doc_id": doc.ID, "alias": alias, "existing_type": existing.Type, "extracted_type": extractedType})
-		}
-		mergeExtractedInto(existing, extracted)
-		appendEntitySource(existing, extracted, doc)
+					fmt.Sprintf("document %q mentions alias %q of %q as %q, existing entity is %q", doc.Title, alias, extracted.Name, extractedType, existing.Type),
+					util.MapStr{"doc_id": doc.ID, "alias": alias, "existing_type": existing.Type, "extracted_type": extractedType})
+			}
+			mergeExtractedInto(existing, extracted)
+			appendEntitySource(existing, extracted, doc)
 			if err := orm.Update(ctx, existing); err != nil {
 				return nil, false, err
 			}
@@ -780,7 +779,7 @@ func dropDeadRelations(rels []core.WikiEntityRelation, dead map[string]bool) ([]
 // model): the pipeline context's permission scope must not clip the lookup.
 func resolveDeadEntityIDs(ids []string) (map[string]bool, error) {
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiEntity{})
 	builder := orm.NewQuery().From(0).Size(len(ids)).Filter(orm.TermsQuery("id", ids))
 	res, err := orm.SearchV2(ctx, builder)

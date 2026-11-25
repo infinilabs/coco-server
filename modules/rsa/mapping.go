@@ -19,8 +19,8 @@ import (
 // (ES: _id/_index/_score/_source.* flattened; SQL later: column→value).
 // Field paths in the mapping resolve with dot notation against it.
 type RawHit struct {
-	ID    string
-	Index string
+	ID     string
+	Index  string
 	Fields map[string]interface{}
 }
 

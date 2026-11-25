@@ -98,9 +98,9 @@ type stepResult struct {
 }
 
 type dryRunReport struct {
-	Compiled    []stepDesc               `json:"compiled"`
-	Steps       [][]stepResult           `json:"steps"`
-	SideEffects []fpipeline.DryRunWrite  `json:"side_effects"`
+	Compiled    []stepDesc              `json:"compiled"`
+	Steps       [][]stepResult          `json:"steps"`
+	SideEffects []fpipeline.DryRunWrite `json:"side_effects"`
 }
 
 func entryName(entry map[string]interface{}) string {

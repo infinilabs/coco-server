@@ -59,7 +59,7 @@ func resetCompileRulesCache() {
 
 func readCompileRules(ctx context.Context) *core.WikiCompileRules {
 	octx := orm.NewContextWithParent(ctx)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.WikiOntologySchema{})
 
 	res, err := orm.SearchV2(octx, orm.NewQuery().Size(1).

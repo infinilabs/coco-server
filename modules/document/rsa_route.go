@@ -44,7 +44,7 @@ func (h *APIHandler) rsaRoute(req *http.Request, query string, window int) (*ela
 	}
 
 	type sourceOutput struct {
-		res *rsa.Result
+		res  *rsa.Result
 		diag *rsa.SourceDiag
 	}
 	outs := make([]sourceOutput, len(sources))
@@ -125,4 +125,3 @@ func diagNames(diags []rsa.SourceDiag) string {
 	}
 	return names
 }
-

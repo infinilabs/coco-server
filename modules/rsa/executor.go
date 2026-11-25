@@ -92,7 +92,7 @@ func endpointAt(src *core.RemoteSource, base, attempt int) string {
 
 // sourceSemaphores bounds in-flight queries per source.
 var (
-	semMu    sync.Mutex
+	semMu      sync.Mutex
 	semaphores = map[string]chan struct{}{}
 )
 

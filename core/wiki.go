@@ -571,21 +571,21 @@ type WikiEntity struct {
 	// own entity pool from its bound datasources, and deleting the KB
 	// deletes its entities wholesale. Same-name entities in different KBs
 	// are different rows (isolated pools, per the per-KB review model).
-	KbID       string                 `json:"kb_id,omitempty" elastic_mapping:"kb_id:{type:keyword}"`
-	Type       string                 `json:"type" elastic_mapping:"type:{type:keyword}"` // store | campaign | contract | ...
-	Subtype    string                 `json:"subtype,omitempty" elastic_mapping:"subtype:{type:keyword}"`
+	KbID    string `json:"kb_id,omitempty" elastic_mapping:"kb_id:{type:keyword}"`
+	Type    string `json:"type" elastic_mapping:"type:{type:keyword}"` // store | campaign | contract | ...
+	Subtype string `json:"subtype,omitempty" elastic_mapping:"subtype:{type:keyword}"`
 	// Description is a short grounded summary of what THIS entity is
 	// (LLM-extracted one-liner, or deterministic aggregation over
 	// sources for legacy rows). Empty until extraction/backfill provides
 	// one — display layers fall back to source-excerpt rendering.
 	Description string                 `json:"description,omitempty" elastic_mapping:"description:{type:text,index_phrases:true,analyzer:combined_text_analyzer}"`
 	Name        string                 `json:"name" elastic_mapping:"name:{type:keyword,copy_to:combined_fulltext,fields:{text:{type:text},pinyin:{type:text,analyzer:pinyin_analyzer}}}"`
-	Aliases    []string               `json:"aliases,omitempty" elastic_mapping:"aliases:{type:keyword,copy_to:combined_fulltext}"`
-	Properties map[string]interface{} `json:"properties,omitempty" elastic_mapping:"properties:{type:object}"` // free attributes per ontology schema
-	Relations  []WikiEntityRelation   `json:"relations,omitempty" elastic_mapping:"relations:{type:object,enabled:false}"`
-	Status     string                 `json:"status" elastic_mapping:"status:{type:keyword}"` // proposed | reviewed | published
-	Confidence float64                `json:"confidence,omitempty" elastic_mapping:"confidence:{type:float}"`
-	ArticleID  string                 `json:"article_id,omitempty" elastic_mapping:"article_id:{type:keyword}"`
+	Aliases     []string               `json:"aliases,omitempty" elastic_mapping:"aliases:{type:keyword,copy_to:combined_fulltext}"`
+	Properties  map[string]interface{} `json:"properties,omitempty" elastic_mapping:"properties:{type:object}"` // free attributes per ontology schema
+	Relations   []WikiEntityRelation   `json:"relations,omitempty" elastic_mapping:"relations:{type:object,enabled:false}"`
+	Status      string                 `json:"status" elastic_mapping:"status:{type:keyword}"` // proposed | reviewed | published
+	Confidence  float64                `json:"confidence,omitempty" elastic_mapping:"confidence:{type:float}"`
+	ArticleID   string                 `json:"article_id,omitempty" elastic_mapping:"article_id:{type:keyword}"`
 	// documents this entity was extracted from (bidirectional with
 	// Document.EntityIDs, design doc B3)
 	Sources []WikiSourceReference `json:"sources,omitempty" elastic_mapping:"sources:{type:object,enabled:false}"`

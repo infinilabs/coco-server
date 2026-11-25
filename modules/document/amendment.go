@@ -145,7 +145,7 @@ func (h *APIHandler) amendHandler(w http.ResponseWriter, req *http.Request, ps h
 		"attachment_excerpt": truncateRunes(attachmentText, 500),
 	}
 	pctx := orm.NewContextWithParent(req.Context())
-	pctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	pctx.DirectAccess()
 	pctx.Refresh = orm.WaitForRefresh
 	if err := orm.Create(pctx, proposal); err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)
@@ -163,7 +163,7 @@ func (h *APIHandler) amendHandler(w http.ResponseWriter, req *http.Request, ps h
 // amendmentGeneration counts existing proposals for anchor numbering.
 func amendmentGeneration(docID string) int {
 	octx := orm.NewContext()
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.WikiGovernanceProposal{})
 	res, err := orm.SearchV2(octx, orm.NewQuery().Size(100).
 		Filter(orm.TermQuery("type", amendProposalType)))

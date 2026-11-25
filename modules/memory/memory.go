@@ -92,7 +92,7 @@ func loadOwned(w http.ResponseWriter, r *http.Request, ps httprouter.Params) (*c
 		return nil, false
 	}
 	ctx := orm.NewContextWithParent(r.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.MemoryRecord{})
 	rec := core.MemoryRecord{}
 	rec.ID = ps.ByName("id")
@@ -158,7 +158,7 @@ func (h *APIHandler) mine(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	status := r.URL.Query().Get("status")
 
 	ctx := orm.NewContextWithParent(r.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.MemoryRecord{})
 	builder := orm.NewQuery().Size(200).
 		Filter(orm.TermQuery("user_id", userID)).
@@ -250,7 +250,7 @@ func (h *APIHandler) search(w http.ResponseWriter, r *http.Request, _ httprouter
 // Recall is the prompt-injection contract: confirmed memories only.
 func Recall(ctx context.Context, userID, query string, limit int) []core.MemoryRecord {
 	octx := orm.NewContextWithParent(ctx)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.MemoryRecord{})
 	builder := orm.NewQuery().Size(200).
 		Filter(
@@ -470,7 +470,7 @@ func Distill(ctx context.Context, userID, excerpt, sessionID string) (int, error
 	octx := orm.NewContextWithParent(ctx)
 	// distill runs in the background — no session user, so the create
 	// hooks need the write bypass to pass
-	octx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	octx.DirectAccess()
 	octx.Refresh = orm.WaitForRefresh
 	created := 0
 	for _, item := range parsed {
@@ -522,7 +522,7 @@ func buildDistillInput(userID, excerpt string) string {
 // first, capped to keep the prompt bounded.
 func listActiveMemories(userID string) []core.MemoryRecord {
 	octx := orm.NewContextWithParent(context.Background())
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.MemoryRecord{})
 	builder := orm.NewQuery().Size(50).
 		Filter(
@@ -552,7 +552,7 @@ func validateSupersedeTarget(parent context.Context, userID, supersedesID string
 		return ""
 	}
 	octx := orm.NewContextWithParent(parent)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.MemoryRecord{})
 	old := core.MemoryRecord{}
 	old.ID = supersedesID
@@ -575,8 +575,7 @@ func validateSupersedeTarget(parent context.Context, userID, supersedesID string
 // its replacement is CONFIRMED. Best-effort: failures log only.
 func supersedeTarget(parent context.Context, userID, id string) {
 	octx := orm.NewContextWithParent(parent)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	octx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	octx.DirectAccess()
 	orm.WithModel(octx, &core.MemoryRecord{})
 	old := core.MemoryRecord{}
 	old.ID = id
@@ -596,8 +595,8 @@ func supersedeTarget(parent context.Context, userID, id string) {
 }
 
 type distillItem struct {
-	Kind      string `json:"kind"`
-	Content   string `json:"content"`
+	Kind       string `json:"kind"`
+	Content    string `json:"content"`
 	Supersedes string `json:"supersedes,omitempty"`
 }
 

@@ -49,7 +49,7 @@ func (h *APIHandler) searchEvalCases(w http.ResponseWriter, req *http.Request, _
 		size = evalCaseCap
 	}
 	octx := orm.NewContextWithParent(req.Context())
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.SearchEvalCase{})
 	res, err := orm.SearchV2(octx, orm.NewQuery().Size(size).
 		SortBy(orm.Sort{Field: "created", SortType: orm.DESC}))
@@ -94,8 +94,7 @@ func (h *APIHandler) createSearchEvalCase(w http.ResponseWriter, req *http.Reque
 	}
 
 	wctx := orm.NewContextWithParent(req.Context())
-	wctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	wctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	wctx.DirectAccess()
 	// operator-paced read-after-write: the natural flow is "add a case,
 	// hit run" — the write must be visible to the run's snapshot
 	wctx.Refresh = orm.WaitForRefresh
@@ -103,7 +102,7 @@ func (h *APIHandler) createSearchEvalCase(w http.ResponseWriter, req *http.Reque
 
 	normalized := normalizeSearchQuery(query)
 	rctx := orm.NewContextWithParent(req.Context())
-	rctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	rctx.DirectReadAccess()
 	orm.WithModel(rctx, &core.SearchEvalCase{})
 	res, err := orm.SearchV2(rctx, orm.NewQuery().Size(1).
 		Filter(orm.TermQuery("query", normalized)))
@@ -141,7 +140,7 @@ func (h *APIHandler) createSearchEvalCase(w http.ResponseWriter, req *http.Reque
 func (h *APIHandler) deleteSearchEvalCase(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
 	dctx := orm.NewContextWithParent(req.Context())
-	dctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	dctx.DirectAccess()
 	dctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(dctx, &core.SearchEvalCase{})
 	entry := &core.SearchEvalCase{}
@@ -160,7 +159,7 @@ func (h *APIHandler) listSearchEvalRuns(w http.ResponseWriter, req *http.Request
 		size = 50
 	}
 	octx := orm.NewContextWithParent(req.Context())
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.SearchEvalRun{})
 	res, err := orm.SearchV2(octx, orm.NewQuery().Size(size).
 		SortBy(orm.Sort{Field: "created", SortType: orm.DESC}))
@@ -197,7 +196,7 @@ func (h *APIHandler) runSearchEval(w http.ResponseWriter, req *http.Request, _ h
 	}
 
 	octx := orm.NewContextWithParent(req.Context())
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.SearchEvalCase{})
 	// newest-first, same direction as the case list: with the set over the
 	// cap, the two views must at least look at the same batch
@@ -237,7 +236,7 @@ func (h *APIHandler) runSearchEval(w http.ResponseWriter, req *http.Request, _ h
 	}
 
 	wctx := orm.NewContextWithParent(req.Context())
-	wctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	wctx.DirectAccess()
 	orm.WithModel(wctx, &core.SearchEvalRun{})
 	if err := orm.Create(wctx, run); err != nil {
 		log.Warnf("eval run persist failed: %v", err)
@@ -338,8 +337,7 @@ func fileEvalKnowledgeGap(ctx context.Context, c *core.SearchEvalCase) {
 	gapID := searchQueryHash(query)
 
 	wctx := orm.NewContextWithParent(ctx)
-	wctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	wctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	wctx.DirectAccess()
 	// operator-paced read-after-write: the run response returns while the
 	// operator's next click opens the governance queue — the refluxed
 	// proposal must be visible by then
@@ -347,7 +345,7 @@ func fileEvalKnowledgeGap(ctx context.Context, c *core.SearchEvalCase) {
 	orm.WithModel(wctx, &core.WikiGovernanceProposal{})
 
 	rctx := orm.NewContextWithParent(ctx)
-	rctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	rctx.DirectReadAccess()
 	orm.WithModel(rctx, &core.WikiGovernanceProposal{})
 	res, err := orm.SearchV2(rctx, orm.NewQuery().Size(1).
 		Filter(orm.TermQuery("article_id", gapID), orm.TermQuery("type", core.WikiGovernanceKnowledgeGap)))

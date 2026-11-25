@@ -5,6 +5,8 @@
 package common
 
 import (
+	"net/http"
+
 	log "github.com/cihub/seelog"
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
@@ -22,7 +24,6 @@ import (
 	"infini.sh/framework/core/queue"
 	"infini.sh/framework/core/security"
 	"infini.sh/framework/core/util"
-	"net/http"
 )
 
 type ConnectorProcessorConfigBase struct {
@@ -182,7 +183,7 @@ func (processor *ConnectorProcessorBase) BatchCollect(ctx *pipeline.Context, con
 // _reprocess (which clears the stored fingerprint).
 func engineDocUnchanged(docID, sourceFingerprint string, noPipeline bool) bool {
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.Document{})
 
 	existing := core.Document{}

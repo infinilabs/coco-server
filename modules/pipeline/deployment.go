@@ -83,10 +83,10 @@ func init() {
 // ─── CRUD ───────────────────────────────────────────────────────────────────
 
 type deploymentBody struct {
-	Name       string                    `json:"name"`
-	PipelineID string                    `json:"pipeline_id"`
-	Enabled    bool                      `json:"enabled"`
-	Placement  core.DeploymentPlacement  `json:"placement"`
+	Name       string                   `json:"name"`
+	PipelineID string                   `json:"pipeline_id"`
+	Enabled    bool                     `json:"enabled"`
+	Placement  core.DeploymentPlacement `json:"placement"`
 }
 
 func (h *DeploymentAPIHandler) listDeployments(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {

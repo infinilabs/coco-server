@@ -208,7 +208,7 @@ func (h *APIHandler) relatedSearchesHandler(w http.ResponseWriter, req *http.Req
 	}
 
 	octx := orm.NewContextWithParent(req.Context())
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.SearchLog{})
 	query := orm.NewQuery().Size(relatedScanLimit).
 		Filter(orm.TermQuery("zero_hit", false), orm.Range("created").Gte("now-"+strconv.Itoa(days)+"d")).

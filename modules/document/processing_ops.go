@@ -222,8 +222,7 @@ func (h *APIHandler) retryFailedHandler(w http.ResponseWriter, req *http.Request
 	datasource, _ := body["datasource"].(string)
 
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.DirectReadAccess()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	orm.WithModel(ctx, &core.Document{})
 
 	builder := orm.NewQuery().From(0).Size(reprocessBatchCap).

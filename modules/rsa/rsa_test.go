@@ -47,9 +47,9 @@ func TestMapHitDefaultsAndCustomPaths(t *testing.T) {
 	src.Mapping.Title = "doc.title"
 
 	raw := RawHit{ID: "abc", Index: "logs-1", Fields: map[string]interface{}{
-		"doc": map[string]interface{}{"title": "自定义标题"},
+		"doc":     map[string]interface{}{"title": "自定义标题"},
 		"content": "正文",
-		"tags":   []interface{}{"a", "b"},
+		"tags":    []interface{}{"a", "b"},
 	}}
 	hit := MapHit(src, raw, 3)
 
@@ -118,8 +118,8 @@ func TestClampWindow(t *testing.T) {
 
 func TestRetryableClass(t *testing.T) {
 	cases := []struct {
-		err      error
-		class    string
+		err       error
+		class     string
 		retriable bool
 	}{
 		{errors.New("dial tcp: connection refused"), "conn", true},
@@ -145,7 +145,7 @@ type fakeAdapter struct {
 	result  Result
 }
 
-func (f *fakeAdapter) Type() string { return "fake" }
+func (f *fakeAdapter) Type() string                          { return "fake" }
 func (f *fakeAdapter) Validate(src *core.RemoteSource) error { return nil }
 func (f *fakeAdapter) Search(ctx context.Context, src *core.RemoteSource, endpoint string, q Query) (Result, error) {
 	f.calls++
@@ -206,7 +206,7 @@ func TestExecutorTimeoutNotRetriedByDefault(t *testing.T) {
 
 type timeoutAdapter struct{ calls int }
 
-func (t *timeoutAdapter) Type() string        { return "timeoutfake" }
+func (t *timeoutAdapter) Type() string                      { return "timeoutfake" }
 func (t *timeoutAdapter) Validate(*core.RemoteSource) error { return nil }
 func (t *timeoutAdapter) Search(ctx context.Context, src *core.RemoteSource, endpoint string, q Query) (Result, error) {
 	t.calls++

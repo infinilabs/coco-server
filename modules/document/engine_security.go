@@ -67,7 +67,7 @@ func tenantTierFacets(req *http.Request) []engineguard.TierFacets {
 	}}
 
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.DataSource{})
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(200).Include("id"))
 	if err != nil {

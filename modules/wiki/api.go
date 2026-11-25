@@ -914,7 +914,7 @@ func (h *APIHandler) entityNeighbors(w http.ResponseWriter, req *http.Request, p
 	}
 
 	h.WriteOKJSON(w, util.MapStr{
-		"entity":             entity,
+		"entity": entity,
 		// stored description, or the deterministic provenance fallback —
 		// the detail page renders one line even for legacy rows
 		"display_description": EntityDisplayDescription(&entity),

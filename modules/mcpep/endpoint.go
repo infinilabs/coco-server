@@ -93,7 +93,7 @@ func endpointByToken(plaintext string) (row *core.MCPEndpoint) {
 
 func endpointByTokenLookup(plaintext string) *core.MCPEndpoint {
 	octx := orm.NewContext()
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.MCPEndpoint{})
 	res, err := orm.SearchV2(octx, orm.NewQuery().Size(1).
 		Filter(orm.TermQuery("token_hash", hashToken(plaintext))))
@@ -177,7 +177,7 @@ func markUsed(ep *core.MCPEndpoint) {
 	lastUsedMu.Unlock()
 
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ep.LastUsedAt = time.Now().UnixMilli()
 	if err := orm.Update(ctx, ep); err != nil {
 		log.Tracef("mcp endpoint: last_used_at update failed for [%s]: %v", ep.ID, err)
@@ -314,7 +314,7 @@ func (h *APIHandler) remove(w http.ResponseWriter, r *http.Request, ps httproute
 
 func (h *APIHandler) list(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := orm.NewContextWithParent(r.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.MCPEndpoint{})
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(100).
 		SortBy(orm.Sort{Field: "created", SortType: orm.DESC}))
@@ -332,7 +332,7 @@ func (h *APIHandler) list(w http.ResponseWriter, r *http.Request, _ httprouter.P
 
 func loadOne(w http.ResponseWriter, r *http.Request, ps httprouter.Params) *core.MCPEndpoint {
 	ctx := orm.NewContextWithParent(r.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.MCPEndpoint{})
 	ep := core.MCPEndpoint{}
 	ep.ID = ps.ByName("id")

@@ -366,7 +366,7 @@ func tagsVocabForDatasource(ctx context.Context, datasourceID string) []string {
 		return nil
 	}
 	octx := orm.NewContext()
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.DataSource{})
 	ds := core.DataSource{}
 	ds.ID = datasourceID
