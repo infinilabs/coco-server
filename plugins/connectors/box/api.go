@@ -219,7 +219,7 @@ func oAuthRedirect(w http.ResponseWriter, req *http.Request, ps httprouter.Param
 
 	// Create datasource with OAuth tokens
 	datasource := core.DataSource{
-		SyncConfig: core.SyncConfig{Enabled: true, Interval: "30s"},
+		SyncConfig: core.SyncConfig{Enabled: true, Interval: "5m"},
 		Enabled:    true,
 	}
 

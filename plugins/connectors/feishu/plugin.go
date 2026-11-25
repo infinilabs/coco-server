@@ -15,6 +15,7 @@ import (
 	"infini.sh/framework/core/security"
 
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/modules/common/fingerprint"
 	cmn "infini.sh/coco/plugins/connectors/common"
 	"infini.sh/framework/core/api"
 	"infini.sh/framework/core/config"
@@ -161,8 +162,12 @@ func NewLark(c *config.Config) (pipeline.Processor, error) {
 
 func init() {
 	// Register pipeline processors
-	pipeline.RegisterProcessorPlugin(ConnectorFeishu, NewFeishu)
-	pipeline.RegisterProcessorPlugin(ConnectorLark, NewLark)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(ConnectorFeishu, NewFeishu, nil)
+	// chain-root driver (batch scope): fetches from its datasource and
+	// emits into the indexing queue — no record contract beyond scope
+	pipeline.RegisterProcessorContract(ConnectorFeishu, pipeline.RecordContract{Scope: pipeline.ScopeBatch})
+	pipeline.RegisterProcessorPluginWithConfigMetadata(ConnectorLark, NewLark, nil)
+	pipeline.RegisterProcessorContract(ConnectorLark, pipeline.RecordContract{Scope: pipeline.ScopeBatch})
 
 	// Register OAuth routes for Feishu
 	api.HandleUIMethod(api.GET, "/connector/:id/feishu/connect", handleOAuthConnect(PluginTypeFeishu), api.RequireLogin())
@@ -481,6 +486,10 @@ func (this *Plugin) searchFilesRecursively(ctx *SearchContext) {
 				key = fmt.Sprintf("%d", i)
 			}
 			doc.ID = util.MD5digest(fmt.Sprintf("%v-%v-%v", ctx.DataSource.Connector.ConnectorID, ctx.DataSource.ID, key))
+
+			// stamp source-side change signal (modified_time + size when
+			// present): lets the collection skip gate drop unchanged documents
+			doc.SourceFingerprint = fingerprint.SourceMeta("feishu", getString(m, "modified_time"), getString(m, "size"))
 
 			if global.Env().IsDebug {
 				log.Tracef("collecting document: %v", util.MustToJSON(doc))

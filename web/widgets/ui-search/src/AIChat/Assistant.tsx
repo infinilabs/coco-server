@@ -78,7 +78,11 @@ function InnerAssistantList({ assistantIDs = [], locale = "en", t: tProp }: Assi
   const fetchAssistant = useCallback(
     async () => {
       try {
-        const queryParams = [`from=0`, `size=10000`];
+        // pipeline assistants (type=data_processing, e.g. the wiki KM bot)
+        // power background jobs, not conversations — never list them in the
+        // chat picker (a ?assistant_id= deep link still works: Chat.tsx
+        // selects it even when absent from the list)
+        const queryParams = [`from=0`, `size=10000`, `filter=!type:data_processing`];
         if (keyword) queryParams.push(`query=${encodeURIComponent(keyword)}`);
         if (stableAssistantIDs.length) queryParams.push(`filter=id:any(${encodeURIComponent(stableAssistantIDs.join(","))})`);
 

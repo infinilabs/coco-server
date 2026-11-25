@@ -5,6 +5,10 @@
 package main
 
 import (
+	"net/http"
+	"path"
+	"strings"
+
 	public "infini.sh/coco/.public"
 	"infini.sh/coco/config"
 	"infini.sh/coco/modules"
@@ -51,7 +55,7 @@ func main() {
 		CheckLocalFirst: global.Env().SystemConfig.WebAppConfig.UI.LocalEnabled,
 		SkipVFS:         !global.Env().SystemConfig.WebAppConfig.UI.VFSEnabled})
 
-	api1.HandleUI("/", vfs.FileServer(vfs.VFS()))
+	api1.HandleUI("/", spaNoCache(vfs.FileServer(vfs.VFS())))
 
 	defer app.Shutdown()
 
@@ -74,4 +78,20 @@ func main() {
 	}, nil) {
 		app.Run()
 	}
+}
+
+// spaNoCache keeps the SPA entry point revalidating while hashed assets
+// cache freely. The vfs file server only sets Last-Modified, so browsers
+// heuristic-cache index.html; after a rebuild the cached entry then
+// references asset chunks that no longer exist and the app half-loads
+// (missing layouts, failed lazy routes). no-cache forces a cheap
+// If-Modified-Since roundtrip on the entry document only.
+func spaNoCache(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		p := path.Clean("/" + r.URL.Path)
+		if p == "/" || strings.HasSuffix(p, ".html") {
+			w.Header().Set("Cache-Control", "no-cache")
+		}
+		next.ServeHTTP(w, r)
+	})
 }

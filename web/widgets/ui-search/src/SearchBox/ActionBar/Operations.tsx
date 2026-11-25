@@ -1,9 +1,10 @@
-import { Badge, Button, Space, Upload } from "antd";
+import { Badge, Button, Space, Tooltip, Upload } from "antd";
 import { MessageCircle, Paperclip, Search } from "lucide-react";
 import { type FC } from "react";
 import { useTranslation } from "react-i18next";
 import { filesize } from "filesize";
 import DeepresearchIcon from "../../icons/DeepresearchIcon";
+import { ACTION_TYPE_SEARCH } from "./SearchActions";
 
 /**
  * Extract the file extension (without the leading dot) from a file name.
@@ -61,6 +62,13 @@ const Operations: FC<OperationsProps> = (props) => {
                 return <Search className="w-14px h-14px" />;
         }
     };
+
+    // Multimodal search: attachments on a plain search are searched — the
+    // server joins each attachment's AI-extracted text (vision descriptions,
+    // document text) into the query. Say so on the submit button; an explicit
+    // AI action (deepthink/deepresearch) keeps its own icon and goes to chat.
+    const isPlainSearch = !action_type || action_type === ACTION_TYPE_SEARCH;
+    const hasAttachments = attachments.length > 0;
 
     return (
         <Space size={4} className="!leading-none">
@@ -129,17 +137,19 @@ const Operations: FC<OperationsProps> = (props) => {
                 shape="circle"
                 disabled
             /> */}
-            <Button
-                style={btnStyle}
-                className={`border-0 ml-4px !rounded-50%`}
-                classNames={{ icon: `w-14px h-14px !text-14px` }}
-                disabled={disabled}
-                type="primary"
-                shape="circle"
-                icon={getActionIcon()}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => onSearch && onSearch()}
-            />
+            <Tooltip title={hasAttachments && isPlainSearch ? t("search.input.attachment_search_submit") : undefined}>
+                <Button
+                    style={btnStyle}
+                    className={`border-0 ml-4px !rounded-50%`}
+                    classNames={{ icon: `w-14px h-14px !text-14px` }}
+                    disabled={disabled}
+                    type="primary"
+                    shape="circle"
+                    icon={getActionIcon()}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => onSearch && onSearch()}
+                />
+            </Tooltip>
         </Space>
     )
 };

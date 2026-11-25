@@ -35,6 +35,8 @@ export const OPERATOR_ICONS = {
 
 interface OperatorsProps {
     currentOperator?: string;
+    /** Tab commits the operator change and returns focus to the main input */
+    onTabComplete?: () => void;
     onItemClick?: (item: any) => void;
     language?: string;
     keyboardRootRef?: RefObject<HTMLElement | null>;
@@ -68,6 +70,7 @@ const Operators: FC<OperatorsProps> = ({ currentOperator, ...props }) => {
             title={conditionGroupLabel}
             data={data}
             defaultActiveIndex={defaultActiveIndex >= 0 ? defaultActiveIndex : 0}
+            selectOnSpace
             {...props}
         />
     )

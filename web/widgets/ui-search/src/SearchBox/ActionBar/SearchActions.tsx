@@ -4,9 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { type FC } from "react";
 
 export const ACTION_TYPE_SEARCH = 'search'
-export const ACTION_TYPE_SEARCH_HYBRID = 'hybrid'
+// the plain weighted 'hybrid' mode is retired from the UI: one hybrid entry
+// (RRF fusion) covers it, and legacy 'hybrid' values resolve to hybrid_rrf
+export const ACTION_TYPE_SEARCH_HYBRID_RRF = 'hybrid_rrf'
 export const ACTION_TYPE_SEARCH_KEYWORD = 'keyword'
 export const ACTION_TYPE_SEARCH_SEMANTIC = 'semantic'
+export const DEFAULT_SEARCH_TYPE = ACTION_TYPE_SEARCH_HYBRID_RRF
 export const ACTION_TYPE_DEEPTHINK = 'deepthink'
 export const ACTION_TYPE_DEEPSEARCH = 'deepresearch'
 export const DEFAULT_SEARCH_FUZZINESS = 3
@@ -30,6 +33,15 @@ export const normalizeSearchSort = (value: unknown): string => {
     if (typeof value !== 'string') return DEFAULT_SEARCH_SORT;
     const sorts = value.split(',').filter((item) => SEARCH_SORTS.has(item));
     return sorts.length > 0 ? sorts.join(',') : DEFAULT_SEARCH_SORT;
+}
+
+// maps retired/unknown modes onto the offered set: legacy 'hybrid' URLs and
+// saved settings render and search as hybrid_rrf instead of a blank label
+export const normalizeSearchType = (value: unknown): string => {
+    if (value === 'hybrid') return ACTION_TYPE_SEARCH_HYBRID_RRF;
+    if (value === ACTION_TYPE_SEARCH_SEMANTIC || value === ACTION_TYPE_SEARCH_KEYWORD) return value as string;
+    if (value === ACTION_TYPE_SEARCH_HYBRID_RRF) return ACTION_TYPE_SEARCH_HYBRID_RRF;
+    return DEFAULT_SEARCH_TYPE;
 }
 
 interface SearchActionsProps {
@@ -97,8 +109,8 @@ const SearchActions: FC<SearchActionsProps> = (props) => {
     } else {
         const items = [
             {
-                key: ACTION_TYPE_SEARCH_HYBRID,
-                label: t('labels.hybrid'),
+                key: ACTION_TYPE_SEARCH_HYBRID_RRF,
+                label: t('labels.hybridRRF'),
             },
             {
                 key: ACTION_TYPE_SEARCH_KEYWORD,
@@ -109,6 +121,7 @@ const SearchActions: FC<SearchActionsProps> = (props) => {
                 label: t('labels.semantic'),
             },
         ]
+        const currentTypeLabel = items.find((item) => item.key === normalizeSearchType(searchType))?.label
         
         const handleVisibleChange = (visible: boolean) => {
             if (!visible && onDropdownClose) {
@@ -141,7 +154,7 @@ const SearchActions: FC<SearchActionsProps> = (props) => {
                     >
                         <Space size={4} className="!leading-none">
                             <Search className="w-16px h-16px" />
-                            {items.find((item) => item.key === searchType)?.label}
+                            {currentTypeLabel}
                             <ChevronDown className="w-20px h-20px" />
                         </Space>
                     </Button>

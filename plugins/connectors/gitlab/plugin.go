@@ -19,7 +19,10 @@ const (
 )
 
 func init() {
-	pipeline.RegisterProcessorPlugin(ConnectorGitLab, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(ConnectorGitLab, New, nil)
+	// chain-root driver (batch scope): fetches from its datasource and
+	// emits into the indexing queue — no record contract beyond scope
+	pipeline.RegisterProcessorContract(ConnectorGitLab, pipeline.RecordContract{Scope: pipeline.ScopeBatch})
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {

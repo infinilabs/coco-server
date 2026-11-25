@@ -28,7 +28,10 @@ type Config struct {
 }
 
 func init() {
-	pipeline.RegisterProcessorPlugin(ConnectorNeo4j, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(ConnectorNeo4j, New, nil)
+	// chain-root driver (batch scope): fetches from its datasource and
+	// emits into the indexing queue — no record contract beyond scope
+	pipeline.RegisterProcessorContract(ConnectorNeo4j, pipeline.RecordContract{Scope: pipeline.ScopeBatch})
 }
 
 type Plugin struct {

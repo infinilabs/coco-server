@@ -1,4 +1,4 @@
-import { PanelLeftOpen, PanelRightOpen } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Waypoints } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useTranslation } from 'react-i18next';
 import { type FC, type ReactNode } from "react";
@@ -8,6 +8,9 @@ interface ResultHeaderProps {
   isMobile?: boolean;
   hasAggregations?: boolean;
   hasRecommends?: boolean;
+  /** first page still in flight — a placeholder bar keeps the summary row's
+   * place instead of flashing "0 results" before the real count lands */
+  initialLoading?: boolean;
   siderCollapse?: boolean;
   setSiderCollapse?: (v: boolean) => void;
   recommendsCollapse?: boolean;
@@ -18,6 +21,10 @@ interface ResultHeaderProps {
   setLeftDrawerOpen?: (v: boolean) => void;
   rightDrawerOpen?: boolean;
   setRightDrawerOpen?: (v: boolean) => void;
+  /** knowledge-graph panel: shown when the hits contain KB content */
+  showWikiGraphToggle?: boolean;
+  wikiGraphOpen?: boolean;
+  onToggleWikiGraph?: () => void;
   toolbar?: ReactNode;
 }
 
@@ -26,11 +33,13 @@ export const ResultHeader: FC<ResultHeaderProps> = (props) => {
     hits, isMobile,
     hasAggregations,
     hasRecommends,
+    initialLoading,
     siderCollapse, setSiderCollapse,
     recommendsCollapse, setRecommendsCollapse,
     userCollapsedLeft, userCollapsedRight,
     leftDrawerOpen, setLeftDrawerOpen,
     rightDrawerOpen, setRightDrawerOpen,
+    showWikiGraphToggle, wikiGraphOpen, onToggleWikiGraph,
     toolbar
   } = props;
 
@@ -67,11 +76,13 @@ export const ResultHeader: FC<ResultHeaderProps> = (props) => {
   };
 
   const showRightToggle = hasRecommends && (isMobile || recommendsCollapse);
-  const LeftToggleIcon = (isMobile || siderCollapse) && !leftDrawerOpen ? PanelRightOpen : PanelLeftOpen;
-  const RightToggleIcon = showRightToggle && !rightDrawerOpen ? PanelLeftOpen : PanelRightOpen;
+  // icon reads as the ACTION the click performs: a shown rail/drawer gets a
+  // close glyph, a hidden one gets an open glyph — matched to its own side
+  const LeftToggleIcon = (isMobile || siderCollapse) && !leftDrawerOpen ? PanelLeftOpen : PanelLeftClose;
+  const RightToggleIcon = showRightToggle && !rightDrawerOpen ? PanelRightOpen : PanelRightClose;
 
   return (
-    <div className="flex gap-8px items-start w-full text-[#999] dark:text-[#666]">
+    <div className="flex gap-8px items-start w-full text-[#6B7280] dark:text-[#9AA0A6]">
       {
         hasAggregations && (
           <span className="h-18px flex flex-none items-center">
@@ -79,18 +90,31 @@ export const ResultHeader: FC<ResultHeaderProps> = (props) => {
           </span>
         )
       }
+      {showWikiGraphToggle && (
+        <span className="h-18px flex flex-none items-center">
+          <Waypoints
+            className={`w-15px h-15px cursor-pointer ${wikiGraphOpen ? 'text-[var(--ant-color-primary)]' : 'text-[#666] dark:text-white/80'}`}
+            onClick={onToggleWikiGraph}
+            aria-label={t('labels.wikiGraph')}
+          />
+        </span>
+      )}
       <div className={`text-12px flex-1 overflow-hidden`}>
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={toolbar ? 'toolbar' : 'summary'}
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 4 }}
-            transition={{ duration: 0.16, ease: 'easeOut' }}
-          >
-            {toolbar || t('labels.resultsWithTime', { count: hits?.total || 0, took: hits?.took || 0 })}
-          </motion.div>
-        </AnimatePresence>
+        {initialLoading ? (
+          <span className='animate-pulse inline-block h-12px w-96px rounded-4px bg-slate-200 dark:bg-slate-700' />
+        ) : (
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={toolbar ? 'toolbar' : 'summary'}
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={{ duration: 0.16, ease: 'easeOut' }}
+            >
+              {toolbar || String(t('labels.results', { count: hits?.total || 0 }))}
+            </motion.div>
+          </AnimatePresence>
+        )}
       </div>
       {showRightToggle && (
         <span className="h-18px flex flex-none items-center">

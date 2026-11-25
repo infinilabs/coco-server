@@ -18,6 +18,8 @@ import (
 	"infini.sh/coco/modules/assistant/deep_search"
 	"infini.sh/coco/modules/assistant/tools"
 	attachmentmod "infini.sh/coco/modules/attachment"
+	cocomemory "infini.sh/coco/modules/memory"
+	"infini.sh/coco/modules/wiki"
 
 	log "github.com/cihub/seelog"
 	"github.com/tmc/langchaingo/llms"
@@ -209,6 +211,7 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 			replyMsg,
 			sender,
 		)
+		autoDistillAfterReply(userID, reqMsg, replyMsg)
 		return err
 	}
 
@@ -247,10 +250,45 @@ func ProcessMessageAsync(ctx context.Context, userID string, reqMsg, replyMsg *c
 			params.InputValues["references"] = docs
 		}
 
+		// W6: confirmed long-term memories join the prompt — resident kinds
+		// every turn, fact/task recalled against the current query
+		if section := buildMemorySection(userID, reqMsg.Message); section != "" {
+			params.InputValues["memory_section"] = section
+		}
+
+		// tier-1 skill index (LLM-wiki P2): the same resident index the
+		// deep-search path injects — names + applicability only; the full
+		// skill pages reach the model through retrieval (tier 2), their
+		// Loads attachments stay tier 3
+		if idx := wiki.SkillIndexForAssistant(orm.NewContextWithParent(ctx), params.AssistantCfg.GetID()); idx != "" {
+			params.InputValues["skills"] = idx
+		}
+
 		err = langchain.GenerateFinalResponse(ctx, reqMsg, replyMsg, params, params.InputValues, sender)
 		log.Info("async reply task done for query:", reqMsg.Message)
 	}
+
+	// W6 auto-distill per turn — hooked at the ProcessMessageAsync level so
+	// EVERY reply path (simple, tools, deep_search, deep_research) becomes a
+	// distill candidate. AutoDistill is async and buffered (B1): turns inside
+	// a 5min merge window accumulate per user and are distilled together when
+	// the window closes — nothing is dropped. Candidates stay pending until
+	// the owner confirms.
+	autoDistillAfterReply(userID, reqMsg, replyMsg)
 	return err
+}
+
+// autoDistillAfterReply queues the finished exchange as a distill
+// candidate (the LLM call itself is async + buffered inside the memory
+// module — this never blocks the chat flow).
+func autoDistillAfterReply(userID string, reqMsg, replyMsg *core.ChatMessage) {
+	answer := strings.TrimSpace(replyMsg.Message)
+	if answer == "" {
+		log.Debug("memory: auto-distill skipped, empty reply message")
+		return
+	}
+	excerpt := fmt.Sprintf("user: %s\nassistant: %s", reqMsg.Message, answer)
+	cocomemory.AutoDistill(userID, excerpt, reqMsg.SessionID)
 }
 
 func FetchSessionHistory(ctx context.Context, reqMsg *core.ChatMessage, size int) (*memory.ChatMessageHistory, string, error) {

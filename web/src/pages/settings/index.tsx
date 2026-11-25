@@ -1,77 +1,105 @@
+import { SettingOutlined } from '@ant-design/icons';
+import PageHeaderTitle from '@/components/stateless/common/PageHeaderTitle';
 import { Tabs } from 'antd';
 
 import './index.scss';
+import { SaveBarSlotContext } from './modules/SaveBar';
+import AppearanceSettings from './modules/Appearance';
 import AppSettings from './modules/AppSettings';
-import ConnectorSettings from './modules/Connector';
-import SearchSettings from './modules/SearchSettings';
-import DefaultModel from './modules/DefaultModel';
-import DocProcessing from './modules/DocProcessing';
+import DefaultParams from './modules/DefaultParams';
+import Environment from './modules/Environment';
 
 export function Component() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const { t } = useTranslation();
 
   const { hasAuth } = useAuth()
 
   const permissions = {
-    viewConnector: hasAuth('coco#connector/search'),
     viewSystemSettings: hasAuth('coco#system/read'),
   }
 
+  type SettingsTab = { component: any; key: string; label: string };
+
+  // All tabs live behind `coco#system/read`.
+  //
+  // App-related tabs (search/chat settings) are NOT here anymore — they are
+  // first-class routes promoted under their application groups in the sider
+  // (search-settings / content-dedup / memory-settings).
+  //
+  // Data-ingestion-related tabs (connector / engine AI / data security) were
+  // promoted the same way under the 数据接入 group
+  // (connector-settings / engine-ai / data-security routes).
+  //
+  // NOTE: W18 close-out originally grouped these into antd Tabs `type:'group'`
+  // items, but antd 6's Tabs (@rc-component/tabs `Tab` = {key, label}) has no
+  // group support — those items were silently dropped and nine tabs vanished
+  // from the page. Tabs render flat until antd ships grouped items again.
+  const items: SettingsTab[] = permissions.viewSystemSettings
+    ? [
+        { component: AppearanceSettings, key: 'appearance', label: t(`page.settings.appearance.title`) },
+        { component: AppSettings, key: 'app_settings', label: t(`page.settings.app_settings.title`) },
+        // 默认模型 + 文档处理合并为「默认参数」（两者同为全局兜底参数）
+        { component: DefaultParams, key: 'default_params', label: t(`page.settings.default_params.title`) },
+        { component: Environment, key: 'environment', label: t(`page.settings.environment.title`) }
+      ]
+    : [];
+
+  // 旧链接兼容：合并前的 ?tab=default_model / ?tab=document_processing 落到合并后的 tab
+  const TAB_ALIAS: Record<string, string> = { default_model: 'default_params', document_processing: 'default_params' };
+
+  // The `?tab=` query param seeds the initial tab only. Switching is driven by
+  // local state on purpose: routing tab clicks through setSearchParams trips
+  // the hash router's navigation blocker (POP navigations "fail silently") and
+  // bounces the user to login, so the URL is deliberately left untouched.
+  const requestedTab = searchParams.get('tab');
+  const [activeKey, setActiveKey] = useState<string>(
+    () => (requestedTab && (TAB_ALIAS[requestedTab] || requestedTab)) || items?.[0]?.key
+  );
+
+  // The component stays mounted across hash-query navigations (same route),
+  // so the useState initializer alone can't pick up later ?tab= changes —
+  // sync explicit URL seeds here too. Local tab clicks still bypass the URL.
+  useEffect(() => {
+    if (!requestedTab) return;
+    const resolved = TAB_ALIAS[requestedTab] || requestedTab;
+    if (items.some(item => item.key === resolved)) {
+      setActiveKey(resolved);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedTab]);
+
   const onChange = (key: string) => {
-    setSearchParams({ tab: key });
+    setActiveKey(key);
   };
 
-  const items = [];
+  const activeItem = items.find(item => item.key === activeKey);
 
-  if (permissions.viewConnector) {
-    items.push({
-      component: ConnectorSettings,
-      key: 'connector',
-      label: t(`page.settings.connector.title`),
-    })
-  }
-
-  if (permissions.viewSystemSettings) {
-    items.push({
-      component: AppSettings,
-      key: 'app_settings',
-      label: t(`page.settings.app_settings.title`),
-    })
-    items.push({
-      component: SearchSettings,
-      key: 'search_settings',
-      label: t(`page.settings.search_settings.title`),
-    })
-    items.push({
-      component: DefaultModel,
-      key: 'default_model',
-      label: t(`page.settings.default_model.title`),
-    })
-    items.push({
-      component: DocProcessing,
-      key: 'document_processing',
-      label: t(`page.settings.document_processing.title`),
-    })
-  }
-
-  const activeKey = useMemo(() => {
-    return searchParams.get('tab') || items?.[0]?.key
-  }, [])
-
-  const activeItem = useMemo(() => {
-    return items.find(item => item.key === activeKey);
-  }, [activeKey]);
+  // SaveBar portal target: modules' save bars render OUTSIDE the white card
+  // on the page canvas, matching the ontology page's footer-style save bar.
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
 
   return (
-    <ACard styles={{ body: { padding: 0 } }}>
-      <Tabs
-        activeKey={activeKey}
-        className="settings-tabs"
-        items={items}
-        onChange={onChange}
-      />
-      <div className="settings-tabs-content">{activeItem?.component ? <activeItem.component /> : null}</div>
-    </ACard>
+    <SaveBarSlotContext.Provider value={slot}>
+      <ACard
+        styles={{ body: { padding: 0 } }}
+        title={
+          <PageHeaderTitle
+            description={t('page.settings.subtitle')}
+            icon={<SettingOutlined />}
+            title={t('page.settings.title')}
+          />
+        }
+      >
+        <Tabs
+          activeKey={activeKey}
+          className="settings-tabs"
+          items={items}
+          onChange={onChange}
+        />
+        <div className="settings-tabs-content">{activeItem?.component ? <activeItem.component /> : null}</div>
+      </ACard>
+      <div ref={setSlot} style={{ display: 'contents' }} />
+    </SaveBarSlotContext.Provider>
   );
 }

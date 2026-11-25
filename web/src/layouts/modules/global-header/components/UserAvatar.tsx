@@ -12,10 +12,11 @@ import { getApplicationSetting } from '@/store/slice/server';
 
 const PasswordModal = lazy(() => import('./PasswordModal'));
 
-const UserAvatar = memo((props: { className?: string; showHome?: boolean; showName?: boolean }) => {
-  const { className, showHome = false, showName = true } = props;
+const UserAvatar = memo((props: { className?: string; showHome?: boolean; showConsole?: boolean; showName?: boolean }) => {
+  const { className, showHome = false, showConsole = false, showName = true } = props;
   const { t } = useTranslation();
   const userInfo = useAppSelector(selectUserInfo);
+  const { hasAuth } = useAuth();
   const submit = useSubmit();
   const route = useRoute();
   const router = useRouterPush();
@@ -49,6 +50,8 @@ const UserAvatar = memo((props: { className?: string; showHome?: boolean; showNa
 
   function onClick({ key }: { key: string }) {
     if (key === 'home') {
+      nav(`/home`)
+    } else if (key === 'console') {
       nav(`/home`)
     } else if (key === 'logout') {
       onLogout();
@@ -109,6 +112,24 @@ const UserAvatar = memo((props: { className?: string; showHome?: boolean; showNa
             icon="mdi:settings"
           />
           {t('route.settings')}
+        </div>
+      )
+    })
+  }
+
+  // the admin console entry lives in the avatar dropdown: only rendered for a
+  // logged-in user with console read permission — logged-out visitors only get
+  // the login button (no dropdown at all)
+  if (showConsole && hasAuth('coco#system/read')) {
+    items.unshift({
+      key: 'console',
+      label: (
+        <div className="flex justify-left items-center gap-8px">
+          <SvgIcon
+            className="text-icon"
+            icon="mdi:view-dashboard-outline"
+          />
+          {t('common.console')}
         </div>
       )
     })

@@ -14,6 +14,7 @@ import {
 import { ResearchSearchResultsContent } from "./ResearchSearchResultsContent";
 import { ActionButton } from "../../../../ResultDetail/DocDetail";
 import CommonDrawer from "../../../../Layout/CommonDrawer";
+import { ensureFilenameExtension, extensionFromMime } from "../../../../utils/media";
 
 const TAB_KEYS = {
   REPORT: "report",
@@ -153,7 +154,9 @@ export const DeepResearchDrawer = ({
                       const blobUrl = URL.createObjectURL(blob);
                       const a = document.createElement('a');
                       a.href = blobUrl;
-                      a.download = (reportData?.title as string) || '';
+                      // the title alone usually has no extension — a file saved
+                      // that way can't be opened, so derive one from the blob
+                      a.download = ensureFilenameExtension((reportData?.title as string) || 'report', extensionFromMime(blob.type));
                       a.click();
                       URL.revokeObjectURL(blobUrl);
                     }

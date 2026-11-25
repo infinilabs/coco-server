@@ -18,9 +18,11 @@ import (
 	"infini.sh/coco/modules/assistant/langchain"
 	"infini.sh/coco/modules/common"
 	llmmodule "infini.sh/coco/modules/llm"
+	"infini.sh/coco/plugins/connectors"
 	utils "infini.sh/coco/plugins/processors"
 	"infini.sh/framework/core/config"
 	"infini.sh/framework/core/errors"
+	"infini.sh/framework/core/event"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/param"
 	"infini.sh/framework/core/pipeline"
@@ -57,7 +59,8 @@ type DocumentSummarizationProcessor struct {
 }
 
 func init() {
-	pipeline.RegisterProcessorPlugin(ProcessorName, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(ProcessorName, New, Config{})
+	pipeline.RegisterProcessorContract(ProcessorName, utils.DocumentRecordContract(pipeline.GranularityBatchCapable))
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {
@@ -103,7 +106,100 @@ func (processor *DocumentSummarizationProcessor) Name() string {
 	return ProcessorName
 }
 
+// eligible reports whether the document should be summarized (length and
+// empty-text guards shared by both conventions).
+func (processor *DocumentSummarizationProcessor) eligible(doc *core.Document, docLen uint32) bool {
+	if docLen < processor.config.MinInputDocumentLength {
+		return false
+	}
+	// Empty-text guard (WeKnora discipline): folder nodes and
+	// extraction-dead documents carry no summarizable text — without
+	// this the LLM hallucinates a summary from the title alone and
+	// every connector re-sync burns tokens re-hallucinating it
+	if doc.Type == connectors.TypeFolder || strings.TrimSpace(doc.Content) == "" {
+		log.Debugf("[%s] document [%s/%s] has no text content (type=%s), skipping summarization", processor.Name(), doc.Title, doc.ID, doc.Type)
+		return false
+	}
+	return true
+}
+
+// summarize is the per-document core shared by both conventions.
+func (processor *DocumentSummarizationProcessor) summarize(llmCtx context.Context, llm llms.Model, doc *core.Document) (bool, error) {
+	log.Infof("processor [%s] start summarizing document [%s/%s]", processor.Name(), doc.Title, doc.ID)
+	start := time.Now()
+	err := summarizeDocument(llmCtx, doc, processor.config, llm, processor.removeThinkPattern)
+	if err != nil {
+		log.Errorf("processor [%s] failed to summarize document [%s/%s], error [%s]", processor.Name(), doc.Title, doc.ID, err)
+		return false, nil // per-document failure skips the doc, matching legacy
+	}
+	log.Infof("processor [%s] finished summarizing document [%s/%s], elapsed: %v", processor.Name(), doc.Title, doc.ID, util.Since(start))
+	return true, nil
+}
+
+// resolveLLM resolves the language model once per invocation.
+func (processor *DocumentSummarizationProcessor) resolveLLM() (llms.Model, error) {
+	modelId := llmmodule.ResolveModel(core.LLMTypeLanguage, &core.ModelId{ProviderID: processor.config.ModelProviderID, ID: processor.config.ModelName})
+	if modelId == nil {
+		return nil, fmt.Errorf("[%s] no language model configured: set model_provider/model in pipeline config or configure a default language model in settings", processor.Name())
+	}
+	provider, err := common.GetModelProvider(modelId.ProviderID)
+	if err != nil {
+		return nil, err
+	}
+	return langchain.GetLLM(provider.BaseURL, provider.APIType, modelId.ID, provider.APIKey, ""), nil
+}
+
+// ProcessBatch: record-convention batch channel with lazy LLM resolution
+// (skip-only batches must not require model configuration).
+func (processor *DocumentSummarizationProcessor) ProcessBatch(ctx *pipeline.Context, records []*event.Event) error {
+	var llm llms.Model
+	resolved := false
+	getLLM := func() (llms.Model, error) {
+		if resolved {
+			return llm, nil
+		}
+		var err error
+		llm, err = processor.resolveLLM()
+		if err != nil {
+			return nil, err
+		}
+		resolved = true
+		return llm, nil
+	}
+	llmCtx, cancelFunc := context.WithCancel(ctx.Context)
+	defer cancelFunc()
+	return utils.EachDocumentRecord(llmCtx, records, func(dctx context.Context, doc *core.Document) (bool, error) {
+		if global.ShuttingDown() {
+			return false, errors.New("shutting down")
+		}
+		if !processor.eligible(doc, uint32(len(doc.Content))) {
+			return false, nil
+		}
+		m, err := getLLM()
+		if err != nil {
+			return false, err
+		}
+		return processor.summarize(dctx, m, doc)
+	})
+}
+
 func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) error {
+	// record-scope fallback: batch_capable degrades to per-record when nested
+	if rec, ok := pipeline.CurrentRecord(ctx); ok {
+		llmCtx, cancelFunc := context.WithCancel(ctx.Context)
+		defer cancelFunc()
+		return utils.EachDocumentRecord(llmCtx, []*event.Event{rec}, func(dctx context.Context, doc *core.Document) (bool, error) {
+			if !processor.eligible(doc, uint32(len(doc.Content))) {
+				return false, nil
+			}
+			m, err := processor.resolveLLM()
+			if err != nil {
+				return false, err
+			}
+			return processor.summarize(dctx, m, doc)
+		})
+	}
+
 	// get message from queue
 	obj := ctx.Get(processor.config.MessageField)
 
@@ -125,18 +221,11 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 		return nil
 	}
 
-	modelId := llmmodule.ResolveModel(core.LLMTypeLanguage, &core.ModelId{ProviderID: processor.config.ModelProviderID, ID: processor.config.ModelName})
-	if modelId == nil {
-		return fmt.Errorf("[%s] no language model configured: set model_provider/model in pipeline config or configure a default language model in settings", processor.Name())
-	}
-	provider, err := common.GetModelProvider(modelId.ProviderID)
+	llm, err := processor.resolveLLM()
 	if err != nil {
 		log.Error("failed to get model provider:", err)
 		return err
 	}
-
-	modelName := modelId.ID
-	llm := langchain.GetLLM(provider.BaseURL, provider.APIType, modelName, provider.APIKey, "")
 	llmCtx, cancelFunc := context.WithCancel(ctx.Context)
 	defer cancelFunc()
 
@@ -159,6 +248,15 @@ func (processor *DocumentSummarizationProcessor) Process(ctx *pipeline.Context) 
 			err := util.FromJSONBytes(pop, &doc)
 			if err != nil {
 				log.Error("error on handle document:", i, err)
+				continue
+			}
+
+			// Empty-text guard (WeKnora discipline): folder nodes and
+			// extraction-dead documents carry no summarizable text — without
+			// this the LLM hallucinates a summary from the title alone and
+			// every connector re-sync burns tokens re-hallucinating it
+			if doc.Type == connectors.TypeFolder || strings.TrimSpace(doc.Content) == "" {
+				log.Debugf("[%s] document [%s/%s] has no text content (type=%s), skipping summarization", processor.Name(), doc.Title, doc.ID, doc.Type)
 				continue
 			}
 
@@ -412,6 +510,9 @@ func generateSummaryFromPrompt(ctx context.Context, llm llms.Model, systemPrompt
 	}
 
 	summaryBuilder := strings.Builder{}
+	llmCtx, llmCancel := utils.PipelineLLMContext(ctx)
+	defer llmCancel()
+	ctx = llmCtx
 	completion, err := llm.GenerateContent(ctx, message, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
 		if global.ShuttingDown() {
 			ctx.Done()
@@ -463,6 +564,9 @@ func tryGenerateAIInsightsOnePass(ctx context.Context, document *core.Document, 
 	}
 
 	builder := strings.Builder{}
+	llmCtx, llmCancel := utils.PipelineLLMContext(ctx)
+	defer llmCancel()
+	ctx = llmCtx
 	_, err := llm.GenerateContent(ctx, message, llms.WithStreamingFunc(func(ctx context.Context, chunk []byte) error {
 		if global.ShuttingDown() {
 			ctx.Done()

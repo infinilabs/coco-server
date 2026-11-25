@@ -32,6 +32,17 @@ const local: App.I18n.Schema['translation'] = {
     unpin: 'Unpin',
     about: 'About'
   },
+  menu: {
+    administration: 'Administration',
+    group: {
+      appChat: 'AI Chat',
+      appKb: 'Knowledge Base',
+      appSearch: 'AI Search',
+      data: 'Knowledge Processing',
+      others: 'Others',
+      system: 'System'
+    }
+  },
   page,
   request,
   route,

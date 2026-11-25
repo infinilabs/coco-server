@@ -74,6 +74,11 @@ func (h *APIHandler) update(w http.ResponseWriter, req *http.Request, ps httprou
 	}
 
 	newObj := core.ModelProvider{}
+	// json.Unmarshal REUSES existing slice elements: fields absent from the
+	// request body would leak from the loaded state (e.g. a stale
+	// support_reasoning=true surviving a language→rerank type change and
+	// tripping validation). nil the slice so elements are freshly allocated.
+	obj.Models = nil
 	err = h.DecodeJSON(req, &obj)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)

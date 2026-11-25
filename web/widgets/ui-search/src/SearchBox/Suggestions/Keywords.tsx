@@ -12,6 +12,7 @@ interface KeywordsProps {
     data?: any[];
     onItemSelect?: (item: any) => void;
     onItemClick?: (item: any) => void;
+    onItemComplete?: (item: any) => void;
     action_type?: string;
     settings?: Record<string, any>;
     language?: string;
@@ -19,7 +20,7 @@ interface KeywordsProps {
 }
 
 const Keywords: FC<KeywordsProps> = (props) => {
-    const { keyword, data = [], onItemSelect, onItemClick, action_type, settings, keyboardRootRef } = props;
+    const { keyword, data = [], onItemSelect, onItemClick, onItemComplete, action_type, settings, keyboardRootRef } = props;
     const { t } = useTranslation();
 
     const actions = useMemo(() => [
@@ -90,10 +91,16 @@ const Keywords: FC<KeywordsProps> = (props) => {
         if (!keyboardTarget) return;
 
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (![38, 40, 13].includes(e.keyCode)) return;
+            // Standard search-box keys (omnibox convention): ↑/↓ move the
+            // highlight, Enter runs the highlighted row, Tab completes it
+            // into the query without searching. Space is never intercepted
+            // — multi-word queries need it as a literal character.
+            if (![38, 40, 13, 9].includes(e.keyCode)) return;
 
             const totalItems = combinedData.current.length;
             if (totalItems === 0) return;
+
+            if (e.keyCode === 9 && (globalActiveIndex < 0 || !onItemComplete)) return;
 
             e.preventDefault();
             e.stopImmediatePropagation();
@@ -127,13 +134,18 @@ const Keywords: FC<KeywordsProps> = (props) => {
                         onItemSelect?.({ ...(combinedData.current?.[newIndex] || {}), action: "search" });
                     }
                     break;
-                case 13: 
+                case 13:
                     if (globalActiveIndex >= 0 && globalActiveIndex < totalItems) {
                         if (globalActiveIndex < actionsLength) {
                             listRefs.current[SUGGESTION_ACTIONS]?.triggerItemClick(globalActiveIndex);
                         } else {
                             listRefs.current[SUGGESTION_KEYWORDS]?.triggerItemClick(globalActiveIndex - actionsLength);
                         }
+                    }
+                    break;
+                case 9:
+                    if (globalActiveIndex >= 0 && globalActiveIndex < totalItems) {
+                        onItemComplete?.(combinedData.current[globalActiveIndex]);
                     }
                     break;
                 default:
@@ -146,7 +158,7 @@ const Keywords: FC<KeywordsProps> = (props) => {
         return () => {
             keyboardTarget.removeEventListener("keydown", handleKeyDown);
         };
-    }, [globalActiveIndex, onItemClick, actionsLength, actions.length, keywords.length, keyboardRootRef]);
+    }, [globalActiveIndex, onItemClick, onItemComplete, actionsLength, actions.length, keywords.length, keyboardRootRef]);
 
     const setListRef = (type: string, ref: any) => {
         listRefs.current[type] = ref;

@@ -43,6 +43,8 @@ func init() {
 	secretKeys["api_key"] = true
 
 	api.HandleUIMethod(api.POST, "/model_provider/", handler.create, api.RequireLogin(), api.RequirePermission(createLLMPermission))
+	api.HandleUIMethod(api.POST, "/model_provider/_test", handler.testModel, api.RequireLogin(), api.RequirePermission(createLLMPermission))
+	api.HandleUIMethod(api.POST, "/model_provider/_models", handler.fetchModels, api.RequireLogin(), api.RequirePermission(createLLMPermission))
 	api.HandleUIMethod(api.GET, "/model_provider/:id", handler.get, api.RequireLogin(), api.RequirePermission(readLLMPermission))
 	api.HandleUIMethod(api.PUT, "/model_provider/:id", handler.update, api.RequireLogin(), api.RequirePermission(UpdateLLMPermission))
 	api.HandleUIMethod(api.DELETE, "/model_provider/:id", handler.delete, api.RequireLogin(), api.RequirePermission(deleteLLMPermission))

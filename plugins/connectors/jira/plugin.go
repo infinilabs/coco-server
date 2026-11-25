@@ -22,7 +22,10 @@ type Plugin struct {
 
 func init() {
 	// Register the Jira connector as a pipeline processor
-	pipeline.RegisterProcessorPlugin(ConnectorJira, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(ConnectorJira, New, nil)
+	// chain-root driver (batch scope): fetches from its datasource and
+	// emits into the indexing queue — no record contract beyond scope
+	pipeline.RegisterProcessorContract(ConnectorJira, pipeline.RecordContract{Scope: pipeline.ScopeBatch})
 }
 
 // New creates a new instance of the Jira connector plugin

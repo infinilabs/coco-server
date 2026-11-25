@@ -6,11 +6,13 @@ package dropbox
 
 import (
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"infini.sh/coco/core"
 	"infini.sh/coco/modules/common"
+	"infini.sh/coco/modules/common/fingerprint"
 	"infini.sh/framework/core/global"
 	"infini.sh/framework/core/pipeline"
 	"infini.sh/framework/core/util"
@@ -166,6 +168,10 @@ func (processor *Processor) processEntry(pipeCtx *pipeline.Context, connector *c
 	document.ID = common.GetDocID(datasource.ID, entry.Id)
 	document.Created = createdAt
 	document.Updated = updatedAt
+
+	// Stamp source-side change signal (server_modified + size): lets the
+	// collection skip gate drop unchanged files before enrichment
+	document.SourceFingerprint = fingerprint.SourceMeta("dropbox", entry.ServerModified, strconv.FormatUint(entry.Size, 10))
 
 	// Hierarchy
 	// path_display looks like "/folder/file.txt"

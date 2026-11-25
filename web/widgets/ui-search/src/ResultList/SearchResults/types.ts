@@ -34,12 +34,18 @@ export type SearchResultListItem = SearchResultCommon & {
   meta?: string[];
   breadcrumbs?: string[];
   author?: string;
+  /** raw timestamp — rendered as a short relative time ("10 天前"), exact time on hover */
   date?: string;
   cover?: string;
   thumbnailAlt?: string;
   fileType?: SearchResultFileType;
   typeIcon?: React.ReactNode;
   source?: string;
+  /** hit comes from the curated knowledge-base layer (W16a projection / wiki leg) */
+  fromWiki?: boolean;
+  /** entity hit's ontology type label ("产品", "技术" …) — rendered as a
+   * type badge, the entity counterpart of the Wiki badge */
+  entityType?: string;
   leading?: React.ReactNode;
   trailing?: React.ReactNode;
   onClick?: () => void;

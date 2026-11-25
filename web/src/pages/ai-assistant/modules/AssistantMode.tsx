@@ -18,6 +18,10 @@ export const AssistantMode = (props: AssistantModeProps) => {
     {
       label: t('page.assistant.mode.deep_research'),
       value: 'deep_research'
+    },
+    {
+      label: t('page.assistant.mode.data_processing'),
+      value: 'data_processing'
     }
     // {
     //   label: t('page.assistant.mode.workflow'),

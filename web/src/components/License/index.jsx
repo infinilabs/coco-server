@@ -46,6 +46,18 @@ const LicenseModal = forwardRef((props, ref) => {
     close: onClose
   }));
 
+  // Render tab panes as proper React elements. Never call component
+  // functions directly (item.component(props, ref)) — that executes the
+  // component body during render, firing its useEffect (license fetch)
+  // on every page mount via the sider's LicenseTrigger.
+  const renderTabContent = item => {
+    if (item.key === 'license') {
+      return <Code {...props} onClose={onClose} ref={tabRef} />;
+    }
+    const Comp = item.component;
+    return <Comp {...props} onClose={onClose} />;
+  };
+
   return (
     <Modal
       closable
@@ -64,7 +76,7 @@ const LicenseModal = forwardRef((props, ref) => {
         items={tabs.map(item => ({
           key: item.key,
           label: <div className='px-12px'>{item.title}</div>,
-          children: <div className={styles.content}>{item.component({ ...props, onClose }, tabRef)}</div>
+          children: <div className={styles.content}>{renderTabContent(item)}</div>
         }))}
       />
     </Modal>

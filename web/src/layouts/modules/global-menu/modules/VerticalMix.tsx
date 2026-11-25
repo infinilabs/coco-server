@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import DarkModeContainer from '@/components/stateless/common/DarkModeContainer';
 import PinToggler from '@/components/stateless/common/PinToggler';
 import { GLOBAL_SIDER_MENU_ID } from '@/constants/app';
+import { getAppearance } from '@/store/slice/server';
 import { getMixSiderFixed, toggleMixSiderFixed } from '@/store/slice/app';
 import { getDarkMode, getThemeSettings } from '@/store/slice/theme';
 
@@ -20,6 +21,7 @@ const VerticalMix = memo(() => {
   const dispatch = useAppDispatch();
   const darkMode = useAppSelector(getDarkMode);
   const themeSettings = useAppSelector(getThemeSettings);
+  const appearance = useAppSelector(getAppearance);
   const mixSiderFixed = useAppSelector(getMixSiderFixed);
 
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -65,7 +67,7 @@ const VerticalMix = memo(() => {
             className="flex-y-center justify-between px-12px"
             style={{ height: `${themeSettings.header.height}px` }}
           >
-            <h2 className="text-16px text-primary font-bold">{t('system.title')}</h2>
+            <h2 className="text-16px text-primary font-bold">{appearance?.title || t('system.title')}</h2>
             <PinToggler
               className={classNames({ 'text-white:88 !hover:text-white': siderInverted })}
               pin={mixSiderFixed}

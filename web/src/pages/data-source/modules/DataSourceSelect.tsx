@@ -53,9 +53,12 @@ export default (props) => {
     useEffect(() => {
       if (mode === 'multiple') {
         if (value && value.some((item) => !!(item?.id && !item?.name)) && permissions.search) {
+          // formatSearchFilter expects an object with array values — a plain
+          // array of "id:x" strings is silently dropped, turning this into an
+          // unfiltered fetch of every datasource
           fetchItems({
-            filter: value.map((item) => `id:${item.id}`),
-            from: 0, 
+            filter: { id: value.map((item) => item.id) },
+            from: 0,
             size: 10000,
           })
         }
@@ -72,8 +75,12 @@ export default (props) => {
 
     const formatValue = useMemo(() => {
       if (mode === 'multiple') {
-        if (value && value.some((item) => !!(item?.id && !item?.name)) && itemsRes) {
-          return itemsRes?.hits?.hits ? itemsRes?.hits?.hits.map((item) => item._source) : []
+        const hitRows = (itemsRes as any)?.hits?.hits;
+        if (value && value.some((item) => !!(item?.id && !item?.name)) && hitRows) {
+          // resolve names for the SELECTED ids only — never swap the value
+          // for the whole fetch result (that would select everything)
+          const byId = new Map(hitRows.map((hit: any) => [hit._source.id, hit._source]));
+          return value.map((item) => byId.get(item.id) || item);
         }
         return value || []
       } else {

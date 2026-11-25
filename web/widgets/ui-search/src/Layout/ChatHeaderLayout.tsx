@@ -31,10 +31,11 @@ const NewChatSvg: FC<{ className?: string }> = ({ className }) => (
 interface ChatHeaderLayoutProps {
   isMobile?: boolean;
   theme?: 'light' | 'dark';
+  /** pass null to render no logo image at all (e.g. when the host app already shows its brand) */
   logo?: {
     light_mobile?: string;
     dark_mobile?: string;
-  };
+  } | null;
   handleLogoClick?: () => void;
   isHistoryOpen?: boolean;
   onToggleHistory?: () => void;
@@ -51,7 +52,7 @@ const ChatHeaderLayout: FC<ChatHeaderLayoutProps> = (props) => {
   return (
     <div style={rightMenuWidth ? { paddingRight: rightMenuWidth + 16 } : undefined} className="h-full w-full flex items-center justify-between px-4 border-b border-solid border-[var(--ant-color-border-secondary)] box-border">
       <div className="w-full flex items-center gap-2">
-        {isMobile && (
+        {isMobile && logo !== null && (
           <div className='flex items-center cursor-pointer shrink-0' onClick={() => handleLogoClick?.()}>
             <img
               src={(theme === 'dark' ? logo?.dark_mobile : logo?.light_mobile) || logoMobileSvg}
@@ -79,23 +80,28 @@ const ChatHeaderLayout: FC<ChatHeaderLayoutProps> = (props) => {
         </Tooltip>
 
         {
-          isMobile ? (
-            <Tooltip title={t('labels.backToSearch')}>
+          // hosts with their own search/chat navigation pass no onBackToSearch —
+          // without a shell this button is chat mode's only way out, so it stays
+          // available for standalone widget embeds
+          onBackToSearch && (
+            isMobile ? (
+              <Tooltip title={t('labels.backToSearch')}>
+                <Button
+                  icon={<Search className="h-4 w-4 !text-[var(--ant-color-primary)]" />}
+                  onClick={onBackToSearch}
+                  className="!rounded-12px border-[#F0F0F0] dark:border-[#303030] shrink-0"
+                />
+              </Tooltip>
+            ) : (
               <Button
+                shape="round"
                 icon={<Search className="h-4 w-4 !text-[var(--ant-color-primary)]" />}
                 onClick={onBackToSearch}
-                className="!rounded-12px border-[#F0F0F0] dark:border-[#303030] shrink-0"
-              />
-            </Tooltip>
-          ) : (
-            <Button
-              shape="round"
-              icon={<Search className="h-4 w-4 !text-[var(--ant-color-primary)]" />}
-              onClick={onBackToSearch}
-              className="text-[#999] dark:text-[#666] !rounded-12px border-[#F0F0F0] dark:border-[#303030] !px-8px shrink-0"
-            >
-              {t('labels.backToSearch')}
-            </Button>
+                className="text-[#999] dark:text-[#666] !rounded-12px border-[#F0F0F0] dark:border-[#303030] !px-8px shrink-0"
+              >
+                {t('labels.backToSearch')}
+              </Button>
+            )
           )
         }
       </div>

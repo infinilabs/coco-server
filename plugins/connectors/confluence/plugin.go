@@ -40,7 +40,10 @@ const (
 )
 
 func init() {
-	pipeline.RegisterProcessorPlugin(ConnectorConfluence, New)
+	pipeline.RegisterProcessorPluginWithConfigMetadata(ConnectorConfluence, New, nil)
+	// chain-root driver (batch scope): fetches from its datasource and
+	// emits into the indexing queue — no record contract beyond scope
+	pipeline.RegisterProcessorContract(ConnectorConfluence, pipeline.RecordContract{Scope: pipeline.ScopeBatch})
 }
 
 func New(c *config.Config) (pipeline.Processor, error) {

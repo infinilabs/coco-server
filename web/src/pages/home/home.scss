@@ -1,0 +1,86 @@
+/**
+ * Workbench activity section: left column stacks the trend chart card and
+ * the datasource distribution card; the right column is the recent-feed
+ * card. The grid stretches both columns to equal total height.
+ * Real CSS instead of UnoCSS utilities: dev-mode on-demand injection races
+ * cause the first paint after SPA route switches to fall back to the
+ * stacked (mobile) layout; a hard refresh fixes it. Page-level CSS loads
+ * atomically with the chunk and is immune to that race.
+ */
+.workbench-activity {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+
+  .activity-left {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .activity-trend-card,
+  .activity-dist-card {
+    display: flex;
+    flex-direction: column;
+    /* basis auto: cards keep their content height and only grow into spare
+       space — flex:1 (basis 0) force-splits the column and overflows the
+       chart past the card bottom when the feed card is shorter */
+    flex: 1 1 auto;
+  }
+
+  .activity-trend-card > .ant-card-body,
+  .activity-dist-card > .ant-card-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+  }
+
+  .activity-chart-row {
+    display: flex;
+    flex: 1;
+    align-items: stretch;
+    gap: 8px;
+    min-height: 120px;
+  }
+
+  .activity-yaxis {
+    display: flex;
+    width: 32px;
+    flex-shrink: 0;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: space-between;
+    font-size: 11px;
+    line-height: 1;
+    color: var(--ant-color-text-tertiary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .activity-plot {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .activity-bars {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 100%;
+  }
+
+  .workbench-dist-list {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: space-evenly;
+    gap: 6px;
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: 1fr 1fr;
+    align-items: stretch;
+  }
+}
