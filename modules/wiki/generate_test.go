@@ -217,7 +217,7 @@ func seedDocument(t *testing.T, id, title, datasourceID string, updated time.Tim
 	doc.ID = id
 	doc.Updated = &updated
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	orm.WithModel(ctx, &core.Document{})
 	require.NoError(t, orm.Create(ctx, &doc))
 	return doc

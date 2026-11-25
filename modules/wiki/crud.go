@@ -212,8 +212,7 @@ func articleConfig() crud.Config[core.WikiArticle] {
 			// so do its contribution rows
 			dropPageContributions(nil, obj.ID)
 			ctx := orm.NewContext()
-			ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-			ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+			ctx.DirectAccess()
 			if err := deleteArticleChildren(ctx, obj.ID); err != nil {
 				return err
 			}
@@ -363,7 +362,7 @@ func resolveSearchHitRelations(res *elastic.SearchResponse) error {
 		ids = append(ids, id)
 	}
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiEntity{})
 	// existence check only; a page's rows reference few targets but clamp
 	// anyway so a pathological payload can't blow the window
@@ -540,8 +539,7 @@ func (h APIHandler) createEntity(w http.ResponseWriter, req *http.Request, _ htt
 // their owners).
 func deleteKbChildren(kbID string) error {
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 
 	articles, err := findIDs(ctx, &core.WikiArticle{}, orm.TermQuery("kb_id", kbID))
 	if err != nil {
@@ -656,8 +654,7 @@ func bumpKbArticleCount(kbID string, delta int) error {
 		return nil
 	}
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	orm.WithModel(ctx, &core.WikiKnowledgeBase{})
 
 	var kb core.WikiKnowledgeBase
@@ -690,7 +687,7 @@ func registerGovernanceCRUD() {
 		// knowledge-gap loop with no owner, so the default orm owner filter
 		// would hand every non-admin reviewer an empty queue
 		CtxDecorate: func(ctx *orm.Context, req *http.Request, action string) {
-			ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+			ctx.DirectReadAccess()
 		},
 		// the scanner is the only writer; humans resolve or dismiss via
 		// PUT /wiki/governance/:id/status (D1: queue is propose-only)

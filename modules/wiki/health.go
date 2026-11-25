@@ -128,7 +128,7 @@ func kbHealthArticles(ctx *orm.Context, kbID string) ([]core.WikiArticle, error)
 
 func buildKBHealthReport(ctx context.Context, kbID string) (*KBHealthReport, error) {
 	readCtx := orm.NewContextWithParent(ctx)
-	readCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	readCtx.DirectReadAccess()
 
 	articles, err := kbHealthArticles(readCtx, kbID)
 	if err != nil {
@@ -314,7 +314,7 @@ func buildKBHealthReport(ctx context.Context, kbID string) (*KBHealthReport, err
 func (h *APIHandler) articleBacklinks(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiArticle{})
 
 	var target core.WikiArticle

@@ -173,8 +173,7 @@ func (h *APIHandler) updateToc(w http.ResponseWriter, req *http.Request, ps http
 	}
 
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	// the drag-and-drop tree must read its own writes — a stale read would
 	// resurrect dropped nodes right after a save
 	ctx.Refresh = orm.WaitForRefresh
@@ -230,8 +229,7 @@ func validateTocNodes(nodes []core.WikiTocNode) error {
 // Creating the WikiToc record lazily keeps new KBs clean of empty shells.
 func tocMutate(kbID string, mutate func(nodes []core.WikiTocNode) ([]core.WikiTocNode, bool)) error {
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	// back-to-back mutations (create → rename → delete) must read their own
 	// writes, otherwise near-real-time search can resurrect stale nodes
 	ctx.Refresh = orm.WaitForRefresh
@@ -383,8 +381,7 @@ const maxTocHealArticles = 1000
 // (possibly unchanged) toc.
 func reconcileToc(kbID string, toc *core.WikiToc, found bool) (*core.WikiToc, error) {
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	// the repair must read its own writes: a concurrent client refetches
 	// right after and must never see the pre-repair tree
 	ctx.Refresh = orm.WaitForRefresh
@@ -605,8 +602,7 @@ func (h *APIHandler) restoreArticleVersion(w http.ResponseWriter, req *http.Requ
 	}
 
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
 
 	article := core.WikiArticle{}
@@ -691,8 +687,7 @@ func (h *APIHandler) updateArticleStatus(w http.ResponseWriter, req *http.Reques
 	// permission is enforced at the route; direct write skips the ORM-level
 	// owner check so shared-KB editors can transition status too
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	// publish must be visible the moment it lands — the search wiki leg and
 	// the article list both read near-real-time; without refresh a just
 	// published page stays invisible for the refresh interval
@@ -944,7 +939,7 @@ func changeTypeFor(article *core.WikiArticle) string {
 
 func writeVersionSnapshot(article *core.WikiArticle, version int, changeType, changeSummary string) error {
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true) // internal snapshot; article owner recorded below
+	ctx.DirectAccess() // internal snapshot; article owner recorded below
 	// writeVersionIfChanged reads the latest snapshot right after a save —
 	// without refresh a quick double-save can't see v1 and writes v1 twice
 	ctx.Refresh = orm.WaitForRefresh
@@ -977,7 +972,7 @@ const versionHardCap = 200
 // Best-effort: a failed prune only means history grows one write longer.
 func pruneOldVersions(articleID string) {
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiVersion{})
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1000).
 		Filter(orm.TermQuery("article_id", articleID)).
@@ -1015,7 +1010,7 @@ func snapshotPipelineWrite(article *core.WikiArticle, changeSummary string) {
 // by ProtectedFields) don't pollute the history.
 func writeVersionIfChanged(article *core.WikiArticle) error {
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiVersion{})
 
 	builder := orm.NewQuery().
@@ -1038,7 +1033,7 @@ func writeVersionIfChanged(article *core.WikiArticle) error {
 
 func nextVersionNumber(articleID string) int {
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiVersion{})
 
 	builder := orm.NewQuery().

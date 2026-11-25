@@ -181,7 +181,7 @@ func freshnessSweep(ctx context.Context, llm llms.Model, since time.Time) freshn
 // range query needed).
 func findDocumentsUpdatedSince(ctx context.Context, since time.Time, limit int) []core.Document {
 	ormCtx := orm.NewContextWithParent(ctx)
-	ormCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ormCtx.DirectReadAccess()
 	orm.WithModel(ormCtx, &core.Document{})
 
 	builder := orm.NewQuery().Size(limit).
@@ -208,7 +208,7 @@ func findDocumentsUpdatedSince(ctx context.Context, since time.Time, limit int) 
 // knowledgeBasesWithDatasources lists the KBs the sweep has to consider.
 func knowledgeBasesWithDatasources(ctx context.Context) []core.WikiKnowledgeBase {
 	ormCtx := orm.NewContextWithParent(ctx)
-	ormCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ormCtx.DirectReadAccess()
 	orm.WithModel(ormCtx, &core.WikiKnowledgeBase{})
 
 	res, err := orm.SearchV2(ormCtx, orm.NewQuery().Size(1000))
@@ -254,7 +254,7 @@ func changedIDs(docs []core.Document) map[string]bool {
 // keeps the sqlite backend honest.
 func citingArticles(ctx context.Context, kbID string, changed map[string]bool) []core.WikiArticle {
 	ormCtx := orm.NewContextWithParent(ctx)
-	ormCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ormCtx.DirectReadAccess()
 	orm.WithModel(ormCtx, &core.WikiArticle{})
 
 	builder := orm.NewQuery().Size(10000).
@@ -304,7 +304,7 @@ func mergeArticleDocs(ctx context.Context, article *core.WikiArticle, kbChanged 
 	}
 	if len(ids) > 0 {
 		ormCtx := orm.NewContextWithParent(ctx)
-		ormCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+		ormCtx.DirectReadAccess()
 		orm.WithModel(ormCtx, &core.Document{})
 		builder := orm.NewQuery().Size(len(ids)).Filter(orm.TermsQuery("id", ids))
 		if res, err := orm.SearchV2(ormCtx, builder); err == nil {
@@ -363,7 +363,7 @@ func regenerateStaleArticle(ctx context.Context, llm llms.Model, article *core.W
 // the live article (design doc §5.3).
 func writeAutoUpdatedVersion(article *core.WikiArticle, content, summary string) error {
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	orm.WithModel(ctx, &core.WikiVersion{})
 
 	v := &core.WikiVersion{

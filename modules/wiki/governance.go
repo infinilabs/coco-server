@@ -249,7 +249,7 @@ func schemaDriftScan(ctx context.Context) int {
 	}
 
 	octx := orm.NewContext()
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.WikiEntity{})
 	res, err := orm.SearchV2(octx, orm.NewQuery().Size(500))
 	if err != nil {
@@ -286,7 +286,7 @@ func schemaDriftScan(ctx context.Context) int {
 			"cascade":     "schema-drift",
 		}
 		pctx := orm.NewContext()
-		pctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+		pctx.DirectAccess()
 		if cerr := orm.Create(pctx, proposal); cerr != nil {
 			log.Debugf("wiki: drift proposal create failed for [%s]: %v", e.Name, cerr)
 			continue
@@ -307,7 +307,7 @@ func schemaDriftScan(ctx context.Context) int {
 // kbOfArticle resolves the owning KB of an article (best-effort).
 func kbOfArticle(articleID string) *core.WikiKnowledgeBase {
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiArticle{})
 	a := core.WikiArticle{}
 	a.ID = articleID
@@ -316,7 +316,7 @@ func kbOfArticle(articleID string) *core.WikiKnowledgeBase {
 		return nil
 	}
 	kctx := orm.NewContext()
-	kctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	kctx.DirectReadAccess()
 	orm.WithModel(kctx, &core.WikiKnowledgeBase{})
 	kb := core.WikiKnowledgeBase{}
 	kb.ID = a.KbID
@@ -452,7 +452,7 @@ func conflictJudge(ctx context.Context, llm llms.Model, article *core.WikiArticl
 // newer than the live article's last update, or 0 when nothing is pending.
 func pendingAutoUpdate(ctx context.Context, article *core.WikiArticle) int {
 	ormCtx := orm.NewContextWithParent(ctx)
-	ormCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ormCtx.DirectReadAccess()
 	orm.WithModel(ormCtx, &core.WikiVersion{})
 
 	builder := orm.NewQuery().Size(1).
@@ -476,7 +476,7 @@ func pendingAutoUpdate(ctx context.Context, article *core.WikiArticle) int {
 // versionContent returns one version's snapshot body (empty when missing).
 func versionContent(ctx context.Context, articleID string, version int) string {
 	ormCtx := orm.NewContextWithParent(ctx)
-	ormCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ormCtx.DirectReadAccess()
 	orm.WithModel(ormCtx, &core.WikiVersion{})
 
 	builder := orm.NewQuery().Size(1).
@@ -496,7 +496,7 @@ func versionContent(ctx context.Context, articleID string, version int) string {
 
 func governanceKBs(ctx context.Context) []core.WikiKnowledgeBase {
 	ormCtx := orm.NewContextWithParent(ctx)
-	ormCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ormCtx.DirectReadAccess()
 	orm.WithModel(ormCtx, &core.WikiKnowledgeBase{})
 	res, err := orm.SearchV2(ormCtx, orm.NewQuery().Size(governanceMaxKBs))
 	if err != nil {
@@ -512,7 +512,7 @@ func governanceKBs(ctx context.Context) []core.WikiKnowledgeBase {
 
 func kbArticles(ctx context.Context, kbID string) []core.WikiArticle {
 	ormCtx := orm.NewContextWithParent(ctx)
-	ormCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ormCtx.DirectReadAccess()
 	orm.WithModel(ormCtx, &core.WikiArticle{})
 	res, err := orm.SearchV2(ormCtx, orm.NewQuery().Size(governanceMaxArticlesPerKB).
 		Filter(orm.TermQuery("kb_id", kbID)))
@@ -532,7 +532,7 @@ func kbArticles(ctx context.Context, kbID string) []core.WikiArticle {
 func tocArticleSet(ctx context.Context, kbID string) map[string]bool {
 	out := map[string]bool{}
 	ormCtx := orm.NewContextWithParent(ctx)
-	ormCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ormCtx.DirectReadAccess()
 	orm.WithModel(ormCtx, &core.WikiToc{})
 	res, err := orm.SearchV2(ormCtx, orm.NewQuery().Size(1).
 		Filter(orm.TermQuery("kb_id", kbID)))
@@ -561,7 +561,7 @@ func tocArticleSet(ctx context.Context, kbID string) map[string]bool {
 func openProposalKeys(ctx context.Context) map[string]bool {
 	out := map[string]bool{}
 	ormCtx := orm.NewContextWithParent(ctx)
-	ormCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ormCtx.DirectReadAccess()
 	orm.WithModel(ormCtx, &core.WikiGovernanceProposal{})
 	res, err := orm.SearchV2(ormCtx, orm.NewQuery().Size(10000).
 		Filter(orm.TermQuery("status", core.WikiGovernanceOpen)))
@@ -587,7 +587,7 @@ func openProposalKeys(ctx context.Context) map[string]bool {
 // not completeness — beyond a century of refiling the same anchor the
 // generation simply pins.
 func proposalAnchorState(ctx *orm.Context, anchor, pType string) (open *core.WikiGovernanceProposal, generation int) {
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(100).
 		Filter(orm.TermQuery("article_id", anchor), orm.TermQuery("type", pType)).
@@ -615,7 +615,7 @@ func proposalAnchorState(ctx *orm.Context, anchor, pType string) (open *core.Wik
 // resolved rows as history.
 func fileProposal(kb *core.WikiKnowledgeBase, article *core.WikiArticle, pType, reason string, evidence util.MapStr) bool {
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
 
 	// self-contained idempotency: an open twin means the queue already
@@ -652,8 +652,7 @@ func sweepDraftOrphans(ctx *orm.Context, kbID string, articles []core.WikiArticl
 	// this sweep runs from a background task: the caller's child context
 	// carries no session user, and NewContextWithParent does not inherit
 	// the parent's flags — set both directly or the security hooks panic
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	draftByID := map[string]bool{}
 	for i := range articles {
 		if articles[i].Status == core.WikiArticleDraft {
@@ -708,8 +707,7 @@ func sweepDeadTocNodes(ctx *orm.Context, kbID string, articles []core.WikiArticl
 	for i := range articles {
 		alive[articles[i].ID] = true
 	}
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	orm.WithModel(ctx, &core.WikiToc{})
 	toc, found, err := findToc(ctx, kbID)
 	if err != nil || !found {
@@ -748,7 +746,7 @@ func sweepDeadTocNodes(ctx *orm.Context, kbID string, articles []core.WikiArticl
 // one-click adoptable from an unbound same-name entity when one exists.
 func sweepEntityShells(ctx *orm.Context, kb *core.WikiKnowledgeBase) int {
 	readCtx := orm.NewContextWithParent(ctx)
-	readCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	readCtx.DirectReadAccess()
 	orm.WithModel(readCtx, &core.WikiEntity{})
 
 	res, err := orm.SearchV2(readCtx, orm.NewQuery().Size(1000).
@@ -859,8 +857,7 @@ func (h *APIHandler) updateGovernanceStatus(w http.ResponseWriter, req *http.Req
 	}
 
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	// two reviewers acting on the same queue must see each other's
 	// transitions — both the read and the write wait for refresh
 	ctx.Refresh = orm.WaitForRefresh
@@ -935,7 +932,7 @@ func applyTreeProposal(ctx *orm.Context, kbID string, evidence util.MapStr) (boo
 	if err := util.FromJSONBytes(util.MustToJSONBytes(raw), &nodes); err != nil || len(nodes) == 0 {
 		return false, err
 	}
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	ctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(ctx, &core.WikiToc{})
 	toc, found, err := findToc(ctx, kbID)
@@ -1042,7 +1039,7 @@ func docDatasources(ctx context.Context, docIDs map[string]bool) map[string]stri
 		ids = ids[:200]
 	}
 	octx := orm.NewContextWithParent(ctx)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.Document{})
 	res, err := orm.SearchV2(octx, orm.NewQuery().Size(len(ids)).
 		Filter(orm.TermsQuery("id", ids)).
@@ -1091,8 +1088,7 @@ func (h *APIHandler) batchUpdateGovernanceStatus(w http.ResponseWriter, req *htt
 	}
 
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	// two reviewers acting on the same queue must see each other's
 	// transitions — both the read and the write wait for refresh
 	ctx.Refresh = orm.WaitForRefresh

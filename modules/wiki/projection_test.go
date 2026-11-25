@@ -56,7 +56,7 @@ func projectionSetup(t *testing.T) {
 func projectionWrite(t *testing.T, obj interface{}) {
 	t.Helper()
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
 	require.NoError(t, orm.Create(ctx, obj))
 }
@@ -64,7 +64,7 @@ func projectionWrite(t *testing.T, obj interface{}) {
 func loadProjectionRow(t *testing.T, articleID string) (core.Document, bool) {
 	t.Helper()
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.Document{})
 	doc := core.Document{}
 	doc.ID = ProjectionDocID(articleID)

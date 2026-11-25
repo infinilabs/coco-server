@@ -79,7 +79,7 @@ func LinkEntityMentions(ctx context.Context, content, exclude string) string {
 		return content
 	}
 	readCtx := orm.NewContextWithParent(ctx)
-	readCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	readCtx.DirectReadAccess()
 	orm.WithModel(readCtx, &core.WikiEntity{})
 
 	res, err := orm.SearchV2(readCtx, orm.NewQuery().Size(1000))

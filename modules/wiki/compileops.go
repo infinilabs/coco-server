@@ -345,7 +345,7 @@ func runLaneCompile(ctx context.Context, kbID string, ops []CompileOp) {
 	kb := core.WikiKnowledgeBase{}
 	kb.ID = kbID
 	octx := orm.NewContextWithParent(ctx)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	exists, err := orm.GetV2(octx, &kb)
 	if err != nil || !exists {
 		deleteCompileOps(kbID) // KB gone: nothing to compile, drop the ops

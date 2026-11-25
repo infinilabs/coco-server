@@ -114,8 +114,7 @@ func TestDuplicatePriorityHintPrefersHigherSource(t *testing.T) {
 
 	// seed two documents with different datasources
 	octx := orm.NewContext()
-	octx.Set(orm.DirectWriteWithoutPermissionCheck, true)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectAccess()
 	orm.WithModel(octx, &core.Document{})
 	for _, seed := range []struct {
 		id, datasource string

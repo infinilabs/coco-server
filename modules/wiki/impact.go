@@ -115,8 +115,7 @@ func flushImpactHits(ctx context.Context) {
 
 	start := time.Now()
 	octx := orm.NewContextWithParent(ctx)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	octx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	octx.DirectAccess()
 	orm.WithModel(octx, &core.WikiArticle{})
 
 	flushed := 0

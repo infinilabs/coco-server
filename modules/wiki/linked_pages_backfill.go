@@ -37,8 +37,7 @@ var legacyCitationPattern = regexp.MustCompile(`（来源:([0-9a-f]{16,40})）`)
 
 func backfillLinkedPages() {
 	ctx := orm.NewContextWithParent(context.Background())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	orm.WithModel(ctx, &core.WikiArticle{})
 
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1000))

@@ -239,7 +239,7 @@ func EntityTypeLabelsFor(ctx context.Context, kbID string) map[string]string {
 
 func loadOntologySchema(ctx context.Context, scope string) *OntologySchemaDoc {
 	ormCtx := orm.NewContextWithParent(ctx)
-	ormCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ormCtx.DirectReadAccess()
 	orm.WithModel(ormCtx, &core.WikiOntologySchema{})
 
 	builder := orm.NewQuery().Size(1).Filter(orm.TermQuery("scope", scope))
@@ -268,8 +268,7 @@ func loadOntologySchema(ctx context.Context, scope string) *OntologySchemaDoc {
 // saveOntologySchema upserts the schema document of one scope.
 func saveOntologySchema(ctx context.Context, scope string, doc *OntologySchemaDoc) error {
 	ormCtx := orm.NewContextWithParent(ctx)
-	ormCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ormCtx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ormCtx.DirectAccess()
 	ormCtx.Refresh = orm.WaitForRefresh
 	orm.WithModel(ormCtx, &core.WikiOntologySchema{})
 
@@ -411,7 +410,7 @@ func findRelationDef(typeDef *OntologyEntityTypeDef, name string) *OntologyRelat
 // unresolvable targets are skipped (they may be created in the same batch).
 func entityTypeByID(ctx context.Context, id string) string {
 	ormCtx := orm.NewContextWithParent(ctx)
-	ormCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ormCtx.DirectReadAccess()
 	orm.WithModel(ormCtx, &core.WikiEntity{})
 
 	var target core.WikiEntity
@@ -620,7 +619,7 @@ func (h *APIHandler) putOntologySchema(w http.ResponseWriter, req *http.Request,
 	scope := ontologyTenantScope
 	if body.KbID != "" {
 		ormCtx := orm.NewContextWithParent(req.Context())
-		ormCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+		ormCtx.DirectReadAccess()
 		orm.WithModel(ormCtx, &core.WikiKnowledgeBase{})
 
 		var kb core.WikiKnowledgeBase
@@ -772,7 +771,7 @@ func FileEntityGovernanceProposal(kbID string, entity *core.WikiEntity, pType, r
 	}
 
 	wctx := orm.NewContext()
-	wctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	wctx.DirectAccess()
 	wctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(wctx, &core.WikiGovernanceProposal{})
 
@@ -810,8 +809,7 @@ func (h *APIHandler) relinkArticle(w http.ResponseWriter, req *http.Request, ps 
 	articleID := ps.ByName("id")
 
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	orm.WithModel(ctx, &core.WikiArticle{})
 
 	var article core.WikiArticle
@@ -847,8 +845,7 @@ func (h *APIHandler) relinkArticle(w http.ResponseWriter, req *http.Request, ps 
 func (h *APIHandler) relinkKBMentions(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	kbID := ps.ByName("id")
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 
 	articles, err := kbHealthArticles(ctx, kbID)
 	if err != nil {

@@ -35,8 +35,7 @@ func contributionCtx(parent context.Context) *orm.Context {
 		parent = context.Background()
 	}
 	ctx := orm.NewContextWithParent(parent)
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	orm.WithModel(ctx, &core.WikiContribution{})
 	return ctx
 }
@@ -219,7 +218,7 @@ func scheduleReconcileContributions() {
 
 func reconcileContributions() {
 	ctx := orm.NewContextWithParent(context.Background())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiArticle{})
 
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1000).Include("id", "kb_id", "sources"))

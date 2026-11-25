@@ -36,7 +36,7 @@ func KBAutoApprove(ctx *orm.Context, kbID string) bool {
 		return false
 	}
 	kctx := orm.NewContextWithParent(ctx)
-	kctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	kctx.DirectReadAccess()
 	orm.WithModel(kctx, &core.WikiKnowledgeBase{})
 	var kb core.WikiKnowledgeBase
 	kb.SetID(kbID)
@@ -96,7 +96,7 @@ func autoApproveBodyChars(p *core.WikiGovernanceProposal) int {
 // content, 0 when the article is missing or unreadable (no shrink guard).
 func currentArticleBodyChars(parent context.Context, articleID string) int {
 	acx := orm.NewContextWithParent(parent)
-	acx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	acx.DirectReadAccess()
 	orm.WithModel(acx, &core.WikiArticle{})
 	var cur core.WikiArticle
 	cur.SetID(articleID)
@@ -145,7 +145,7 @@ func autoApproveSweep(ctx context.Context) {
 	start := time.Now()
 
 	octx := orm.NewContextWithParent(ctx)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.WikiGovernanceProposal{})
 
 	// oldest first — the queue drains in filing order. The window is wider
@@ -194,8 +194,7 @@ func autoApproveSweep(ctx context.Context) {
 			break // cap the work per tick, the rest waits for the next one
 		}
 		actx := orm.NewContextWithParent(ctx)
-		actx.Set(orm.DirectReadWithoutPermissionCheck, true)
-		actx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+		actx.DirectAccess()
 		actx.Refresh = orm.WaitForRefresh
 		orm.WithModel(actx, &core.WikiGovernanceProposal{})
 		// reload: the sweep context did not fetch the full body

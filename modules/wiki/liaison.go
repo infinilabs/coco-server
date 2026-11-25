@@ -39,7 +39,7 @@ func onDocumentProcessed(docID, freshHash string) {
 	}
 
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.Document{})
 
 	stored := core.Document{}
@@ -121,7 +121,7 @@ func onDocumentDeleted(docID string) {
 // any document.
 func retractEntitySources(docID string) {
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiEntity{})
 
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(graphMaxArticles))
@@ -166,7 +166,7 @@ func retractEntitySources(docID string) {
 // unmapped, the same trade-off the backlinks endpoint makes).
 func articlesCitingDocument(docID string) []core.WikiArticle {
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiArticle{})
 
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(graphMaxArticles).
@@ -193,7 +193,7 @@ func articlesCitingDocument(docID string) []core.WikiArticle {
 
 func kbForLiaison(kbID string) *core.WikiKnowledgeBase {
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiKnowledgeBase{})
 	kb := core.WikiKnowledgeBase{}
 	kb.ID = kbID

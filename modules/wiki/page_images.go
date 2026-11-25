@@ -169,7 +169,7 @@ func collectSectionImages(ctx *orm.Context, title string, sections []core.WikiSe
 	// attachment back to its owning doc, which is what ties a figure to the
 	// section citing that doc
 	dctx := orm.NewContextWithParent(ctx)
-	dctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	dctx.DirectReadAccess()
 	orm.WithModel(dctx, &core.Document{})
 	res, err := orm.SearchV2(dctx, orm.NewQuery().Size(len(docOrder)).
 		Filter(orm.TermsQuery("id", docOrder)).
@@ -203,7 +203,7 @@ func collectSectionImages(ctx *orm.Context, title string, sections []core.WikiSe
 	}
 
 	actx := orm.NewContextWithParent(ctx)
-	actx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	actx.DirectReadAccess()
 	orm.WithModel(actx, &core.Attachment{})
 	ares, aerr := orm.SearchV2(actx, orm.NewQuery().Size(len(attIDs)).
 		Filter(orm.TermsQuery("id", attIDs)))

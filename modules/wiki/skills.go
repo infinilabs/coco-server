@@ -158,7 +158,7 @@ func applySkillCreateProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) 
 		Skill:       skill,
 		Sources:     provenance,
 	}
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	if err := orm.Create(ctx, article); err != nil {
 		return "", "", err
 	}
@@ -196,7 +196,7 @@ func applySkillPatchProposal(ctx *orm.Context, p *core.WikiGovernanceProposal) (
 	if len(provenance) > 0 {
 		article.Sources = provenance
 	}
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	if err := orm.Update(ctx, &article); err != nil {
 		return "", err
 	}
@@ -230,7 +230,7 @@ func reviewSkillProposal(ctx context.Context, kbID string, p *core.WikiGovernanc
 	// must-read context: existing skills + the KB's evolution log (what
 	// was already tried, accepted AND rejected)
 	octx := orm.NewContextWithParent(ctx)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	existing := findSkillPages(octx, kbID, distillMaxExisting)
 	entries := findEvolutionEntries(octx, kbID, evolutionLogReadSize)
 
@@ -397,7 +397,7 @@ func runProposer(parent *orm.Context, kbID string) (*distillRun, error) {
 	run := &distillRun{}
 
 	readCtx := orm.NewContextWithParent(parent)
-	readCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	readCtx.DirectReadAccess()
 
 	// the wiki (proposer MUST read it): pattern pages
 	patterns := findPatternPages(readCtx, kbID, distillMaxExisting)
@@ -644,8 +644,7 @@ func gateAndFileSkillProposal(parent *orm.Context, kbID string, proposal *core.W
 	pType := proposal.Type
 	title := proposal.ArticleTitle
 	ctx := orm.NewContextWithParent(parent)
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	if openPatternTwin(ctx, kbID, pType, title) {
 		return false
 	}
@@ -672,7 +671,7 @@ func gateAndFileSkillProposal(parent *orm.Context, kbID string, proposal *core.W
 func (h *APIHandler) exportSkillMd(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	articleID := ps.ByName("id")
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiArticle{})
 	article := core.WikiArticle{}
 	article.SetID(articleID)
@@ -786,8 +785,7 @@ func (h *APIHandler) importSkillMd(w http.ResponseWriter, req *http.Request, ps 
 		return
 	}
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	// same title in the KB → report instead of stacking a twin
 	orm.WithModel(ctx, &core.WikiArticle{})
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1).
@@ -885,8 +883,7 @@ func (h *APIHandler) importSkillPack(w http.ResponseWriter, req *http.Request, p
 	}
 
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	// same title in the KB → report instead of stacking a twin
 	orm.WithModel(ctx, &core.WikiArticle{})
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1).
@@ -1045,7 +1042,7 @@ func SkillIndexForAssistant(parent *orm.Context, assistantID string) string {
 		}
 	}()
 	ctx := orm.NewContextWithParent(parent)
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiKnowledgeBase{})
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(20).
 		Filter(orm.TermQuery("assistant_id", assistantID)))
@@ -1144,8 +1141,7 @@ func sharedKbName(ctx *orm.Context, memo map[string]string, kbID string) string 
 func (h *APIHandler) proposeSkillHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	kbID := ps.ByName("id")
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	run, err := runProposer(ctx, kbID)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)

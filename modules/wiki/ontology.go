@@ -58,8 +58,7 @@ func persistLinkedPages(article *core.WikiArticle) {
 	ctx := orm.NewContext()
 	// Update internally re-reads the object (GetPrevObject) through the
 	// OpGet hook, so both direct flags are required in a userless context.
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	orm.WithModel(ctx, &core.WikiArticle{})
 	if err := orm.Update(ctx, article); err != nil {
 		log.Warnf("wiki: failed to persist linked_pages for article %s: %v", article.ID, err)
@@ -71,7 +70,7 @@ func persistLinkedPages(article *core.WikiArticle) {
 // against existing entities by name then alias (B3 redundancy).
 func resolveLinkedPages(article *core.WikiArticle) {
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 
 	pages := parseWikilinks(article.Content)
 	for i := range pages {
@@ -90,8 +89,7 @@ func syncEntityMentions(article *core.WikiArticle) {
 		return
 	}
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 
 	var entity core.WikiEntity
 	entity.SetID(article.EntityID)
@@ -148,8 +146,7 @@ func syncEntityStatus(article *core.WikiArticle, status string) {
 	}
 
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 
 	var entity core.WikiEntity
 	entity.SetID(article.EntityID)

@@ -164,7 +164,7 @@ func TestValidateEntityRelationTargetType(t *testing.T) {
 		Properties: map[string]interface{}{"code": "c1"}}
 	for _, obj := range []*core.WikiEntity{org, prod} {
 		c := orm.NewContext()
-		c.Set(orm.DirectWriteWithoutPermissionCheck, true)
+		c.DirectAccess()
 		orm.WithModel(c, &core.WikiEntity{})
 		require.NoError(t, orm.Create(c, obj))
 	}
@@ -283,7 +283,7 @@ func TestFileEntityGovernanceProposal(t *testing.T) {
 
 	entity := &core.WikiEntity{Type: "product", Name: "Coco Server"}
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(ctx, &core.WikiEntity{})
 	require.NoError(t, orm.Create(ctx, entity))
@@ -296,7 +296,7 @@ func TestFileEntityGovernanceProposal(t *testing.T) {
 		"again", nil))
 
 	listCtx := orm.NewContext()
-	listCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	listCtx.DirectReadAccess()
 	orm.WithModel(listCtx, &core.WikiGovernanceProposal{})
 	res, err := orm.SearchV2(listCtx, orm.NewQuery().Size(10))
 	require.NoError(t, err)
@@ -330,8 +330,7 @@ func TestValidateEntityForKBScopedSchema(t *testing.T) {
 	require.NoError(t, saveOntologySchema(ctx, kbScope, kbDoc))
 	t.Cleanup(func() {
 		delCtx := orm.NewContextWithParent(ctx)
-		delCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
-		delCtx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+		delCtx.DirectAccess()
 		orm.WithModel(delCtx, &core.WikiOntologySchema{})
 		builder := orm.NewQuery().Size(1).Filter(orm.TermQuery("scope", kbScope))
 		res, err := orm.SearchV2(delCtx, builder)

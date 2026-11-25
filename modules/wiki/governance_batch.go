@@ -98,8 +98,7 @@ func (h *APIHandler) startBatchApply(w http.ResponseWriter, req *http.Request, p
 			// a fresh context per item — the HTTP request that started this
 			// worker is long gone
 			ctx := orm.NewContext()
-			ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-			ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+			ctx.DirectAccess()
 			ctx.Refresh = orm.WaitForRefresh
 			orm.WithModel(ctx, &core.WikiGovernanceProposal{})
 

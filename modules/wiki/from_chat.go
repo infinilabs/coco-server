@@ -74,7 +74,7 @@ func (h *APIHandler) createArticleFromChat(w http.ResponseWriter, req *http.Requ
 	}
 
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiKnowledgeBase{})
 
 	var kb core.WikiKnowledgeBase

@@ -60,8 +60,7 @@ func rebuildSetup(t *testing.T) {
 func TestApplyRebuildProposalFoldsPendingVersion(t *testing.T) {
 	rebuildSetup(t)
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(ctx, &core.WikiArticle{})
 	orm.WithModel(ctx, &core.WikiVersion{})
@@ -107,8 +106,7 @@ func TestApplyRebuildProposalFoldsPendingVersion(t *testing.T) {
 func TestApplyRebuildProposalProvenanceSnapshotsLiveBody(t *testing.T) {
 	rebuildSetup(t)
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(ctx, &core.WikiArticle{})
 	orm.WithModel(ctx, &core.WikiVersion{})
@@ -146,7 +144,7 @@ func TestApplyRebuildProposalProvenanceSnapshotsLiveBody(t *testing.T) {
 func latestVersions(t *testing.T, articleID string, n int) ([]core.WikiVersion, error) {
 	t.Helper()
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiVersion{})
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(n).
 		Filter(orm.TermQuery("article_id", articleID)).

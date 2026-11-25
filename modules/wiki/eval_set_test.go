@@ -78,8 +78,7 @@ func TestRunWikiEvalReplayScopedAndGated(t *testing.T) {
 	setupEvalStore(t)
 
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 
 	kbA := "kb-eval-a"
 	kbB := "kb-eval-b"
@@ -125,7 +124,7 @@ func TestRunWikiEvalReplayScopedAndGated(t *testing.T) {
 
 	// the run persisted
 	runctx := orm.NewContext()
-	runctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	runctx.DirectReadAccess()
 	orm.WithModel(runctx, &core.WikiEvalRun{})
 	stored := &core.WikiEvalRun{}
 	stored.SetID(run.ID)
@@ -144,8 +143,7 @@ func TestWikiEvalCaseByQueryKBScoped(t *testing.T) {
 	setupEvalStore(t)
 
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 
 	kbA := "kb-eval-q-a"
 	kbB := "kb-eval-q-b"

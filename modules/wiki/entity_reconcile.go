@@ -220,8 +220,7 @@ func fetchFreshPair(ctx *orm.Context, canonicalID string, twins []*core.WikiEnti
 func (h *APIHandler) reconcileKbEntities(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	kbID := ps.MustGetParameter("id")
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
 
 	merged, err := ReconcileEntityTwins(ctx, kbID)

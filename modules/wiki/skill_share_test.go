@@ -51,8 +51,7 @@ func TestSkillIndexIncludesTenantShared(t *testing.T) {
 	setupShareStore(t)
 
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 
 	// KB A is bound to the assistant and owns a private published skill
 	kbA := core.WikiKnowledgeBase{Name: "KB A", AssistantID: "asst-1"}

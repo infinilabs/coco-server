@@ -62,7 +62,7 @@ func TestPromoteTopicEntities(t *testing.T) {
 	propagationWrite(t, existing)
 
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 
 	types := map[string]string{"奇华月饼": "product", "美心集团": "organization"}
 	descs := entityDescriptionsFromStatements(

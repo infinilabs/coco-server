@@ -48,7 +48,7 @@ func AppendEvolutionEntry(parent *orm.Context, kbID, kind, actor, targetType, ta
 		Detail:     detail,
 	}
 	ctx := orm.NewContextWithParent(parent)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	if err := orm.Create(ctx, entry); err != nil {
 		log.Warnf("wiki: evolution log append failed for kb [%s]: %v", kbID, err)
 	}
@@ -104,7 +104,7 @@ func (h *APIHandler) evolutionLog(w http.ResponseWriter, req *http.Request, ps h
 	}
 
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiEvolutionEntry{})
 
 	builder := orm.NewQuery()

@@ -71,7 +71,7 @@ func TestImageAlt(t *testing.T) {
 func TestCollectSectionImages(t *testing.T) {
 	pageImagesSetup(t)
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
 
 	relevant := core.Attachment{}

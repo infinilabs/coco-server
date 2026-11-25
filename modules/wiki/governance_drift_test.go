@@ -52,7 +52,7 @@ func driftSetup(t *testing.T) {
 func driftWrite(t *testing.T, obj interface{}) {
 	t.Helper()
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
 	require.NoError(t, orm.Create(ctx, obj))
 }
@@ -78,7 +78,7 @@ func TestSchemaDriftScanFilesUndeclaredTypes(t *testing.T) {
 
 	// verify the entities are visible to the scan's read path first
 	chk := orm.NewContext()
-	chk.Set(orm.DirectReadWithoutPermissionCheck, true)
+	chk.DirectReadAccess()
 	orm.WithModel(chk, &core.WikiEntity{})
 	visRes, verr := orm.SearchV2(chk, orm.NewQuery().Size(10))
 	require.NoError(t, verr)
@@ -87,7 +87,7 @@ func TestSchemaDriftScanFilesUndeclaredTypes(t *testing.T) {
 
 	// debug: verify visibility inside the failing test
 	chk2 := orm.NewContext()
-	chk2.Set(orm.DirectReadWithoutPermissionCheck, true)
+	chk2.DirectReadAccess()
 	orm.WithModel(chk2, &core.WikiEntity{})
 	visRes, verr2 := orm.SearchV2(chk2, orm.NewQuery().Size(10))
 	t.Logf("visibility check: err=%v", verr2)
@@ -100,7 +100,7 @@ func TestSchemaDriftScanFilesUndeclaredTypes(t *testing.T) {
 
 	// the declared-type entity must NOT appear in drift proposals
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(100).
 		Filter(orm.TermQuery("type", core.WikiGovernanceDrift)))
@@ -132,7 +132,7 @@ func TestSchemaDriftSkipsDeclaredTypes(t *testing.T) {
 func countDriftProposals(t *testing.T) int {
 	t.Helper()
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(100).
 		Filter(orm.TermQuery("type", core.WikiGovernanceDrift)))

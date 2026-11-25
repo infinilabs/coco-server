@@ -91,7 +91,7 @@ func articleTitleExists(kbID, title string) bool {
 		return false
 	}
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiArticle{})
 	builder := orm.NewQuery()
 	builder.Size(1)

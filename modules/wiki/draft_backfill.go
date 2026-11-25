@@ -31,8 +31,7 @@ func scheduleBackfillDraftEntityContent() {
 
 func backfillDraftEntityContent() {
 	ctx := orm.NewContextWithParent(context.Background())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	orm.WithModel(ctx, &core.WikiArticle{})
 
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1000).
@@ -272,7 +271,7 @@ func wikiEntityByName(ctx *orm.Context, name string) *core.WikiEntity {
 		return nil
 	}
 	ctx2 := orm.NewContextWithParent(ctx)
-	ctx2.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx2.DirectReadAccess()
 	orm.WithModel(ctx2, &core.WikiEntity{})
 	res, err := orm.SearchV2(ctx2, orm.NewQuery().Size(1).Filter(orm.TermQuery("name", name)))
 	if err != nil {

@@ -51,7 +51,7 @@ func recordEntityEditForPropagation(obj *core.WikiEntity) {
 		return
 	}
 	octx := orm.NewContext()
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.WikiEntity{})
 
 	old := core.WikiEntity{}
@@ -130,7 +130,7 @@ func propagateEntityEditAfterSave(obj *core.WikiEntity) {
 			kbObj := core.WikiKnowledgeBase{}
 			kbObj.ID = article.KbID
 			kctx := orm.NewContext()
-			kctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+			kctx.DirectReadAccess()
 			orm.WithModel(kctx, &core.WikiKnowledgeBase{})
 			exists, err := orm.GetV2(kctx, &kbObj)
 			if err != nil || !exists {
@@ -150,7 +150,7 @@ func propagateEntityEditAfterSave(obj *core.WikiEntity) {
 // backlinks endpoint runs — LinkedPages is not an indexed field).
 func affectedArticlesForEntity(entity *core.WikiEntity) []core.WikiArticle {
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiArticle{})
 
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(graphMaxArticles).

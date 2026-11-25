@@ -61,7 +61,7 @@ func governanceSetup(t *testing.T) APIHandler {
 func govCreate(t *testing.T, model interface{}, index string, obj interface{}) {
 	t.Helper()
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(ctx, model)
 	require.NoError(t, orm.Create(ctx, obj))
@@ -70,7 +70,7 @@ func govCreate(t *testing.T, model interface{}, index string, obj interface{}) {
 func govProposals(t *testing.T) []core.WikiGovernanceProposal {
 	t.Helper()
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(100))
 	require.NoError(t, err)

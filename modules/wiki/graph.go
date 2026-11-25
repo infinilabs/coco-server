@@ -172,7 +172,7 @@ var graphSearchConfig = func() (cfg core.Config) {
 // expressible without touching the framework.
 func kbEntityIDsByQuery(ctx *orm.Context, kbID, query string) ([]string, error) {
 	readCtx := orm.NewContextWithParent(ctx)
-	readCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	readCtx.DirectReadAccess()
 	orm.WithModel(readCtx, &core.WikiEntity{})
 
 	// name.text/name.pinyin first: kb-less entities written by
@@ -276,7 +276,7 @@ func queryGraphEntities(ctx *orm.Context, clauses []*orm.Clause, size int) ([]co
 // names; without a schema the raw vocabulary is used.
 func buildKnowledgeGraph(ctx context.Context, kbID string, focusIDs []string, focusEntityIDs []string) (*knowledgeGraph, error) {
 	readCtx := orm.NewContextWithParent(ctx)
-	readCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	readCtx.DirectReadAccess()
 
 	var articles []core.WikiArticle
 	var err error
@@ -685,7 +685,7 @@ func loadEntitiesCapped(ctx *orm.Context, ids map[string]bool, limit int) ([]cor
 // points at an entity, labeled with the schema's inverse relation names.
 func entityInverseEdges(ctx context.Context, entity *core.WikiEntity) []util.MapStr {
 	readCtx := orm.NewContextWithParent(ctx)
-	readCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	readCtx.DirectReadAccess()
 	orm.WithModel(readCtx, &core.WikiEntity{})
 
 	res, err := orm.SearchV2(readCtx, orm.NewQuery().Size(graphMaxEntities))

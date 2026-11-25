@@ -105,7 +105,7 @@ func healthFixture(t *testing.T) (kbID string) {
 func healthWrite(t *testing.T, obj interface{}) {
 	t.Helper()
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
 	require.NoError(t, orm.Create(ctx, obj))
 }

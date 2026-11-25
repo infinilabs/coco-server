@@ -51,8 +51,7 @@ func (h *APIHandler) batchUpdateEntityStatus(w http.ResponseWriter, req *http.Re
 	}
 
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	// no WaitForRefresh: with it, every Update blocks ~1s on the ES refresh
 	// cycle — a 50-entity batch took 50s+ and ran into the UI's 10s axios
 	// timeout (raw "timeout of 10000ms exceeded" toast while the server was

@@ -77,8 +77,7 @@ func promoteTopicEntities(ctx *orm.Context, kbID string, names []string, types m
 		// user info"). Fall back to a direct write owned by the KB owner
 		// so promoted entities stay visible to sharing-scoped reads.
 		if sessionUser, uerr := security.GetUserFromContext(cctx.Context); uerr != nil || sessionUser == nil {
-			cctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-			cctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+			cctx.DirectAccess()
 			if ownerID := kbOwnerID(ctx, kbID); ownerID != "" {
 				e.SetSystemValue(orm.OwnerIDKey, ownerID)
 			}
@@ -104,8 +103,7 @@ func promoteTopicEntities(ctx *orm.Context, kbID string, names []string, types m
 	// after every promotion pass so identity converges without a pipeline
 	// re-run. Idempotent: a clean pool short-circuits on the twin scan.
 	rctx := orm.NewContextWithParent(ctx)
-	rctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	rctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	rctx.DirectAccess()
 	if n, rerr := ReconcileEntityTwins(rctx, kbID); rerr != nil {
 		log.Warnf("wiki entity promotion: twin reconcile kb %s: %v", kbID, rerr)
 	} else if n > 0 {
@@ -167,7 +165,7 @@ func kbOwnerID(ctx *orm.Context, kbID string) string {
 	var kb core.WikiKnowledgeBase
 	kb.SetID(kbID)
 	rctx := orm.NewContextWithParent(ctx)
-	rctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	rctx.DirectReadAccess()
 	orm.WithModel(rctx, &core.WikiKnowledgeBase{})
 	if exists, err := orm.GetV2(rctx, &kb); err != nil || !exists {
 		return ""

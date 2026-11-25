@@ -50,7 +50,7 @@ func TestDegradeUndeclaredType(t *testing.T) {
 
 		// seed a minimal tenant vocabulary (person/organization — NOT tool)
 		ctx := orm.NewContext()
-		ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+		ctx.DirectAccess()
 		ctx.Refresh = orm.WaitForRefresh
 		orm.WithModel(ctx, &core.WikiOntologySchema{})
 		schema := core.WikiOntologySchema{

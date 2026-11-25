@@ -63,8 +63,7 @@ func companyMapCall(t *testing.T, h APIHandler, roles []string, query ...string)
 func seedMapArticle(t *testing.T, id, title, status string) {
 	t.Helper()
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	orm.WithModel(ctx, &core.WikiArticle{})
 	article := core.WikiArticle{
 		KbID:     "kb-map",

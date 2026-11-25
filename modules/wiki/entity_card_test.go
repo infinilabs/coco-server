@@ -54,7 +54,7 @@ func TestGenEntityInfoBuildsStandardCard(t *testing.T) {
 	e.ArticleID = "art-1"
 	e.Properties = map[string]interface{}{"owner": "platform"}
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
 	require.NoError(t, orm.Create(ctx, e))
 
@@ -84,7 +84,7 @@ func TestGenEntityLabelFillsGaps(t *testing.T) {
 	e.ID = "ent-label-1"
 	e.Name = "订单服务"
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
 	require.NoError(t, orm.Create(ctx, e))
 

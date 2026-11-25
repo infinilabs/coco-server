@@ -51,7 +51,7 @@ func RecordExperience(parent *orm.Context, exp *core.WikiExperience) {
 		}
 	}()
 	kctx := orm.NewContextWithParent(parent)
-	kctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	kctx.DirectReadAccess()
 	orm.WithModel(kctx, &core.WikiKnowledgeBase{})
 	var kb core.WikiKnowledgeBase
 	kb.SetID(exp.KbID)
@@ -68,7 +68,7 @@ func RecordExperience(parent *orm.Context, exp *core.WikiExperience) {
 	exp.Note = util.SubString(exp.Note, 0, experienceMaxText)
 
 	ctx := orm.NewContextWithParent(parent)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	if err := orm.Create(ctx, exp); err != nil {
 		log.Warnf("wiki: experience capture failed for kb [%s]: %v", exp.KbID, err)
 	}
@@ -81,7 +81,7 @@ func KBsByAssistant(parent *orm.Context, assistantID string) []string {
 		return nil
 	}
 	ctx := orm.NewContextWithParent(parent)
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiKnowledgeBase{})
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(50).
 		Filter(orm.TermQuery("assistant_id", assistantID),
@@ -155,7 +155,7 @@ func ResolveKBByDatasource(parent *orm.Context, datasourceID string) string {
 	kbBindingCacheMu.RUnlock()
 
 	ctx := orm.NewContextWithParent(parent)
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiKnowledgeBase{})
 	// A transient lookup error here must not read as "no binding": callers
 	// fall back to kb-less writes, the same-name dedup later folds those
@@ -191,7 +191,7 @@ func ResolveKBByDatasource(parent *orm.Context, datasourceID string) string {
 // expireExperiences deletes expired traces for a KB — called from the
 // distill run so the raw layer never grows without bound.
 func expireExperiences(ctx *orm.Context, kbID string) int {
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiExperience{})
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(500).
 		Filter(orm.TermQuery("kb_id", kbID)))
@@ -276,7 +276,7 @@ func (h *APIHandler) listExperience(w http.ResponseWriter, req *http.Request, ps
 		size = experienceListMaxSize
 	}
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiExperience{})
 	builder := orm.NewQuery()
 	builder.From(from)

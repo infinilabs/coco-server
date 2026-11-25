@@ -74,7 +74,7 @@ func TestCorrectionCreatesProposal(t *testing.T) {
 	require.True(t, ok, "expected proposal id, got %v", out)
 
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
 	anchor := correctionAnchor("msg-42", "how do we rotate the gateway certs", "rotate.sh was replaced by gwctl in March")
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(10).
@@ -103,7 +103,7 @@ func TestCorrectionIdempotentPerMessage(t *testing.T) {
 	_, out2 := correctionCall(t, h, body)
 
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
 	anchor := correctionAnchor("msg-7", "q1", "prefer runbooks in Chinese")
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(10).
@@ -126,7 +126,7 @@ func TestCorrectionIdempotentPerMessage(t *testing.T) {
 func fetchProposalsByAnchor(t *testing.T, anchor string) []core.WikiGovernanceProposal {
 	t.Helper()
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(10).
 		Filter(orm.TermQuery("article_id", anchor), orm.TermQuery("type", core.WikiGovernanceCorrection)))
@@ -151,7 +151,7 @@ func TestCorrectionReopenAfterResolve(t *testing.T) {
 	require.Len(t, proposals, 1)
 	proposals[0].Status = core.WikiGovernanceResolved
 	wctx := orm.NewContext()
-	wctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	wctx.DirectAccess()
 	orm.WithModel(wctx, &core.WikiGovernanceProposal{})
 	require.NoError(t, orm.Update(wctx, &proposals[0]))
 

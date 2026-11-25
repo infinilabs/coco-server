@@ -90,7 +90,7 @@ func (p *WikiEntityProvider) GenEntityLabel(ctx context.Context, t string, ids [
 
 	found := map[string]*core.WikiEntity{}
 	octx := orm.NewContext()
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.WikiEntity{})
 	res, err := orm.SearchV2(octx, orm.NewQuery().Size(len(ids)).
 		Filter(orm.TermsQuery("id", ids)).
@@ -125,7 +125,7 @@ func articleURLForCard(articleID string) string {
 
 func findEntityForCard(ctx context.Context, id string) (*core.WikiEntity, bool) {
 	octx := orm.NewContextWithParent(ctx)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.WikiEntity{})
 	entity := core.WikiEntity{}
 	entity.ID = id

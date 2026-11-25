@@ -233,7 +233,7 @@ func applyPatternCreateProposal(ctx *orm.Context, p *core.WikiGovernanceProposal
 		Pattern:     pat,
 		Sources:     pat.Evidence,
 	}
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	if err := orm.Create(ctx, article); err != nil {
 		return "", "", err
 	}
@@ -273,7 +273,7 @@ func applyPatternUpdateProposal(ctx *orm.Context, p *core.WikiGovernanceProposal
 	if len(pat.Evidence) > 0 {
 		article.Sources = pat.Evidence
 	}
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	if err := orm.Update(ctx, &article); err != nil {
 		return "", err
 	}
@@ -287,8 +287,7 @@ func (h *APIHandler) applyGovernanceProposal(w http.ResponseWriter, req *http.Re
 	proposalID := ps.ByName("id")
 
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
 
@@ -719,7 +718,7 @@ func applyEntityEnrichProposal(ctx *orm.Context, p *core.WikiGovernanceProposal)
 	// entity lookups never see these rows (that is exactly why the shell
 	// exists), so the adoption widens the search to kb-less entities only
 	readCtx := orm.NewContextWithParent(ctx)
-	readCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	readCtx.DirectReadAccess()
 	orm.WithModel(readCtx, &core.WikiEntity{})
 	res, err := orm.SearchV2(readCtx, orm.NewQuery().Size(100).
 		Must(orm.MustNotQuery(orm.ExistsQuery("kb_id"))))
@@ -1128,7 +1127,7 @@ func docTitlesFor(ctx *orm.Context, sections []core.WikiSection, statements []co
 	}
 	titles := map[string]string{}
 	octx := orm.NewContextWithParent(ctx)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.Document{})
 	if res, err := orm.SearchV2(octx, orm.NewQuery().Size(100).
 		Filter(orm.TermsQuery("id", idList)).Include("id", "title")); err == nil && res != nil {
@@ -1306,7 +1305,7 @@ func applyCompilePatchProposal(ctx *orm.Context, p *core.WikiGovernanceProposal)
 	article.AIGenerated = true
 	article.Summary = deriveSummaryFromBody(content)
 	mergeCitedSources(ctx, p.KbID, &article, content)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	if err := orm.Update(ctx, &article); err != nil {
 		return "", "", err
 	}
@@ -1360,7 +1359,7 @@ func mergeCitedSources(ctx *orm.Context, kbID string, article *core.WikiArticle,
 		return
 	}
 	kctx := orm.NewContextWithParent(ctx)
-	kctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	kctx.DirectReadAccess()
 	kb := core.WikiKnowledgeBase{}
 	kb.SetID(kbID)
 	orm.WithModel(kctx, &core.WikiKnowledgeBase{})
@@ -1371,7 +1370,7 @@ func mergeCitedSources(ctx *orm.Context, kbID string, article *core.WikiArticle,
 	// NewContextWithParent starts an empty parameter store — it does NOT
 	// inherit the parent's flags. Without this the security search hook
 	// demands a session user and panics in background sweeps (no user).
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.Document{})
 	res, err := orm.SearchV2(octx, orm.NewQuery().Size(500).
 		Filter(orm.TermsQuery("source.id", kb.DatasourceIDs)).

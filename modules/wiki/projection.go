@@ -52,9 +52,8 @@ func passesProjectionGate(article *core.WikiArticle, conceptMinSources int) bool
 // callers decide whether to surface it.
 func projectArticleToDocument(article *core.WikiArticle) error {
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	// GetV2 below is an OpGet — the get/search hooks bypass on the read flag
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	ctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(ctx, &core.Document{})
 
@@ -125,12 +124,11 @@ func projectionDocument(article *core.WikiArticle, kbName string) *core.Document
 // archived or deleted).
 func removeArticleProjection(articleID string) error {
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	// orm.Delete first loads the previous row via GetV2 — an OpGet, whose
 	// security pre-hook bypasses on the READ flag; without it a user-less
 	// context panics 401 mid-delete (the article row dies, this cleanup
 	// never runs)
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
 	ctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(ctx, &core.Document{})
 
@@ -208,7 +206,7 @@ func loadKBName(kbID string) string {
 		return ""
 	}
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiKnowledgeBase{})
 	kb := core.WikiKnowledgeBase{}
 	kb.ID = kbID
@@ -225,7 +223,7 @@ func loadKBName(kbID string) string {
 // existing projections are skipped, counted, never rewritten.
 func backfillPublishedProjections() (total, projected, skipped int, err error) {
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiArticle{})
 
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1000).
@@ -240,7 +238,7 @@ func backfillPublishedProjections() (total, projected, skipped int, err error) {
 	}
 
 	haveCtx := orm.NewContext()
-	haveCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	haveCtx.DirectReadAccess()
 	orm.WithModel(haveCtx, &core.Document{})
 
 	total = len(articles)

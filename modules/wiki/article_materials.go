@@ -49,7 +49,7 @@ type AttachmentMaterial struct {
 func (h *APIHandler) articleMaterials(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	articleID := ps.ByName("id")
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiArticle{})
 
 	article := core.WikiArticle{}
@@ -210,7 +210,7 @@ func resolveArticleAttachments(ctx *orm.Context, ids []string) []core.WikiArticl
 func (h *APIHandler) articleAttachments(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	articleID := ps.ByName("id")
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiArticle{})
 
 	article := core.WikiArticle{}
@@ -244,7 +244,7 @@ func (h *APIHandler) updateArticleAttachments(w http.ResponseWriter, req *http.R
 	}
 
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiArticle{})
 
 	article := core.WikiArticle{}
@@ -270,7 +270,7 @@ func (h *APIHandler) updateArticleAttachments(w http.ResponseWriter, req *http.R
 	}
 
 	writeCtx := orm.NewContextWithParent(req.Context())
-	writeCtx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	writeCtx.DirectAccess()
 	orm.WithModel(writeCtx, &core.WikiArticle{})
 	article.Attachments = kept
 	if err := orm.Update(writeCtx, &article); err != nil {
@@ -293,7 +293,7 @@ func (h *APIHandler) updateArticleAttachments(w http.ResponseWriter, req *http.R
 func (h *APIHandler) rewriteArticle(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	articleID := ps.ByName("id")
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiArticle{})
 
 	article := core.WikiArticle{}
@@ -355,7 +355,7 @@ func (h *APIHandler) rewriteArticle(w http.ResponseWriter, req *http.Request, ps
 	persistLinkedPages(&article)
 
 	writeCtx := orm.NewContextWithParent(req.Context())
-	writeCtx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	writeCtx.DirectAccess()
 	orm.WithModel(writeCtx, &core.WikiArticle{})
 	if err := orm.Update(writeCtx, &article); err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)

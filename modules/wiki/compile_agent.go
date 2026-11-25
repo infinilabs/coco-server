@@ -74,7 +74,7 @@ func init() {
 
 func compileAgentSweep(ctx context.Context) {
 	octx := orm.NewContextWithParent(ctx)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.WikiKnowledgeBase{})
 	res, err := orm.SearchV2(octx, orm.NewQuery().Size(50))
 	if err != nil || res == nil {
@@ -139,8 +139,7 @@ type compileAgentTools struct {
 // context with the direct-read flags the pipeline-less path needs.
 func pipeCtx(ctx context.Context) *orm.Context {
 	octx := orm.NewContextWithParent(ctx)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	octx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	octx.DirectAccess()
 	return octx
 }
 
@@ -544,7 +543,7 @@ func runCompileAgent(parent *orm.Context, kbID string, maxIters int) (*compileAg
 	kb := core.WikiKnowledgeBase{}
 	kb.SetID(kbID)
 	kctx := orm.NewContextWithParent(parent)
-	kctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	kctx.DirectReadAccess()
 	orm.WithModel(kctx, &core.WikiKnowledgeBase{})
 	exists, err := orm.GetV2(kctx, &kb)
 	if err != nil || !exists {
@@ -553,8 +552,7 @@ func runCompileAgent(parent *orm.Context, kbID string, maxIters int) (*compileAg
 
 	report := &compileAgentReport{}
 	ctx := orm.NewContextWithParent(parent)
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 
 	// run-wide tool state: a proposal filed inside an iteration that later
 	// trips the step budget is STILL filed — the count must survive the run
@@ -600,8 +598,7 @@ func runCompileAgent(parent *orm.Context, kbID string, maxIters int) (*compileAg
 func (h *APIHandler) runCompileAgentHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	kbID := ps.ByName("id")
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	report, err := runCompileAgent(ctx, kbID, compileAgentMaxItersPerRun)
 	if err != nil {
 		h.WriteError(w, err.Error(), http.StatusInternalServerError)

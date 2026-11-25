@@ -48,7 +48,7 @@ func liaisonSetup(t *testing.T) {
 func liaisonWrite(t *testing.T, obj interface{}) {
 	t.Helper()
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
 	require.NoError(t, orm.Create(ctx, obj))
 }
@@ -56,7 +56,7 @@ func liaisonWrite(t *testing.T, obj interface{}) {
 func liaisonProposals(t *testing.T, pType string) []core.WikiGovernanceProposal {
 	t.Helper()
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(100).
 		Filter(orm.TermQuery("type", pType)))
@@ -136,7 +136,7 @@ func TestLiaisonDeletionMarksStale(t *testing.T) {
 
 	// the citing article itself is untouched — marking only, never removal
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiArticle{})
 	a := core.WikiArticle{}
 	a.ID = "art-cites"

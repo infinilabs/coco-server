@@ -48,7 +48,7 @@ func propagationSetup(t *testing.T) {
 func propagationWrite(t *testing.T, obj interface{}) {
 	t.Helper()
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
 	require.NoError(t, orm.Create(ctx, obj))
 }
@@ -148,7 +148,7 @@ func TestEntityEditPropagationSkipsTrivialEdits(t *testing.T) {
 func listProposalsForTest(t *testing.T) []core.WikiGovernanceProposal {
 	t.Helper()
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiGovernanceProposal{})
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(100).
 		Filter(orm.TermQuery("type", core.WikiGovernanceArticleRefresh)))

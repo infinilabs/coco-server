@@ -253,7 +253,7 @@ func TestWikiFlow_EntityLifecycle(t *testing.T) {
 	// global entity would be invisible to this KB's wikilink resolution by
 	// design
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 
 	w, out := call(t, kbH.Create, "POST", "/wiki/kb/", `{"name":"Ontology KB"}`)
 	require.Equal(t, http.StatusOK, w.Code)

@@ -672,7 +672,7 @@ func createDraftArticle(kb *core.WikiKnowledgeBase, requesterID, title, summary,
 	article.SetOwnerID(requesterID)
 
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true) // worker context has no session user
+	ctx.DirectAccess() // worker context has no session user
 	orm.WithModel(ctx, &core.WikiArticle{})
 	if err := orm.Create(ctx, article); err != nil {
 		return nil, err
@@ -699,7 +699,7 @@ func notifyOwner(userID, targetType, targetID, action, message string) {
 		return
 	}
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	orm.WithModel(ctx, &core.WikiNotification{})
 	notification := &core.WikiNotification{
 		UserID:     userID,
@@ -745,7 +745,7 @@ func (h *APIHandler) aiGenerate(w http.ResponseWriter, req *http.Request, ps htt
 	}
 
 	readCtx := orm.NewContextWithParent(req.Context())
-	readCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	readCtx.DirectReadAccess()
 	orm.WithModel(readCtx, &core.WikiKnowledgeBase{})
 	var kb core.WikiKnowledgeBase
 	kb.SetID(kbID)
@@ -982,7 +982,7 @@ func (h *APIHandler) aiEdit(w http.ResponseWriter, req *http.Request, ps httprou
 	}
 
 	readCtx := orm.NewContextWithParent(req.Context())
-	readCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	readCtx.DirectReadAccess()
 	orm.WithModel(readCtx, &core.WikiArticle{})
 	var article core.WikiArticle
 	article.SetID(articleID)
@@ -1006,7 +1006,7 @@ func (h *APIHandler) aiEdit(w http.ResponseWriter, req *http.Request, ps httprou
 	var kbForPrompt *core.WikiKnowledgeBase
 	if modelProvider == "" && model == "" && article.KbID != "" {
 		kbCtx := orm.NewContextWithParent(req.Context())
-		kbCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
+		kbCtx.DirectReadAccess()
 		orm.WithModel(kbCtx, &core.WikiKnowledgeBase{})
 		var kb core.WikiKnowledgeBase
 		kb.SetID(article.KbID)
@@ -1104,8 +1104,7 @@ func (h *APIHandler) aiEdit(w http.ResponseWriter, req *http.Request, ps httprou
 	}
 
 	writeCtx := orm.NewContext()
-	writeCtx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	writeCtx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	writeCtx.DirectAccess()
 	// the edit must be visible to the version read right below and to
 	// search immediately — same refresh discipline as the publish route
 	writeCtx.Refresh = orm.WaitForRefresh

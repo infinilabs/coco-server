@@ -388,7 +388,7 @@ func organizeFolderID(category, kbID string) string {
 func OrganizeTocSemantically(parent context.Context, kbID string) (*organizeStats, error) {
 	// read the current tree
 	ctx := orm.NewContextWithParent(parent)
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiToc{})
 	toc, _, err := findToc(ctx, kbID)
 	if err != nil {
@@ -522,7 +522,7 @@ func fetchArticleSummaries(parent context.Context, loose []core.WikiTocNode) map
 		ids = append(ids, n.ArticleID)
 	}
 	ctx := orm.NewContextWithParent(parent)
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiArticle{})
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(len(ids)).Filter(orm.TermsQuery("id", ids)))
 	if err != nil {
@@ -576,7 +576,7 @@ func excerptLine(s string, maxRunes int) string {
 // articles — the precheck for "nothing to do" and the number the UI shows.
 func countLooseRootArticles(kbID string) (int, error) {
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiToc{})
 	toc, _, err := findToc(ctx, kbID)
 	if err != nil {
@@ -661,7 +661,7 @@ func maybeAutoOrganizeToc(kbID string) {
 		return
 	}
 	kctx := orm.NewContext()
-	kctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	kctx.DirectReadAccess()
 	orm.WithModel(kctx, &core.WikiKnowledgeBase{})
 	var kb core.WikiKnowledgeBase
 	kb.SetID(kbID)

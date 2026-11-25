@@ -92,7 +92,7 @@ func applyImpactArchiveProposal(ctx *orm.Context, p *core.WikiGovernanceProposal
 		return "已处于归档状态", nil
 	}
 	article.Status = core.WikiArticleArchived
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	if err := orm.Update(ctx, &article); err != nil {
 		return "", err
 	}

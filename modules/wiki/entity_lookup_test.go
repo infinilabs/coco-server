@@ -45,7 +45,7 @@ func lookupSetup(t *testing.T) {
 func TestFindEntityByNameOrAlias_CaseFold(t *testing.T) {
 	lookupSetup(t)
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 
 	seed := func(id, name string, aliases ...string) {
 		e := &core.WikiEntity{}
@@ -79,7 +79,7 @@ func TestFindEntityByNameOrAlias_CaseFold(t *testing.T) {
 func TestPromoteTopicEntities_AnchoredID(t *testing.T) {
 	lookupSetup(t)
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 
 	kbID := "kb-anchor"
 	n := promoteTopicEntities(ctx, kbID, []string{"Kepler Checker"}, nil, nil)

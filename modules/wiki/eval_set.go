@@ -82,8 +82,7 @@ func (h *APIHandler) upsertWikiEvalCaseHandler(w http.ResponseWriter, req *http.
 	}
 
 	wctx := orm.NewContextWithParent(req.Context())
-	wctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	wctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	wctx.DirectAccess()
 	// operator-paced read-after-write: "add a case, hit run" must see
 	// the case in the run's snapshot
 	wctx.Refresh = orm.WaitForRefresh
@@ -115,7 +114,7 @@ func (h *APIHandler) deleteWikiEvalCaseHandler(w http.ResponseWriter, req *http.
 	entry := &core.WikiEvalCase{}
 	entry.SetID(ps.ByName("cid"))
 	dctx := orm.NewContextWithParent(req.Context())
-	dctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	dctx.DirectAccess()
 	dctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(dctx, &core.WikiEvalCase{})
 	if err := orm.Delete(dctx, entry); err != nil {
@@ -152,7 +151,7 @@ func (h *APIHandler) listWikiEvalRunsHandler(w http.ResponseWriter, req *http.Re
 		size = 20
 	}
 	octx := orm.NewContextWithParent(req.Context())
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.WikiEvalRun{})
 	res, err := orm.SearchV2(octx, orm.NewQuery().Size(size).
 		Filter(orm.TermQuery("kb_id", ps.ByName("id"))).
@@ -195,7 +194,7 @@ func RunWikiEvalReplay(parent context.Context, kbID, trigger string) (*core.Wiki
 	}
 
 	wctx := orm.NewContextWithParent(parent)
-	wctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	wctx.DirectAccess()
 	orm.WithModel(wctx, &core.WikiEvalRun{})
 	if err := orm.Create(wctx, run); err != nil {
 		log.Warnf("wiki: eval run persist failed for kb [%s]: %v", kbID, err)
@@ -223,7 +222,7 @@ func executeWikiEvalCase(parent context.Context, kbID string, c *core.WikiEvalCa
 	}
 
 	octx := orm.NewContextWithParent(parent)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.WikiArticle{})
 	builder := orm.NewQuery().From(0).Size(wikiEvalWindow)
 	builder.Query(c.Query)
@@ -302,8 +301,7 @@ func ScheduleSkillEvalReplay(kbID, actor string) {
 			}
 		}()
 		ctx := orm.NewContext()
-		ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-		ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+		ctx.DirectAccess()
 		cases, err := wikiEvalCases(ctx, kbID, 1)
 		if err != nil || len(cases) == 0 {
 			return // progressive capability: no set, no replay
@@ -334,7 +332,7 @@ func wikiEvalCases(parent context.Context, kbID string, size int) ([]core.WikiEv
 		size = wikiEvalCaseCap
 	}
 	octx := orm.NewContextWithParent(parent)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.WikiEvalCase{})
 	res, err := orm.SearchV2(octx, orm.NewQuery().Size(size).
 		Filter(orm.TermQuery("kb_id", kbID)).
@@ -351,7 +349,7 @@ func wikiEvalCases(parent context.Context, kbID string, size int) ([]core.WikiEv
 
 func wikiEvalCaseByQuery(parent context.Context, kbID, query string) *core.WikiEvalCase {
 	octx := orm.NewContextWithParent(parent)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.WikiEvalCase{})
 	res, err := orm.SearchV2(octx, orm.NewQuery().Size(1).
 		Filter(orm.TermQuery("kb_id", kbID), orm.TermQuery("query", query)))

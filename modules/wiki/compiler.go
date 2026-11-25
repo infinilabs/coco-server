@@ -360,7 +360,7 @@ func (h *APIHandler) compileKBHandler(w http.ResponseWriter, req *http.Request, 
 	kb := core.WikiKnowledgeBase{}
 	kb.ID = kbID
 	kctx := orm.NewContextWithParent(req.Context())
-	kctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	kctx.DirectReadAccess()
 	exists, err := orm.GetV2(kctx, &kb)
 	if err != nil || !exists {
 		h.WriteOpRecordNotFoundJSON(w, kbID)
@@ -477,8 +477,7 @@ func runCompilePipeline(ctx context.Context, kb *core.WikiKnowledgeBase, model *
 	// search hooks bypass on — compileGeneration searches with this same
 	// context to derive each proposal's generation, and without it the
 	// first proposal filing panicked the whole compile
-	pctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
-	pctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	pctx.DirectAccess()
 	existing := compileExistingArticles(ctx, kb.ID)
 	summary.Proposals = runTopicPipeline(ctx, kb, model, job, reduced, existing, summary.Docs, pctx)
 	if job != nil {
@@ -583,7 +582,7 @@ func compileDocsByIDs(ctx context.Context, docIDs []string) []core.Document {
 		return nil
 	}
 	octx := orm.NewContextWithParent(ctx)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.Document{})
 	docs := make([]core.Document, 0, len(docIDs))
 	for _, id := range docIDs {
@@ -607,7 +606,7 @@ func kbDocumentCount(ctx context.Context, kb *core.WikiKnowledgeBase) int {
 		return 0
 	}
 	octx := orm.NewContextWithParent(ctx)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.Document{})
 	res, err := orm.SearchV2(octx, orm.NewQuery().Size(1).
 		Filter(orm.TermsQuery("source.id", kb.DatasourceIDs)))
@@ -676,8 +675,7 @@ func runIncrementalCompile(ctx context.Context, kb *core.WikiKnowledgeBase, mode
 	pctx := orm.NewContext()
 	// same flags as the full run: the write flag passes create/update
 	// hooks; compileGeneration needs the read flag to derive generations
-	pctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
-	pctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	pctx.DirectAccess()
 	existing := compileExistingArticles(ctx, kb.ID)
 	docCount := kbDocumentCount(ctx, kb)
 	if docCount == 0 {
@@ -967,7 +965,7 @@ func articleDeptByPath(ctx *orm.Context, articles []core.WikiArticle, layout []c
 	docPath := map[string]string{}
 	if len(ids) > 0 {
 		octx := orm.NewContextWithParent(ctx)
-		octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+		octx.DirectReadAccess()
 		orm.WithModel(octx, &core.Document{})
 		res, err := orm.SearchV2(octx, orm.NewQuery().Size(2000).
 			Filter(orm.TermsQuery("id", ids)).Include("id", "folder_path", "category"))
@@ -1021,7 +1019,7 @@ func compileSourceDocuments(ctx context.Context, kb *core.WikiKnowledgeBase) ([]
 		return nil, nil
 	}
 	octx := orm.NewContextWithParent(ctx)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.Document{})
 	res, err := orm.SearchV2(octx, orm.NewQuery().Size(compileMaxDocs).
 		Filter(orm.TermsQuery("source.id", kb.DatasourceIDs)).
@@ -1042,7 +1040,7 @@ func compileSourceDocuments(ctx context.Context, kb *core.WikiKnowledgeBase) ([]
 
 func compileExistingArticles(ctx context.Context, kbID string) []core.WikiArticle {
 	octx := orm.NewContextWithParent(ctx)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.WikiArticle{})
 	res, err := orm.SearchV2(octx, orm.NewQuery().Size(1000).
 		Filter(orm.TermQuery("kb_id", kbID)))
@@ -1201,7 +1199,7 @@ func matchDeptByDocIDs(ctx *orm.Context, kb *core.WikiKnowledgeBase, docIDs []st
 		return dept, matchedDept
 	}
 	octx := orm.NewContextWithParent(ctx)
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.Document{})
 	if res, err := orm.SearchV2(octx, orm.NewQuery().Size(50).
 		Filter(orm.TermsQuery("id", docIDs)).Include("id", "folder_path", "category")); err == nil && res != nil {

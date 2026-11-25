@@ -74,7 +74,7 @@ func ensureUploadDatasource(ctx *orm.Context, kb *core.WikiKnowledgeBase) (*core
 func (h *APIHandler) kbFiles(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	kbID := ps.ByName("id")
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 
 	kb := core.WikiKnowledgeBase{}
 	kb.SetID(kbID)
@@ -144,7 +144,7 @@ func (h *APIHandler) kbFiles(w http.ResponseWriter, req *http.Request, ps httpro
 
 	// document attachments (bound datasources + the upload source)
 	dctx := orm.NewContextWithParent(ctx)
-	dctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	dctx.DirectReadAccess()
 	orm.WithModel(dctx, &core.Document{})
 	dres, err := orm.SearchV2(dctx, orm.NewQuery().Size(1000).
 		Filter(orm.TermsQuery("source.id", dsIDs)).
@@ -251,8 +251,7 @@ func (h *APIHandler) uploadKBFiles(w http.ResponseWriter, req *http.Request, ps 
 	}
 
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 
 	kb := core.WikiKnowledgeBase{}
 	kb.SetID(kbID)
@@ -346,7 +345,7 @@ func (h *APIHandler) uploadKBFiles(w http.ResponseWriter, req *http.Request, ps 
 			doc.Created = existing.Created
 		}
 		wctx := orm.NewContextWithParent(ctx)
-		wctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+		wctx.DirectAccess()
 		wctx.Refresh = orm.WaitForRefresh
 		orm.WithModel(wctx, &core.Document{})
 		// this orm's Update refuses missing rows — first upload creates,

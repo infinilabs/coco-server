@@ -44,7 +44,7 @@ func (h *APIHandler) getCompanyMap(w http.ResponseWriter, req *http.Request, _ h
 	kbID := req.URL.Query().Get("kb")
 
 	octx := orm.NewContextWithParent(req.Context())
-	octx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	octx.DirectReadAccess()
 	orm.WithModel(octx, &core.WikiArticle{})
 
 	builder := orm.NewQuery().Size(1).

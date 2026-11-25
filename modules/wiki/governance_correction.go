@@ -150,8 +150,7 @@ func (h *APIHandler) createCorrection(w http.ResponseWriter, req *http.Request, 
 	}
 
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	// operator-paced read-after-write: the reporter's next view of the
 	// governance queue must show the proposal
 	ctx.Refresh = orm.WaitForRefresh

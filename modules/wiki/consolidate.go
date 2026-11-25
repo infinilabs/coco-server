@@ -47,8 +47,7 @@ type consolidateStats struct {
 func (h *APIHandler) consolidateKB(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 	kbID := ps.ByName("id")
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
 
 	stats, err := consolidateKBContent(ctx, kbID)
@@ -324,7 +323,7 @@ func rewriteTocWithout(ctx *orm.Context, kbID string, removedIDs []string) error
 // pass merges fragments into it).
 func overviewPageID(title string) string {
 	ctx := orm.NewContext()
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
+	ctx.DirectReadAccess()
 	orm.WithModel(ctx, &core.WikiArticle{})
 	res, err := orm.SearchV2(ctx, orm.NewQuery().Size(1).
 		Filter(orm.TermQuery("title", title)))

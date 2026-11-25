@@ -45,8 +45,7 @@ func (h *APIHandler) mergeEntities(w http.ResponseWriter, req *http.Request, ps 
 	}
 
 	ctx := orm.NewContextWithParent(req.Context())
-	ctx.Set(orm.DirectReadWithoutPermissionCheck, true)
-	ctx.Set(orm.DirectWriteWithoutPermissionCheck, true)
+	ctx.DirectAccess()
 	ctx.Refresh = orm.WaitForRefresh
 	orm.WithModel(ctx, &core.WikiEntity{})
 
